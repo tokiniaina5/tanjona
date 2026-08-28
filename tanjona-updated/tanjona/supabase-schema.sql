@@ -77,6 +77,30 @@ create policy "only owner can delete site content"
   using (true);
 
 
+-- 4) Commandes de la boutique (écrites par n'importe quel visiteur, lues par le propriétaire uniquement)
+create table if not exists public.orders (
+  id uuid primary key default gen_random_uuid(),
+  customer_name text,
+  customer_phone text,
+  payment_method text,
+  items text,
+  total numeric,
+  created_at timestamptz default now()
+);
+
+alter table public.orders enable row level security;
+
+create policy "anyone can place an order"
+  on public.orders for insert
+  to anon, authenticated
+  with check (true);
+
+create policy "only owner can read orders"
+  on public.orders for select
+  to authenticated
+  using (true);
+
+
 -- ============================================================
 -- Étape suivante (à faire manuellement, une seule fois) :
 --

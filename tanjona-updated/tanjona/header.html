@@ -169,9 +169,9 @@
     justify-content:center;
   }
   .backdrop-photo{
-    width: 150px;
-    height: 150px;
-    border-radius: 50%;
+    width: 190px;
+    height: auto;
+    border-radius: 14px;
     object-fit: cover;
     border: 3px solid var(--cyan);
     box-shadow: 0 0 50px rgba(79,216,224,0.4);
@@ -201,13 +201,14 @@
 
   @media (max-width: 880px){
     .header{
-      padding: 0 6vw 6vh;
+      min-height: 72vh;
+      padding: 0 6vw 4vh;
     }
     .node-label{ font-size: 0.62rem; padding: 0.32rem 0.55rem; }
     .backdrop-inner{ flex-direction:column; gap: 1.4rem; }
     .backdrop-text{ text-align:center; }
     .backdrop-about{ margin-left:auto; margin-right:auto; }
-    .backdrop-photo{ width: 110px; height: 110px; }
+    .backdrop-photo{ width: 130px; height:auto; }
   }
 </style>
 </head>
@@ -369,21 +370,24 @@
       return y;
     }
 
-    function drawAvatarCover(img, cx, cy, diameter){
-      const radius = diameter / 2;
+    function drawAvatarCover(img, cx, cy, w, h){
+      const radius = 16;
+      const x = cx - w/2, y = cy - h/2;
       ctx.save();
       ctx.beginPath();
-      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.moveTo(x + radius, y);
+      ctx.arcTo(x + w, y, x + w, y + h, radius);
+      ctx.arcTo(x + w, y + h, x, y + h, radius);
+      ctx.arcTo(x, y + h, x, y, radius);
+      ctx.arcTo(x, y, x + w, y, radius);
       ctx.closePath();
       ctx.clip();
-      const scale = Math.max(diameter / img.width, diameter / img.height);
-      const w = img.width * scale, h = img.height * scale;
-      ctx.drawImage(img, cx - w/2, cy - h/2, w, h);
+      const scale = Math.max(w / img.width, h / img.height);
+      const iw = img.width * scale, ih = img.height * scale;
+      ctx.drawImage(img, cx - iw/2, cy - ih/2, iw, ih);
       ctx.restore();
-      ctx.beginPath();
-      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-      ctx.strokeStyle = '#5fe8f0';
       ctx.lineWidth = 5;
+      ctx.strokeStyle = '#5fe8f0';
       ctx.stroke();
     }
 
@@ -399,7 +403,7 @@
 
       // photo + name, top row
       if(photoImg){
-        drawAvatarCover(photoImg, 146, 146, 180);
+        drawAvatarCover(photoImg, 146, 146, 170, 200);
       }
       ctx.fillStyle = '#5fe8f0';
       ctx.font = 'bold 46px "Courier New", monospace';
@@ -672,6 +676,44 @@
   chip.scale.setScalar(1.05);
   worldGroup.add(chip);
 
+  // small juice-dispensing robot, wired to the PIC & ESP32 board — a compact 3D version of the robotique demo
+  function makeMiniDispenser(color){
+    const g = new THREE.Group();
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1a2026, emissive: color, emissiveIntensity:0.25, metalness:0.5, roughness:0.4 });
+    const cupMat = new THREE.MeshStandardMaterial({ color: 0xe7ecee, transparent:true, opacity:0.5, metalness:0.1, roughness:0.3 });
+    const liquidMat = new THREE.MeshStandardMaterial({ color: 0xf2a33c, emissive: 0xf2a33c, emissiveIntensity:0.4, metalness:0.1, roughness:0.4 });
+
+    const box = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.32, 0.26), bodyMat);
+    g.add(box);
+    const spout = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.025, 0.1, 8), bodyMat);
+    spout.position.set(0, -0.2, 0.1);
+    g.add(spout);
+    const led = new THREE.Mesh(new THREE.SphereGeometry(0.02, 8, 8), new THREE.MeshBasicMaterial({ color }));
+    led.position.set(0.13, 0.1, 0.14);
+    g.add(led);
+
+    const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.055, 0.16, 14, 1, true), cupMat);
+    cup.position.set(0, -0.36, 0.1);
+    g.add(cup);
+    const liquid = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.05, 1, 14), liquidMat);
+    liquid.position.set(0, -0.36 - 0.08, 0.1);
+    liquid.scale.y = 0.001;
+    g.add(liquid);
+
+    const stream = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.14, 6), liquidMat);
+    stream.position.set(0, -0.28, 0.1);
+    stream.visible = false;
+    g.add(stream);
+
+    g.userData = { led, liquid, stream };
+    return g;
+  }
+
+  const miniDispenser = makeMiniDispenser(amber);
+  miniDispenser.position.set(0.55, 0.55, 0.15);
+  miniDispenser.scale.setScalar(1.15);
+  chip.add(miniDispenser);
+
   // orbiting node 3: WEB — bracket / code symbol using torus knot-ish simple shape (two brackets)
   function makeBrackets(color){
     const g = new THREE.Group();
@@ -893,6 +935,16 @@
     if(chip.userData.led){
       const pulse = 0.5 + Math.sin(t * 4) * 0.5;
       chip.userData.led.material.color.setRGB(1, 0.55 + pulse*0.3, 0.1);
+    }
+    {
+      const md = miniDispenser.userData;
+      const cyclePos = (t % 3) / 3; // 0..1 over a 3s pour/fill loop
+      const fillAmount = cyclePos < 0.5 ? Math.min(1, cyclePos / 0.35) : Math.max(0, 1 - (cyclePos-0.7)/0.3);
+      md.liquid.scale.y = Math.max(0.001, fillAmount);
+      md.liquid.position.y = -0.36 - 0.08 + (1 - fillAmount) * 0.08;
+      md.stream.visible = cyclePos > 0.08 && cyclePos < 0.45;
+      const ledPulse = 0.5 + Math.sin(t * 5) * 0.5;
+      md.led.material.color.setRGB(1, 0.5 + ledPulse*0.3, 0.15);
     }
 
     brackets.rotation.y = t * 0.5;
