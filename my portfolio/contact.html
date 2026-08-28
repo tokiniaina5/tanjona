@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Me contacter — Tanjona</title>
+<style>
+  :root{
+    --bg: #0a0d10;
+    --panel: #131a20;
+    --line: #1f2a30;
+    --cyan: #4fd8e0;
+    --amber: #f2a33c;
+    --violet: #8b93ff;
+    --text: #eaf1f0;
+    --muted: #7c8b92;
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ background:var(--bg); color:var(--text); font-family:var(--font-body); }
+
+  .back-link{
+    position:fixed; top:2rem; left:2rem; z-index:10;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-decoration:none;
+    display:flex; align-items:center; gap:0.5rem;
+    padding: 0.55rem 1rem;
+    border:1px solid var(--line);
+    border-radius:999px;
+    background: rgba(19,26,32,0.7);
+    backdrop-filter: blur(4px);
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .back-link:hover{ color: var(--cyan); border-color: var(--cyan); }
+
+  main{
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 8rem 6vw 6rem;
+  }
+
+  .eyebrow{
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.12em;
+    color: var(--cyan);
+    text-transform: uppercase;
+    margin-bottom: 1.2rem;
+    display:flex; align-items:center; gap:0.6rem;
+  }
+  .eyebrow::before{
+    content:""; width:8px; height:8px; background:var(--cyan);
+    border-radius:2px; box-shadow:0 0 12px var(--cyan);
+  }
+
+  h1{
+    font-family: var(--font-display);
+    font-weight:700;
+    font-size: clamp(1.9rem, 4.5vw, 2.8rem);
+    line-height:1.1;
+    letter-spacing:-0.01em;
+  }
+  h1 .accent{ color: var(--cyan); }
+
+  p.lead{
+    margin-top:1rem;
+    max-width: 56ch;
+    color: var(--muted);
+    font-size: 1.02rem;
+    line-height:1.7;
+  }
+
+  form{ margin-top: 2.4rem; }
+  .field{ margin-bottom: 1.2rem; }
+  .field label{
+    display:block;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color: var(--muted);
+    margin-bottom: 0.5rem;
+  }
+  .field input, .field textarea{
+    width:100%;
+    padding: 0.8rem 0.9rem;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--text);
+    font-size: 0.95rem;
+    font-family: inherit;
+  }
+  .field textarea{ min-height: 130px; resize:vertical; }
+  .field input:focus, .field textarea:focus{ outline:none; border-color: var(--cyan); }
+
+  .btn{
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    letter-spacing: 0.03em;
+    padding: 0.85rem 1.5rem;
+    border-radius: 8px;
+    cursor:pointer;
+    border:none;
+    background: var(--cyan);
+    color: #04191b;
+    font-weight:600;
+    transition: transform 0.15s ease;
+  }
+  .btn:hover{ transform: translateY(-2px); }
+
+  .confirm{
+    display:none;
+    margin-top: 1.4rem;
+    padding: 1rem 1.2rem;
+    border-radius: 10px;
+    border: 1px solid rgba(79,216,224,0.4);
+    background: rgba(79,216,224,0.08);
+    color: var(--cyan);
+    font-size: 0.9rem;
+  }
+
+  .direct{
+    margin-top: 2.6rem;
+    padding-top: 1.6rem;
+    border-top: 1px solid var(--line);
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+  .direct a{ color: var(--cyan); }
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+(function(){
+  var SUPABASE_URL = 'https://cownezvqavyyhzbjexlh.supabase.co';
+  var SUPABASE_KEY = 'sb_publishable_-t-UoOmT6GEKjIVG81Cv3Q_DyLVBapC';
+  if(!window.supabase || !window.supabase.createClient) return;
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  window.__sb = sb;
+
+  // enregistre discrètement la visite de cette page (aucun blocage si ça échoue)
+  try{
+    sb.from('site_visits').insert({
+      path: window.location.pathname,
+      referrer: document.referrer || null,
+      user_agent: navigator.userAgent
+    }).then(function(){}, function(){});
+  }catch(e){}
+
+  // applique le contenu modifié par le propriétaire (éléments marqués data-cms="...")
+  try{
+    sb.from('site_content').select('key,value').then(function(res){
+      if(!res || !res.data) return;
+      res.data.forEach(function(row){
+        document.querySelectorAll('[data-cms="' + row.key + '"]').forEach(function(el){
+          el.textContent = row.value;
+        });
+      });
+    }, function(){});
+  }catch(e){}
+})();
+</script>
+
+
+<a class="back-link" href="header.html">← Retour</a>
+
+<main>
+  <div class="eyebrow">Me contacter</div>
+  <h1>Un projet en tête ? <span class="accent">Parlons-en.</span></h1>
+  <p class="lead" data-cms="contact_lead">Décrivez votre besoin ci-dessous — site web, application, e-commerce, ou tout autre projet. Le message ouvrira directement votre client mail, prêt à être envoyé.</p>
+
+  <form id="contactForm">
+    <div class="field">
+      <label for="cName">Nom</label>
+      <input id="cName" type="text" required placeholder="Votre nom">
+    </div>
+    <div class="field">
+      <label for="cEmail">Email</label>
+      <input id="cEmail" type="email" required placeholder="vous@exemple.com">
+    </div>
+    <div class="field">
+      <label for="cMessage">Message</label>
+      <textarea id="cMessage" required placeholder="Décrivez votre projet ou votre besoin..."></textarea>
+    </div>
+    <button type="submit" class="btn">Envoyer le message</button>
+    <div class="confirm" id="confirmMsg">Message prêt — votre client mail va s'ouvrir.</div>
+  </form>
+
+  <div class="direct">
+    Vous préférez écrire directement ? Envoyez un message à
+    <a href="mailto:contact@tanjona.mg" id="directEmailLink">contact@tanjona.mg</a>.
+  </div>
+</main>
+
+<script>
+(function(){
+  document.getElementById('directEmailLink').href = 'mailto:contact@tanjona.mg';
+
+  document.getElementById('contactForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    const name = document.getElementById('cName').value.trim();
+    const email = document.getElementById('cEmail').value.trim();
+    const message = document.getElementById('cMessage').value.trim();
+    if(!name || !email || !message) return;
+
+    const confirmEl = document.getElementById('confirmMsg');
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+
+    function done(ok){
+      submitBtn.disabled = false;
+      confirmEl.textContent = ok
+        ? 'Message envoyé — merci, votre message a bien été reçu.'
+        : "Le message n'a pas pu être envoyé pour le moment. Réessayez plus tard, ou écrivez directement par email.";
+      confirmEl.style.display = 'block';
+      if(ok) e.target.reset();
+    }
+
+    if(window.__sb){
+      window.__sb.from('contact_messages').insert({ name, email, message }).then(
+        function(){ done(true); },
+        function(){ done(false); }
+      );
+    } else {
+      done(false);
+    }
+  });
+})();
+</script>
+
+
+
+</body>
+</html>

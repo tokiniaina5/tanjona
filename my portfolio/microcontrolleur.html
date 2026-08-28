@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Microcontrôleur — Tanjona</title>
+<style>
+  :root{
+    --bg: #0a0d10;
+    --panel: #131a20;
+    --line: #1f2a30;
+    --cyan: #4fd8e0;
+    --amber: #f2a33c;
+    --violet: #8b93ff;
+    --text: #eaf1f0;
+    --muted: #7c8b92;
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ background:var(--bg); color:var(--text); font-family:var(--font-body); }
+
+  .back-link{
+    position:fixed; top:2rem; left:2rem; z-index:10;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-decoration:none;
+    display:flex; align-items:center; gap:0.5rem;
+    padding: 0.55rem 1rem;
+    border:1px solid var(--line);
+    border-radius:999px;
+    background: rgba(19,26,32,0.7);
+    backdrop-filter: blur(4px);
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .back-link:hover{ color: var(--amber); border-color: var(--amber); }
+
+  main{
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 8rem 6vw 6rem;
+  }
+
+  .eyebrow{
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.12em;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin-bottom: 1.2rem;
+    display:flex; align-items:center; gap:0.6rem;
+  }
+  .eyebrow::before{
+    content:""; width:8px; height:8px; background:var(--amber);
+    border-radius:2px; box-shadow:0 0 12px var(--amber);
+  }
+
+  h1{
+    font-family: var(--font-display);
+    font-weight:700;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    line-height:1.05;
+    letter-spacing:-0.01em;
+  }
+  h1 .accent{ color: var(--amber); }
+
+  p.lead{
+    margin-top:1.4rem;
+    max-width: 58ch;
+    color: var(--muted);
+    font-size: 1.08rem;
+    line-height:1.7;
+  }
+
+  .grid{
+    margin-top: 3rem;
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+  }
+  .card{
+    border:1px solid var(--line);
+    background: var(--panel);
+    border-radius: 10px;
+    padding: 1.4rem;
+  }
+  .card h3{
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+    color: var(--amber);
+    margin-bottom: 0.6rem;
+    letter-spacing:0.02em;
+  }
+  .card p{
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height:1.6;
+  }
+
+  .stack{
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--line);
+  }
+  .stack h2{
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 1rem;
+  }
+  .stack-tags{
+    display:flex; flex-wrap:wrap; gap:0.6rem;
+  }
+  .stack-tag{
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--text);
+    border:1px solid var(--line);
+    background: var(--panel);
+    padding: 0.5rem 0.9rem;
+    border-radius: 6px;
+  }
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+(function(){
+  var SUPABASE_URL = 'https://cownezvqavyyhzbjexlh.supabase.co';
+  var SUPABASE_KEY = 'sb_publishable_-t-UoOmT6GEKjIVG81Cv3Q_DyLVBapC';
+  if(!window.supabase || !window.supabase.createClient) return;
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  window.__sb = sb;
+
+  // enregistre discrètement la visite de cette page (aucun blocage si ça échoue)
+  try{
+    sb.from('site_visits').insert({
+      path: window.location.pathname,
+      referrer: document.referrer || null,
+      user_agent: navigator.userAgent
+    }).then(function(){}, function(){});
+  }catch(e){}
+
+  // applique le contenu modifié par le propriétaire (éléments marqués data-cms="...")
+  try{
+    sb.from('site_content').select('key,value').then(function(res){
+      if(!res || !res.data) return;
+      res.data.forEach(function(row){
+        document.querySelectorAll('[data-cms="' + row.key + '"]').forEach(function(el){
+          el.textContent = row.value;
+        });
+      });
+    }, function(){});
+  }catch(e){}
+})();
+</script>
+
+
+<a class="back-link" href="header.html">← Retour</a>
+
+<main>
+  <div class="eyebrow">Tanjona · PIC & ESP32</div>
+  <h1>Programmation <span class="accent">PIC</span> et <span class="accent">ESP32</span> pour des systèmes embarqués qui captent, décident et agissent.</h1>
+  <p class="lead" data-cms="mcu_lead">Développement de firmware sur microcontrôleurs PIC (Microchip) et modules ESP32 — capteurs, automatismes, objets connectés — de la carte électronique jusqu'au code embarqué.</p>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Programmation PIC</h3>
+      <p>Firmware en C pour microcontrôleurs PIC : logique embarquée, gestion des entrées/sorties, timers et interruptions.</p>
+    </div>
+    <div class="card">
+      <h3>Programmation ESP32</h3>
+      <p>Développement sur ESP32 : Wi-Fi, Bluetooth, communication avec une application ou un tableau de bord.</p>
+    </div>
+    <div class="card">
+      <h3>Acquisition de capteurs</h3>
+      <p>Lecture et traitement de signaux (température, distance, mouvement, tension) en temps réel.</p>
+    </div>
+    <div class="card">
+      <h3>Automatismes & contrôle</h3>
+      <p>Logique embarquée pour piloter moteurs, relais, actionneurs selon des conditions définies.</p>
+    </div>
+  </div>
+
+  <div class="stack">
+    <h2>Environnements courants</h2>
+    <div class="stack-tags">
+      <span class="stack-tag">PIC (Microchip)</span>
+      <span class="stack-tag">ESP32</span>
+      <span class="stack-tag">MPLAB X</span>
+      <span class="stack-tag">Arduino IDE</span>
+      <span class="stack-tag">C embarqué</span>
+    </div>
+  </div>
+</main>
+
+
+
+</body>
+</html>

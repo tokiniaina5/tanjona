@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tanjona — Développeur Web / PIC & ESP32 / Mécanique</title>
+<style>
+  :root{
+    --bg: #0a0d10;
+    --bg-2: #10151a;
+    --panel: #131a20;
+    --line: #1f2a30;
+    --cyan: #4fd8e0;
+    --amber: #f2a33c;
+    --text: #eaf1f0;
+    --muted: #7c8b92;
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  @font-face{
+    font-family:'Space Grotesk';
+    src: local('Space Grotesk');
+  }
+
+  *{ box-sizing:border-box; margin:0; padding:0; }
+
+  html,body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--font-body);
+    overflow-x:hidden;
+    width:100%;
+  }
+
+  .header{
+    position:relative;
+    min-height:100vh;
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    background: var(--bg);
+    padding: 0 5vw 8vh;
+    overflow:hidden;
+  }
+
+  /* soft veil at the bottom only, just enough to keep the buttons readable */
+  .header::after{
+    content:"";
+    position:absolute; inset:0;
+    background:
+      linear-gradient(0deg, rgba(10,13,16,0.85) 0%, rgba(10,13,16,0.35) 16%, transparent 38%),
+      radial-gradient(1200px 700px at 50% 100%, rgba(79,216,224,0.05), transparent 65%);
+    pointer-events:none;
+    z-index:1;
+  }
+
+  .content{
+    position:relative;
+    z-index:2;
+  }
+
+  .cta-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:1rem;
+  }
+  .btn{
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    letter-spacing: 0.03em;
+    padding: 0.85rem 1.4rem;
+    border-radius: 6px;
+    cursor:pointer;
+    border:1px solid transparent;
+    display:inline-block;
+    text-decoration:none;
+    transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  }
+  .btn-primary{
+    background: var(--cyan);
+    color: #04191b;
+    font-weight:600;
+  }
+  .btn-primary:hover{ transform: translateY(-2px); }
+  .btn-ghost{
+    color: var(--text);
+    border-color: var(--line);
+    background: rgba(10,13,16,0.4);
+    backdrop-filter: blur(4px);
+  }
+  .btn-ghost:hover{ border-color: var(--cyan); color: var(--cyan); }
+
+  /* labels anchored to the 3D nodes, positioned every frame from JS */
+  .node-label{
+    position:absolute;
+    top:0; left:0;
+    transform: translate(-50%, -50%);
+    z-index:2;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    white-space:nowrap;
+    padding: 0.4rem 0.7rem;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: rgba(10,13,16,0.55);
+    backdrop-filter: blur(3px);
+    pointer-events:auto;
+    cursor:pointer;
+    text-decoration:none;
+    display:flex;
+    align-items:center;
+    gap:0.45rem;
+    transition: opacity 0.2s ease, transform 0.15s ease, border-color 0.15s ease;
+  }
+  .node-label:hover{
+    transform: translate(-50%, -50%) scale(1.08);
+    border-color: currentColor;
+  }
+  .node-label::before{
+    content:"";
+    width:6px; height:6px;
+    border-radius:50%;
+  }
+  .label-web::before{ background: var(--cyan); box-shadow:0 0 8px var(--cyan); }
+  .label-mcu::before{ background: var(--amber); box-shadow:0 0 8px var(--amber); }
+  .label-mech::before{ background: #8b93ff; box-shadow:0 0 8px #8b93ff; }
+  .label-web{ color: var(--cyan); }
+  .label-mcu{ color: var(--amber); }
+  .label-mech{ color: #8b93ff; }
+
+  .scene-wrap{
+    position:absolute;
+    inset:0;
+    z-index:0;
+  }
+  #scene{
+    width:100%;
+    height:100%;
+    display:block;
+    position:relative;
+  }
+
+  /* portfolio content that "escapes" the monitor screen and becomes the scene's backdrop;
+     sits behind the canvas (DOM order) so the transparent 3D render shows it through */
+  .portfolio-backdrop{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding: 0 6vw;
+    opacity:0;
+    transform: scale(0.8);
+    pointer-events:none;
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .portfolio-backdrop.is-active{
+    opacity:1;
+    transform: scale(1);
+  }
+  .backdrop-inner{
+    display:flex;
+    align-items:center;
+    gap: 2.6rem;
+    flex-wrap:wrap;
+    justify-content:center;
+  }
+  .backdrop-photo{
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--cyan);
+    box-shadow: 0 0 50px rgba(79,216,224,0.4);
+    flex-shrink:0;
+  }
+  .backdrop-text{
+    text-align:left;
+  }
+  .backdrop-line{
+    font-family: var(--font-display);
+    font-weight:700;
+    font-size: clamp(1.7rem, 5vw, 3.6rem);
+    line-height:1.08;
+    letter-spacing:-0.01em;
+  }
+  .backdrop-about{
+    margin-top: 1rem;
+    max-width: 42ch;
+    font-family: var(--font-body);
+    font-size: clamp(0.85rem, 1.4vw, 1.05rem);
+    color: var(--muted);
+    line-height:1.6;
+  }
+  .line-web{ color: var(--cyan); text-shadow: 0 0 44px rgba(79,216,224,0.35); }
+  .line-mcu{ color: var(--amber); text-shadow: 0 0 44px rgba(242,163,60,0.3); }
+  .line-mech{ color: #8b93ff; text-shadow: 0 0 44px rgba(139,147,255,0.3); }
+
+  @media (max-width: 880px){
+    .header{
+      padding: 0 6vw 6vh;
+    }
+    .node-label{ font-size: 0.62rem; padding: 0.32rem 0.55rem; }
+    .backdrop-inner{ flex-direction:column; gap: 1.4rem; }
+    .backdrop-text{ text-align:center; }
+    .backdrop-about{ margin-left:auto; margin-right:auto; }
+    .backdrop-photo{ width: 110px; height: 110px; }
+  }
+</style>
+</head>
+
+<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+(function(){
+  var SUPABASE_URL = 'https://cownezvqavyyhzbjexlh.supabase.co';
+  var SUPABASE_KEY = 'sb_publishable_-t-UoOmT6GEKjIVG81Cv3Q_DyLVBapC';
+  if(!window.supabase || !window.supabase.createClient) return;
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  window.__sb = sb;
+
+  // enregistre discrètement la visite de cette page (aucun blocage si ça échoue)
+  try{
+    sb.from('site_visits').insert({
+      path: window.location.pathname,
+      referrer: document.referrer || null,
+      user_agent: navigator.userAgent
+    }).then(function(){}, function(){});
+  }catch(e){}
+
+  // applique le contenu modifié par le propriétaire (éléments marqués data-cms="...")
+  try{
+    sb.from('site_content').select('key,value').then(function(res){
+      if(!res || !res.data) return;
+      res.data.forEach(function(row){
+        document.querySelectorAll('[data-cms="' + row.key + '"]').forEach(function(el){
+          el.textContent = row.value;
+        });
+      });
+    }, function(){});
+  }catch(e){}
+})();
+</script>
+
+
+<header class="header">
+  <div class="content">
+    <div class="cta-row">
+      <a class="btn btn-primary" href="projets.html">Voir mes projets</a>
+      <a class="btn btn-ghost" href="contact.html">Me contacter</a>
+    </div>
+  </div>
+
+  <div class="scene-wrap">
+    <div class="portfolio-backdrop" id="portfolioBackdrop">
+      <div class="backdrop-inner">
+        <img class="backdrop-photo" src="avatar.png" alt="Avatar de Tanjona">
+        <div class="backdrop-text">
+          <div class="backdrop-line line-web">Développement Web</div>
+          <div class="backdrop-line line-mcu">PIC &amp; ESP32</div>
+          <div class="backdrop-line line-mech">Mécanique Auto</div>
+          <p class="backdrop-about" data-cms="hero_about">Tanjona — développeur basé à Madagascar, entre web, programmation PIC &amp; ESP32 et mécanique automobile.</p>
+        </div>
+      </div>
+    </div>
+    <canvas id="scene"></canvas>
+    <a class="node-label label-web" id="labelWeb" href="developpement.html">Développement Web</a>
+    <a class="node-label label-mcu" id="labelMcu" href="microcontrolleur.html">PIC &amp; ESP32</a>
+    <a class="node-label label-mech" id="labelMech" href="mecanique.html">Mécanique Auto</a>
+  </div>
+</header>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+  const canvas = document.getElementById('scene');
+  const wrap = canvas.parentElement;
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+  camera.position.set(0, 0.05, 7.2);
+
+  // everything visual lives in worldGroup, shifted right so it clears the text column on the left
+  const worldGroup = new THREE.Group();
+  scene.add(worldGroup);
+
+  function resize(){
+    const w = wrap.clientWidth;
+    const h = wrap.clientHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+  window.addEventListener('resize', resize);
+
+  const cyan = 0x4fd8e0;
+  const amber = 0xf2a33c;
+  const violet = 0x8b93ff;
+
+  // lights
+  scene.add(new THREE.AmbientLight(0x334044, 1.2));
+  const pl1 = new THREE.PointLight(cyan, 2.2, 20);
+  pl1.position.set(4, 3, 4);
+  scene.add(pl1);
+  const pl2 = new THREE.PointLight(amber, 1.6, 20);
+  pl2.position.set(-4, -2, 3);
+  scene.add(pl2);
+
+  // central figure: a stylized person sitting at a desk, typing on a laptop
+  const coreGroup = new THREE.Group();
+  worldGroup.add(coreGroup);
+
+  const deskMat = new THREE.MeshStandardMaterial({ color: 0x0f1519, emissive: amber, emissiveIntensity:0.06, metalness:0.5, roughness:0.4 });
+  const caseMat = new THREE.MeshStandardMaterial({ color: 0x121a1e, emissive: cyan, emissiveIntensity:0.12, metalness:0.6, roughness:0.3 });
+  const screenMat = new THREE.MeshStandardMaterial({ color: 0x0a2a2c, emissive: cyan, emissiveIntensity:1.1, metalness:0.1, roughness:0.4 });
+
+  // desk
+  const desk = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.08, 1.05), deskMat);
+  desk.position.set(0, -0.55, 0.15);
+  coreGroup.add(desk);
+  const deskLegGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.9, 8);
+  [[-1.02,-0.28],[1.02,-0.28],[-1.02,0.55],[1.02,0.55]].forEach(([x,z])=>{
+    const leg = new THREE.Mesh(deskLegGeo, deskMat);
+    leg.position.set(x, -1.0, z);
+    coreGroup.add(leg);
+  });
+
+  // desktop tower, sitting on the desk beside the monitor
+  const towerGroup = new THREE.Group();
+  towerGroup.position.set(0.92, -0.34, -0.15);
+  coreGroup.add(towerGroup);
+  const towerBody = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.42, 0.48), caseMat);
+  towerGroup.add(towerBody);
+  const towerAccent = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.34, 0.02), new THREE.MeshBasicMaterial({ color: cyan }));
+  towerAccent.position.set(0.13, 0, 0.2);
+  towerGroup.add(towerAccent);
+  const towerLed = new THREE.Mesh(new THREE.CircleGeometry(0.025, 12), new THREE.MeshBasicMaterial({ color: cyan }));
+  towerLed.position.set(0.121, 0.14, 0.2);
+  towerLed.rotation.y = Math.PI/2;
+  towerGroup.add(towerLed);
+
+  // canvas texture used on the monitor screen to show the previous hero text once revealed
+  function makeScreenTextTexture(){
+    const cv = document.createElement('canvas');
+    cv.width = 1024; cv.height = 700;
+    const ctx = cv.getContext('2d');
+
+    function wrapText(text, x, y, maxWidth, lineHeight){
+      const words = text.split(' ');
+      let line = '';
+      for(let n=0; n<words.length; n++){
+        const testLine = line + words[n] + ' ';
+        if(ctx.measureText(testLine).width > maxWidth && n > 0){
+          ctx.fillText(line.trim(), x, y);
+          line = words[n] + ' ';
+          y += lineHeight;
+        } else {
+          line = testLine;
+        }
+      }
+      ctx.fillText(line.trim(), x, y);
+      return y;
+    }
+
+    function drawAvatarCover(img, cx, cy, diameter){
+      const radius = diameter / 2;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+      const scale = Math.max(diameter / img.width, diameter / img.height);
+      const w = img.width * scale, h = img.height * scale;
+      ctx.drawImage(img, cx - w/2, cy - h/2, w, h);
+      ctx.restore();
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.strokeStyle = '#5fe8f0';
+      ctx.lineWidth = 5;
+      ctx.stroke();
+    }
+
+    function draw(photoImg){
+      ctx.textBaseline = 'alphabetic';
+
+      // solid near-black background for maximum contrast
+      ctx.fillStyle = '#03080a';
+      ctx.fillRect(0, 0, cv.width, cv.height);
+      ctx.strokeStyle = 'rgba(79,216,224,0.5)';
+      ctx.lineWidth = 8;
+      ctx.strokeRect(8, 8, cv.width-16, cv.height-16);
+
+      // photo + name, top row
+      if(photoImg){
+        drawAvatarCover(photoImg, 146, 146, 180);
+      }
+      ctx.fillStyle = '#5fe8f0';
+      ctx.font = 'bold 46px "Courier New", monospace';
+      ctx.fillText('Tanjona', 270, 130);
+      ctx.fillStyle = '#7c8b92';
+      ctx.font = '26px "Courier New", monospace';
+      ctx.fillText('Développeur Web · Madagascar', 270, 170);
+
+      ctx.strokeStyle = 'rgba(124,139,146,0.3)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(56, 280);
+      ctx.lineTo(cv.width - 56, 280);
+      ctx.stroke();
+
+      // short, large, high-contrast title lines
+      ctx.fillStyle = '#5fe8f0';
+      ctx.font = 'bold 54px "Courier New", monospace';
+      ctx.fillText('Développement Web', 56, 360);
+
+      ctx.fillStyle = '#ffb84d';
+      ctx.font = 'bold 48px "Courier New", monospace';
+      ctx.fillText('PIC & ESP32', 56, 425);
+
+      ctx.fillStyle = '#a6acff';
+      ctx.font = 'bold 48px "Courier New", monospace';
+      ctx.fillText('Mécanique Auto', 56, 485);
+
+      ctx.fillStyle = '#7c8b92';
+      ctx.font = '26px "Courier New", monospace';
+      wrapText('Développeur basé à Madagascar, entre web, programmation PIC & ESP32 et mécanique automobile.', 56, 570, cv.width-112, 34);
+    }
+
+    draw(null); // draw immediately so the screen isn't blank while the photo loads
+
+    const texture = new THREE.CanvasTexture(cv);
+    texture.minFilter = THREE.LinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    texture.anisotropy = 4;
+
+    const img = new Image();
+    img.onload = () => { draw(img); texture.needsUpdate = true; };
+    img.src = 'avatar.png';
+
+    return texture;
+  }
+
+  // monitor, mounted on a pivot so it can swivel to face the viewer on click
+  const monitorPivot = new THREE.Group();
+  monitorPivot.position.set(0, -0.5, -0.05);
+  monitorPivot.rotation.y = 0.32; // resting angle, angled toward the person typing
+  coreGroup.add(monitorPivot);
+
+  const monitorStandBase = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.19, 0.04, 16), caseMat);
+  monitorStandBase.position.set(0, 0.02, 0);
+  monitorPivot.add(monitorStandBase);
+  const monitorNeck = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.22, 0.06), caseMat);
+  monitorNeck.position.set(0, 0.13, 0);
+  monitorPivot.add(monitorNeck);
+
+  const screenGroup = new THREE.Group();
+  screenGroup.position.set(0, 0.28, 0);
+  monitorPivot.add(screenGroup);
+  const monitorScreen = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.58, 0.035), caseMat);
+  screenGroup.add(monitorScreen);
+  const screenGlow = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.46), screenMat);
+  screenGlow.position.set(0, 0, 0.019);
+  screenGroup.add(screenGlow);
+
+  const screenTextMat = new THREE.MeshBasicMaterial({ map: makeScreenTextTexture(), transparent:true, opacity:0 });
+  const screenTextPlane = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.46), screenTextMat);
+  screenTextPlane.position.set(0, 0, 0.021);
+  screenGroup.add(screenTextPlane);
+
+  const screenLight = new THREE.PointLight(cyan, 1.4, 3);
+  screenLight.position.set(0, 0.15, 0.6);
+  coreGroup.add(screenLight);
+
+  // keyboard, sitting apart from the monitor — clicking it resets the monitor to its resting angle
+  const keyboardGroup = new THREE.Group();
+  keyboardGroup.position.set(0, -0.505, 0.42);
+  coreGroup.add(keyboardGroup);
+  const keyboardBody = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.03, 0.26), caseMat);
+  keyboardGroup.add(keyboardBody);
+  const keyboardMat = new THREE.MeshStandardMaterial({ color: 0x1b262c, metalness:0.3, roughness:0.6 });
+  for(let row=0; row<3; row++){
+    for(let col=0; col<10; col++){
+      const key = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.015, 0.055), keyboardMat);
+      key.position.set(-0.32 + col*0.07, 0.02, -0.08 + row*0.075);
+      keyboardGroup.add(key);
+    }
+  }
+  const mouseBody = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 10), caseMat);
+  mouseBody.scale.set(1, 0.55, 1.5);
+  mouseBody.position.set(0.5, -0.5, 0.4);
+  coreGroup.add(mouseBody);
+
+  // printer — sits on the desk next to the tower, cabled to it, prints the CV/invoice PDF on click
+  function makePrinter(color){
+    const g = new THREE.Group();
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1a2026, emissive: color, emissiveIntensity:0.2, metalness:0.5, roughness:0.4 });
+    const slotMat = new THREE.MeshStandardMaterial({ color: 0x05080a, metalness:0.3, roughness:0.6 });
+    const paperMat = new THREE.MeshStandardMaterial({ color: 0xf4f6f7, emissive: 0x30343a, emissiveIntensity:0.05, metalness:0.05, roughness:0.8 });
+
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.28, 0.46), bodyMat);
+    g.add(body);
+
+    const slot = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.02, 0.03), slotMat);
+    slot.position.set(0, 0.14, 0.2);
+    g.add(slot);
+
+    const led = new THREE.Mesh(new THREE.SphereGeometry(0.022, 10, 10), new THREE.MeshBasicMaterial({ color }));
+    led.position.set(0.25, 0.1, 0.21);
+    g.add(led);
+
+    const paper = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.55), paperMat);
+    paper.rotation.x = -Math.PI/2 + 0.08;
+    paper.position.set(0, 0.15, 0.02);
+    g.add(paper);
+
+    g.userData = { led, paper, parkedZ: 0.02, ejectedZ: 0.46 };
+    return g;
+  }
+
+  const printer = makePrinter(amber);
+  printer.position.set(-0.98, -0.365, -0.1);
+  coreGroup.add(printer);
+
+  // cable linking the printer to the tower, like a real USB/power connection
+  const cableMat = new THREE.MeshStandardMaterial({ color: 0x14181b, metalness:0.2, roughness:0.7 });
+  const cableStart = printer.position.clone().add(new THREE.Vector3(0.31, -0.05, 0.05));
+  const cableEnd = towerGroup.position.clone().add(new THREE.Vector3(-0.12, -0.1, 0.1));
+  const cableVec = new THREE.Vector3().subVectors(cableEnd, cableStart);
+  const cable = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, cableVec.length(), 6), cableMat);
+  cable.position.copy(cableStart).add(cableVec.clone().multiplyScalar(0.5));
+  cable.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), cableVec.clone().normalize());
+  coreGroup.add(cable);
+
+  // tag meshes so the raycaster can tell what was clicked
+  screenGroup.traverse(o => { if(o.isMesh) o.userData.clickTarget = 'monitor'; });
+  monitorStandBase.userData.clickTarget = 'monitor';
+  monitorNeck.userData.clickTarget = 'monitor';
+  keyboardGroup.traverse(o => { if(o.isMesh) o.userData.clickTarget = 'keyboard'; });
+  mouseBody.userData.clickTarget = 'mouse';
+  printer.traverse(o => { if(o.isMesh) o.userData.clickTarget = 'printer'; });
+
+  // orbiting node 1: MECHANIC — a small running piston engine (cylinder + piston + connecting rod + crankshaft)
+  function makeEngine(color){
+    const g = new THREE.Group();
+    const metalMat = new THREE.MeshStandardMaterial({ color: 0x1c2126, emissive: color, emissiveIntensity:0.18, metalness:0.65, roughness:0.35 });
+    const steelMat = new THREE.MeshStandardMaterial({ color: 0xcfd6da, metalness:0.85, roughness:0.25 });
+
+    // cylinder sleeve (open-ended tube) the piston slides inside
+    const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.9, 20, 1, true), metalMat);
+    sleeve.position.set(0, 0.55, 0);
+    g.add(sleeve);
+    // cooling fins for a recognizable engine-block silhouette
+    for(let i=0; i<4; i++){
+      const fin = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.035, 0.52), metalMat);
+      fin.position.set(0, 0.22 + i*0.16, 0);
+      g.add(fin);
+    }
+
+    // piston (moves vertically inside the sleeve)
+    const piston = new THREE.Mesh(new THREE.CylinderGeometry(0.195, 0.195, 0.2, 20), steelMat);
+    g.add(piston);
+
+    // crankshaft housing (base) + flywheel that spins in the XY plane
+    const housing = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.16, 0.6), metalMat);
+    housing.position.set(0, -0.08, 0);
+    g.add(housing);
+
+    const flywheel = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.07, 28), metalMat);
+    flywheel.rotation.x = Math.PI/2; // face the wheel toward the camera, spins around Z
+    g.add(flywheel);
+
+    const crankPin = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.1, 10), steelMat);
+    crankPin.rotation.x = Math.PI/2;
+    g.add(crankPin);
+
+    // connecting rod (its length/orientation is recomputed every frame from the crank kinematics)
+    const rod = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1, 0.06), steelMat);
+    g.add(rod);
+
+    const statusLed = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 10), new THREE.MeshBasicMaterial({ color }));
+    statusLed.position.set(0.32, 0.95, 0.2);
+    g.add(statusLed);
+
+    g.userData = {
+      flywheel, crankPin, rod, piston, statusLed,
+      crankRadius: 0.16,
+      rodLength: 0.55
+    };
+    return g;
+  }
+
+  const gear = makeEngine(violet);
+  gear.position.set(-2.6, 1.4, 0.6);
+  worldGroup.add(gear);
+
+  // orbiting node 2: PIC & ESP32 — dev-board style PCB with a PIC-style IC, an ESP32 RF shield, and silkscreen labels
+  function makeSilkscreenTexture(text, size){
+    const cv = document.createElement('canvas');
+    cv.width = 512; cv.height = size || 160;
+    const ctx = cv.getContext('2d');
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 84px "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, cv.width/2, cv.height/2);
+    return new THREE.CanvasTexture(cv);
+  }
+
+  function makeChip(color){
+    const g = new THREE.Group();
+    // dev-board blue PCB, like a typical ESP32 board
+    const boardMat = new THREE.MeshStandardMaterial({ color: 0x0a2d55, emissive: 0x0a2d55, emissiveIntensity:0.3, metalness:0.25, roughness:0.6 });
+    const board = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 1.2), boardMat);
+    g.add(board);
+
+    // PIC-style IC: small black DIP-ish package on one side of the board
+    const icMat = new THREE.MeshStandardMaterial({ color: 0x0b0e10, emissive: color, emissiveIntensity:0.35, metalness:0.5, roughness:0.35 });
+    const ic = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.12, 0.5), icMat);
+    ic.position.set(-0.32, 0.1, -0.15);
+    g.add(ic);
+    const picLabel = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.11), new THREE.MeshBasicMaterial({ map: makeSilkscreenTexture('PIC'), transparent:true }));
+    picLabel.rotation.x = -Math.PI/2;
+    picLabel.position.set(-0.32, 0.161, -0.15);
+    g.add(picLabel);
+    const pin1Dot = new THREE.Mesh(new THREE.CircleGeometry(0.035, 12), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+    pin1Dot.rotation.x = -Math.PI/2;
+    pin1Dot.position.set(-0.48, 0.161, -0.36);
+    g.add(pin1Dot);
+
+    // ESP32 RF shield can: metallic box on the other side of the board, with its silkscreen label
+    const shieldMat = new THREE.MeshStandardMaterial({ color: 0xb9c2c8, metalness:0.9, roughness:0.25, emissive: 0x30383c, emissiveIntensity:0.15 });
+    const shield = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.13, 0.42), shieldMat);
+    shield.position.set(0.28, 0.105, 0.05);
+    g.add(shield);
+    const espLabel = new THREE.Mesh(new THREE.PlaneGeometry(0.44, 0.14), new THREE.MeshBasicMaterial({ map: makeSilkscreenTexture('ESP32'), transparent:true, color: 0x111111 }));
+    espLabel.rotation.x = -Math.PI/2;
+    espLabel.position.set(0.28, 0.171, 0.05);
+    g.add(espLabel);
+
+    const pinMat = new THREE.MeshStandardMaterial({ color: 0xd9b466, emissive: 0xd9b466, emissiveIntensity:0.9, metalness:0.9, roughness:0.15 });
+    const pinCount = 7;
+    for(let side=0; side<4; side++){
+      for(let i=0;i<pinCount;i++){
+        const pin = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.045, 0.16), pinMat);
+        const offset = (i - (pinCount-1)/2) * 0.15;
+        if(side===0){ pin.position.set(offset, 0.02, 0.62); }
+        if(side===1){ pin.position.set(offset, 0.02, -0.62); }
+        if(side===2){ pin.position.set(0.62, 0.02, offset); pin.rotation.y = Math.PI/2; }
+        if(side===3){ pin.position.set(-0.62, 0.02, offset); pin.rotation.y = Math.PI/2; }
+        g.add(pin);
+      }
+    }
+
+    const led = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 10), new THREE.MeshBasicMaterial({ color }));
+    led.position.set(0.44, 0.1, 0.44);
+    g.add(led);
+    g.userData.led = led;
+
+    return g;
+  }
+
+  const chip = makeChip(amber);
+  chip.position.set(3.0, -0.4, 0.3);
+  chip.scale.setScalar(1.05);
+  worldGroup.add(chip);
+
+  // orbiting node 3: WEB — bracket / code symbol using torus knot-ish simple shape (two brackets)
+  function makeBrackets(color){
+    const g = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({ color: 0x121a1e, emissive: color, emissiveIntensity:0.6, metalness:0.5, roughness:0.3 });
+    const curve1 = new THREE.TorusGeometry(0.42, 0.07, 8, 16, Math.PI*1.1);
+    const left = new THREE.Mesh(curve1, mat);
+    left.rotation.z = Math.PI/2 + 0.4;
+    left.position.x = -0.32;
+    g.add(left);
+    const right = new THREE.Mesh(curve1, mat);
+    right.rotation.z = -Math.PI/2 - 0.4;
+    right.position.x = 0.32;
+    g.add(right);
+    return g;
+  }
+
+  const brackets = makeBrackets(cyan);
+  brackets.position.set(0.4, 2.2, -1.1);
+  worldGroup.add(brackets);
+
+  // connecting lines from core to nodes
+  function makeLink(target, color){
+    const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), target.position.clone()]);
+    const mat = new THREE.LineBasicMaterial({ color, transparent:true, opacity:0.35 });
+    return new THREE.Line(geo, mat);
+  }
+  const link1 = makeLink(gear, violet);
+  const link2 = makeLink(chip, amber);
+  const link3 = makeLink(brackets, cyan);
+  worldGroup.add(link1, link2, link3);
+
+  // particle field
+  const particleCount = 140;
+  const positions = new Float32Array(particleCount*3);
+  for(let i=0;i<particleCount;i++){
+    positions[i*3] = (Math.random()-0.5)*14;
+    positions[i*3+1] = (Math.random()-0.5)*10;
+    positions[i*3+2] = (Math.random()-0.5)*10 - 2;
+  }
+  const particleGeo = new THREE.BufferGeometry();
+  particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  const particleMat = new THREE.PointsMaterial({ color: 0x3a4a50, size:0.035, transparent:true, opacity:0.6 });
+  const particles = new THREE.Points(particleGeo, particleMat);
+  scene.add(particles);
+
+  resize();
+
+  function updateWorldOffset(){
+    // no more text column to avoid — center the scene, just scale it down on narrow screens
+    const isNarrow = wrap.clientWidth < 880;
+    worldGroup.position.x = 0;
+    worldGroup.position.y = isNarrow ? 0.3 : 0;
+    worldGroup.position.z = 0;
+    worldGroup.scale.setScalar(isNarrow ? 0.8 : 1);
+  }
+  updateWorldOffset();
+  window.addEventListener('resize', updateWorldOffset);
+
+  // DOM labels tracking the 3D nodes each frame
+  const labelWeb = document.getElementById('labelWeb');
+  const labelMcu = document.getElementById('labelMcu');
+  const labelMech = document.getElementById('labelMech');
+  const _labelVec = new THREE.Vector3();
+  function positionLabel(el, object3D){
+    object3D.getWorldPosition(_labelVec);
+    _labelVec.project(camera);
+    const visible = _labelVec.z < 1;
+    el.style.opacity = visible ? '1' : '0';
+    if(!visible) return;
+    const x = (_labelVec.x * 0.5 + 0.5) * wrap.clientWidth;
+    const y = (-_labelVec.y * 0.5 + 0.5) * wrap.clientHeight;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+  }
+
+  let mouseX = 0, mouseY = 0;
+  window.addEventListener('mousemove', (e)=>{
+    mouseX = (e.clientX / window.innerWidth - 0.5);
+    mouseY = (e.clientY / window.innerHeight - 0.5);
+  });
+
+  // click interaction — three states for the monitor:
+  //  'typing'   : screen at rest, blank
+  //  'facing'   : screen turned toward you, small text visible inside it
+  //  'expanded' : that text has escaped the screen and become the full-scene backdrop
+  // clicking the monitor moves forward through these states; clicking the keyboard resets;
+  // while expanded, clicking anywhere collapses it back into the screen.
+  const REST_ANGLE = 0.32;
+  const FACING_ANGLE = -0.62;
+  const portfolioBackdrop = document.getElementById('portfolioBackdrop');
+
+  let sceneState = 'typing';
+  let monitorAngleTarget = REST_ANGLE;
+  let textOpacityTarget = 0;
+  let coreRecedeTarget = 0;   // pushes the desk+computer further away
+  let coreScaleTarget = 1;    // and shrinks it, so it reads as background
+
+  function setSceneState(next){
+    sceneState = next;
+    if(next === 'typing'){
+      monitorAngleTarget = REST_ANGLE;
+      textOpacityTarget = 0;
+      coreRecedeTarget = 0;
+      coreScaleTarget = 1;
+      portfolioBackdrop.classList.remove('is-active');
+    } else if(next === 'facing'){
+      monitorAngleTarget = FACING_ANGLE;
+      textOpacityTarget = 1;
+      coreRecedeTarget = 0;
+      coreScaleTarget = 1;
+      portfolioBackdrop.classList.remove('is-active');
+    } else if(next === 'expanded'){
+      monitorAngleTarget = FACING_ANGLE;
+      textOpacityTarget = 0; // the text has left the little screen…
+      coreRecedeTarget = -3.8; // …the desk and computer sink into the background…
+      coreScaleTarget = 0.5;
+      portfolioBackdrop.classList.add('is-active'); // …where the big text now lives
+    }
+  }
+
+  const APPROACH_Z = 1.9;
+  let approached = false;
+  let approachZ = 0;
+  let approachZTarget = 0;
+  let coreRecede = 0;
+  let coreScale = 1;
+  let printEjectAmount = 0;
+  let printEjectTarget = 0;
+
+  function downloadCV(){
+    const a = document.createElement('a');
+    a.href = 'tanjona-tokiniaina-cv.pdf';
+    a.download = 'tanjona-tokiniaina-cv.pdf';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  const raycaster = new THREE.Raycaster();
+  const pointerNDC = new THREE.Vector2();
+
+  function findClickTarget(clientX, clientY){
+    const rect = canvas.getBoundingClientRect();
+    pointerNDC.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    pointerNDC.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(pointerNDC, camera);
+    const hits = raycaster.intersectObjects([screenGroup, monitorStandBase, monitorNeck, keyboardGroup, mouseBody, printer], true);
+    for(const hit of hits){
+      if(hit.object.userData.clickTarget) return hit.object.userData.clickTarget;
+    }
+    return null;
+  }
+
+  canvas.addEventListener('click', (e)=>{
+    const target = findClickTarget(e.clientX, e.clientY);
+
+    if(target === 'keyboard'){
+      setSceneState('typing');
+      return;
+    }
+    if(target === 'printer'){
+      printEjectTarget = 1;
+      downloadCV();
+      setTimeout(()=>{ printEjectTarget = 0; }, 1400);
+      return;
+    }
+    if(sceneState === 'expanded'){
+      // any click while the backdrop is showing sends it back into the screen
+      setSceneState('facing');
+      return;
+    }
+    if(target === 'monitor'){
+      setSceneState(sceneState === 'typing' ? 'facing' : 'expanded');
+    } else if(target === 'mouse'){
+      approached = !approached;
+      approachZTarget = approached ? APPROACH_Z : 0;
+    }
+  });
+
+  canvas.addEventListener('mousemove', (e)=>{
+    canvas.style.cursor = findClickTarget(e.clientX, e.clientY) || sceneState === 'expanded' ? 'pointer' : 'default';
+  });
+
+  const clock = new THREE.Clock();
+  function animate(){
+    const t = clock.getElapsedTime();
+
+    // desk + computer stay perfectly still — the only motion is the click-driven approach/retreat below
+
+    // approach/retreat toward the viewer, toggled by clicking the mouse
+    approachZ += (approachZTarget - approachZ) * 0.06;
+    coreRecede += (coreRecedeTarget - coreRecede) * 0.06;
+    coreScale += (coreScaleTarget - coreScale) * 0.06;
+    coreGroup.position.z = approachZ + coreRecede;
+    coreGroup.scale.setScalar(coreScale);
+
+    // monitor swivel + on-screen text fade, eased toward their targets
+    monitorPivot.rotation.y += (monitorAngleTarget - monitorPivot.rotation.y) * 0.08;
+    screenTextMat.opacity += (textOpacityTarget - screenTextMat.opacity) * 0.08;
+
+    gear.position.y = 1.4 + Math.sin(t*0.4) * 0.12; // gentle float — the engine itself is already busy running
+    {
+      const eng = gear.userData;
+      const theta = t * 4.2; // engine "RPM"
+      const cx = eng.crankRadius * Math.sin(theta);
+      const cy = eng.crankRadius * Math.cos(theta);
+      eng.flywheel.rotation.z = theta;
+      eng.crankPin.position.set(cx, cy, 0);
+      const pistonY = cy + Math.sqrt(eng.rodLength*eng.rodLength - cx*cx);
+      eng.piston.position.set(0, pistonY, 0);
+      eng.rod.position.set(cx/2, (cy + pistonY)/2, 0);
+      eng.rod.rotation.z = -Math.atan2(0 - cx, pistonY - cy);
+      const pulse = 0.5 + Math.sin(t * 6) * 0.5;
+      eng.statusLed.material.color.setHSL(0.75, 0.6, 0.4 + pulse*0.3);
+    }
+
+    chip.rotation.y = t * 0.6;
+    chip.position.y = -0.6 + Math.sin(t*0.9 + 1) * 0.12;
+    if(chip.userData.led){
+      const pulse = 0.5 + Math.sin(t * 4) * 0.5;
+      chip.userData.led.material.color.setRGB(1, 0.55 + pulse*0.3, 0.1);
+    }
+
+    brackets.rotation.y = t * 0.5;
+    brackets.position.y = 2.2 + Math.sin(t*0.8 + 2) * 0.14;
+
+    // printer stays put on the desk — only its status LED pulses and the paper ejects on click
+    {
+      const pr = printer.userData;
+      const printerPulse = 0.5 + Math.sin(t * 3) * 0.5;
+      pr.led.material.color.setRGB(1, 0.5 + printerPulse*0.3, 0.15);
+      printEjectAmount += (printEjectTarget - printEjectAmount) * 0.12;
+      pr.paper.position.z = pr.parkedZ + (pr.ejectedZ - pr.parkedZ) * printEjectAmount;
+    }
+
+    [ [link1, gear], [link2, chip], [link3, brackets] ].forEach(([link, node])=>{
+      const posAttr = link.geometry.attributes.position;
+      posAttr.setXYZ(1, node.position.x, node.position.y, node.position.z);
+      posAttr.needsUpdate = true;
+    });
+
+    particles.rotation.y = t * 0.02;
+
+    camera.position.x += (mouseX*1.2 - camera.position.x) * 0.03;
+    camera.position.y += (0.05 - mouseY*0.7 - camera.position.y) * 0.03;
+    camera.lookAt(0,-0.25,0);
+
+    scene.updateMatrixWorld(true);
+    camera.updateMatrixWorld(true);
+    positionLabel(labelWeb, brackets);
+    positionLabel(labelMcu, chip);
+    positionLabel(labelMech, gear);
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
+  }
+  animate();
+})();
+</script>
+
+
+
+</body>
+</html>

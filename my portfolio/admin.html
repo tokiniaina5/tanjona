@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Admin — Tanjona</title>
+<style>
+  :root{
+    --bg: #0a0d10;
+    --panel: #131a20;
+    --panel-2: #182129;
+    --line: #1f2a30;
+    --cyan: #4fd8e0;
+    --amber: #f2a33c;
+    --violet: #8b93ff;
+    --red: #ef6a6a;
+    --text: #eaf1f0;
+    --muted: #7c8b92;
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ background:var(--bg); color:var(--text); font-family:var(--font-body); min-height:100vh; }
+  button, input, textarea{ font-family: inherit; }
+
+  #loginScreen{
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:2rem;
+  }
+  .login-card{
+    width:100%; max-width:380px;
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:2.4rem 2rem;
+  }
+  .eyebrow{
+    font-family: var(--font-mono); font-size:0.75rem; letter-spacing:0.12em;
+    color: var(--cyan); text-transform:uppercase; margin-bottom:0.8rem;
+  }
+  h1{ font-family: var(--font-display); font-size:1.5rem; margin-bottom:0.6rem; }
+  p.sub{ color:var(--muted); font-size:0.88rem; line-height:1.5; margin-bottom:1.6rem; }
+
+  .field{ margin-bottom:1rem; }
+  .field label{
+    display:block; font-family:var(--font-mono); font-size:0.7rem; letter-spacing:0.06em;
+    text-transform:uppercase; color:var(--muted); margin-bottom:0.4rem;
+  }
+  .field input{
+    width:100%; padding:0.7rem 0.85rem; border-radius:8px; border:1px solid var(--line);
+    background:var(--bg); color:var(--text); font-size:0.95rem;
+  }
+  .field input:focus{ outline:none; border-color:var(--cyan); }
+
+  .btn{
+    font-family:var(--font-mono); font-size:0.82rem; letter-spacing:0.03em;
+    padding:0.75rem 1.2rem; border-radius:8px; cursor:pointer;
+    border:1px solid var(--line); background:var(--panel-2); color:var(--text);
+    transition: transform 0.12s ease, border-color 0.12s ease;
+  }
+  .btn:hover{ border-color:var(--cyan); }
+  .btn-primary{ background:var(--cyan); color:#04191b; border-color:transparent; font-weight:600; width:100%; }
+  .btn-primary:hover{ transform:translateY(-1px); }
+  .btn-red{ border-color:var(--red); color:var(--red); }
+  .btn-sm{ padding:0.4rem 0.7rem; font-size:0.72rem; }
+
+  .error-msg{ color:var(--red); font-size:0.85rem; margin-top:0.8rem; display:none; }
+
+  #appScreen{ display:none; }
+  .shell{ display:grid; grid-template-columns:220px 1fr; min-height:100vh; }
+  .sidebar{
+    background:var(--panel); border-right:1px solid var(--line); padding:1.6rem 1.2rem;
+    display:flex; flex-direction:column;
+  }
+  .brand{ font-family:var(--font-display); font-weight:700; font-size:1.05rem; margin-bottom:2rem; }
+  .brand span{ color:var(--cyan); }
+  .nav-item{
+    padding:0.7rem 0.8rem; border-radius:8px; color:var(--muted); font-size:0.86rem;
+    cursor:pointer; margin-bottom:0.3rem; border:1px solid transparent;
+  }
+  .nav-item:hover{ color:var(--text); background:var(--panel-2); }
+  .nav-item.active{ color:var(--cyan); background:rgba(79,216,224,0.08); border-color:rgba(79,216,224,0.3); }
+  .nav-spacer{ flex-grow:1; }
+
+  .content{ padding:2.4rem 3vw; overflow-x:auto; }
+  .section{ display:none; }
+  .section.active{ display:block; }
+
+  .section-head{ margin-bottom:1.6rem; }
+  .section-head h2{ font-family:var(--font-display); font-size:1.4rem; }
+  .section-head p{ color:var(--muted); font-size:0.88rem; margin-top:0.3rem; }
+
+  .stat-row{ display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1.6rem; }
+  .stat-card{
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    padding:1rem 1.4rem; min-width:140px;
+  }
+  .stat-card .num{ font-family:var(--font-display); font-size:1.6rem; color:var(--cyan); }
+  .stat-card .label{ font-family:var(--font-mono); font-size:0.7rem; color:var(--muted); text-transform:uppercase; }
+
+  table{ width:100%; border-collapse:collapse; margin-top:1rem; }
+  th, td{ text-align:left; padding:0.65rem 0.75rem; border-bottom:1px solid var(--line); font-size:0.85rem; }
+  th{ font-family:var(--font-mono); font-size:0.68rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--muted); }
+  tr:hover td{ background:var(--panel-2); }
+  td.msg-cell{ max-width:340px; white-space:pre-wrap; }
+
+  .panel{ background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:1.4rem; margin-top:1.2rem; }
+  .panel h3{ font-family:var(--font-mono); font-size:0.82rem; color:var(--cyan); margin-bottom:1rem; }
+  .form-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:0.8rem; align-items:end; }
+  .form-grid textarea{
+    width:100%; min-height:70px; padding:0.6rem; border-radius:8px; border:1px solid var(--line);
+    background:var(--bg); color:var(--text); resize:vertical;
+  }
+  .empty-hint{ color:var(--muted); font-size:0.86rem; padding:1rem 0; }
+
+  @media (max-width:820px){
+    .shell{ grid-template-columns:1fr; }
+    .sidebar{ flex-direction:row; flex-wrap:wrap; border-right:none; border-bottom:1px solid var(--line); }
+    .nav-spacer{ display:none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="eyebrow">Espace propriétaire</div>
+    <h1>Connexion</h1>
+    <p class="sub">Cet espace est réservé à Tanjona. Connectez-vous avec le compte créé dans Supabase.</p>
+    <form id="loginForm">
+      <div class="field">
+        <label for="loginEmail">Email</label>
+        <input id="loginEmail" type="email" required autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="loginPassword">Mot de passe</label>
+        <input id="loginPassword" type="password" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn btn-primary">Se connecter</button>
+      <div class="error-msg" id="loginError">Identifiants incorrects, ou compte non configuré.</div>
+    </form>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="appScreen">
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">Tanjona<span>.admin</span></div>
+      <div class="nav-item active" data-section="visiteurs">👁️ Visiteurs</div>
+      <div class="nav-item" data-section="messages">✉️ Messages</div>
+      <div class="nav-item" data-section="contenu">📝 Contenu du site</div>
+      <div class="nav-spacer"></div>
+      <button class="btn btn-red btn-sm" id="logoutBtn">Se déconnecter</button>
+    </aside>
+
+    <main class="content">
+
+      <!-- VISITEURS -->
+      <section class="section active" id="section-visiteurs">
+        <div class="section-head">
+          <h2>Visiteurs</h2>
+          <p>Pages consultées récemment sur le site.</p>
+        </div>
+        <div class="stat-row">
+          <div class="stat-card"><div class="num" id="statTotal">—</div><div class="label">Visites totales</div></div>
+          <div class="stat-card"><div class="num" id="statToday">—</div><div class="label">Aujourd'hui</div></div>
+        </div>
+        <table>
+          <thead><tr><th>Page</th><th>Référent</th><th>Date &amp; heure</th></tr></thead>
+          <tbody id="visitsBody"></tbody>
+        </table>
+        <p class="empty-hint" id="visitsEmpty" style="display:none;">Aucune visite enregistrée pour le moment.</p>
+      </section>
+
+      <!-- MESSAGES -->
+      <section class="section" id="section-messages">
+        <div class="section-head">
+          <h2>Messages</h2>
+          <p>Messages envoyés depuis le formulaire de contact.</p>
+        </div>
+        <table>
+          <thead><tr><th>Nom</th><th>Email</th><th>Message</th><th>Date</th></tr></thead>
+          <tbody id="messagesBody"></tbody>
+        </table>
+        <p class="empty-hint" id="messagesEmpty" style="display:none;">Aucun message pour le moment.</p>
+      </section>
+
+      <!-- CONTENU -->
+      <section class="section" id="section-contenu">
+        <div class="section-head">
+          <h2>Contenu du site</h2>
+          <p>Modifiez les textes affichés sur le site. La clé correspond à une zone précise du site (voir la liste ci-dessous).</p>
+        </div>
+
+        <div class="panel">
+          <h3>Zones disponibles</h3>
+          <p style="color:var(--muted); font-size:0.85rem; line-height:1.7;">
+            <code>hero_about</code> — texte "à propos" sur l'écran 3D du header<br>
+            <code>contact_lead</code> — texte d'intro de la page Contact<br>
+            <code>projets_lead</code> — texte d'intro de la page Projets<br>
+            <code>dev_lead</code> — texte d'intro de la page Développement Web<br>
+            <code>mcu_lead</code> — texte d'intro de la page PIC &amp; ESP32<br>
+            <code>mecanique_lead</code> — texte d'intro de la page Mécanique Auto
+          </p>
+        </div>
+
+        <div class="panel">
+          <h3>Ajouter / modifier une entrée</h3>
+          <div class="form-grid">
+            <div class="field" style="margin-bottom:0;">
+              <label>Clé</label>
+              <input id="contentKey" type="text" placeholder="ex: contact_lead">
+            </div>
+          </div>
+          <div style="margin-top:0.8rem;">
+            <label style="display:block; font-family:var(--font-mono); font-size:0.7rem; color:var(--muted); margin-bottom:0.4rem;">Texte</label>
+            <textarea id="contentValue" placeholder="Nouveau texte à afficher"></textarea>
+          </div>
+          <button class="btn btn-primary" id="saveContentBtn" style="width:auto; margin-top:1rem;">Enregistrer</button>
+        </div>
+
+        <table>
+          <thead><tr><th>Clé</th><th>Valeur actuelle</th><th></th></tr></thead>
+          <tbody id="contentBody"></tbody>
+        </table>
+        <p class="empty-hint" id="contentEmpty" style="display:none;">Aucun contenu personnalisé pour le moment — le site affiche ses textes par défaut.</p>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+(function(){
+  const SUPABASE_URL = 'https://cownezvqavyyhzbjexlh.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_-t-UoOmT6GEKjIVG81Cv3Q_DyLVBapC';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const loginScreen = document.getElementById('loginScreen');
+  const appScreen = document.getElementById('appScreen');
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str == null ? '' : str;
+    return div.innerHTML;
+  }
+  function fmtDate(iso){
+    try { return new Date(iso).toLocaleString('fr-FR'); } catch(e){ return iso; }
+  }
+
+  // ---------------- AUTH ----------------
+  document.getElementById('loginForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const errEl = document.getElementById('loginError');
+    errEl.style.display = 'none';
+
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if(error){
+      errEl.textContent = error.message || 'Identifiants incorrects.';
+      errEl.style.display = 'block';
+      return;
+    }
+    showApp();
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', async function(){
+    await sb.auth.signOut();
+    appScreen.style.display = 'none';
+    loginScreen.style.display = 'flex';
+  });
+
+  async function checkSession(){
+    const { data } = await sb.auth.getSession();
+    if(data && data.session){ showApp(); }
+  }
+
+  function showApp(){
+    loginScreen.style.display = 'none';
+    appScreen.style.display = 'block';
+    loadVisits();
+    loadMessages();
+    loadContent();
+  }
+
+  // ---------------- NAV ----------------
+  document.querySelectorAll('.nav-item').forEach(function(nav){
+    nav.addEventListener('click', function(){
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      nav.classList.add('active');
+      document.getElementById('section-' + nav.dataset.section).classList.add('active');
+    });
+  });
+
+  // ---------------- VISITEURS ----------------
+  async function loadVisits(){
+    const { data, error } = await sb.from('site_visits').select('*').order('created_at', { ascending:false }).limit(200);
+    const tbody = document.getElementById('visitsBody');
+    tbody.innerHTML = '';
+    if(error || !data || !data.length){
+      document.getElementById('visitsEmpty').style.display = 'block';
+      document.getElementById('statTotal').textContent = '0';
+      document.getElementById('statToday').textContent = '0';
+      return;
+    }
+    document.getElementById('visitsEmpty').style.display = 'none';
+    document.getElementById('statTotal').textContent = data.length + (data.length === 200 ? '+' : '');
+
+    const todayStr = new Date().toDateString();
+    let todayCount = 0;
+    data.forEach(function(v){
+      if(new Date(v.created_at).toDateString() === todayStr) todayCount++;
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + escapeHtml(v.path) + '</td>' +
+        '<td>' + escapeHtml(v.referrer || '—') + '</td>' +
+        '<td>' + fmtDate(v.created_at) + '</td>';
+      tbody.appendChild(tr);
+    });
+    document.getElementById('statToday').textContent = todayCount;
+  }
+
+  // ---------------- MESSAGES ----------------
+  async function loadMessages(){
+    const { data, error } = await sb.from('contact_messages').select('*').order('created_at', { ascending:false });
+    const tbody = document.getElementById('messagesBody');
+    tbody.innerHTML = '';
+    if(error || !data || !data.length){
+      document.getElementById('messagesEmpty').style.display = 'block';
+      return;
+    }
+    document.getElementById('messagesEmpty').style.display = 'none';
+    data.forEach(function(m){
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + escapeHtml(m.name) + '</td>' +
+        '<td>' + escapeHtml(m.email) + '</td>' +
+        '<td class="msg-cell">' + escapeHtml(m.message) + '</td>' +
+        '<td>' + fmtDate(m.created_at) + '</td>';
+      tbody.appendChild(tr);
+    });
+  }
+
+  // ---------------- CONTENU ----------------
+  async function loadContent(){
+    const { data, error } = await sb.from('site_content').select('*').order('key', { ascending:true });
+    const tbody = document.getElementById('contentBody');
+    tbody.innerHTML = '';
+    if(error || !data || !data.length){
+      document.getElementById('contentEmpty').style.display = 'block';
+      return;
+    }
+    document.getElementById('contentEmpty').style.display = 'none';
+    data.forEach(function(row){
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td><code>' + escapeHtml(row.key) + '</code></td>' +
+        '<td class="msg-cell">' + escapeHtml(row.value) + '</td>' +
+        '<td><button class="btn btn-red btn-sm" data-key="' + escapeHtml(row.key) + '">Supprimer</button></td>';
+      tbody.appendChild(tr);
+    });
+    tbody.querySelectorAll('button[data-key]').forEach(function(btn){
+      btn.addEventListener('click', async function(){
+        await sb.from('site_content').delete().eq('key', btn.dataset.key);
+        loadContent();
+      });
+    });
+  }
+
+  document.getElementById('saveContentBtn').addEventListener('click', async function(){
+    const key = document.getElementById('contentKey').value.trim();
+    const value = document.getElementById('contentValue').value.trim();
+    if(!key || !value) return;
+    await sb.from('site_content').upsert({ key, value });
+    document.getElementById('contentKey').value = '';
+    document.getElementById('contentValue').value = '';
+    loadContent();
+  });
+
+  checkSession();
+})();
+</script>
+
+</body>
+</html>

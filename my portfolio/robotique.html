@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Robotique — Tanjona</title>
+<style>
+  :root{
+    --bg: #0a0d10;
+    --panel: #131a20;
+    --line: #1f2a30;
+    --cyan: #4fd8e0;
+    --amber: #f2a33c;
+    --violet: #8b93ff;
+    --text: #eaf1f0;
+    --muted: #7c8b92;
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ background:var(--bg); color:var(--text); font-family:var(--font-body); }
+
+  .back-link{
+    position:fixed; top:2rem; left:2rem; z-index:10;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-decoration:none;
+    display:flex; align-items:center; gap:0.5rem;
+    padding: 0.55rem 1rem;
+    border:1px solid var(--line);
+    border-radius:999px;
+    background: rgba(19,26,32,0.7);
+    backdrop-filter: blur(4px);
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .back-link:hover{ color: var(--violet); border-color: var(--violet); }
+
+  main{
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 8rem 6vw 6rem;
+  }
+
+  .scene-caption{
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    text-align:center;
+    margin-bottom: 1.2rem;
+  }
+  .scene-caption .accent-pic{ color:#61f877; }
+  .scene-caption .accent-esp{ color: var(--amber); }
+
+  .eyebrow{
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.12em;
+    color: var(--violet);
+    text-transform: uppercase;
+    margin-bottom: 1.2rem;
+    display:flex; align-items:center; gap:0.6rem;
+  }
+  .eyebrow::before{
+    content:""; width:8px; height:8px; background:var(--violet);
+    border-radius:2px; box-shadow:0 0 12px var(--violet);
+  }
+
+  h1{
+    font-family: var(--font-display);
+    font-weight:700;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    line-height:1.05;
+    letter-spacing:-0.01em;
+  }
+  h1 .accent{ color: var(--violet); }
+
+  p.lead{
+    margin-top:1.4rem;
+    max-width: 58ch;
+    color: var(--muted);
+    font-size: 1.08rem;
+    line-height:1.7;
+  }
+
+  .grid{
+    margin-top: 3rem;
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+  }
+  .card{
+    border:1px solid var(--line);
+    background: var(--panel);
+    border-radius: 10px;
+    padding: 1.4rem;
+  }
+  .card h3{
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+    color: var(--violet);
+    margin-bottom: 0.6rem;
+    letter-spacing:0.02em;
+  }
+  .card p{
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height:1.6;
+  }
+
+  /* ---- démo : distributeur automatique de jus ---- */
+  .demo-panel{
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--line);
+  }
+  .demo-panel h2{
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.6rem;
+  }
+  .demo-panel p{
+    color: var(--muted);
+    font-size: 0.92rem;
+    line-height:1.65;
+    max-width: 60ch;
+    margin-bottom: 1.2rem;
+  }
+  .tag-row{ display:flex; gap:0.5rem; margin-bottom:1.4rem; }
+  .tag{
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    border:1px solid var(--line);
+    color: var(--text);
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
+  }
+  .tag-pic{ color: #61f877; border-color: #61f877; }
+  .tag-esp{ color: var(--amber); border-color: var(--amber); }
+
+  .dispenser-scene{
+    position:relative;
+    height: 300px;
+    background: #050708;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow:hidden;
+  }
+
+  /* rayons de supermarché en arrière-plan */
+  .shelf-row{
+    position:absolute; left:0; right:0; height:14px;
+    background: repeating-linear-gradient(90deg,
+      #2a2f33 0px, #2a2f33 9px,
+      #3a4148 9px, #3a4148 18px,
+      #23484a 18px, #23484a 27px,
+      #3a4148 27px, #3a4148 36px);
+    opacity:0.55;
+  }
+  .shelf-row.r1{ top:8px; }
+  .shelf-row.r2{ top:28px; }
+
+  /* passants qui traversent la scène sans s'arrêter */
+  .walker{
+    position:absolute;
+    top:56px;
+    font-size: 1.3rem;
+    opacity:0;
+    animation: walkAcross linear infinite;
+  }
+  .walker.w1{ animation-duration: 9s;  animation-delay: 0s; top:52px; }
+  .walker.w2{ animation-duration: 12s; animation-delay: 4s; top:66px; transform: scaleX(-1); }
+  .walker.w3{ animation-duration: 10s; animation-delay: 7s; top:58px; }
+
+  .dispenser{
+    position:absolute; top:86px; left:50%; transform:translateX(-50%);
+    width:90px; height:46px;
+    background:#1c2126;
+    border:1px solid var(--line);
+    border-radius:8px;
+  }
+  .dispenser-led{
+    position:absolute; top:8px; right:10px;
+    width:9px; height:9px; border-radius:50%;
+    background:#61f877; box-shadow:0 0 8px #61f877;
+    animation: ledBlink 1s infinite;
+  }
+  .dispenser-spout{
+    position:absolute; bottom:-13px; left:50%; transform:translateX(-50%);
+    width:9px; height:15px;
+    background:#3a4a50; border-radius:0 0 4px 4px;
+  }
+
+  .pour-stream{
+    position:absolute; top:146px; left:50%; transform:translateX(-50%);
+    width:4px; height:0;
+    background: linear-gradient(var(--amber), transparent);
+    opacity:0;
+    animation: pourCycle 3s infinite;
+  }
+
+  .cup{
+    position:absolute; top:180px; left:50%; transform:translateX(-50%);
+    width:36px; height:44px;
+    border: 2px solid var(--muted);
+    border-top:none;
+    border-radius: 0 0 9px 9px;
+    overflow:hidden;
+    background: rgba(255,255,255,0.02);
+  }
+  .cup-liquid{
+    position:absolute; bottom:0; left:0; width:100%; height:0%;
+    background: var(--amber);
+    animation: fillCycle 3s infinite;
+  }
+
+  /* table sur laquelle repose le distributeur */
+  .table-top{
+    position:absolute; left:50%; margin-left:-78px; top:224px;
+    width:156px; height:10px;
+    background:#2a2f33;
+    border-radius:3px;
+    box-shadow:0 3px 6px rgba(0,0,0,0.45);
+  }
+  .table-leg{
+    position:absolute; top:234px;
+    width:8px; height:34px;
+    background:#1c2126;
+  }
+  .table-leg.tl1{ left:50%; margin-left:-68px; }
+  .table-leg.tl2{ left:50%; margin-left:60px; }
+
+  .customer{
+    position:absolute; top:56px; left:-8%;
+    transform: translateX(-50%);
+    font-size: 2.1rem;
+    opacity:0;
+    animation: walkBuyWalk 12s infinite;
+  }
+  .carried-cup{
+    position:absolute; left:100%; top:-2px; margin-left:1px;
+    font-size:0.85rem;
+    opacity:0;
+    animation: carriedCupFade 12s infinite;
+  }
+  .customer.c1{ animation-delay: 0s; }
+  .customer.c2{ animation-delay: -3s; }
+  .customer.c3{ animation-delay: -6s; }
+  .customer.c4{ animation-delay: -9s; }
+  .customer.c1 .carried-cup{ animation-delay: 0s; }
+  .customer.c2 .carried-cup{ animation-delay: -3s; }
+  .customer.c3 .carried-cup{ animation-delay: -6s; }
+  .customer.c4 .carried-cup{ animation-delay: -9s; }
+
+  .pay-icon{
+    position:absolute; left:50%; margin-left:34px; top:246px;
+    font-size:1.05rem;
+    opacity:0;
+    animation: payFlash 3s infinite;
+  }
+
+  @keyframes ledBlink{ 0%,100%{ opacity:1; } 50%{ opacity:0.3; } }
+
+  @keyframes pourCycle{
+    0%, 15%   { opacity:0; height:0; }
+    20%, 55%  { opacity:1; height:40px; }
+    60%, 100% { opacity:0; height:0; }
+  }
+
+  @keyframes fillCycle{
+    0%, 15%   { height:0%; }
+    55%       { height:85%; }
+    62%, 66%  { height:85%; }
+    74%, 100% { height:0%; }
+  }
+
+  @keyframes carriedCupFade{
+    0%, 58%   { opacity:0; }
+    64%, 94%  { opacity:1; }
+    100%      { opacity:0; }
+  }
+
+  @keyframes payFlash{
+    0%, 58%   { opacity:0; }
+    62%, 72%  { opacity:1; }
+    80%, 100% { opacity:0; }
+  }
+
+  /* le client marche, aperçoit le robot, fait un détour pour acheter le jus, puis repart */
+  @keyframes walkBuyWalk{
+    0%   { left:-8%;  top:56px;  opacity:0; }
+    6%   { left:4%;   top:56px;  opacity:1; }
+    30%  { left:38%;  top:56px;  opacity:1; }
+    38%  { left:46%;  top:170px; opacity:1; }
+    45%  { left:49%;  top:250px; opacity:1; }
+    60%  { left:49%;  top:250px; opacity:1; }
+    68%  { left:53%;  top:170px; opacity:1; }
+    76%  { left:60%;  top:56px;  opacity:1; }
+    96%  { left:100%; top:56px;  opacity:1; }
+    100% { left:108%; top:56px;  opacity:0; }
+  }
+
+  @keyframes walkAcross{
+    0%   { left: -8%; opacity:0; }
+    6%   { opacity:0.65; }
+    94%  { opacity:0.65; }
+    100% { left: 105%; opacity:0; }
+  }
+
+  /* route avec voitures qui passent, tout en bas de la scène */
+  .road{
+    position:absolute; left:0; right:0; bottom:0; height:26px;
+    background: #15181b;
+    border-top: 2px dashed #3a4148;
+  }
+  .car{
+    position:absolute; bottom:2px; left:-10%;
+    font-size: 1.35rem;
+    opacity:0;
+    animation: driveAcross linear infinite;
+  }
+  .car.k1{ animation-duration:6s;   animation-delay:0s; }
+  .car.k2{ animation-duration:7.5s; animation-delay:2.5s; transform: scaleX(-1); }
+  .car.k3{ animation-duration:5.2s; animation-delay:4.5s; }
+
+  @keyframes driveAcross{
+    0%   { left:-10%; opacity:0; }
+    4%   { opacity:1; }
+    96%  { opacity:1; }
+    100% { left:108%; opacity:0; }
+  }
+
+  /* arbres décoratifs sur les côtés de la scène */
+  .tree{
+    position:absolute; bottom:24px;
+    font-size: 2.4rem;
+    opacity:0.9;
+    pointer-events:none;
+  }
+  .tree.left1{ left:-8px; font-size:2.8rem; }
+  .tree.left2{ left:16px; bottom:20px; font-size:1.8rem; }
+  .tree.right1{ right:-8px; font-size:2.8rem; }
+  .tree.right2{ right:16px; bottom:20px; font-size:1.8rem; }
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+(function(){
+  var SUPABASE_URL = 'https://cownezvqavyyhzbjexlh.supabase.co';
+  var SUPABASE_KEY = 'sb_publishable_-t-UoOmT6GEKjIVG81Cv3Q_DyLVBapC';
+  if(!window.supabase || !window.supabase.createClient) return;
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  window.__sb = sb;
+
+  // enregistre discrètement la visite de cette page (aucun blocage si ça échoue)
+  try{
+    sb.from('site_visits').insert({
+      path: window.location.pathname,
+      referrer: document.referrer || null,
+      user_agent: navigator.userAgent
+    }).then(function(){}, function(){});
+  }catch(e){}
+
+  // applique le contenu modifié par le propriétaire (éléments marqués data-cms="...")
+  try{
+    sb.from('site_content').select('key,value').then(function(res){
+      if(!res || !res.data) return;
+      res.data.forEach(function(row){
+        document.querySelectorAll('[data-cms="' + row.key + '"]').forEach(function(el){
+          el.textContent = row.value;
+        });
+      });
+    }, function(){});
+  }catch(e){}
+})();
+</script>
+
+
+<a class="back-link" href="header.html">← Retour</a>
+
+<main>
+  <p class="scene-caption">Robot distributeur automatique de jus — piloté par <span class="accent-pic">PIC</span> &amp; <span class="accent-esp">ESP32</span></p>
+  <div class="dispenser-scene">
+      <div class="shelf-row r1"></div>
+      <div class="shelf-row r2"></div>
+
+      <div class="walker w1">🚶</div>
+      <div class="walker w2">🚶‍♀️</div>
+      <div class="walker w3">🚶‍♂️</div>
+
+      <div class="dispenser">
+        <div class="dispenser-led"></div>
+        <div class="dispenser-spout"></div>
+      </div>
+      <div class="pour-stream"></div>
+      <div class="cup"><div class="cup-liquid"></div></div>
+      <div class="pay-icon">💵</div>
+
+      <div class="table-top"></div>
+      <div class="table-leg tl1"></div>
+      <div class="table-leg tl2"></div>
+
+      <div class="customer c1">🧑<span class="carried-cup">🥤</span></div>
+      <div class="customer c2">🧍‍♀️<span class="carried-cup">🥤</span></div>
+      <div class="customer c3">🧍‍♂️<span class="carried-cup">🥤</span></div>
+      <div class="customer c4">🧍<span class="carried-cup">🥤</span></div>
+
+      <div class="tree left1">🌳</div>
+      <div class="tree left2">🌳</div>
+      <div class="tree right1">🌳</div>
+      <div class="tree right2">🌳</div>
+
+      <div class="road"></div>
+      <div class="car k1">🚗</div>
+      <div class="car k2">🚙</div>
+      <div class="car k3">🚕</div>
+  </div>
+</main>
+
+
+
+</body>
+</html>

@@ -1,0 +1,72 @@
+MISE EN SERVICE — Supabase + Admin
+====================================
+
+CE QUI A ÉTÉ CORRIGÉ
+---------------------
+- "header (1).html" renommé en "header.html" (les liens le cherchaient
+  sous ce nom).
+- avatar.png et tanjona-tokiniaina-cv.pdf étaient au mauvais endroit
+  (un dossier au-dessus) — copiés dans "my portfolio/" où le site
+  les cherche réellement.
+- Ajout de "index.html" dans "my portfolio/" : sans lui, l'adresse
+  racine du site (https://votresite.netlify.app/) n'affichait rien.
+  Il redirige maintenant automatiquement vers header.html.
+- "setmap.xml" (faute de frappe) renommé "sitemap.xml" et son contenu
+  mis à jour avec les pages réelles du site (l'ancien listait des
+  pages qui n'existent plus : a-propos.html, blog.html...).
+- package.json / package-lock.json supprimés : ils référençaient un
+  faux paquet ("espress") sans script de build, ce qui pouvait faire
+  échouer un déploiement automatique. Le site est 100% statique,
+  aucun de ces fichiers n'est nécessaire.
+- Le formulaire de contact n'ouvrait qu'un email (à une adresse
+  provisoire) sans rien enregistrer de fiable. Il enregistre
+  maintenant chaque message dans Supabase, visible dans l'admin.
+
+
+ÉTAPE 1 — Créer les tables dans Supabase
+------------------------------------------
+1. Ouvrez votre projet sur https://supabase.com
+2. Allez dans "SQL Editor"
+3. Collez tout le contenu du fichier "supabase-schema.sql" et exécutez-le.
+   Cela crée 3 tables : site_visits, contact_messages, site_content,
+   avec les règles de sécurité (RLS) déjà configurées.
+
+
+ÉTAPE 2 — Créer votre compte propriétaire
+--------------------------------------------
+1. Toujours dans Supabase : "Authentication" > "Users" > "Add user"
+2. Entrez votre email et un mot de passe (c'est CE compte qui vous
+   servira à vous connecter sur /admin.html du site).
+3. Dans "Authentication" > "Providers" > "Email", désactivez
+   "Allow new users to sign up" — pour qu'aucune autre personne ne
+   puisse créer un compte et accéder à votre admin.
+
+
+ÉTAPE 3 — Déployer le site
+------------------------------
+Déployez uniquement le contenu du dossier "my portfolio/" (c'est lui
+qui doit être à la racine de votre site — sur Netlify, réglez
+"Publish directory" sur "my portfolio").
+
+
+ÉTAPE 4 — Utiliser l'admin
+------------------------------
+Allez sur : https://votresite.netlify.app/admin.html
+Connectez-vous avec le compte créé à l'étape 2. Vous y verrez :
+- Visiteurs : les pages consultées, avec compteur du jour et total
+- Messages : les messages reçus via le formulaire de contact
+- Contenu du site : modifiez certains textes du site directement
+  (la liste des zones modifiables est affichée dans l'admin)
+
+Cette page /admin.html n'apparaît dans aucun menu du site — seule
+une personne qui connaît l'adresse (vous) peut y accéder, et seul
+votre compte peut s'y connecter.
+
+
+REMARQUE
+------------------------------
+Le lien "Envoyer un email directement" en bas de la page Contact
+utilise encore une adresse provisoire (contact@tanjona.mg). Le
+formulaire principal, lui, fonctionne déjà pleinement via Supabase.
+Donnez-moi votre vraie adresse email quand vous voulez que je mette
+aussi ce lien à jour.
