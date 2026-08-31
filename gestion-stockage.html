@@ -149,6 +149,22 @@
   .nav-item:hover{ color: var(--text); background: var(--panel-2); }
   .nav-item.active{ color: var(--cyan); background: rgba(79,216,224,0.08); border-color: rgba(79,216,224,0.3); }
   .nav-spacer{ flex-grow:1; }
+
+  /* ---------- hamburger (mobile only) ---------- */
+  .menu-toggle{
+    display:none;
+    align-items:center; justify-content:center;
+    width:38px; height:38px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background: var(--panel-2);
+    color: var(--text);
+    font-size:1.1rem;
+    cursor:pointer;
+  }
+  .sidebar-top{ display:flex; align-items:center; justify-content:space-between; }
+  .nav-list{ display:contents; }
+
   .user-chip{
     font-family: var(--font-mono);
     font-size: 0.75rem;
@@ -201,12 +217,86 @@
   .invite-box{ display:flex; gap:0.6rem; flex-wrap:wrap; }
   .invite-box input{ flex-grow:1; min-width:220px; padding:0.7rem 0.85rem; border-radius:8px; border:1px solid var(--line); background:var(--bg); color:var(--text); }
 
+  /* ---------- Tableau de bord (Stock) ---------- */
+  .dash-tabs{ display:flex; gap:0.4rem; margin-bottom:1.4rem; border-bottom:1px solid var(--line); }
+  .dash-tab{
+    padding:0.65rem 1.1rem; font-size:0.85rem; color:var(--muted); cursor:pointer;
+    border-bottom:2px solid transparent; font-family:var(--font-mono); user-select:none;
+  }
+  .dash-tab:hover{ color:var(--text); }
+  .dash-tab.active{ color:var(--cyan); border-color:var(--cyan); }
+  .dash-view{ display:none; }
+  .dash-view.active{ display:block; }
+
+  .filters-panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:1.2rem 1.4rem; margin-bottom:1.4rem; display:flex; gap:2rem; flex-wrap:wrap; align-items:flex-start;
+  }
+  .filter-group{ min-width:150px; }
+  .filter-group h4{ font-family:var(--font-mono); font-size:0.68rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--muted); margin-bottom:0.6rem; }
+  .date-range{ display:flex; align-items:center; gap:0.5rem; }
+  .date-range input[type="date"]{
+    padding:0.4rem 0.5rem; border-radius:8px; border:1px solid var(--line);
+    background:var(--bg); color:var(--text); font-family:var(--font-body); font-size:0.8rem;
+  }
+  .date-range span{ color:var(--muted); font-size:0.8rem; }
+  .filter-chip{
+    display:inline-flex; align-items:center; font-size:0.78rem; padding:0.32rem 0.7rem; margin:0.15rem 0.25rem 0.15rem 0;
+    border-radius:999px; border:1px solid var(--line); cursor:pointer; color:var(--muted); user-select:none;
+  }
+  .filter-chip:hover{ color:var(--text); }
+  .filter-chip.checked{ color:var(--cyan); border-color:var(--cyan); background:rgba(79,216,224,0.1); }
+  .filter-clear{
+    font-family:var(--font-mono); font-size:0.72rem; color:var(--amber); cursor:pointer;
+    margin-left:auto; align-self:center; white-space:nowrap;
+    background:transparent; border:1px solid var(--amber); border-radius:999px; padding:0.4rem 0.8rem;
+  }
+  .filter-clear:hover{ text-decoration:underline; }
+
+  .kpi-row{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:0.9rem; margin-bottom:1.4rem; }
+  .kpi-card{
+    background:linear-gradient(135deg, rgba(79,216,224,0.1), rgba(139,147,255,0.08));
+    border:1px solid var(--line); border-radius:12px; padding:1rem 1.1rem;
+  }
+  .kpi-card .kpi-label{ font-family:var(--font-mono); font-size:0.66rem; text-transform:uppercase; color:var(--muted); letter-spacing:0.04em; }
+  .kpi-card .kpi-value{ font-family:var(--font-display); font-size:1.35rem; font-weight:700; margin-top:0.35rem; color:var(--text); }
+
+  .chart-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:0.9rem; margin-bottom:1.4rem; }
+  .chart-panel{ background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:1.1rem; }
+  .chart-panel h4{ font-family:var(--font-mono); font-size:0.72rem; color:var(--cyan); margin-bottom:0.8rem; text-align:center; font-weight:500; }
+  .chart-box{ position:relative; width:100%; }
+
+  .mid-grid{ display:grid; grid-template-columns: 1.1fr 1fr 1fr; gap:0.9rem; margin-bottom:1.4rem; align-items:stretch; }
+  .stack-panel{ display:flex; flex-direction:column; gap:0.9rem; }
+  .list-panel{ background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:1.1rem; flex-grow:1; }
+  .list-panel h4{ font-family:var(--font-mono); font-size:0.7rem; color:var(--cyan); margin-bottom:0.8rem; font-weight:500; }
+  .list-row{ display:flex; justify-content:space-between; align-items:center; gap:0.6rem; padding:0.5rem 0; border-bottom:1px dashed var(--line); font-size:0.85rem; }
+  .list-row:last-child{ border-bottom:none; }
+  .list-row .val{ font-family:var(--font-mono); color:var(--cyan); white-space:nowrap; }
+  .badge-warn{ font-size:0.66rem; padding:0.2rem 0.55rem; border-radius:999px; border:1px solid var(--amber); color:var(--amber); white-space:nowrap; }
+  .badge-danger{ font-size:0.66rem; padding:0.2rem 0.55rem; border-radius:999px; border:1px solid var(--red); color:var(--red); white-space:nowrap; }
+
+  .line-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:0.9rem; }
+
   @media (max-width: 820px){
     .shell{ grid-template-columns: 1fr; }
-    .sidebar{ flex-direction:row; flex-wrap:wrap; border-right:none; border-bottom:1px solid var(--line); }
+    .sidebar{ flex-direction:column; align-items:stretch; border-right:none; border-bottom:1px solid var(--line); padding: 1rem 1.2rem; }
     .nav-spacer{ display:none; }
     .brand-sub{ display:none; }
-    .user-chip{ display:none; }
+
+    .menu-toggle{ display:flex; }
+
+    .nav-list{
+      display:none;
+      flex-direction:column;
+      margin-top: 1rem;
+    }
+    .nav-list.open{ display:flex; }
+    .user-chip{ margin-top:1rem; }
+
+    .mid-grid{ grid-template-columns: 1fr; }
+    .filters-panel{ flex-direction:column; gap:1rem; }
+    .filter-clear{ align-self:flex-start; margin-left:0; }
   }
 </style>
 </head>
@@ -268,21 +358,26 @@
 <div id="appScreen">
   <div class="shell">
     <aside class="sidebar">
-      <div class="brand">Stock<span>Manager</span></div>
+      <div class="sidebar-top">
+        <div class="brand">Stock<span>Manager</span></div>
+        <button class="menu-toggle" id="menuToggle" aria-label="Ouvrir le menu" aria-expanded="false">☰</button>
+      </div>
       <div class="brand-sub">Tanjona · Gestion de Stockage</div>
 
-      <div class="nav-item active" data-section="stock">📦 Stock</div>
-      <div class="nav-item" data-section="factures">🧾 Factures</div>
-      <div class="nav-item" data-section="inviter">✉️ Inviter des amis</div>
-      <div class="nav-item" data-section="connexions">👤 Connexions</div>
+      <div class="nav-list" id="navList">
+        <div class="nav-item active" data-section="stock">📦 Stock</div>
+        <div class="nav-item" data-section="factures">🧾 Factures</div>
+        <div class="nav-item" data-section="inviter">✉️ Inviter des amis</div>
+        <div class="nav-item" data-section="connexions">👤 Connexions</div>
+
+        <div class="user-chip">
+          <strong id="currentUserName">—</strong>
+          <span id="currentUserEmail">—</span>
+        </div>
+        <button class="btn btn-red btn-sm" id="logoutBtn" style="margin-top:0.8rem;">Se déconnecter</button>
+      </div>
 
       <div class="nav-spacer"></div>
-
-      <div class="user-chip">
-        <strong id="currentUserName">—</strong>
-        <span id="currentUserEmail">—</span>
-      </div>
-      <button class="btn btn-red btn-sm" id="logoutBtn" style="margin-top:0.8rem;">Se déconnecter</button>
     </aside>
 
     <main class="content">
@@ -292,7 +387,7 @@
         <div class="section-head">
           <div>
             <h2>Stock</h2>
-            <p>Gérez vos articles, quantités et prix.</p>
+            <p>Tableau de bord de votre stock : entrées, sorties et valeur en temps réel.</p>
           </div>
           <div class="actions-row">
             <button class="btn btn-amber btn-sm" id="exportExcelBtn">Exporter en Excel</button>
@@ -300,36 +395,114 @@
           </div>
         </div>
 
-        <div class="panel">
-          <h3>Ajouter un article</h3>
-          <div class="form-grid">
-            <div class="field" style="margin-bottom:0;">
-              <label>Nom</label>
-              <input id="itemName" type="text" placeholder="Ex: Câble USB">
+        <div class="dash-tabs">
+          <div class="dash-tab active" data-dash="dashboard">📊 Tableau de bord</div>
+          <div class="dash-tab" data-dash="articles">📦 Articles</div>
+        </div>
+
+        <!-- ===== DASHBOARD ===== -->
+        <div class="dash-view active" id="dash-dashboard">
+
+          <div class="filters-panel">
+            <div class="filter-group">
+              <h4>Plage de dates</h4>
+              <div class="date-range">
+                <input type="date" id="filterDateFrom">
+                <span>→</span>
+                <input type="date" id="filterDateTo">
+              </div>
             </div>
-            <div class="field" style="margin-bottom:0;">
-              <label>Catégorie</label>
-              <input id="itemCategory" type="text" placeholder="Ex: Électronique">
+            <div class="filter-group">
+              <h4>Jour</h4>
+              <div id="filterDays"></div>
             </div>
-            <div class="field" style="margin-bottom:0;">
-              <label>Quantité</label>
-              <input id="itemQty" type="number" min="0" value="1">
+            <div class="filter-group">
+              <h4>Catégorie</h4>
+              <div id="filterCategories"></div>
             </div>
-            <div class="field" style="margin-bottom:0;">
-              <label>Prix unitaire (Ar)</label>
-              <input id="itemPrice" type="number" min="0" value="0">
+            <div class="filter-group">
+              <h4>Référence</h4>
+              <div id="filterRefs"></div>
             </div>
-            <button class="btn btn-primary" id="addItemBtn" style="width:auto;">Ajouter</button>
+            <button type="button" class="filter-clear" id="clearFiltersBtn">✕ Réinitialiser les filtres</button>
+          </div>
+
+          <div class="kpi-row">
+            <div class="kpi-card"><div class="kpi-label">Stock total</div><div class="kpi-value" id="kpiStockTotal">0</div></div>
+            <div class="kpi-card"><div class="kpi-label">Valeur de stock</div><div class="kpi-value" id="kpiStockValue">0 Ar</div></div>
+            <div class="kpi-card"><div class="kpi-label">Total des entrées</div><div class="kpi-value" id="kpiEntreesTotal">0</div></div>
+            <div class="kpi-card"><div class="kpi-label">Valeur des entrées</div><div class="kpi-value" id="kpiEntreesValue">0 Ar</div></div>
+            <div class="kpi-card"><div class="kpi-label">Total des sorties</div><div class="kpi-value" id="kpiSortiesTotal">0</div></div>
+            <div class="kpi-card"><div class="kpi-label">Valeur des sorties</div><div class="kpi-value" id="kpiSortiesValue">0 Ar</div></div>
+          </div>
+
+          <div class="chart-grid">
+            <div class="chart-panel"><h4>Stock par catégorie</h4><div class="chart-box" style="height:180px;"><canvas id="chartStockQty"></canvas></div></div>
+            <div class="chart-panel"><h4>Valeur par catégorie</h4><div class="chart-box" style="height:180px;"><canvas id="chartStockValue"></canvas></div></div>
+            <div class="chart-panel"><h4>Entrées par catégorie</h4><div class="chart-box" style="height:180px;"><canvas id="chartEntreesQty"></canvas></div></div>
+            <div class="chart-panel"><h4>Valeur des entrées par catégorie</h4><div class="chart-box" style="height:180px;"><canvas id="chartEntreesValue"></canvas></div></div>
+            <div class="chart-panel"><h4>Sorties par catégorie</h4><div class="chart-box" style="height:180px;"><canvas id="chartSortiesQty"></canvas></div></div>
+            <div class="chart-panel"><h4>Valeur des sorties par catégorie</h4><div class="chart-box" style="height:180px;"><canvas id="chartSortiesValue"></canvas></div></div>
+          </div>
+
+          <div class="mid-grid">
+            <div class="stack-panel">
+              <div class="list-panel">
+                <h4>🏆 Top 3 des marchandises</h4>
+                <div id="topItemsList"></div>
+              </div>
+              <div class="list-panel">
+                <h4>⚠️ Marchandises à approvisionner</h4>
+                <div id="restockList"></div>
+              </div>
+            </div>
+            <div class="chart-panel"><h4>Total des entrées par jour</h4><div class="chart-box" style="height:240px;"><canvas id="chartEntreesDay"></canvas></div></div>
+            <div class="chart-panel"><h4>Total des sorties par jour</h4><div class="chart-box" style="height:240px;"><canvas id="chartSortiesDay"></canvas></div></div>
+          </div>
+
+          <div class="line-grid">
+            <div class="chart-panel"><h4>Valeur des entrées par jour</h4><div class="chart-box" style="height:200px;"><canvas id="chartEntreesValueDay"></canvas></div></div>
+            <div class="chart-panel"><h4>Valeur des sorties par jour</h4><div class="chart-box" style="height:200px;"><canvas id="chartSortiesValueDay"></canvas></div></div>
           </div>
         </div>
 
-        <table id="stockTable">
-          <thead>
-            <tr><th>Nom</th><th>Catégorie</th><th>Quantité</th><th>Prix unitaire</th><th>Valeur</th><th></th></tr>
-          </thead>
-          <tbody id="stockTableBody"></tbody>
-        </table>
-        <p class="empty-hint" id="stockEmptyHint" style="display:none;">Aucun article pour le moment. Ajoutez-en un ci-dessus.</p>
+        <!-- ===== ARTICLES ===== -->
+        <div class="dash-view" id="dash-articles">
+          <div class="panel">
+            <h3>Ajouter un article (entrée en stock)</h3>
+            <div class="form-grid">
+              <div class="field" style="margin-bottom:0;">
+                <label>Référence</label>
+                <input id="itemRef" type="text" placeholder="Ex: B1">
+              </div>
+              <div class="field" style="margin-bottom:0;">
+                <label>Nom</label>
+                <input id="itemName" type="text" placeholder="Ex: Câble USB">
+              </div>
+              <div class="field" style="margin-bottom:0;">
+                <label>Catégorie</label>
+                <input id="itemCategory" type="text" placeholder="Ex: Électronique">
+              </div>
+              <div class="field" style="margin-bottom:0;">
+                <label>Quantité</label>
+                <input id="itemQty" type="number" min="0" value="1">
+              </div>
+              <div class="field" style="margin-bottom:0;">
+                <label>Prix unitaire (Ar)</label>
+                <input id="itemPrice" type="number" min="0" value="0">
+              </div>
+              <button class="btn btn-primary" id="addItemBtn" style="width:auto;">Ajouter</button>
+            </div>
+          </div>
+
+          <table id="stockTable">
+            <thead>
+              <tr><th>Réf.</th><th>Nom</th><th>Catégorie</th><th>Quantité</th><th>Prix unitaire</th><th>Valeur</th><th></th></tr>
+            </thead>
+            <tbody id="stockTableBody"></tbody>
+          </table>
+          <p class="empty-hint" id="stockEmptyHint" style="display:none;">Aucun article pour le moment. Ajoutez-en un ci-dessus.</p>
+        </div>
       </section>
 
       <!-- ---- FACTURES ---- -->
@@ -418,10 +591,12 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script>
 (function(){
   const STORAGE_ITEMS = 'stockmanager_items';
   const STORAGE_LOGINS = 'stockmanager_logins';
+  const STORAGE_MOVEMENTS = 'stockmanager_movements';
 
   function loadItems(){
     try { return JSON.parse(localStorage.getItem(STORAGE_ITEMS)) || []; }
@@ -435,8 +610,55 @@
   }
   function saveLogins(logins){ localStorage.setItem(STORAGE_LOGINS, JSON.stringify(logins)); }
 
+  function loadMovements(){
+    try { return JSON.parse(localStorage.getItem(STORAGE_MOVEMENTS)) || []; }
+    catch(e){ return []; }
+  }
+  function saveMovements(movements){ localStorage.setItem(STORAGE_MOVEMENTS, JSON.stringify(movements)); }
+
+  let idCounter = Date.now();
+  function genId(){ idCounter += 1; return 'itm_' + idCounter; }
+
   let items = loadItems();
+  // normalise les anciens articles (ajoute id / référence si absents)
+  items = items.map(function(it){
+    if(!it.id) it.id = genId();
+    if(it.ref === undefined) it.ref = '';
+    return it;
+  });
+  saveItems(items);
+
+  let movements = loadMovements();
   let currentUser = null;
+
+  // ---------------- FILTRES DU TABLEAU DE BORD ----------------
+  const selectedDays = new Set();
+  const selectedCategories = new Set();
+  const selectedRefs = new Set();
+  let dateFrom = '';
+  let dateTo = '';
+  const chartColors = ['#4fd8e0', '#f2a33c', '#8b93ff', '#6ee7b7', '#f472b6', '#60a5fa', '#fbbf24', '#a78bfa'];
+  const charts = {};
+
+  function pad2(n){ return String(n).padStart(2, '0'); }
+  function dayKey(d){ return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+  function parseDayKey(key){
+    const p = key.split('-');
+    return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+  }
+  function dayLabel(key){
+    return parseDayKey(key).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+  }
+  function passesDateRange(m){
+    if(dateFrom && m.day < dateFrom) return false;
+    if(dateTo && m.day > dateTo) return false;
+    return true;
+  }
+
+  if(window.Chart){
+    Chart.defaults.color = '#7c8b92';
+    Chart.defaults.font.family = "'Inter', sans-serif";
+  }
 
   // ---------------- LOGIN ----------------
   const loginScreen = document.getElementById('loginScreen');
@@ -463,6 +685,8 @@
     renderStock();
     renderLogins();
     renderInvoiceItems();
+    renderFilters();
+    renderDashboard();
     setupInviteLink();
   });
 
@@ -474,6 +698,16 @@
   });
 
   // ---------------- NAVIGATION ----------------
+  var menuToggle = document.getElementById('menuToggle');
+  var navList = document.getElementById('navList');
+  if(menuToggle && navList){
+    menuToggle.addEventListener('click', function(){
+      var isOpen = navList.classList.toggle('open');
+      menuToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      menuToggle.textContent = isOpen ? '✕' : '☰';
+    });
+  }
+
   document.querySelectorAll('.nav-item').forEach(function(nav){
     nav.addEventListener('click', function(){
       document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -481,6 +715,22 @@
       nav.classList.add('active');
       document.getElementById('section-' + nav.dataset.section).classList.add('active');
       if(nav.dataset.section === 'factures') renderInvoiceItems();
+      if(nav.dataset.section === 'stock'){ renderFilters(); renderDashboard(); }
+      // ferme le menu mobile après avoir choisi une section
+      if(navList && navList.classList.contains('open')){
+        navList.classList.remove('open');
+        if(menuToggle){ menuToggle.textContent = '☰'; menuToggle.setAttribute('aria-expanded','false'); }
+      }
+    });
+  });
+
+  document.querySelectorAll('.dash-tab').forEach(function(tab){
+    tab.addEventListener('click', function(){
+      document.querySelectorAll('.dash-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.dash-view').forEach(v => v.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('dash-' + tab.dataset.dash).classList.add('active');
+      if(tab.dataset.dash === 'dashboard'){ renderFilters(); renderDashboard(); }
     });
   });
 
@@ -494,21 +744,59 @@
     items.forEach(function(item, idx){
       const tr = document.createElement('tr');
       tr.innerHTML =
+        '<td>' + escapeHtml(item.ref || '—') + '</td>' +
         '<td>' + escapeHtml(item.name) + '</td>' +
         '<td>' + escapeHtml(item.category || '—') + '</td>' +
         '<td>' + item.qty + '</td>' +
         '<td>' + formatAr(item.price) + '</td>' +
         '<td>' + formatAr(item.qty * item.price) + '</td>' +
-        '<td><button class="btn btn-red btn-sm" data-idx="' + idx + '">Supprimer</button></td>';
+        '<td style="white-space:nowrap;">' +
+          '<button class="btn btn-amber btn-sm" data-sortie="' + idx + '" style="width:auto; margin-right:0.4rem;">Sortie</button>' +
+          '<button class="btn btn-red btn-sm" data-idx="' + idx + '" style="width:auto;">Supprimer</button>' +
+        '</td>';
       tbody.appendChild(tr);
     });
     tbody.querySelectorAll('button[data-idx]').forEach(function(btn){
       btn.addEventListener('click', function(){
-        items.splice(Number(btn.dataset.idx), 1);
+        const idx = Number(btn.dataset.idx);
+        const removed = items[idx];
+        items.splice(idx, 1);
         saveItems(items);
+        if(removed){
+          movements = movements.filter(function(m){ return m.itemId !== removed.id; });
+          saveMovements(movements);
+        }
         renderStock();
+        renderFilters();
+        renderDashboard();
       });
     });
+    tbody.querySelectorAll('button[data-sortie]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        handleSortie(Number(btn.dataset.sortie));
+      });
+    });
+  }
+
+  function handleSortie(idx){
+    const item = items[idx];
+    if(!item) return;
+    const input = window.prompt('Quantité à sortir pour "' + item.name + '" (stock actuel : ' + item.qty + ')', '1');
+    if(input === null) return;
+    const qty = Number(input);
+    if(!qty || qty <= 0){ alert('Quantité invalide.'); return; }
+    if(qty > item.qty){ alert("La quantité dépasse le stock disponible."); return; }
+    item.qty -= qty;
+    saveItems(items);
+    movements.push({
+      itemId: item.id, ref: item.ref || '', name: item.name, category: item.category || '',
+      type: 'sortie', qty: qty, price: item.price, value: qty * item.price,
+      date: new Date().toISOString(), day: dayKey(new Date())
+    });
+    saveMovements(movements);
+    renderStock();
+    renderFilters();
+    renderDashboard();
   }
 
   function escapeHtml(str){
@@ -518,24 +806,263 @@
   }
 
   document.getElementById('addItemBtn').addEventListener('click', function(){
+    const ref = document.getElementById('itemRef').value.trim();
     const name = document.getElementById('itemName').value.trim();
     const category = document.getElementById('itemCategory').value.trim();
     const qty = Number(document.getElementById('itemQty').value) || 0;
     const price = Number(document.getElementById('itemPrice').value) || 0;
     if(!name) return;
-    items.push({ name, category, qty, price });
+    const id = genId();
+    items.push({ id, ref, name, category, qty, price });
     saveItems(items);
+    if(qty > 0){
+      movements.push({
+        itemId: id, ref: ref, name: name, category: category,
+        type: 'entree', qty: qty, price: price, value: qty * price,
+        date: new Date().toISOString(), day: dayKey(new Date())
+      });
+      saveMovements(movements);
+    }
+    document.getElementById('itemRef').value = '';
     document.getElementById('itemName').value = '';
     document.getElementById('itemCategory').value = '';
     document.getElementById('itemQty').value = 1;
     document.getElementById('itemPrice').value = 0;
     renderStock();
+    renderFilters();
+    renderDashboard();
   });
+
+  // ---------------- TABLEAU DE BORD ----------------
+  function passesCatRef(o){
+    const cat = o.category || 'Sans catégorie';
+    const ref = o.ref || '—';
+    if(selectedCategories.size && !selectedCategories.has(cat)) return false;
+    if(selectedRefs.size && !selectedRefs.has(ref)) return false;
+    return true;
+  }
+
+  function getFilteredItems(){
+    return items.filter(passesCatRef);
+  }
+
+  function getFilteredMovements(type){
+    return movements.filter(function(m){
+      if(m.type !== type) return false;
+      if(!passesCatRef(m)) return false;
+      if(!passesDateRange(m)) return false;
+      if(selectedDays.size && !selectedDays.has(m.day)) return false;
+      return true;
+    });
+  }
+
+  function groupByCategory(arr, valueFn){
+    const map = new Map();
+    arr.forEach(function(o){
+      const cat = o.category || 'Sans catégorie';
+      map.set(cat, (map.get(cat) || 0) + valueFn(o));
+    });
+    return { labels: Array.from(map.keys()), data: Array.from(map.values()) };
+  }
+
+  function getLastDays(movs, n){
+    const set = new Set(movs.map(function(m){ return m.day; }));
+    let arr = Array.from(set).sort();
+    if(arr.length === 0){
+      const now = new Date();
+      arr = [];
+      for(let i = n - 1; i >= 0; i--){
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+        arr.push(dayKey(d));
+      }
+      return arr;
+    }
+    return arr.slice(-n);
+  }
+
+  function getDaysForTrend(movs){
+    if(dateFrom || dateTo){
+      const dataDays = movs.map(function(m){ return m.day; }).sort();
+      const start = dateFrom ? parseDayKey(dateFrom) : (dataDays.length ? parseDayKey(dataDays[0]) : new Date());
+      const end = dateTo ? parseDayKey(dateTo) : new Date();
+      const days = [];
+      const cur = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+      const endD = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+      let safety = 0;
+      while(cur <= endD && safety < 366){
+        days.push(dayKey(cur));
+        cur.setDate(cur.getDate() + 1);
+        safety++;
+      }
+      return days.length ? days : [dayKey(new Date())];
+    }
+    return getLastDays(movs, 14);
+  }
+
+  function sumForDay(arr, dk, valueFn){
+    return arr.filter(function(m){ return m.day === dk; }).reduce(function(s, m){ return s + valueFn(m); }, 0);
+  }
+
+  function renderChart(id, config){
+    const canvas = document.getElementById(id);
+    if(!canvas || !window.Chart) return;
+    if(charts[id]) charts[id].destroy();
+    charts[id] = new Chart(canvas.getContext('2d'), config);
+  }
+
+  function renderDonut(id, group){
+    let labels = group.labels, data = group.data;
+    if(!labels.length){ labels = ['Aucune donnée']; data = [1]; }
+    renderChart(id, {
+      type: 'doughnut',
+      data: { labels: labels, datasets: [{ data: data, backgroundColor: labels.map(function(_, i){ return chartColors[i % chartColors.length]; }), borderWidth: 0 }] },
+      options: {
+        maintainAspectRatio: false,
+        cutout: '62%',
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 8, font: { size: 9 } } } }
+      }
+    });
+  }
+
+  function renderBar(id, days, data, color){
+    renderChart(id, {
+      type: 'bar',
+      data: { labels: days.map(dayLabel), datasets: [{ data: data, backgroundColor: color, borderRadius: 4, maxBarThickness: 42 }] },
+      options: {
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { x: { grid: { display: false } }, y: { grid: { color: '#1f2a30' }, beginAtZero: true } }
+      }
+    });
+  }
+
+  function renderLine(id, days, data, color){
+    renderChart(id, {
+      type: 'line',
+      data: { labels: days.map(dayLabel), datasets: [{ data: data, borderColor: color, backgroundColor: color + '2a', fill: true, tension: 0.35, pointRadius: 3 }] },
+      options: {
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { x: { grid: { display: false } }, y: { grid: { color: '#1f2a30' }, beginAtZero: true } }
+      }
+    });
+  }
+
+  function buildChipGroup(containerId, values, selectedSet, labelFn){
+    const el = document.getElementById(containerId);
+    if(!el) return;
+    el.innerHTML = '';
+    if(!values.length){ el.innerHTML = '<span style="color:var(--muted); font-size:0.8rem;">—</span>'; return; }
+    values.forEach(function(v){
+      const chip = document.createElement('span');
+      chip.className = 'filter-chip' + (selectedSet.has(v) ? ' checked' : '');
+      chip.textContent = labelFn(v);
+      chip.addEventListener('click', function(){
+        if(selectedSet.has(v)) selectedSet.delete(v); else selectedSet.add(v);
+        renderFilters();
+        renderDashboard();
+      });
+      el.appendChild(chip);
+    });
+  }
+
+  function renderFilters(){
+    const daysAll = Array.from(new Set(movements.map(function(m){ return m.day; }))).sort();
+    const catsAll = Array.from(new Set(
+      items.map(function(it){ return it.category || 'Sans catégorie'; })
+        .concat(movements.map(function(m){ return m.category || 'Sans catégorie'; }))
+    ));
+    const refsAll = Array.from(new Set(items.map(function(it){ return it.ref || '—'; })));
+
+    buildChipGroup('filterDays', daysAll, selectedDays, dayLabel);
+    buildChipGroup('filterCategories', catsAll, selectedCategories, function(c){ return c; });
+    buildChipGroup('filterRefs', refsAll, selectedRefs, function(r){ return r; });
+  }
+
+  document.getElementById('filterDateFrom').addEventListener('change', function(){
+    dateFrom = this.value;
+    renderDashboard();
+  });
+  document.getElementById('filterDateTo').addEventListener('change', function(){
+    dateTo = this.value;
+    renderDashboard();
+  });
+
+  document.getElementById('clearFiltersBtn').addEventListener('click', function(){
+    selectedDays.clear();
+    selectedCategories.clear();
+    selectedRefs.clear();
+    dateFrom = '';
+    dateTo = '';
+    document.getElementById('filterDateFrom').value = '';
+    document.getElementById('filterDateTo').value = '';
+    renderFilters();
+    renderDashboard();
+  });
+
+  function renderDashboard(){
+    const filteredItems = getFilteredItems();
+    const stockTotal = filteredItems.reduce(function(s, it){ return s + Number(it.qty); }, 0);
+    const stockValue = filteredItems.reduce(function(s, it){ return s + Number(it.qty) * Number(it.price); }, 0);
+
+    const entreesF = getFilteredMovements('entree');
+    const sortiesF = getFilteredMovements('sortie');
+    const entreesTotal = entreesF.reduce(function(s, m){ return s + m.qty; }, 0);
+    const entreesValue = entreesF.reduce(function(s, m){ return s + m.value; }, 0);
+    const sortiesTotal = sortiesF.reduce(function(s, m){ return s + m.qty; }, 0);
+    const sortiesValue = sortiesF.reduce(function(s, m){ return s + m.value; }, 0);
+
+    document.getElementById('kpiStockTotal').textContent = stockTotal.toLocaleString('fr-FR');
+    document.getElementById('kpiStockValue').textContent = formatAr(stockValue);
+    document.getElementById('kpiEntreesTotal').textContent = entreesTotal.toLocaleString('fr-FR');
+    document.getElementById('kpiEntreesValue').textContent = formatAr(entreesValue);
+    document.getElementById('kpiSortiesTotal').textContent = sortiesTotal.toLocaleString('fr-FR');
+    document.getElementById('kpiSortiesValue').textContent = formatAr(sortiesValue);
+
+    renderDonut('chartStockQty', groupByCategory(filteredItems, function(it){ return Number(it.qty); }));
+    renderDonut('chartStockValue', groupByCategory(filteredItems, function(it){ return Number(it.qty) * Number(it.price); }));
+    renderDonut('chartEntreesQty', groupByCategory(entreesF, function(m){ return m.qty; }));
+    renderDonut('chartEntreesValue', groupByCategory(entreesF, function(m){ return m.value; }));
+    renderDonut('chartSortiesQty', groupByCategory(sortiesF, function(m){ return m.qty; }));
+    renderDonut('chartSortiesValue', groupByCategory(sortiesF, function(m){ return m.value; }));
+
+    const top3 = filteredItems.slice().sort(function(a, b){ return (b.qty * b.price) - (a.qty * a.price); }).slice(0, 3);
+    const topEl = document.getElementById('topItemsList');
+    topEl.innerHTML = '';
+    if(!top3.length){ topEl.innerHTML = '<p class="empty-hint" style="padding:0.4rem 0;">Aucune donnée.</p>'; }
+    top3.forEach(function(it){
+      const row = document.createElement('div');
+      row.className = 'list-row';
+      row.innerHTML = '<span>' + escapeHtml(it.name) + '</span><span class="val">' + formatAr(it.qty * it.price) + '</span>';
+      topEl.appendChild(row);
+    });
+
+    const restock = filteredItems.filter(function(it){ return Number(it.qty) <= 5; }).sort(function(a, b){ return a.qty - b.qty; });
+    const restockEl = document.getElementById('restockList');
+    restockEl.innerHTML = '';
+    if(!restock.length){ restockEl.innerHTML = '<p class="empty-hint" style="padding:0.4rem 0;">Tous les articles sont bien approvisionnés.</p>'; }
+    restock.forEach(function(it){
+      const row = document.createElement('div');
+      row.className = 'list-row';
+      const badge = Number(it.qty) === 0 ? '<span class="badge-danger">Non disponible</span>' : '<span class="badge-warn">Stock faible</span>';
+      row.innerHTML = '<span>' + escapeHtml(it.name) + '</span>' + badge;
+      restockEl.appendChild(row);
+    });
+
+    const entreesTrend = movements.filter(function(m){ return m.type === 'entree' && passesCatRef(m) && passesDateRange(m); });
+    const sortiesTrend = movements.filter(function(m){ return m.type === 'sortie' && passesCatRef(m) && passesDateRange(m); });
+    const days = getDaysForTrend(entreesTrend.concat(sortiesTrend));
+
+    renderBar('chartEntreesDay', days, days.map(function(dk){ return sumForDay(entreesTrend, dk, function(m){ return m.qty; }); }), '#8b93ff');
+    renderBar('chartSortiesDay', days, days.map(function(dk){ return sumForDay(sortiesTrend, dk, function(m){ return m.qty; }); }), '#4fd8e0');
+    renderLine('chartEntreesValueDay', days, days.map(function(dk){ return sumForDay(entreesTrend, dk, function(m){ return m.value; }); }), '#f2a33c');
+    renderLine('chartSortiesValueDay', days, days.map(function(dk){ return sumForDay(sortiesTrend, dk, function(m){ return m.value; }); }), '#8b93ff');
+  }
 
   document.getElementById('exportExcelBtn').addEventListener('click', function(){
     if(!window.XLSX){ alert("La bibliothèque Excel n'a pas pu être chargée."); return; }
     const rows = items.map(function(i){
-      return { Nom: i.name, Catégorie: i.category || '', Quantité: i.qty, 'Prix unitaire (Ar)': i.price, 'Valeur (Ar)': i.qty * i.price };
+      return { Référence: i.ref || '', Nom: i.name, Catégorie: i.category || '', Quantité: i.qty, 'Prix unitaire (Ar)': i.price, 'Valeur (Ar)': i.qty * i.price };
     });
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();

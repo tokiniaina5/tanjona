@@ -127,9 +127,13 @@
   .label-web::before{ background: var(--cyan); box-shadow:0 0 8px var(--cyan); }
   .label-mcu::before{ background: var(--amber); box-shadow:0 0 8px var(--amber); }
   .label-mech::before{ background: #8b93ff; box-shadow:0 0 8px #8b93ff; }
+  .label-photo::before{ background: #ff6f9e; box-shadow:0 0 8px #ff6f9e; }
+  .label-anim3d::before{ background: #9bd85a; box-shadow:0 0 8px #9bd85a; }
   .label-web{ color: var(--cyan); }
   .label-mcu{ color: var(--amber); }
   .label-mech{ color: #8b93ff; }
+  .label-photo{ color: #ff6f9e; }
+  .label-anim3d{ color: #9bd85a; }
 
   .scene-wrap{
     position:absolute;
@@ -169,10 +173,11 @@
     justify-content:center;
   }
   .backdrop-photo{
-    width: 190px;
-    height: auto;
+    width: 150px;
+    height: 225px;
     border-radius: 14px;
     object-fit: cover;
+    object-position: top;
     border: 3px solid var(--cyan);
     box-shadow: 0 0 50px rgba(79,216,224,0.4);
     flex-shrink:0;
@@ -198,17 +203,35 @@
   .line-web{ color: var(--cyan); text-shadow: 0 0 44px rgba(79,216,224,0.35); }
   .line-mcu{ color: var(--amber); text-shadow: 0 0 44px rgba(242,163,60,0.3); }
   .line-mech{ color: #8b93ff; text-shadow: 0 0 44px rgba(139,147,255,0.3); }
+  .line-photo{ color: #ff6f9e; text-shadow: 0 0 44px rgba(255,111,158,0.3); }
+  .line-anim3d{ color: #9bd85a; text-shadow: 0 0 44px rgba(155,216,90,0.3); }
 
   @media (max-width: 880px){
     .header{
-      min-height: 72vh;
-      padding: 0 6vw 4vh;
+      min-height: 0;
+      height: auto;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 6vh 6vw 6vh;
+    }
+    .scene-wrap{
+      position:relative;
+      inset:auto;
+      width:100%;
+      height: 62vh;
+      min-height: 440px;
+      order:1;
+    }
+    .content{
+      order:2;
+      margin-top: 2rem;
     }
     .node-label{ font-size: 0.62rem; padding: 0.32rem 0.55rem; }
     .backdrop-inner{ flex-direction:column; gap: 1.4rem; }
     .backdrop-text{ text-align:center; }
     .backdrop-about{ margin-left:auto; margin-right:auto; }
-    .backdrop-photo{ width: 130px; height:auto; }
+    .backdrop-photo{ width: 110px; height: 165px; }
   }
 </style>
 </head>
@@ -263,6 +286,8 @@
           <div class="backdrop-line line-web">Développement Web</div>
           <div class="backdrop-line line-mcu">PIC &amp; ESP32</div>
           <div class="backdrop-line line-mech">Mécanique Auto</div>
+          <div class="backdrop-line line-photo">Photographe</div>
+          <div class="backdrop-line line-anim3d">Création Animation 3D</div>
           <p class="backdrop-about" data-cms="hero_about">Tanjona — développeur basé à Madagascar, entre web, programmation PIC &amp; ESP32 et mécanique automobile.</p>
         </div>
       </div>
@@ -271,6 +296,8 @@
     <a class="node-label label-web" id="labelWeb" href="developpement.html">Développement Web</a>
     <a class="node-label label-mcu" id="labelMcu" href="microcontrolleur.html">PIC &amp; ESP32</a>
     <a class="node-label label-mech" id="labelMech" href="mecanique.html">Mécanique Auto</a>
+    <a class="node-label label-photo" id="labelPhoto" href="projets.html">Photographe</a>
+    <a class="node-label label-anim3d" id="labelAnim3d" href="projets.html">Création Animation 3D</a>
   </div>
 </header>
 
@@ -370,24 +397,21 @@
       return y;
     }
 
-    function drawAvatarCover(img, cx, cy, w, h){
-      const radius = 16;
-      const x = cx - w/2, y = cy - h/2;
+    function drawAvatarCover(img, cx, cy, diameter){
+      const radius = diameter / 2;
       ctx.save();
       ctx.beginPath();
-      ctx.moveTo(x + radius, y);
-      ctx.arcTo(x + w, y, x + w, y + h, radius);
-      ctx.arcTo(x + w, y + h, x, y + h, radius);
-      ctx.arcTo(x, y + h, x, y, radius);
-      ctx.arcTo(x, y, x + w, y, radius);
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
       ctx.closePath();
       ctx.clip();
-      const scale = Math.max(w / img.width, h / img.height);
-      const iw = img.width * scale, ih = img.height * scale;
-      ctx.drawImage(img, cx - iw/2, cy - ih/2, iw, ih);
+      const scale = Math.max(diameter / img.width, diameter / img.height);
+      const w = img.width * scale, h = img.height * scale;
+      ctx.drawImage(img, cx - w/2, cy - h/2, w, h);
       ctx.restore();
-      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
       ctx.strokeStyle = '#5fe8f0';
+      ctx.lineWidth = 5;
       ctx.stroke();
     }
 
@@ -403,7 +427,7 @@
 
       // photo + name, top row
       if(photoImg){
-        drawAvatarCover(photoImg, 146, 146, 170, 200);
+        drawAvatarCover(photoImg, 146, 146, 180);
       }
       ctx.fillStyle = '#5fe8f0';
       ctx.font = 'bold 46px "Courier New", monospace';
@@ -601,7 +625,7 @@
   }
 
   const gear = makeEngine(violet);
-  gear.position.set(-2.6, 1.4, 0.6);
+  gear.position.set(-1.5, 1.0, 0.6);
   worldGroup.add(gear);
 
   // orbiting node 2: PIC & ESP32 — dev-board style PCB with a PIC-style IC, an ESP32 RF shield, and silkscreen labels
@@ -672,47 +696,9 @@
   }
 
   const chip = makeChip(amber);
-  chip.position.set(3.0, -0.4, 0.3);
+  chip.position.set(1.7, -0.3, 0.3);
   chip.scale.setScalar(1.05);
   worldGroup.add(chip);
-
-  // small juice-dispensing robot, wired to the PIC & ESP32 board — a compact 3D version of the robotique demo
-  function makeMiniDispenser(color){
-    const g = new THREE.Group();
-    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1a2026, emissive: color, emissiveIntensity:0.25, metalness:0.5, roughness:0.4 });
-    const cupMat = new THREE.MeshStandardMaterial({ color: 0xe7ecee, transparent:true, opacity:0.5, metalness:0.1, roughness:0.3 });
-    const liquidMat = new THREE.MeshStandardMaterial({ color: 0xf2a33c, emissive: 0xf2a33c, emissiveIntensity:0.4, metalness:0.1, roughness:0.4 });
-
-    const box = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.32, 0.26), bodyMat);
-    g.add(box);
-    const spout = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.025, 0.1, 8), bodyMat);
-    spout.position.set(0, -0.2, 0.1);
-    g.add(spout);
-    const led = new THREE.Mesh(new THREE.SphereGeometry(0.02, 8, 8), new THREE.MeshBasicMaterial({ color }));
-    led.position.set(0.13, 0.1, 0.14);
-    g.add(led);
-
-    const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.055, 0.16, 14, 1, true), cupMat);
-    cup.position.set(0, -0.36, 0.1);
-    g.add(cup);
-    const liquid = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.05, 1, 14), liquidMat);
-    liquid.position.set(0, -0.36 - 0.08, 0.1);
-    liquid.scale.y = 0.001;
-    g.add(liquid);
-
-    const stream = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.14, 6), liquidMat);
-    stream.position.set(0, -0.28, 0.1);
-    stream.visible = false;
-    g.add(stream);
-
-    g.userData = { led, liquid, stream };
-    return g;
-  }
-
-  const miniDispenser = makeMiniDispenser(amber);
-  miniDispenser.position.set(0.55, 0.55, 0.15);
-  miniDispenser.scale.setScalar(1.15);
-  chip.add(miniDispenser);
 
   // orbiting node 3: WEB — bracket / code symbol using torus knot-ish simple shape (two brackets)
   function makeBrackets(color){
@@ -731,8 +717,57 @@
   }
 
   const brackets = makeBrackets(cyan);
-  brackets.position.set(0.4, 2.2, -1.1);
+  brackets.position.set(0.3, 1.5, -0.8);
   worldGroup.add(brackets);
+
+  // orbiting node 4: Photographe — a stylized camera
+  function makeCamera(color){
+    const g = new THREE.Group();
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x14181c, emissive: color, emissiveIntensity:0.25, metalness:0.55, roughness:0.35 });
+    const lensMat = new THREE.MeshStandardMaterial({ color: 0x05080a, emissive: color, emissiveIntensity:0.4, metalness:0.7, roughness:0.2 });
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.34, 0.22), bodyMat);
+    g.add(body);
+    const bump = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.1, 0.16), bodyMat);
+    bump.position.set(-0.1, 0.22, 0);
+    g.add(bump);
+    const lensBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.15, 0.22, 20), lensMat);
+    lensBarrel.rotation.x = Math.PI/2;
+    lensBarrel.position.set(0, 0, 0.22);
+    g.add(lensBarrel);
+    const lensGlass = new THREE.Mesh(new THREE.CircleGeometry(0.1, 20), new THREE.MeshBasicMaterial({ color }));
+    lensGlass.position.set(0, 0, 0.335);
+    g.add(lensGlass);
+    const flash = new THREE.Mesh(new THREE.SphereGeometry(0.03, 10, 10), new THREE.MeshBasicMaterial({ color }));
+    flash.position.set(0.22, 0.19, 0.09);
+    g.add(flash);
+    g.userData.flash = flash;
+    return g;
+  }
+
+  const camera3d = makeCamera(0xff6f9e);
+  camera3d.position.set(-2.0, -0.6, -0.3);
+  worldGroup.add(camera3d);
+
+  // orbiting node 5: Création animation 3D — a spinning wireframe cube
+  function makeAnimCube(color){
+    const g = new THREE.Group();
+    const box = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+    const edges = new THREE.EdgesGeometry(box);
+    const wire = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color }));
+    g.add(wire);
+    const faceMat = new THREE.MeshStandardMaterial({ color: 0x121a1e, emissive: color, emissiveIntensity:0.15, metalness:0.4, roughness:0.5, transparent:true, opacity:0.25 });
+    const face = new THREE.Mesh(box, faceMat);
+    g.add(face);
+    const vertexDot = new THREE.Mesh(new THREE.SphereGeometry(0.035, 10, 10), new THREE.MeshBasicMaterial({ color }));
+    vertexDot.position.set(0.25, 0.25, 0.25);
+    g.add(vertexDot);
+    g.userData.vertexDot = vertexDot;
+    return g;
+  }
+
+  const animCube = makeAnimCube(0x9bd85a);
+  animCube.position.set(2.3, 1.9, -0.5);
+  worldGroup.add(animCube);
 
   // connecting lines from core to nodes
   function makeLink(target, color){
@@ -743,7 +778,9 @@
   const link1 = makeLink(gear, violet);
   const link2 = makeLink(chip, amber);
   const link3 = makeLink(brackets, cyan);
-  worldGroup.add(link1, link2, link3);
+  const link4 = makeLink(camera3d, 0xff6f9e);
+  const link5 = makeLink(animCube, 0x9bd85a);
+  worldGroup.add(link1, link2, link3, link4, link5);
 
   // particle field
   const particleCount = 140;
@@ -776,6 +813,8 @@
   const labelWeb = document.getElementById('labelWeb');
   const labelMcu = document.getElementById('labelMcu');
   const labelMech = document.getElementById('labelMech');
+  const labelPhoto = document.getElementById('labelPhoto');
+  const labelAnim3d = document.getElementById('labelAnim3d');
   const _labelVec = new THREE.Vector3();
   function positionLabel(el, object3D){
     object3D.getWorldPosition(_labelVec);
@@ -914,7 +953,7 @@
     monitorPivot.rotation.y += (monitorAngleTarget - monitorPivot.rotation.y) * 0.08;
     screenTextMat.opacity += (textOpacityTarget - screenTextMat.opacity) * 0.08;
 
-    gear.position.y = 1.4 + Math.sin(t*0.4) * 0.12; // gentle float — the engine itself is already busy running
+    gear.position.y = 1.0 + Math.sin(t*0.4) * 0.12; // gentle float — the engine itself is already busy running
     {
       const eng = gear.userData;
       const theta = t * 4.2; // engine "RPM"
@@ -931,24 +970,25 @@
     }
 
     chip.rotation.y = t * 0.6;
-    chip.position.y = -0.6 + Math.sin(t*0.9 + 1) * 0.12;
+    chip.position.y = -0.3 + Math.sin(t*0.9 + 1) * 0.12;
     if(chip.userData.led){
       const pulse = 0.5 + Math.sin(t * 4) * 0.5;
       chip.userData.led.material.color.setRGB(1, 0.55 + pulse*0.3, 0.1);
     }
-    {
-      const md = miniDispenser.userData;
-      const cyclePos = (t % 3) / 3; // 0..1 over a 3s pour/fill loop
-      const fillAmount = cyclePos < 0.5 ? Math.min(1, cyclePos / 0.35) : Math.max(0, 1 - (cyclePos-0.7)/0.3);
-      md.liquid.scale.y = Math.max(0.001, fillAmount);
-      md.liquid.position.y = -0.36 - 0.08 + (1 - fillAmount) * 0.08;
-      md.stream.visible = cyclePos > 0.08 && cyclePos < 0.45;
-      const ledPulse = 0.5 + Math.sin(t * 5) * 0.5;
-      md.led.material.color.setRGB(1, 0.5 + ledPulse*0.3, 0.15);
-    }
 
     brackets.rotation.y = t * 0.5;
-    brackets.position.y = 2.2 + Math.sin(t*0.8 + 2) * 0.14;
+    brackets.position.y = 1.5 + Math.sin(t*0.8 + 2) * 0.14;
+
+    camera3d.rotation.y = Math.sin(t * 0.5) * 0.3;
+    camera3d.position.y = -0.6 + Math.sin(t*0.7 + 3) * 0.12;
+    if(camera3d.userData.flash){
+      const pulse = 0.5 + Math.sin(t * 5) * 0.5;
+      camera3d.userData.flash.material.color.setRGB(1, 1, 0.6 + pulse*0.4);
+    }
+
+    animCube.rotation.y = t * 0.45;
+    animCube.rotation.x = t * 0.3;
+    animCube.position.y = 1.9 + Math.sin(t*0.6 + 4) * 0.13;
 
     // printer stays put on the desk — only its status LED pulses and the paper ejects on click
     {
@@ -959,7 +999,7 @@
       pr.paper.position.z = pr.parkedZ + (pr.ejectedZ - pr.parkedZ) * printEjectAmount;
     }
 
-    [ [link1, gear], [link2, chip], [link3, brackets] ].forEach(([link, node])=>{
+    [ [link1, gear], [link2, chip], [link3, brackets], [link4, camera3d], [link5, animCube] ].forEach(([link, node])=>{
       const posAttr = link.geometry.attributes.position;
       posAttr.setXYZ(1, node.position.x, node.position.y, node.position.z);
       posAttr.needsUpdate = true;
@@ -976,6 +1016,8 @@
     positionLabel(labelWeb, brackets);
     positionLabel(labelMcu, chip);
     positionLabel(labelMech, gear);
+    positionLabel(labelPhoto, camera3d);
+    positionLabel(labelAnim3d, animCube);
 
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
