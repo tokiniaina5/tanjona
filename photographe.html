@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Photographe — Tanjona</title>
+<style>
+  :root{
+    --bg: #0a0d10;
+    --panel: #131a20;
+    --line: #1f2a30;
+    --cyan: #4fd8e0;
+    --amber: #f2a33c;
+    --pink: #ff6fae;
+    --text: #eaf1f0;
+    --muted: #7c8b92;
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ background:var(--bg); color:var(--text); font-family:var(--font-body); }
+
+  .back-link{
+    position:fixed; top:2rem; left:2rem; z-index:10;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-decoration:none;
+    display:flex; align-items:center; gap:0.5rem;
+    padding: 0.55rem 1rem;
+    border:1px solid var(--line);
+    border-radius:999px;
+    background: rgba(19,26,32,0.7);
+    backdrop-filter: blur(4px);
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .back-link:hover{ color: var(--pink); border-color: var(--pink); }
+
+  main{
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 8rem 6vw 6rem;
+  }
+
+  .eyebrow{
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.12em;
+    color: var(--pink);
+    text-transform: uppercase;
+    margin-bottom: 1.2rem;
+    display:flex; align-items:center; gap:0.6rem;
+  }
+  .eyebrow::before{
+    content:""; width:8px; height:8px; background:var(--pink);
+    border-radius:2px; box-shadow:0 0 12px var(--pink);
+  }
+
+  h1{
+    font-family: var(--font-display);
+    font-weight:700;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    line-height:1.05;
+    letter-spacing:-0.01em;
+  }
+  h1 .accent{ color: var(--pink); }
+
+  p.lead{
+    margin-top:1.4rem;
+    max-width: 58ch;
+    color: var(--muted);
+    font-size: 1.08rem;
+    line-height:1.7;
+  }
+
+  .grid{
+    margin-top: 3rem;
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+  }
+  .card{
+    border:1px solid var(--line);
+    background: var(--panel);
+    border-radius: 10px;
+    padding: 1.4rem;
+  }
+  .card h3{
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+    color: var(--pink);
+    margin-bottom: 0.6rem;
+    letter-spacing:0.02em;
+  }
+  .card p{
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height:1.6;
+  }
+
+  .gallery-head{
+    margin-top: 4rem;
+    display:flex; justify-content:space-between; align-items:flex-end; gap:1rem; flex-wrap:wrap;
+  }
+  .gallery-head h2{
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+  }
+  .gallery-head p{ color: var(--muted); font-size: 0.88rem; margin-top:0.3rem; }
+  .media-grid{
+    margin-top: 1.4rem;
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+  .media-card{
+    border:1px solid var(--line);
+    background: var(--panel);
+    border-radius: 12px;
+    overflow:hidden;
+  }
+  .media-card img{ width:100%; aspect-ratio:1; object-fit:cover; display:block; }
+  .media-card .media-body{ padding: 0.8rem 0.9rem; }
+  .media-card .media-title{ font-size:0.88rem; margin-bottom:0.6rem; }
+  .media-card .dl-btn{
+    display:inline-flex; align-items:center; gap:0.4rem;
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    color: var(--pink);
+    text-decoration:none;
+    border: 1px solid rgba(255,111,174,0.4);
+    border-radius: 999px;
+    padding: 0.35rem 0.8rem;
+    transition: background 0.15s ease;
+  }
+  .media-card .dl-btn:hover{ background: rgba(255,111,174,0.1); }
+  .media-empty{ color: var(--muted); font-size: 0.9rem; margin-top: 1.4rem; }
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+(function(){
+  var SUPABASE_URL = 'https://cownezvqavyyhzbjexlh.supabase.co';
+  var SUPABASE_KEY = 'sb_publishable_-t-UoOmT6GEKjIVG81Cv3Q_DyLVBapC';
+  if(!window.supabase || !window.supabase.createClient) return;
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  window.__sb = sb;
+
+  // enregistre discrètement la visite de cette page (aucun blocage si ça échoue)
+  try{
+    sb.from('site_visits').insert({
+      path: window.location.pathname,
+      referrer: document.referrer || null,
+      user_agent: navigator.userAgent
+    }).then(function(){}, function(){});
+  }catch(e){}
+
+  // applique le contenu modifié par le propriétaire (éléments marqués data-cms="...")
+  try{
+    sb.from('site_content').select('key,value').then(function(res){
+      if(!res || !res.data) return;
+      res.data.forEach(function(row){
+        document.querySelectorAll('[data-cms="' + row.key + '"]').forEach(function(el){
+          el.textContent = row.value;
+        });
+      });
+    }, function(){});
+  }catch(e){}
+
+  // charge les photos déjà réalisées et les affiche avec un bouton de téléchargement
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str == null ? '' : str;
+    return div.innerHTML;
+  }
+  try{
+    sb.from('media_items').select('*').eq('category','photo').order('created_at', { ascending:false }).then(function(res){
+      const grid = document.getElementById('photoGallery');
+      const items = (res && res.data) || [];
+      if(!items.length){ document.getElementById('photoGalleryEmpty').style.display = 'block'; return; }
+      items.forEach(function(m){
+        const viewUrl = sb.storage.from('media').getPublicUrl(m.file_path).data.publicUrl;
+        const dlUrl = sb.storage.from('media').getPublicUrl(m.file_path, { download: (m.title || 'photo') }).data.publicUrl;
+        const card = document.createElement('div');
+        card.className = 'media-card';
+        card.innerHTML =
+          '<img src="' + viewUrl + '" alt="' + escapeHtml(m.title || 'Photo') + '" loading="lazy">' +
+          '<div class="media-body">' +
+            '<div class="media-title">' + escapeHtml(m.title || 'Photo') + '</div>' +
+            '<a class="dl-btn" href="' + dlUrl + '">⬇ Télécharger</a>' +
+          '</div>';
+        grid.appendChild(card);
+      });
+    }, function(){});
+  }catch(e){}
+})();
+</script>
+
+
+<a class="back-link" href="header.html">← Retour</a>
+
+<main>
+  <div class="eyebrow">Tanjona · Photographe</div>
+  <h1>Capturer des <span class="accent">images</span> qui racontent quelque chose.</h1>
+  <p class="lead" data-cms="photographe_lead">Prises de vue et retouche photo, au service de portraits, d'événements et de projets créatifs.</p>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Prise de vue</h3>
+      <p>Portraits, événements et projets créatifs, avec attention portée à la lumière et à la composition.</p>
+    </div>
+    <div class="card">
+      <h3>Retouche & post-production</h3>
+      <p>Traitement des photos pour un rendu propre, cohérent et prêt à être partagé.</p>
+    </div>
+    <div class="card">
+      <h3>Reportage & documentation</h3>
+      <p>Couverture photo de projets, réalisations techniques ou événements.</p>
+    </div>
+    <div class="card">
+      <h3>Passerelle avec l'animation 3D</h3>
+      <p>Photographie utilisée comme base ou référence pour des rendus et animations 3D.</p>
+    </div>
+  </div>
+
+  <div class="gallery-head">
+    <h2>Réalisations</h2>
+    <p>Photos déjà réalisées — à voir et à télécharger.</p>
+  </div>
+  <div class="media-grid" id="photoGallery"></div>
+  <p class="media-empty" id="photoGalleryEmpty" style="display:none;">Aucune photo publiée pour le moment.</p>
+</main>
+
+
+
+</body>
+</html>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tanjona — Développeur Web / PIC & ESP32 / Mécanique</title>
+<title>Tanjona — Développeur Web / PIC & ESP32 / Calculateur / Animation 3D / Photographe</title>
 <style>
   :root{
     --bg: #0a0d10;
@@ -126,13 +126,15 @@
   }
   .label-web::before{ background: var(--cyan); box-shadow:0 0 8px var(--cyan); }
   .label-mcu::before{ background: var(--amber); box-shadow:0 0 8px var(--amber); }
-  .label-mech::before{ background: #8b93ff; box-shadow:0 0 8px #8b93ff; }
-  .label-photo::before{ background: #ff6f9e; box-shadow:0 0 8px #ff6f9e; }
+  .label-calc::before{ background: #8b93ff; box-shadow:0 0 8px #8b93ff; }
+  .label-photo::before{ background: #ff6fae; box-shadow:0 0 8px #ff6fae; }
+  .label-montage::before{ background: #ffe066; box-shadow:0 0 8px #ffe066; }
   .label-anim3d::before{ background: #9bd85a; box-shadow:0 0 8px #9bd85a; }
   .label-web{ color: var(--cyan); }
   .label-mcu{ color: var(--amber); }
-  .label-mech{ color: #8b93ff; }
-  .label-photo{ color: #ff6f9e; }
+  .label-calc{ color: #8b93ff; }
+  .label-photo{ color: #ff6fae; }
+  .label-montage{ color: #ffe066; }
   .label-anim3d{ color: #9bd85a; }
 
   .scene-wrap{
@@ -174,10 +176,9 @@
   }
   .backdrop-photo{
     width: 150px;
-    height: 225px;
-    border-radius: 14px;
+    height: 150px;
+    border-radius: 50%;
     object-fit: cover;
-    object-position: top;
     border: 3px solid var(--cyan);
     box-shadow: 0 0 50px rgba(79,216,224,0.4);
     flex-shrink:0;
@@ -202,36 +203,31 @@
   }
   .line-web{ color: var(--cyan); text-shadow: 0 0 44px rgba(79,216,224,0.35); }
   .line-mcu{ color: var(--amber); text-shadow: 0 0 44px rgba(242,163,60,0.3); }
-  .line-mech{ color: #8b93ff; text-shadow: 0 0 44px rgba(139,147,255,0.3); }
-  .line-photo{ color: #ff6f9e; text-shadow: 0 0 44px rgba(255,111,158,0.3); }
+  .line-calc{ color: #8b93ff; text-shadow: 0 0 44px rgba(139,147,255,0.3); }
+  .line-photo{ color: #ff6fae; text-shadow: 0 0 44px rgba(255,111,174,0.3); }
+  .line-montage{ color: #ffe066; text-shadow: 0 0 44px rgba(255,224,102,0.3); }
   .line-anim3d{ color: #9bd85a; text-shadow: 0 0 44px rgba(155,216,90,0.3); }
 
   @media (max-width: 880px){
     .header{
-      min-height: 0;
-      height: auto;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      padding: 6vh 6vw 6vh;
-    }
-    .scene-wrap{
-      position:relative;
-      inset:auto;
-      width:100%;
-      height: 62vh;
-      min-height: 440px;
-      order:1;
-    }
-    .content{
-      order:2;
-      margin-top: 2rem;
+      padding: 0 6vw 6vh;
     }
     .node-label{ font-size: 0.62rem; padding: 0.32rem 0.55rem; }
     .backdrop-inner{ flex-direction:column; gap: 1.4rem; }
     .backdrop-text{ text-align:center; }
     .backdrop-about{ margin-left:auto; margin-right:auto; }
-    .backdrop-photo{ width: 110px; height: 165px; }
+    .backdrop-photo{ width: 110px; height: 110px; }
+  }
+
+  @media (max-width: 480px){
+    .header{
+      padding: 0 4vw 4vh;
+    }
+    .node-label{ font-size: 0.52rem; padding: 0.26rem 0.45rem; gap: 0.32rem; }
+    .node-label::before{ width:5px; height:5px; }
+    .cta-row{ gap: 0.6rem; }
+    .btn{ font-size: 0.72rem; padding: 0.7rem 1.1rem; }
+    .backdrop-photo{ width: 84px; height: 84px; }
   }
 </style>
 </head>
@@ -285,19 +281,21 @@
         <div class="backdrop-text">
           <div class="backdrop-line line-web">Développement Web</div>
           <div class="backdrop-line line-mcu">PIC &amp; ESP32</div>
-          <div class="backdrop-line line-mech">Mécanique Auto</div>
+          <div class="backdrop-line line-calc">Calculateur</div>
+          <div class="backdrop-line line-anim3d">Animation 3D</div>
+          <div class="backdrop-line line-montage">Montage Vidéo</div>
           <div class="backdrop-line line-photo">Photographe</div>
-          <div class="backdrop-line line-anim3d">Création Animation 3D</div>
-          <p class="backdrop-about" data-cms="hero_about">Tanjona — développeur basé à Madagascar, entre web, programmation PIC &amp; ESP32 et mécanique automobile.</p>
+          <p class="backdrop-about" data-cms="hero_about">Tanjona — développeur basé à Madagascar, entre web, programmation PIC &amp; ESP32, calculateur moteur voiture, animation 3D, montage vidéo et photographie.</p>
         </div>
       </div>
     </div>
     <canvas id="scene"></canvas>
     <a class="node-label label-web" id="labelWeb" href="developpement.html">Développement Web</a>
     <a class="node-label label-mcu" id="labelMcu" href="microcontrolleur.html">PIC &amp; ESP32</a>
-    <a class="node-label label-mech" id="labelMech" href="mecanique.html">Mécanique Auto</a>
-    <a class="node-label label-photo" id="labelPhoto" href="projets.html">Photographe</a>
-    <a class="node-label label-anim3d" id="labelAnim3d" href="projets.html">Création Animation 3D</a>
+    <a class="node-label label-calc" id="labelCalc" href="calculateur.html">Calculateur</a>
+    <a class="node-label label-montage" id="labelMontage" href="montage-video.html">Montage Vidéo</a>
+    <a class="node-label label-anim3d" id="labelAnim3d" href="animation3d.html">Animation 3D</a>
+    <a class="node-label label-photo" id="labelPhoto" href="photographe.html">Photographe</a>
   </div>
 </header>
 
@@ -445,20 +443,28 @@
 
       // short, large, high-contrast title lines
       ctx.fillStyle = '#5fe8f0';
-      ctx.font = 'bold 54px "Courier New", monospace';
-      ctx.fillText('Développement Web', 56, 360);
+      ctx.font = 'bold 46px "Courier New", monospace';
+      ctx.fillText('Développement Web', 56, 340);
 
       ctx.fillStyle = '#ffb84d';
-      ctx.font = 'bold 48px "Courier New", monospace';
-      ctx.fillText('PIC & ESP32', 56, 425);
+      ctx.font = 'bold 42px "Courier New", monospace';
+      ctx.fillText('PIC & ESP32', 56, 395);
 
       ctx.fillStyle = '#a6acff';
-      ctx.font = 'bold 48px "Courier New", monospace';
-      ctx.fillText('Mécanique Auto', 56, 485);
+      ctx.font = 'bold 34px "Courier New", monospace';
+      ctx.fillText('Calculateur', 56, 445);
+
+      ctx.fillStyle = '#ffe066';
+      ctx.font = 'bold 42px "Courier New", monospace';
+      ctx.fillText('Animation 3D', 56, 495);
+
+      ctx.fillStyle = '#ff6fae';
+      ctx.font = 'bold 42px "Courier New", monospace';
+      ctx.fillText('Photographe', 56, 545);
 
       ctx.fillStyle = '#7c8b92';
-      ctx.font = '26px "Courier New", monospace';
-      wrapText('Développeur basé à Madagascar, entre web, programmation PIC & ESP32 et mécanique automobile.', 56, 570, cv.width-112, 34);
+      ctx.font = '24px "Courier New", monospace';
+      wrapText('Développeur basé à Madagascar, entre web, programmation PIC & ESP32, calculateur moteur voiture, animation 3D et photographie.', 56, 610, cv.width-112, 32);
     }
 
     draw(null); // draw immediately so the screen isn't blank while the photo loads
@@ -575,57 +581,53 @@
   printer.traverse(o => { if(o.isMesh) o.userData.clickTarget = 'printer'; });
 
   // orbiting node 1: MECHANIC — a small running piston engine (cylinder + piston + connecting rod + crankshaft)
-  function makeEngine(color){
+  function makeCalculator(color){
     const g = new THREE.Group();
-    const metalMat = new THREE.MeshStandardMaterial({ color: 0x1c2126, emissive: color, emissiveIntensity:0.18, metalness:0.65, roughness:0.35 });
-    const steelMat = new THREE.MeshStandardMaterial({ color: 0xcfd6da, metalness:0.85, roughness:0.25 });
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x14181c, emissive: color, emissiveIntensity:0.2, metalness:0.5, roughness:0.4 });
+    const btnMat = new THREE.MeshStandardMaterial({ color: 0x232a30, metalness:0.3, roughness:0.6 });
+    const btnOpMat = new THREE.MeshStandardMaterial({ color: 0x232a30, emissive: color, emissiveIntensity:0.35, metalness:0.3, roughness:0.5 });
 
-    // cylinder sleeve (open-ended tube) the piston slides inside
-    const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.9, 20, 1, true), metalMat);
-    sleeve.position.set(0, 0.55, 0);
-    g.add(sleeve);
-    // cooling fins for a recognizable engine-block silhouette
-    for(let i=0; i<4; i++){
-      const fin = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.035, 0.52), metalMat);
-      fin.position.set(0, 0.22 + i*0.16, 0);
-      g.add(fin);
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.74, 1.02, 0.12), bodyMat);
+    g.add(body);
+
+    function screenTexture(value){
+      const cv = document.createElement('canvas');
+      cv.width = 128; cv.height = 56;
+      const ctx = cv.getContext('2d');
+      ctx.fillStyle = '#0a2a2c';
+      ctx.fillRect(0, 0, cv.width, cv.height);
+      ctx.strokeStyle = '#8b93ff';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(2, 2, cv.width-4, cv.height-4);
+      ctx.fillStyle = '#8b93ff';
+      ctx.font = 'bold 22px "Courier New", monospace';
+      ctx.textAlign = 'right';
+      ctx.fillText(value, cv.width-10, 36);
+      return new THREE.CanvasTexture(cv);
+    }
+    const screenMat = new THREE.MeshBasicMaterial({ map: screenTexture('1598cc') });
+    const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.58, 0.24), screenMat);
+    screen.position.set(0, 0.32, 0.065);
+    g.add(screen);
+
+    // 3x4 button grid
+    const buttons = [];
+    for(let row=0; row<4; row++){
+      for(let col=0; col<3; col++){
+        const isOp = col === 2; // right-hand column reads as the operator keys
+        const btn = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.1, 0.05), isOp ? btnOpMat : btnMat);
+        btn.position.set(-0.2 + col*0.2, 0.02 - row*0.14, 0.085);
+        g.add(btn);
+        buttons.push(btn);
+      }
     }
 
-    // piston (moves vertically inside the sleeve)
-    const piston = new THREE.Mesh(new THREE.CylinderGeometry(0.195, 0.195, 0.2, 20), steelMat);
-    g.add(piston);
-
-    // crankshaft housing (base) + flywheel that spins in the XY plane
-    const housing = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.16, 0.6), metalMat);
-    housing.position.set(0, -0.08, 0);
-    g.add(housing);
-
-    const flywheel = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.07, 28), metalMat);
-    flywheel.rotation.x = Math.PI/2; // face the wheel toward the camera, spins around Z
-    g.add(flywheel);
-
-    const crankPin = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.1, 10), steelMat);
-    crankPin.rotation.x = Math.PI/2;
-    g.add(crankPin);
-
-    // connecting rod (its length/orientation is recomputed every frame from the crank kinematics)
-    const rod = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1, 0.06), steelMat);
-    g.add(rod);
-
-    const statusLed = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 10), new THREE.MeshBasicMaterial({ color }));
-    statusLed.position.set(0.32, 0.95, 0.2);
-    g.add(statusLed);
-
-    g.userData = {
-      flywheel, crankPin, rod, piston, statusLed,
-      crankRadius: 0.16,
-      rodLength: 0.55
-    };
+    g.userData = { screen, screenTexture, buttons, readouts: ['1598cc', '9.5:1', '142cv', '190Nm', '6.8L/100'], readoutIdx: -1 };
     return g;
   }
 
-  const gear = makeEngine(violet);
-  gear.position.set(-1.5, 1.0, 0.6);
+  const gear = makeCalculator(violet);
+  gear.position.set(-2.6, 1.4, 0.6);
   worldGroup.add(gear);
 
   // orbiting node 2: PIC & ESP32 — dev-board style PCB with a PIC-style IC, an ESP32 RF shield, and silkscreen labels
@@ -696,7 +698,7 @@
   }
 
   const chip = makeChip(amber);
-  chip.position.set(1.7, -0.3, 0.3);
+  chip.position.set(3.0, -0.4, 0.3);
   chip.scale.setScalar(1.05);
   worldGroup.add(chip);
 
@@ -717,38 +719,96 @@
   }
 
   const brackets = makeBrackets(cyan);
-  brackets.position.set(0.3, 1.5, -0.8);
+  brackets.position.set(0.4, 2.2, -1.1);
   worldGroup.add(brackets);
 
-  // orbiting node 4: Photographe — a stylized camera
+  // orbiting node 4: PHOTOGRAPHE — a stylized mirrorless camera (body + lens + flash + shutter button)
   function makeCamera(color){
     const g = new THREE.Group();
-    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x14181c, emissive: color, emissiveIntensity:0.25, metalness:0.55, roughness:0.35 });
-    const lensMat = new THREE.MeshStandardMaterial({ color: 0x05080a, emissive: color, emissiveIntensity:0.4, metalness:0.7, roughness:0.2 });
-    const body = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.34, 0.22), bodyMat);
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1c2126, emissive: color, emissiveIntensity:0.22, metalness:0.6, roughness:0.35 });
+    const lensMat = new THREE.MeshStandardMaterial({ color: 0x0e1215, emissive: color, emissiveIntensity:0.15, metalness:0.7, roughness:0.25 });
+    const glassMat = new THREE.MeshStandardMaterial({ color: 0x0a2a2c, emissive: cyan, emissiveIntensity:0.5, metalness:0.2, roughness:0.15 });
+
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.42, 0.3), bodyMat);
     g.add(body);
-    const bump = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.1, 0.16), bodyMat);
-    bump.position.set(-0.1, 0.22, 0);
-    g.add(bump);
-    const lensBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.15, 0.22, 20), lensMat);
+
+    const lensBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.42, 20), lensMat);
     lensBarrel.rotation.x = Math.PI/2;
-    lensBarrel.position.set(0, 0, 0.22);
+    lensBarrel.position.set(0, -0.02, 0.36);
     g.add(lensBarrel);
-    const lensGlass = new THREE.Mesh(new THREE.CircleGeometry(0.1, 20), new THREE.MeshBasicMaterial({ color }));
-    lensGlass.position.set(0, 0, 0.335);
+
+    const lensGlass = new THREE.Mesh(new THREE.CircleGeometry(0.15, 20), glassMat);
+    lensGlass.position.set(0, -0.02, 0.575);
     g.add(lensGlass);
-    const flash = new THREE.Mesh(new THREE.SphereGeometry(0.03, 10, 10), new THREE.MeshBasicMaterial({ color }));
-    flash.position.set(0.22, 0.19, 0.09);
+
+    const viewfinder = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.12, 0.16), bodyMat);
+    viewfinder.position.set(0, 0.27, -0.02);
+    g.add(viewfinder);
+
+    const flashMat = new THREE.MeshStandardMaterial({ color: 0xcfd6da, metalness:0.7, roughness:0.3, emissive: 0xffffff, emissiveIntensity:0.1 });
+    const flash = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.06, 0.1), flashMat);
+    flash.position.set(-0.2, 0.24, 0.1);
     g.add(flash);
-    g.userData.flash = flash;
+
+    const shutterBtn = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.03, 12), new THREE.MeshBasicMaterial({ color }));
+    shutterBtn.position.set(0.28, 0.22, 0.05);
+    g.add(shutterBtn);
+    g.userData = { shutterBtn };
     return g;
   }
 
-  const camera3d = makeCamera(0xff6f9e);
-  camera3d.position.set(-2.0, -0.6, -0.3);
+  const camera3d = makeCamera(0xff6fae);
+  camera3d.position.set(-3.0, -1.7, 0.4);
   worldGroup.add(camera3d);
 
-  // orbiting node 5: Création animation 3D — a spinning wireframe cube
+  // orbiting node 5: ANIMATION 3D — a clapperboard, with a hinged striped clapper arm
+  function makeClapper(color){
+    const g = new THREE.Group();
+    function stripeTexture(){
+      const cv = document.createElement('canvas');
+      cv.width = 256; cv.height = 64;
+      const ctx = cv.getContext('2d');
+      const stripeW = 32;
+      for(let i=0; i*stripeW < cv.width + cv.height; i++){
+        ctx.fillStyle = i % 2 === 0 ? '#101418' : '#f4f6f7';
+        ctx.save();
+        ctx.translate(i*stripeW, 0);
+        ctx.transform(1,0,-0.6,1,0,0);
+        ctx.fillRect(0, 0, stripeW, cv.height);
+        ctx.restore();
+      }
+      const tex = new THREE.CanvasTexture(cv);
+      tex.wrapS = THREE.RepeatWrapping;
+      return tex;
+    }
+    const stripeMat = new THREE.MeshStandardMaterial({ map: stripeTexture(), emissive: color, emissiveIntensity:0.12, metalness:0.3, roughness:0.5 });
+    const boardMat = new THREE.MeshStandardMaterial({ color: 0x14181b, emissive: color, emissiveIntensity:0.18, metalness:0.4, roughness:0.45 });
+
+    const base = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.46, 0.04), boardMat);
+    g.add(base);
+
+    const clapPivot = new THREE.Group();
+    clapPivot.position.set(-0.33, 0.23, 0);
+    g.add(clapPivot);
+    const clapArm = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.1, 0.04), stripeMat);
+    clapArm.position.set(0.33, 0, 0.01);
+    clapPivot.add(clapArm);
+    clapPivot.rotation.z = 0.35; // resting slightly open
+
+    const stripeBar = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.09, 0.045), stripeMat);
+    stripeBar.position.set(0, 0.17, 0.005);
+    g.add(stripeBar);
+
+    g.userData = { clapPivot };
+    return g;
+  }
+
+  const clapper = makeClapper(0xffe066);
+  clapper.position.set(2.9, 2.0, -0.6);
+  clapper.rotation.y = -0.3;
+  worldGroup.add(clapper);
+
+  // orbiting node: Animation 3D — a spinning wireframe cube, separate from the clapper (Montage Vidéo)
   function makeAnimCube(color){
     const g = new THREE.Group();
     const box = new THREE.BoxGeometry(0.5, 0.5, 0.5);
@@ -766,8 +826,69 @@
   }
 
   const animCube = makeAnimCube(0x9bd85a);
-  animCube.position.set(2.3, 1.9, -0.5);
+  animCube.position.set(0.2, -1.9, -0.4);
   worldGroup.add(animCube);
+
+  // decorative background: 9 planets + a moon, scattered widely across the scene like the star
+  // particle field (not clustered together) — purely decorative, no labels, each drifts slowly
+  // around the world origin at its own (large, spread-out) radius so they never bunch up.
+  function makeSolarSystem(){
+    const container = new THREE.Group();
+
+    // [name, size, x, y, z, color, orbitSpeed]
+    const planetDefs = [
+      ['mercure', 0.06,  -4.2,  3.6, -7,    0x9c9590, 0.05 ],
+      ['venus',   0.09,   5.0,  3.0, -8,    0xe0c48a, 0.04 ],
+      ['terre',   0.095, -1.5, -3.8, -9,    0x4f8fe0, 0.035],
+      ['mars',    0.08,   4.6, -3.0, -7.5,  0xc0623f, 0.03 ],
+      ['jupiter', 0.22,  -6.0,  0.5, -10,   0xd9b98a, 0.02 ],
+      ['saturne', 0.19,   6.3,  1.2, -9.5,  0xe4cf9a, 0.017],
+      ['uranus',  0.14,  -3.0, -1.0, -11,   0x9fe0e0, 0.013],
+      ['neptune', 0.135,  2.0,  4.2, -10.5, 0x5f78d9, 0.01 ],
+      ['pluton',  0.05,   0.5, -4.3, -8,    0xb0a89c, 0.008],
+    ];
+
+    const planets = {};
+    planetDefs.forEach(([name, size, x, y, z, color, speed])=>{
+      const radius = Math.sqrt(x*x + z*z);
+      const angle = Math.atan2(z, x);
+
+      const pivot = new THREE.Group();
+      pivot.position.y = y;
+      pivot.rotation.y = angle;
+      pivot.userData = { speed };
+      container.add(pivot);
+
+      const planetGroup = new THREE.Group();
+      planetGroup.position.set(radius, 0, 0);
+      pivot.add(planetGroup);
+
+      const mesh = new THREE.Mesh(new THREE.SphereGeometry(size, 14, 14), new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity:0.35, metalness:0.2, roughness:0.7 }));
+      planetGroup.add(mesh);
+
+      if(name === 'saturne'){
+        const ring = new THREE.Mesh(new THREE.RingGeometry(size*1.4, size*2.2, 32), new THREE.MeshBasicMaterial({ color: 0xcbb98a, side: THREE.DoubleSide, transparent:true, opacity:0.55 }));
+        ring.rotation.x = Math.PI/2.4;
+        planetGroup.add(ring);
+      }
+
+      planets[name] = { pivot, planetGroup, mesh };
+    });
+
+    // the moon, orbiting Earth at a small local radius
+    const moonPivot = new THREE.Group();
+    moonPivot.userData = { speed: 0.12 };
+    planets.terre.planetGroup.add(moonPivot);
+    const moon = new THREE.Mesh(new THREE.SphereGeometry(0.022, 10, 10), new THREE.MeshStandardMaterial({ color: 0xcfd6da, emissive: 0xcfd6da, emissiveIntensity:0.25 }));
+    moon.position.set(0.16, 0, 0);
+    moonPivot.add(moon);
+
+    container.userData = { planets, moonPivot, moon };
+    return container;
+  }
+
+  const solarSystem = makeSolarSystem();
+  worldGroup.add(solarSystem);
 
   // connecting lines from core to nodes
   function makeLink(target, color){
@@ -778,9 +899,10 @@
   const link1 = makeLink(gear, violet);
   const link2 = makeLink(chip, amber);
   const link3 = makeLink(brackets, cyan);
-  const link4 = makeLink(camera3d, 0xff6f9e);
-  const link5 = makeLink(animCube, 0x9bd85a);
-  worldGroup.add(link1, link2, link3, link4, link5);
+  const link4 = makeLink(camera3d, 0xff6fae);
+  const link5 = makeLink(clapper, 0xffe066);
+  const link6 = makeLink(animCube, 0x9bd85a);
+  worldGroup.add(link1, link2, link3, link4, link5, link6);
 
   // particle field
   const particleCount = 140;
@@ -800,11 +922,28 @@
 
   function updateWorldOffset(){
     // no more text column to avoid — center the scene, just scale it down on narrow screens
-    const isNarrow = wrap.clientWidth < 880;
+    const w = wrap.clientWidth;
+    let scale = 1;
+    let liftY = 0;
+    if (w < 420){
+      scale = 0.5;
+      liftY = 0.55;
+    } else if (w < 620){
+      scale = 0.6;
+      liftY = 0.45;
+    } else if (w < 880){
+      scale = 0.72;
+      liftY = 0.35;
+    }
     worldGroup.position.x = 0;
-    worldGroup.position.y = isNarrow ? 0.3 : 0;
+    worldGroup.position.y = liftY;
     worldGroup.position.z = 0;
-    worldGroup.scale.setScalar(isNarrow ? 0.8 : 1);
+    worldGroup.scale.setScalar(scale);
+
+    // pull the camera back a bit on narrow/portrait screens so the wide-spread
+    // nodes stay within the horizontal field of view instead of clipping off the sides
+    const aspect = w / wrap.clientHeight;
+    camera.position.z = aspect < 0.75 ? 7.2 + (0.75 - aspect) * 6 : 7.2;
   }
   updateWorldOffset();
   window.addEventListener('resize', updateWorldOffset);
@@ -812,9 +951,10 @@
   // DOM labels tracking the 3D nodes each frame
   const labelWeb = document.getElementById('labelWeb');
   const labelMcu = document.getElementById('labelMcu');
-  const labelMech = document.getElementById('labelMech');
-  const labelPhoto = document.getElementById('labelPhoto');
+  const labelCalc = document.getElementById('labelCalc');
+  const labelMontage = document.getElementById('labelMontage');
   const labelAnim3d = document.getElementById('labelAnim3d');
+  const labelPhoto = document.getElementById('labelPhoto');
   const _labelVec = new THREE.Vector3();
   function positionLabel(el, object3D){
     object3D.getWorldPosition(_labelVec);
@@ -953,42 +1093,56 @@
     monitorPivot.rotation.y += (monitorAngleTarget - monitorPivot.rotation.y) * 0.08;
     screenTextMat.opacity += (textOpacityTarget - screenTextMat.opacity) * 0.08;
 
-    gear.position.y = 1.0 + Math.sin(t*0.4) * 0.12; // gentle float — the engine itself is already busy running
+    gear.position.y = 1.4 + Math.sin(t*0.4) * 0.12; // gentle float
+    gear.rotation.y = Math.sin(t * 0.3) * 0.25;
     {
-      const eng = gear.userData;
-      const theta = t * 4.2; // engine "RPM"
-      const cx = eng.crankRadius * Math.sin(theta);
-      const cy = eng.crankRadius * Math.cos(theta);
-      eng.flywheel.rotation.z = theta;
-      eng.crankPin.position.set(cx, cy, 0);
-      const pistonY = cy + Math.sqrt(eng.rodLength*eng.rodLength - cx*cx);
-      eng.piston.position.set(0, pistonY, 0);
-      eng.rod.position.set(cx/2, (cy + pistonY)/2, 0);
-      eng.rod.rotation.z = -Math.atan2(0 - cx, pistonY - cy);
-      const pulse = 0.5 + Math.sin(t * 6) * 0.5;
-      eng.statusLed.material.color.setHSL(0.75, 0.6, 0.4 + pulse*0.3);
+      const calc = gear.userData;
+      // a button lights up every so often, as if being pressed, and the screen updates its value
+      const pressIdx = Math.floor(t * 1.5) % calc.buttons.length;
+      calc.buttons.forEach(function(b, i){
+        const lit = i === pressIdx;
+        b.position.z = 0.085 - (lit ? 0.02 : 0);
+      });
+      // fait défiler des résultats de calcul moteur — c'est ça, le "fonctionnement" du calculateur
+      const readoutIdx = Math.floor(t * 0.7) % calc.readouts.length;
+      if(readoutIdx !== calc.readoutIdx){
+        calc.readoutIdx = readoutIdx;
+        calc.screen.material.map = calc.screenTexture(calc.readouts[readoutIdx]);
+        calc.screen.material.needsUpdate = true;
+      }
     }
 
     chip.rotation.y = t * 0.6;
-    chip.position.y = -0.3 + Math.sin(t*0.9 + 1) * 0.12;
+    chip.position.y = -0.6 + Math.sin(t*0.9 + 1) * 0.12;
     if(chip.userData.led){
       const pulse = 0.5 + Math.sin(t * 4) * 0.5;
       chip.userData.led.material.color.setRGB(1, 0.55 + pulse*0.3, 0.1);
     }
 
     brackets.rotation.y = t * 0.5;
-    brackets.position.y = 1.5 + Math.sin(t*0.8 + 2) * 0.14;
+    brackets.position.y = 2.2 + Math.sin(t*0.8 + 2) * 0.14;
 
-    camera3d.rotation.y = Math.sin(t * 0.5) * 0.3;
-    camera3d.position.y = -0.6 + Math.sin(t*0.7 + 3) * 0.12;
-    if(camera3d.userData.flash){
+    camera3d.rotation.y = Math.sin(t*0.3) * 0.4;
+    camera3d.position.y = -1.7 + Math.sin(t*0.7 + 3) * 0.12;
+    if(camera3d.userData.shutterBtn){
       const pulse = 0.5 + Math.sin(t * 5) * 0.5;
-      camera3d.userData.flash.material.color.setRGB(1, 1, 0.6 + pulse*0.4);
+      camera3d.userData.shutterBtn.material.color.setRGB(1, 0.4 + pulse*0.3, 0.6 + pulse*0.2);
     }
+
+    clapper.position.y = 2.0 + Math.sin(t*0.6 + 4) * 0.13;
+    clapper.userData.clapPivot.rotation.z = 0.35 + Math.sin(t * 1.4) * 0.25;
 
     animCube.rotation.y = t * 0.45;
     animCube.rotation.x = t * 0.3;
-    animCube.position.y = 1.9 + Math.sin(t*0.6 + 4) * 0.13;
+    animCube.position.y = -1.9 + Math.sin(t*0.7 + 5) * 0.12;
+
+    // solar system: each planet drifts slowly around the world origin at its own wide radius,
+    // the moon orbits Earth — all spread apart so nothing clusters
+    Object.values(solarSystem.userData.planets).forEach(p=>{
+      p.pivot.rotation.y += p.pivot.userData.speed * 0.01;
+      p.mesh.rotation.y = t * 0.6;
+    });
+    solarSystem.userData.moonPivot.rotation.y += solarSystem.userData.moonPivot.userData.speed;
 
     // printer stays put on the desk — only its status LED pulses and the paper ejects on click
     {
@@ -999,7 +1153,7 @@
       pr.paper.position.z = pr.parkedZ + (pr.ejectedZ - pr.parkedZ) * printEjectAmount;
     }
 
-    [ [link1, gear], [link2, chip], [link3, brackets], [link4, camera3d], [link5, animCube] ].forEach(([link, node])=>{
+    [ [link1, gear], [link2, chip], [link3, brackets], [link4, camera3d], [link5, clapper], [link6, animCube] ].forEach(([link, node])=>{
       const posAttr = link.geometry.attributes.position;
       posAttr.setXYZ(1, node.position.x, node.position.y, node.position.z);
       posAttr.needsUpdate = true;
@@ -1015,9 +1169,10 @@
     camera.updateMatrixWorld(true);
     positionLabel(labelWeb, brackets);
     positionLabel(labelMcu, chip);
-    positionLabel(labelMech, gear);
-    positionLabel(labelPhoto, camera3d);
+    positionLabel(labelCalc, gear);
+    positionLabel(labelMontage, clapper);
     positionLabel(labelAnim3d, animCube);
+    positionLabel(labelPhoto, camera3d);
 
     renderer.render(scene, camera);
     requestAnimationFrame(animate);

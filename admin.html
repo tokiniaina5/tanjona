@@ -149,8 +149,8 @@
       <div class="brand">Tanjona<span>.admin</span></div>
       <div class="nav-item active" data-section="visiteurs">👁️ Visiteurs</div>
       <div class="nav-item" data-section="messages">✉️ Messages</div>
-      <div class="nav-item" data-section="commandes">🛒 Commandes</div>
       <div class="nav-item" data-section="contenu">📝 Contenu du site</div>
+      <div class="nav-item" data-section="galerie">🖼️ Galerie</div>
       <div class="nav-spacer"></div>
       <button class="btn btn-red btn-sm" id="logoutBtn">Se déconnecter</button>
     </aside>
@@ -187,19 +187,6 @@
         <p class="empty-hint" id="messagesEmpty" style="display:none;">Aucun message pour le moment.</p>
       </section>
 
-      <!-- COMMANDES -->
-      <section class="section" id="section-commandes">
-        <div class="section-head">
-          <h2>Commandes</h2>
-          <p>Commandes passées depuis la boutique (pièces &amp; composants).</p>
-        </div>
-        <table>
-          <thead><tr><th>Client</th><th>Téléphone</th><th>Paiement</th><th>Articles</th><th>Total</th><th>Date</th></tr></thead>
-          <tbody id="ordersBody"></tbody>
-        </table>
-        <p class="empty-hint" id="ordersEmpty" style="display:none;">Aucune commande pour le moment.</p>
-      </section>
-
       <!-- CONTENU -->
       <section class="section" id="section-contenu">
         <div class="section-head">
@@ -215,7 +202,9 @@
             <code>projets_lead</code> — texte d'intro de la page Projets<br>
             <code>dev_lead</code> — texte d'intro de la page Développement Web<br>
             <code>mcu_lead</code> — texte d'intro de la page PIC &amp; ESP32<br>
-            <code>mecanique_lead</code> — texte d'intro de la page Mécanique Auto
+            <code>calculateur_lead</code> — texte d'intro de la page Calculateur<br>
+            <code>animation3d_lead</code> — texte d'intro de la page Animation 3D<br>
+            <code>photographe_lead</code> — texte d'intro de la page Photographe
           </p>
         </div>
 
@@ -239,6 +228,50 @@
           <tbody id="contentBody"></tbody>
         </table>
         <p class="empty-hint" id="contentEmpty" style="display:none;">Aucun contenu personnalisé pour le moment — le site affiche ses textes par défaut.</p>
+      </section>
+
+      <!-- GALERIE -->
+      <section class="section" id="section-galerie">
+        <div class="section-head">
+          <h2>Galerie</h2>
+          <p>Ajoutez les vidéos (page Montage Vidéo) et les photos (page Photographe) que les visiteurs pourront voir et télécharger.</p>
+        </div>
+
+        <div class="panel">
+          <h3>Ajouter un fichier</h3>
+          <div class="form-grid">
+            <div class="field" style="margin-bottom:0;">
+              <label>Catégorie</label>
+              <select id="mediaCategory" style="width:100%; padding:0.7rem 0.85rem; border-radius:8px; border:1px solid var(--line); background:var(--bg); color:var(--text); font-size:0.95rem;">
+                <option value="video">Vidéo (page Montage Vidéo)</option>
+                <option value="photo">Photo (page Photographe)</option>
+              </select>
+            </div>
+            <div class="field" style="margin-bottom:0;">
+              <label>Titre</label>
+              <input id="mediaTitle" type="text" placeholder="ex: Clip promo restaurant">
+            </div>
+            <div class="field" style="margin-bottom:0;">
+              <label>Fichier</label>
+              <input id="mediaFile" type="file" accept="video/*,image/*">
+            </div>
+          </div>
+          <button class="btn btn-primary" id="uploadMediaBtn" style="width:auto; margin-top:1rem;">Envoyer</button>
+          <p class="error-msg" id="mediaError" style="margin-top:0.8rem;"></p>
+          <p class="empty-hint" id="mediaUploading" style="display:none;">Envoi en cours…</p>
+        </div>
+
+        <div class="panel">
+          <h3>Vidéos (Montage Vidéo)</h3>
+          <div id="videoGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px,1fr)); gap:1rem; margin-top:0.6rem;"></div>
+          <p class="empty-hint" id="videoEmpty" style="display:none;">Aucune vidéo pour le moment.</p>
+        </div>
+
+        <div class="panel">
+          <h3>Photos (Photographe)</h3>
+          <div id="photoGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(160px,1fr)); gap:1rem; margin-top:0.6rem;"></div>
+          <p class="empty-hint" id="photoEmpty" style="display:none;">Aucune photo pour le moment.</p>
+        </div>
       </section>
 
     </main>
@@ -297,8 +330,8 @@
     appScreen.style.display = 'block';
     loadVisits();
     loadMessages();
-    loadOrders();
     loadContent();
+    loadGallery();
   }
 
   // ---------------- NAV ----------------
@@ -360,35 +393,6 @@
     });
   }
 
-  // ---------------- COMMANDES ----------------
-  async function loadOrders(){
-    const { data, error } = await sb.from('orders').select('*').order('created_at', { ascending:false });
-    const tbody = document.getElementById('ordersBody');
-    tbody.innerHTML = '';
-    if(error || !data || !data.length){
-      document.getElementById('ordersEmpty').style.display = 'block';
-      return;
-    }
-    document.getElementById('ordersEmpty').style.display = 'none';
-    const methodLabels = { paypal:'PayPal', mvola:'MVola', orange:'Orange Money', airtel:'Airtel Money' };
-    data.forEach(function(o){
-      let itemsSummary = o.items;
-      try{
-        const parsed = JSON.parse(o.items);
-        itemsSummary = parsed.map(i => i.name + ' ×' + i.qty).join(', ');
-      }catch(e){}
-      const tr = document.createElement('tr');
-      tr.innerHTML =
-        '<td>' + escapeHtml(o.customer_name) + '</td>' +
-        '<td>' + escapeHtml(o.customer_phone) + '</td>' +
-        '<td>' + escapeHtml(methodLabels[o.payment_method] || o.payment_method) + '</td>' +
-        '<td class="msg-cell">' + escapeHtml(itemsSummary) + '</td>' +
-        '<td>' + Number(o.total).toLocaleString('fr-FR') + ' Ar</td>' +
-        '<td>' + fmtDate(o.created_at) + '</td>';
-      tbody.appendChild(tr);
-    });
-  }
-
   // ---------------- CONTENU ----------------
   async function loadContent(){
     const { data, error } = await sb.from('site_content').select('*').order('key', { ascending:true });
@@ -423,6 +427,83 @@
     document.getElementById('contentKey').value = '';
     document.getElementById('contentValue').value = '';
     loadContent();
+  });
+
+  // ---------------- GALERIE ----------------
+  function mediaPublicUrl(path, forceDownload, filename){
+    const opts = forceDownload ? { download: filename || true } : undefined;
+    const { data } = sb.storage.from('media').getPublicUrl(path, opts);
+    return data.publicUrl;
+  }
+
+  async function loadGallery(){
+    const { data, error } = await sb.from('media_items').select('*').order('created_at', { ascending:false });
+    const videoGrid = document.getElementById('videoGrid');
+    const photoGrid = document.getElementById('photoGrid');
+    videoGrid.innerHTML = '';
+    photoGrid.innerHTML = '';
+    const videos = (data || []).filter(m => m.category === 'video');
+    const photos = (data || []).filter(m => m.category === 'photo');
+    document.getElementById('videoEmpty').style.display = videos.length ? 'none' : 'block';
+    document.getElementById('photoEmpty').style.display = photos.length ? 'none' : 'block';
+    if(error) return;
+
+    videos.forEach(function(m){
+      const url = mediaPublicUrl(m.file_path);
+      const card = document.createElement('div');
+      card.style.cssText = 'background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:0.6rem;';
+      card.innerHTML =
+        '<video src="' + url + '" style="width:100%; border-radius:6px; display:block; margin-bottom:0.5rem;" muted></video>' +
+        '<div style="font-size:0.8rem; margin-bottom:0.5rem;">' + escapeHtml(m.title || 'Sans titre') + '</div>' +
+        '<button class="btn btn-red btn-sm" data-id="' + m.id + '" data-path="' + escapeHtml(m.file_path) + '">Supprimer</button>';
+      videoGrid.appendChild(card);
+    });
+    photos.forEach(function(m){
+      const url = mediaPublicUrl(m.file_path);
+      const card = document.createElement('div');
+      card.style.cssText = 'background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:0.6rem;';
+      card.innerHTML =
+        '<img src="' + url + '" style="width:100%; aspect-ratio:1; object-fit:cover; border-radius:6px; display:block; margin-bottom:0.5rem;">' +
+        '<div style="font-size:0.8rem; margin-bottom:0.5rem;">' + escapeHtml(m.title || 'Sans titre') + '</div>' +
+        '<button class="btn btn-red btn-sm" data-id="' + m.id + '" data-path="' + escapeHtml(m.file_path) + '">Supprimer</button>';
+      photoGrid.appendChild(card);
+    });
+
+    document.querySelectorAll('#videoGrid button[data-id], #photoGrid button[data-id]').forEach(function(btn){
+      btn.addEventListener('click', async function(){
+        if(!confirm('Supprimer ce fichier ?')) return;
+        await sb.storage.from('media').remove([btn.dataset.path]);
+        await sb.from('media_items').delete().eq('id', btn.dataset.id);
+        loadGallery();
+      });
+    });
+  }
+
+  document.getElementById('uploadMediaBtn').addEventListener('click', async function(){
+    const category = document.getElementById('mediaCategory').value;
+    const title = document.getElementById('mediaTitle').value.trim();
+    const fileInput = document.getElementById('mediaFile');
+    const file = fileInput.files[0];
+    const errEl = document.getElementById('mediaError');
+    errEl.style.display = 'none';
+    if(!file){ errEl.textContent = 'Choisissez un fichier.'; errEl.style.display = 'block'; return; }
+
+    document.getElementById('mediaUploading').style.display = 'block';
+    const ext = (file.name.split('.').pop() || 'bin').toLowerCase();
+    const path = category + 's/' + Date.now() + '-' + Math.random().toString(36).slice(2,8) + '.' + ext;
+
+    const { error: upErr } = await sb.storage.from('media').upload(path, file);
+    if(upErr){
+      document.getElementById('mediaUploading').style.display = 'none';
+      errEl.textContent = "Échec de l'envoi : " + upErr.message;
+      errEl.style.display = 'block';
+      return;
+    }
+    await sb.from('media_items').insert({ category, title, file_path: path });
+    document.getElementById('mediaUploading').style.display = 'none';
+    document.getElementById('mediaTitle').value = '';
+    fileInput.value = '';
+    loadGallery();
   });
 
   checkSession();
