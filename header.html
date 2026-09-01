@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tanjona — Développeur Web / PIC & ESP32 / Calculateur / Animation 3D / Photographe</title>
+<title>Tanjona — Développeur Web / PIC & ESP32 / Calculateur / Robot / Photographe</title>
 <style>
   :root{
     --bg: #0a0d10;
@@ -282,7 +282,7 @@
           <div class="backdrop-line line-web">Développement Web</div>
           <div class="backdrop-line line-mcu">PIC &amp; ESP32</div>
           <div class="backdrop-line line-calc">Calculateur</div>
-          <div class="backdrop-line line-anim3d">Animation 3D</div>
+          <div class="backdrop-line line-anim3d">Robot</div>
           <div class="backdrop-line line-montage">Montage Vidéo</div>
           <div class="backdrop-line line-photo">Photographe</div>
           <p class="backdrop-about" data-cms="hero_about">Tanjona — développeur basé à Madagascar, entre web, programmation PIC &amp; ESP32, calculateur moteur voiture, animation 3D, montage vidéo et photographie.</p>
@@ -294,7 +294,7 @@
     <a class="node-label label-mcu" id="labelMcu" href="microcontrolleur.html">PIC &amp; ESP32</a>
     <a class="node-label label-calc" id="labelCalc" href="calculateur.html">Calculateur</a>
     <a class="node-label label-montage" id="labelMontage" href="montage-video.html">Montage Vidéo</a>
-    <a class="node-label label-anim3d" id="labelAnim3d" href="animation3d.html">Animation 3D</a>
+    <a class="node-label label-anim3d" id="labelAnim3d" href="animation3d.html">Robot</a>
     <a class="node-label label-photo" id="labelPhoto" href="photographe.html">Photographe</a>
   </div>
 </header>
@@ -456,7 +456,7 @@
 
       ctx.fillStyle = '#ffe066';
       ctx.font = 'bold 42px "Courier New", monospace';
-      ctx.fillText('Animation 3D', 56, 495);
+      ctx.fillText('Robot', 56, 495);
 
       ctx.fillStyle = '#ff6fae';
       ctx.font = 'bold 42px "Courier New", monospace';
@@ -808,20 +808,95 @@
   clapper.rotation.y = -0.3;
   worldGroup.add(clapper);
 
-  // orbiting node: Animation 3D — a spinning wireframe cube, separate from the clapper (Montage Vidéo)
+  // orbiting node: Animation 3D — a small wireframe droid, separate from the clapper (Montage Vidéo)
   function makeAnimCube(color){
     const g = new THREE.Group();
-    const box = new THREE.BoxGeometry(0.5, 0.5, 0.5);
-    const edges = new THREE.EdgesGeometry(box);
-    const wire = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color }));
-    g.add(wire);
-    const faceMat = new THREE.MeshStandardMaterial({ color: 0x121a1e, emissive: color, emissiveIntensity:0.15, metalness:0.4, roughness:0.5, transparent:true, opacity:0.25 });
-    const face = new THREE.Mesh(box, faceMat);
-    g.add(face);
-    const vertexDot = new THREE.Mesh(new THREE.SphereGeometry(0.035, 10, 10), new THREE.MeshBasicMaterial({ color }));
-    vertexDot.position.set(0.25, 0.25, 0.25);
+
+    function wireframeMesh(geo){
+      const grp = new THREE.Group();
+      const edges = new THREE.EdgesGeometry(geo);
+      const wire = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color }));
+      grp.add(wire);
+      const faceMat = new THREE.MeshStandardMaterial({ color: 0x121a1e, emissive: color, emissiveIntensity:0.15, metalness:0.4, roughness:0.5, transparent:true, opacity:0.25 });
+      const face = new THREE.Mesh(geo, faceMat);
+      grp.add(face);
+      return grp;
+    }
+
+    // round head (dome)
+    const head = wireframeMesh(new THREE.SphereGeometry(0.17, 10, 8));
+    head.position.set(0, 0.36, 0);
+    g.add(head);
+
+    // single scanning eye band
+    const eyeMat = new THREE.MeshBasicMaterial({ color });
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 8), eyeMat);
+    eye.position.set(0, 0.36, 0.16);
+    g.add(eye);
+
+    // small antenna
+    const antennaMat = new THREE.LineBasicMaterial({ color });
+    const antennaGeo = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0, 0.5, 0),
+      new THREE.Vector3(0.08, 0.62, 0)
+    ]);
+    const antenna = new THREE.Line(antennaGeo, antennaMat);
+    g.add(antenna);
+    const antennaTip = new THREE.Mesh(new THREE.SphereGeometry(0.025, 8, 8), new THREE.MeshBasicMaterial({ color }));
+    antennaTip.position.set(0.08, 0.62, 0);
+    g.add(antennaTip);
+
+    // neck joint
+    const neck = wireframeMesh(new THREE.CylinderGeometry(0.05, 0.05, 0.06, 8));
+    neck.position.set(0, 0.22, 0);
+    g.add(neck);
+
+    // rounded cylindrical torso, tapered like a droid body
+    const torso = wireframeMesh(new THREE.CylinderGeometry(0.13, 0.17, 0.34, 10));
+    torso.position.set(0, -0.02, 0);
+    g.add(torso);
+
+    // small glowing nameplate on the chest
+    const namePlate = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.22, 0.06),
+      new THREE.MeshBasicMaterial({ map: makeSilkscreenTexture('ROBOT', 96), transparent:true, color, depthWrite:false })
+    );
+    namePlate.position.set(0, 0.01, 0.135);
+    g.add(namePlate);
+
+    // shoulder joints (spheres) + thin arms hanging from them
+    const shoulderGeo = new THREE.SphereGeometry(0.045, 8, 8);
+    const armGeo = new THREE.CylinderGeometry(0.028, 0.028, 0.26, 6);
+
+    const shoulderL = wireframeMesh(shoulderGeo);
+    shoulderL.position.set(-0.19, 0.1, 0);
+    g.add(shoulderL);
+    const armL = wireframeMesh(armGeo);
+    armL.position.set(0, -0.13, 0);
+    shoulderL.add(armL);
+
+    const shoulderR = wireframeMesh(shoulderGeo);
+    shoulderR.position.set(0.19, 0.1, 0);
+    g.add(shoulderR);
+    const armR = wireframeMesh(armGeo);
+    armR.position.set(0, -0.13, 0);
+    shoulderR.add(armR);
+
+    // single stubby base instead of separate legs, like a hovering droid foot
+    const base = wireframeMesh(new THREE.CylinderGeometry(0.11, 0.08, 0.14, 10));
+    base.position.set(0, -0.28, 0);
+    g.add(base);
+
+    const vertexDot = new THREE.Mesh(new THREE.SphereGeometry(0.03, 10, 10), new THREE.MeshBasicMaterial({ color }));
+    vertexDot.position.set(0.15, 0.46, 0.1);
     g.add(vertexDot);
     g.userData.vertexDot = vertexDot;
+    g.userData.armL = shoulderL;
+    g.userData.armR = shoulderR;
+    g.userData.head = head;
+    g.userData.eye = eye;
+    g.userData.antenna = antennaTip;
+    g.userData.base = base;
     return g;
   }
 
@@ -1133,8 +1208,28 @@
     clapper.userData.clapPivot.rotation.z = 0.35 + Math.sin(t * 1.4) * 0.25;
 
     animCube.rotation.y = t * 0.45;
-    animCube.rotation.x = t * 0.3;
-    animCube.position.y = -1.9 + Math.sin(t*0.7 + 5) * 0.12;
+    animCube.rotation.x = Math.sin(t*0.3) * 0.15;
+    animCube.position.y = -1.9 + Math.abs(Math.sin(t*1.4 + 5)) * 0.14;
+    if(animCube.userData.armL && animCube.userData.armR){
+      animCube.userData.armL.rotation.z = 0.15 + Math.sin(t * 2.2) * 0.35;
+      animCube.userData.armR.rotation.z = -0.15 - Math.sin(t * 2.2 + Math.PI) * 0.35;
+    }
+    if(animCube.userData.head){
+      animCube.userData.head.rotation.y = Math.sin(t * 1.1) * 0.5;
+      animCube.userData.head.rotation.z = Math.sin(t * 0.8 + 1) * 0.12;
+    }
+    if(animCube.userData.eye){
+      const eyePulse = 0.55 + Math.sin(t * 6) * 0.45;
+      animCube.userData.eye.material.color.setRGB(0.61 * eyePulse + 0.3, 0.85 * eyePulse + 0.15, 0.35 * eyePulse + 0.1);
+      animCube.userData.eye.scale.setScalar(0.85 + eyePulse * 0.3);
+    }
+    if(animCube.userData.antenna){
+      animCube.userData.antenna.position.x = 0.08 + Math.sin(t * 3) * 0.03;
+    }
+    if(animCube.userData.base){
+      const squash = 1 - Math.abs(Math.sin(t*1.4 + 5)) * 0.25;
+      animCube.userData.base.scale.set(1 + (1-squash)*0.4, squash, 1 + (1-squash)*0.4);
+    }
 
     // solar system: each planet drifts slowly around the world origin at its own wide radius,
     // the moon orbits Earth — all spread apart so nothing clusters
