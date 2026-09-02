@@ -511,7 +511,8 @@
         <div class="nav-item active" data-section="stock">📦 Stock</div>
         <div class="nav-item" data-section="factures">🧾 Factures</div>
         <div class="nav-item" data-section="inviter">✉️ Inviter des amis</div>
-        <div class="nav-item" data-section="connexions">👤 Connexions</div>
+        <div class="nav-item" data-section="wallet">💰 Portefeuille</div>
+        <div class="nav-item" data-section="connexions" id="navParametres">⚙️ Paramètres</div>
 
         <div class="user-chip">
           <strong id="currentUserName">—</strong>
@@ -539,7 +540,7 @@
         </div>
 
         <div class="trial-banner" id="trialBanner" style="display:none;">
-          <span><strong id="trialDaysLeft">—</strong> jours restants sur votre essai gratuit de 3 mois.</span>
+          <span><strong id="trialDaysLeft">—</strong> jours restants sur votre essai gratuit de 3 mois. <em id="trialBonusNote" style="display:none; color:var(--cyan); font-style:normal;"></em></span>
           <button type="button" class="btn btn-primary btn-sm" id="subscribeNowBtn">S'abonner maintenant</button>
         </div>
 
@@ -636,8 +637,30 @@
                 <input id="itemQty" type="number" min="0" value="1">
               </div>
               <div class="field" style="margin-bottom:0;">
+                <label>Unité</label>
+                <select id="itemUnit">
+                  <option value="pièce">Pièce</option>
+                  <option value="kg">Kg</option>
+                  <option value="g">g</option>
+                  <option value="l">Litre</option>
+                  <option value="m">Mètre</option>
+                  <option value="boîte">Boîte</option>
+                  <option value="carton">Carton</option>
+                  <option value="sac">Sac</option>
+                  <option value="paire">Paire</option>
+                </select>
+              </div>
+              <div class="field" style="margin-bottom:0;">
                 <label>Prix unitaire (Ar)</label>
                 <input id="itemPrice" type="number" min="0" value="0">
+              </div>
+              <div class="field" style="margin-bottom:0;">
+                <label>Seuil d'alerte</label>
+                <input id="itemSeuil" type="number" min="0" value="5">
+              </div>
+              <div class="field" style="margin-bottom:0;">
+                <label>Fournisseur (optionnel)</label>
+                <input id="itemSupplier" type="text" placeholder="Ex: Grossiste Analakely">
               </div>
               <button class="btn btn-primary" id="addItemBtn" style="width:auto;">Ajouter</button>
             </div>
@@ -645,11 +668,22 @@
 
           <table id="stockTable">
             <thead>
-              <tr><th>Réf.</th><th>Nom</th><th>Catégorie</th><th>Quantité</th><th>Prix unitaire</th><th>Valeur</th><th></th></tr>
+              <tr><th>Réf.</th><th>Nom</th><th>Catégorie</th><th>Quantité</th><th>Unité</th><th>Prix unitaire</th><th>Valeur</th><th>Seuil</th><th>Fournisseur</th><th></th></tr>
             </thead>
             <tbody id="stockTableBody"></tbody>
           </table>
           <p class="empty-hint" id="stockEmptyHint" style="display:none;">Aucun article pour le moment. Ajoutez-en un ci-dessus.</p>
+
+          <div class="panel">
+            <h3>📜 Historique des mouvements</h3>
+            <table id="movementsTable">
+              <thead>
+                <tr><th>Date</th><th>Type</th><th>Réf.</th><th>Nom</th><th>Catégorie</th><th>Quantité</th><th>Valeur</th></tr>
+              </thead>
+              <tbody id="movementsTableBody"></tbody>
+            </table>
+            <p class="empty-hint" id="movementsEmptyHint" style="display:none;">Aucun mouvement enregistré pour le moment.</p>
+          </div>
         </div>
       </section>
 
@@ -707,6 +741,30 @@
             <input id="inviteLink" type="text" readonly>
             <button class="btn btn-amber" id="copyInviteBtn">Copier le lien</button>
           </div>
+          <p style="font-size:0.78rem; color:var(--muted); margin-top:0.6rem; line-height:1.5;">
+            Chaque personne qui ouvre l'application via ce lien vous rapporte
+            <strong style="color:var(--text);">1 crédit</strong> dans votre
+            <strong style="color:var(--text);">Portefeuille électronique</strong>. Vous choisissez
+            ensuite quoi en faire : essai gratuit, booster, ou réduction sur l'abonnement.
+          </p>
+        </div>
+
+        <div class="panel">
+          <h3>Vos parrainages</h3>
+          <div class="line-grid">
+            <div>
+              <div class="plan-note">Personnes ayant utilisé votre lien</div>
+              <div class="plan-price" id="referralCount" style="font-size:1.4rem;">0</div>
+            </div>
+            <div>
+              <div class="plan-note">Crédits disponibles</div>
+              <div class="plan-price" id="referralBonusDays" style="font-size:1.4rem; color:var(--cyan);">0</div>
+            </div>
+            <div>
+              <div class="plan-note">Crédits déjà dépensés</div>
+              <div class="plan-price" id="referralNextIn" style="font-size:1.4rem;">0</div>
+            </div>
+          </div>
         </div>
 
         <div class="panel">
@@ -721,25 +779,153 @@
         </div>
       </section>
 
-      <!-- ---- CONNEXIONS ---- -->
-      <section class="section" id="section-connexions">
+      <!-- ---- PORTEFEUILLE ---- -->
+      <section class="section" id="section-wallet">
         <div class="section-head">
           <div>
-            <h2>Connexions</h2>
-            <p>Historique des personnes ayant accédé à l'application.</p>
-          </div>
-          <div class="actions-row">
-            <button class="btn btn-red btn-sm" id="clearLoginsBtn">Vider l'historique</button>
+            <h2>Portefeuille électronique</h2>
+            <p>Vos crédits de parrainage, à dépenser comme vous voulez.</p>
           </div>
         </div>
 
-        <table>
-          <thead><tr><th>Nom</th><th>Email</th><th>Date &amp; heure</th></tr></thead>
-          <tbody id="loginsTableBody"></tbody>
-        </table>
-        <p class="empty-hint" id="loginsEmptyHint" style="display:none;">Aucune connexion enregistrée.</p>
+        <!-- vue non-connectée -->
+        <div class="panel" id="walletAuthPanel">
+          <h3>Vérification requise</h3>
+          <p style="font-size:0.85rem; color:var(--muted); line-height:1.6; margin-bottom:1rem;">
+            Connectez-vous avec votre compte Google pour ouvrir votre portefeuille —
+            cela prouve que c'est bien vous.
+          </p>
+          <button type="button" class="btn btn-primary" id="walletGoogleBtn">
+            Continuer avec Google
+          </button>
+          <p id="walletAuthStatus" style="font-size:0.8rem; color:var(--cyan); margin-top:0.8rem;"></p>
+        </div>
 
-        <div class="panel" id="masterCodePanel" style="margin-top:1.5rem; display:none;">
+        <!-- vue connectée -->
+        <div id="walletContent" style="display:none;">
+          <div class="panel">
+            <h3>Solde</h3>
+            <div class="line-grid">
+              <div>
+                <div class="plan-note">Compte vérifié</div>
+                <div class="plan-price" id="walletVerifiedEmail" style="font-size:1rem;">—</div>
+              </div>
+              <div>
+                <div class="plan-note">Crédits disponibles</div>
+                <div class="plan-price" id="walletBalance" style="font-size:1.4rem; color:var(--cyan);">0</div>
+              </div>
+            </div>
+            <button type="button" class="btn btn-sm" id="walletSignOutBtn" style="margin-top:1rem;">Se déconnecter du portefeuille</button>
+          </div>
+
+          <div class="panel">
+            <h3>Dépenser vos crédits</h3>
+            <div class="line-grid">
+              <div class="plan-card" style="cursor:default;">
+                <div class="plan-name">Essai gratuit</div>
+                <div class="plan-price">+1 jour</div>
+                <div class="plan-note">10 crédits</div>
+                <button type="button" class="btn btn-sm" id="redeemTrialBtn" style="width:100%; margin-top:0.7rem;">Utiliser</button>
+              </div>
+              <div class="plan-card" style="cursor:default;">
+                <div class="plan-name">facebook</div>
+                <div class="plan-price">Live 24h</div>
+                <div class="plan-note">5 crédits</div>
+                <button type="button" class="btn btn-sm" id="redeemBoosterBtn" style="width:100%; margin-top:0.7rem;">Utiliser</button>
+              </div>
+              <div class="plan-card" style="cursor:default;">
+                <div class="plan-name">Abonnement</div>
+                <div class="plan-price">+7 jours</div>
+                <div class="plan-note">20 crédits</div>
+                <button type="button" class="btn btn-sm" id="redeemSubBtn" style="width:100%; margin-top:0.7rem;">Utiliser</button>
+              </div>
+            </div>
+            <p id="walletRedeemStatus" style="font-size:0.8rem; color:var(--muted); margin-top:0.9rem;"></p>
+          </div>
+
+          <div class="panel" id="walletBoosterPanel" style="display:none;">
+            <h3> actif sur facebook</h3>
+            <p style="font-size:0.85rem; color:var(--muted); margin-bottom:0.8rem;">
+              Valable jusqu'au <strong id="walletBoosterUntil" style="color:var(--text);">—</strong>.
+            </p>
+            <button type="button" class="btn btn-violet" id="goLiveFacebookBtn">📹 Aller en direct sur Facebook</button>
+          </div>
+
+          <div class="panel" id="walletSubCreditPanel" style="display:none;">
+            <h3>Jours bancarisés pour l'abonnement</h3>
+            <p style="font-size:0.85rem; color:var(--muted);">
+              <strong id="walletSubCreditDays" style="color:var(--text);">0</strong> jour(s) seront
+              ajoutés automatiquement à votre prochain paiement d'abonnement.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---- PARAMÈTRES ---- -->
+      <section class="section" id="section-connexions">
+        <div class="section-head">
+          <div>
+            <h2>Paramètres</h2>
+            <p>Vos informations et préférences.</p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>👤 Mon profil</h3>
+          <p style="font-size:0.8rem; color:var(--muted); margin-bottom:0.8rem;">
+            Ces informations apparaissent sur vos factures.
+          </p>
+          <div class="form-grid">
+            <div class="field" style="margin-bottom:0;">
+              <label for="profileName">Nom</label>
+              <input id="profileName" type="text">
+            </div>
+            <div class="field" style="margin-bottom:0;">
+              <label for="profileEmail">Email</label>
+              <input id="profileEmail" type="email">
+            </div>
+            <div class="field" style="margin-bottom:0;">
+              <label for="profilePhone">Téléphone</label>
+              <input id="profilePhone" type="tel">
+            </div>
+            <div class="field" style="margin-bottom:0;">
+              <label for="profileLogo">Logo (image)</label>
+              <input id="profileLogo" type="file" accept="image/*">
+            </div>
+          </div>
+          <button type="button" class="btn btn-primary btn-sm" id="saveProfileBtn" style="width:auto; margin-top:0.8rem;">Enregistrer</button>
+          <span id="profileSaveStatus" style="font-size:0.78rem; color:var(--muted); margin-left:0.6rem;"></span>
+        </div>
+
+        <div class="panel" id="adminVisitsPanel" style="display:none;">
+          <h3>🌐 Visiteurs du site</h3>
+          <p style="font-size:0.8rem; color:var(--muted); margin-bottom:0.8rem;">
+            Dernières visites enregistrées sur le site (page consultée, provenance, appareil).
+          </p>
+          <table>
+            <thead><tr><th>Date</th><th>Page</th><th>Provenance</th><th>Appareil</th></tr></thead>
+            <tbody id="siteVisitsTableBody"></tbody>
+          </table>
+          <p class="empty-hint" id="siteVisitsEmptyHint" style="display:none;">Aucune visite enregistrée pour le moment.</p>
+        </div>
+
+        <div class="panel" id="adminLoginsPanel" style="display:none;">
+          <div class="section-head" style="margin-bottom:0.6rem;">
+            <div>
+              <h3 style="font-family:var(--font-mono); font-size:0.85rem; color:var(--cyan);">🗝️ Connexions à l'application</h3>
+            </div>
+            <div class="actions-row">
+              <button class="btn btn-red btn-sm" id="clearLoginsBtn">Vider l'historique</button>
+            </div>
+          </div>
+          <table>
+            <thead><tr><th>Nom</th><th>Email</th><th>Date &amp; heure</th></tr></thead>
+            <tbody id="loginsTableBody"></tbody>
+          </table>
+          <p class="empty-hint" id="loginsEmptyHint" style="display:none;">Aucune connexion enregistrée.</p>
+        </div>
+
+        <div class="panel" id="masterCodePanel" style="display:none;">
           <h3>🔑 Code de déverrouillage (admin — vous uniquement)</h3>
           <p style="font-size:0.8rem; color:var(--muted); margin-bottom:0.8rem;">
             Ce code unique est celui que vous communiquez à un client après avoir vérifié son paiement.
@@ -788,6 +974,18 @@
   const STORAGE_MASTER_CODE = 'stockmanager_master_code';
   const OWNER_EMAIL = 'rasolofonirainytokiniaina@gmail.com';
   const TRIAL_DAYS = 90;
+  const REFERRALS_PER_BONUS_DAY = 10; // 10 olona nampiasa ny lien = +1 andro essai gratuit
+
+  function genInstallId(){
+    if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return 'id-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
+  }
+  function getUrlRef(){
+    try{
+      const params = new URLSearchParams(window.location.search);
+      return params.get('ref') || null;
+    }catch(e){ return null; }
+  }
 
   function loadMasterCode(){
     return localStorage.getItem(STORAGE_MASTER_CODE) || '';
@@ -844,25 +1042,125 @@
   function ensureInstallDate(){
     let sub = loadSubscription();
     if(!sub){
-      sub = { installDate: new Date().toISOString(), plan: null, paidUntil: null };
+      sub = {
+        installDate: new Date().toISOString(),
+        plan: null,
+        paidUntil: null,
+        id: genInstallId(),
+        bonusDays: 0,
+        referralCount: 0,
+        referredBy: getUrlRef(),
+        referralRecorded: false
+      };
       saveSubscription(sub);
+    } else {
+      // migration : ampidirina ireo sampana vaovao ho an'ireo appareil efa nampiasa ny app talohan'ny fanavaozana
+      let changed = false;
+      if(!sub.id){ sub.id = genInstallId(); changed = true; }
+      if(typeof sub.bonusDays !== 'number'){ sub.bonusDays = 0; changed = true; }
+      if(typeof sub.referralCount !== 'number'){ sub.referralCount = 0; changed = true; }
+      if(sub.referralRecorded === undefined){ sub.referralRecorded = false; changed = true; }
+      if(sub.referredBy === undefined){ sub.referredBy = null; changed = true; }
+      if(changed) saveSubscription(sub);
     }
     return sub;
   }
-  // renvoie { status: 'trial'|'active'|'expired', daysLeft }
+  // renvoie { status: 'trial'|'active'|'expired', daysLeft, bonusDays }
   function getSubscriptionStatus(){
     const sub = ensureInstallDate();
     const now = new Date();
     if(sub.paidUntil && new Date(sub.paidUntil) > now){
-      return { status: 'active', daysLeft: 0 };
+      return { status: 'active', daysLeft: 0, bonusDays: sub.bonusDays || 0 };
     }
     const installDate = new Date(sub.installDate);
-    const trialEnd = new Date(installDate.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
+    const bonusDays = sub.bonusDays || 0;
+    const trialEnd = new Date(installDate.getTime() + (TRIAL_DAYS + bonusDays) * 24 * 60 * 60 * 1000);
     if(now < trialEnd){
       const daysLeft = Math.max(0, Math.ceil((trialEnd - now) / (24 * 60 * 60 * 1000)));
-      return { status: 'trial', daysLeft: daysLeft };
+      return { status: 'trial', daysLeft: daysLeft, bonusDays: bonusDays };
     }
-    return { status: 'expired', daysLeft: 0 };
+    return { status: 'expired', daysLeft: 0, bonusDays: bonusDays };
+  }
+
+  // ---------------- PARRAINAGE (fizarana lien) ----------------
+  // Mandraikitra ny "referral" indray mandeha ihany, rehefa misy appareil vaovao
+  // miditra amin'ny alalan'ny lien misy ?ref=... (tsy manery hiditra amin'ny app).
+  function recordReferralIfNeeded(){
+    const sub = ensureInstallDate();
+    if(!sub.referredBy || sub.referredBy === sub.id || sub.referralRecorded) return;
+    if(!window.__sb){ return; }
+    window.__sb.from('referrals').insert({
+      inviter_id: sub.referredBy,
+      referred_id: sub.id
+    }).then(function(res){
+      if(!res || !res.error){
+        sub.referralRecorded = true;
+        saveSubscription(sub);
+      }
+    }, function(){});
+  }
+
+  // Mandeha mitady any amin'ny Supabase hoe firy ny olona nampiasa ny lien
+  // navoakan'ilay appareil ity. 1 parrainage = 1 crédit ao amin'ny portefeuille ;
+  // ny mpampiasa mihitsy no misafidy hoe ampiasaina amin'inona ireo crédit ireo
+  // (jereo redeemCredits plus bas), tsy mifanova ho andro automatique intsony.
+  function syncReferralBonus(callback){
+    const sub = ensureInstallDate();
+    if(!window.__sb || !sub.id){ if(callback) callback(sub); return; }
+    window.__sb.from('referrals')
+      .select('id', { count: 'exact', head: true })
+      .eq('inviter_id', sub.id)
+      .then(function(res){
+        const count = (res && typeof res.count === 'number') ? res.count : 0;
+        sub.referralCount = count;
+        saveSubscription(sub);
+        if(callback) callback(sub);
+      }, function(){ if(callback) callback(sub); });
+  }
+  function getAvailableCredits(sub){
+    return Math.max(0, (sub.referralCount || 0) - (sub.creditsSpent || 0));
+  }
+
+  // ---------------- PORTEFEUILLE : dépense des crédits ----------------
+  const WALLET_COST_TRIAL = 10;    // 10 crédits = +1 jour d'essai gratuit
+  const WALLET_COST_BOOSTER = 5;   // 5 crédits = Live Facebook débloqué 24h
+  const WALLET_COST_SUB = 20;      // 20 crédits = +7 jours bancarisés pour l'abonnement
+  const WALLET_SUB_DAYS = 7;
+  const WALLET_BOOSTER_HOURS = 24;
+
+  function redeemCredits(type){
+    const sub = ensureInstallDate();
+    const available = getAvailableCredits(sub);
+    const statusEl = document.getElementById('walletRedeemStatus');
+    let cost = 0;
+
+    if(type === 'trial'){
+      cost = WALLET_COST_TRIAL;
+      if(available < cost){ if(statusEl) statusEl.textContent = 'Crédits insuffisants (' + cost + ' requis).'; return; }
+      sub.bonusDays = (sub.bonusDays || 0) + 1;
+      sub.creditsSpent = (sub.creditsSpent || 0) + cost;
+      saveSubscription(sub);
+      updateTrialBanner();
+      pushNotification('parrainage', '1 jour d\'essai gratuit ajouté grâce à vos crédits de parrainage.');
+      if(statusEl) statusEl.textContent = '+1 jour ajouté à votre essai gratuit ✓';
+    } else if(type === 'booster'){
+      cost = WALLET_COST_BOOSTER;
+      if(available < cost){ if(statusEl) statusEl.textContent = 'Crédits insuffisants (' + cost + ' requis).'; return; }
+      sub.boosterActiveUntil = new Date(Date.now() + WALLET_BOOSTER_HOURS * 60 * 60 * 1000).toISOString();
+      sub.creditsSpent = (sub.creditsSpent || 0) + cost;
+      saveSubscription(sub);
+      pushNotification('parrainage', 'Booster activé : vous pouvez passer en direct sur Facebook pendant 24h.');
+      if(statusEl) statusEl.textContent = 'Booster activé pour 24h ✓';
+    } else if(type === 'sub'){
+      cost = WALLET_COST_SUB;
+      if(available < cost){ if(statusEl) statusEl.textContent = 'Crédits insuffisants (' + cost + ' requis).'; return; }
+      sub.subscriptionCreditDays = (sub.subscriptionCreditDays || 0) + WALLET_SUB_DAYS;
+      sub.creditsSpent = (sub.creditsSpent || 0) + cost;
+      saveSubscription(sub);
+      pushNotification('parrainage', WALLET_SUB_DAYS + ' jours bancarisés pour votre prochain abonnement.');
+      if(statusEl) statusEl.textContent = '+' + WALLET_SUB_DAYS + ' jours bancarisés pour l\'abonnement ✓';
+    }
+    renderWallet();
   }
 
   function loadItems(){
@@ -903,6 +1201,7 @@
     if(type === 'vente') return '🛒';
     if(type === 'facture') return '🧾';
     if(type === 'rupture') return '⚠️';
+    if(type === 'parrainage') return '💰';
     return '🔔';
   }
   function renderNotifications(){
@@ -935,6 +1234,9 @@
   items = items.map(function(it){
     if(!it.id) it.id = genId();
     if(it.ref === undefined) it.ref = '';
+    if(it.unit === undefined) it.unit = 'pièce';
+    if(it.seuil === undefined) it.seuil = 5;
+    if(it.supplier === undefined) it.supplier = '';
     return it;
   });
   saveItems(items);
@@ -985,6 +1287,7 @@
     appScreen.style.display = 'block';
 
     renderStock();
+    renderMovementsHistory();
     renderLogins();
     renderInvoiceItems();
     renderFilters();
@@ -992,6 +1295,7 @@
     setupInviteLink();
     updateTrialBanner();
     renderNotifications();
+    renderWallet();
   }
 
   function openPaywall(){
@@ -1010,8 +1314,98 @@
     if(st.status === 'trial'){
       banner.style.display = 'flex';
       document.getElementById('trialDaysLeft').textContent = st.daysLeft;
+      const bonusEl = document.getElementById('trialBonusNote');
+      if(bonusEl){
+        bonusEl.textContent = st.bonusDays > 0
+          ? ('dia ' + st.bonusDays + ' andro fanampiny avy amin\'ny parrainage no efa tafiditra')
+          : '';
+        bonusEl.style.display = st.bonusDays > 0 ? 'inline' : 'none';
+      }
     } else {
       banner.style.display = 'none';
+    }
+  }
+
+  function refreshReferralProgress(){
+    syncReferralBonus(function(sub){
+      updateTrialBanner();
+      const countEl = document.getElementById('referralCount');
+      const availEl = document.getElementById('referralBonusDays');
+      const spentEl = document.getElementById('referralNextIn');
+      if(countEl) countEl.textContent = sub.referralCount || 0;
+      if(availEl) availEl.textContent = getAvailableCredits(sub);
+      if(spentEl) spentEl.textContent = sub.creditsSpent || 0;
+      renderWallet();
+    });
+  }
+
+  // ---------------- PORTEFEUILLE : authentification réelle (Google / email) ----------------
+  let walletSession = null;
+
+  function initWalletAuth(){
+    if(!window.__sb || !window.__sb.auth) return;
+    window.__sb.auth.getSession().then(function(res){
+      walletSession = (res && res.data && res.data.session) || null;
+      renderWallet();
+    }, function(){});
+    window.__sb.auth.onAuthStateChange(function(_event, session){
+      walletSession = session || null;
+      renderWallet();
+    });
+  }
+
+  function walletSignInGoogle(){
+    const statusEl = document.getElementById('walletAuthStatus');
+    if(!window.__sb || !window.__sb.auth){
+      if(statusEl) statusEl.textContent = 'Connexion Google indisponible pour le moment.';
+      return;
+    }
+    if(statusEl) statusEl.textContent = 'Redirection vers Google…';
+    window.__sb.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.href.split('?')[0] }
+    });
+  }
+
+  function walletSignOut(){
+    if(!window.__sb || !window.__sb.auth) return;
+    window.__sb.auth.signOut().then(function(){
+      walletSession = null;
+      renderWallet();
+    }, function(){});
+  }
+
+  function renderWallet(){
+    const authPanel = document.getElementById('walletAuthPanel');
+    const content = document.getElementById('walletContent');
+    if(!authPanel || !content) return;
+
+    if(!walletSession || !walletSession.user){
+      authPanel.style.display = 'block';
+      content.style.display = 'none';
+      return;
+    }
+    authPanel.style.display = 'none';
+    content.style.display = 'block';
+
+    const sub = ensureInstallDate();
+    document.getElementById('walletVerifiedEmail').textContent = walletSession.user.email || '—';
+    document.getElementById('walletBalance').textContent = getAvailableCredits(sub);
+
+    const boosterPanel = document.getElementById('walletBoosterPanel');
+    const boosterActive = sub.boosterActiveUntil && new Date(sub.boosterActiveUntil) > new Date();
+    if(boosterPanel){
+      boosterPanel.style.display = boosterActive ? 'block' : 'none';
+      if(boosterActive){
+        document.getElementById('walletBoosterUntil').textContent = new Date(sub.boosterActiveUntil).toLocaleString('fr-FR');
+      }
+    }
+
+    const subCreditPanel = document.getElementById('walletSubCreditPanel');
+    if(subCreditPanel){
+      const days = sub.subscriptionCreditDays || 0;
+      subCreditPanel.style.display = days > 0 ? 'block' : 'none';
+      document.getElementById('walletSubCreditDays').textContent = days;
     }
   }
 
@@ -1058,6 +1452,36 @@
       reader.readAsDataURL(logoFile);
     } else {
       finishLogin(null);
+    }
+  });
+
+  document.getElementById('saveProfileBtn').addEventListener('click', function(){
+    if(!currentUser) return;
+    const name = document.getElementById('profileName').value.trim();
+    const email = document.getElementById('profileEmail').value.trim();
+    const phone = document.getElementById('profilePhone').value.trim();
+    const logoFile = document.getElementById('profileLogo').files[0];
+    if(!name || !email){ alert('Le nom et l\'email sont obligatoires.'); return; }
+
+    function finishSave(logoDataUrl){
+      const logo = logoDataUrl || currentUser.logo || null;
+      currentUser = { name, email, phone, logo: logo };
+      upsertProfile(name, { name, email, phone, logo: logo });
+      document.getElementById('currentUserName').textContent = name;
+      document.getElementById('currentUserEmail').textContent = email;
+      document.getElementById('profileLogo').value = '';
+      const status = document.getElementById('profileSaveStatus');
+      status.textContent = 'Profil enregistré.';
+      setTimeout(function(){ status.textContent = ''; }, 3000);
+    }
+
+    if(logoFile){
+      const reader = new FileReader();
+      reader.onload = function(ev){ finishSave(ev.target.result); };
+      reader.onerror = function(){ finishSave(null); };
+      reader.readAsDataURL(logoFile);
+    } else {
+      finishSave(null);
     }
   });
 
@@ -1117,6 +1541,18 @@
 
   // affichage automatique dès l'ouverture de la page (écran de connexion)
   showAutoNotice();
+  // raha nampiasa lien fizarana (?ref=...) ilay mpampiasa vaovao, dia raiketina izany
+  recordReferralIfNeeded();
+  initWalletAuth();
+
+  document.getElementById('walletGoogleBtn').addEventListener('click', walletSignInGoogle);
+  document.getElementById('walletSignOutBtn').addEventListener('click', walletSignOut);
+  document.getElementById('redeemTrialBtn').addEventListener('click', function(){ redeemCredits('trial'); });
+  document.getElementById('redeemBoosterBtn').addEventListener('click', function(){ redeemCredits('booster'); });
+  document.getElementById('redeemSubBtn').addEventListener('click', function(){ redeemCredits('sub'); });
+  document.getElementById('goLiveFacebookBtn').addEventListener('click', function(){
+    window.open('https://www.facebook.com/live/producer', '_blank');
+  });
 
   document.getElementById('planMensuel').addEventListener('click', function(){
     selectedPlan = 'mensuel';
@@ -1154,11 +1590,14 @@
     if(!codeVerified){ alert('Veuillez saisir le code de vérification reçu par mail.'); return; }
     const sub = ensureInstallDate();
     const now = new Date();
-    const durationDays = selectedPlan === 'annuel' ? 365 : 30;
+    const bankedDays = sub.subscriptionCreditDays || 0;
+    const durationDays = (selectedPlan === 'annuel' ? 365 : 30) + bankedDays;
     sub.plan = selectedPlan;
     sub.paidUntil = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString();
+    sub.subscriptionCreditDays = 0;
     saveSubscription(sub);
-    alert('Compte débloqué. Merci ! Votre abonnement ' + (selectedPlan === 'annuel' ? 'annuel' : 'mensuel') + ' est actif.');
+    alert('Compte débloqué. Merci ! Votre abonnement ' + (selectedPlan === 'annuel' ? 'annuel' : 'mensuel') +
+      ' est actif' + (bankedDays > 0 ? (' (dont ' + bankedDays + ' jours offerts par votre portefeuille).') : '.'));
     openApp();
   });
 
@@ -1241,13 +1680,17 @@
     document.getElementById('stockEmptyHint').style.display = items.length ? 'none' : 'block';
     items.forEach(function(item, idx){
       const tr = document.createElement('tr');
+      const lowStock = Number(item.qty) <= Number(item.seuil || 5);
       tr.innerHTML =
         '<td>' + escapeHtml(item.ref || '—') + '</td>' +
         '<td>' + escapeHtml(item.name) + '</td>' +
         '<td>' + escapeHtml(item.category || '—') + '</td>' +
-        '<td>' + item.qty + '</td>' +
+        '<td>' + item.qty + (lowStock ? ' <span class="badge-warn">Stock faible</span>' : '') + '</td>' +
+        '<td>' + escapeHtml(item.unit || 'pièce') + '</td>' +
         '<td>' + formatAr(item.price) + '</td>' +
         '<td>' + formatAr(item.qty * item.price) + '</td>' +
+        '<td>' + (item.seuil != null ? item.seuil : 5) + '</td>' +
+        '<td>' + escapeHtml(item.supplier || '—') + '</td>' +
         '<td style="white-space:nowrap;">' +
           '<button class="btn btn-amber btn-sm" data-sortie="' + idx + '" style="width:auto; margin-right:0.4rem;">Sortie</button>' +
           '<button class="btn btn-red btn-sm" data-idx="' + idx + '" style="width:auto;">Supprimer</button>' +
@@ -1265,6 +1708,7 @@
           saveMovements(movements);
         }
         renderStock();
+        renderMovementsHistory();
         renderFilters();
         renderDashboard();
       });
@@ -1299,6 +1743,7 @@
     }
     saveItems(items);
     renderStock();
+    renderMovementsHistory();
     renderFilters();
     renderDashboard();
   }
@@ -1314,7 +1759,10 @@
     const name = document.getElementById('itemName').value.trim();
     const category = document.getElementById('itemCategory').value.trim();
     const qty = Number(document.getElementById('itemQty').value) || 0;
+    const unit = document.getElementById('itemUnit').value || 'pièce';
     const price = Number(document.getElementById('itemPrice').value) || 0;
+    const seuil = Number(document.getElementById('itemSeuil').value) || 0;
+    const supplier = document.getElementById('itemSupplier').value.trim();
     if(!name) return;
 
     // raha efa misy article mitovy (ref raha nisy, na anarana raha tsy nisy ref), ampio ny stock efa ao
@@ -1330,9 +1778,12 @@
       existing.qty = Number(existing.qty) + qty;
       if(category) existing.category = category;
       if(price > 0) existing.price = price;
+      if(unit) existing.unit = unit;
+      if(seuil >= 0) existing.seuil = seuil;
+      if(supplier) existing.supplier = supplier;
     } else {
       id = genId();
-      items.push({ id, ref, name, category, qty, price });
+      items.push({ id, ref, name, category, qty, unit, price, seuil, supplier });
     }
     saveItems(items);
 
@@ -1349,10 +1800,41 @@
     document.getElementById('itemCategory').value = '';
     document.getElementById('itemQty').value = 1;
     document.getElementById('itemPrice').value = 0;
+    document.getElementById('itemSeuil').value = 5;
+    document.getElementById('itemSupplier').value = '';
     renderStock();
+    renderMovementsHistory();
     renderFilters();
     renderDashboard();
   });
+
+  function movementTypeLabel(type){
+    return type === 'entree'
+      ? '<span style="color:#6ee7b7;">▲ Entrée</span>'
+      : '<span style="color:var(--amber);">▼ Sortie</span>';
+  }
+
+  function renderMovementsHistory(){
+    const tbody = document.getElementById('movementsTableBody');
+    if(!tbody) return;
+    tbody.innerHTML = '';
+    const sorted = movements.slice().sort(function(a, b){ return new Date(b.date) - new Date(a.date); });
+    document.getElementById('movementsEmptyHint').style.display = sorted.length ? 'none' : 'block';
+    sorted.forEach(function(m){
+      const tr = document.createElement('tr');
+      const d = new Date(m.date);
+      const dateStr = isNaN(d) ? m.day : d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+      tr.innerHTML =
+        '<td>' + dateStr + '</td>' +
+        '<td>' + movementTypeLabel(m.type) + '</td>' +
+        '<td>' + escapeHtml(m.ref || '—') + '</td>' +
+        '<td>' + escapeHtml(m.name) + '</td>' +
+        '<td>' + escapeHtml(m.category || '—') + '</td>' +
+        '<td>' + m.qty + '</td>' +
+        '<td>' + formatAr(m.value) + '</td>';
+      tbody.appendChild(tr);
+    });
+  }
 
   // ---------------- TABLEAU DE BORD ----------------
   function passesCatRef(o){
@@ -1558,7 +2040,7 @@
       topEl.appendChild(row);
     });
 
-    const restock = filteredItems.filter(function(it){ return Number(it.qty) <= 5; }).sort(function(a, b){ return a.qty - b.qty; });
+    const restock = filteredItems.filter(function(it){ return Number(it.qty) <= Number(it.seuil != null ? it.seuil : 5); }).sort(function(a, b){ return a.qty - b.qty; });
     const restockEl = document.getElementById('restockList');
     restockEl.innerHTML = '';
     if(!restock.length){ restockEl.innerHTML = '<p class="empty-hint" style="padding:0.4rem 0;">Tous les articles sont bien approvisionnés.</p>'; }
@@ -1566,7 +2048,7 @@
       const row = document.createElement('div');
       row.className = 'list-row';
       const badge = Number(it.qty) === 0 ? '<span class="badge-danger">Non disponible</span>' : '<span class="badge-warn">Stock faible</span>';
-      row.innerHTML = '<span>' + escapeHtml(it.name) + '</span>' + badge;
+      row.innerHTML = '<span>' + escapeHtml(it.name) + ' <span style="color:var(--muted); font-size:0.75rem;">(' + it.qty + ' ' + escapeHtml(it.unit || 'pièce') + ')</span></span>' + badge;
       restockEl.appendChild(row);
     });
 
@@ -1583,7 +2065,11 @@
   document.getElementById('exportExcelBtn').addEventListener('click', function(){
     if(!window.XLSX){ alert("La bibliothèque Excel n'a pas pu être chargée."); return; }
     const rows = items.map(function(i){
-      return { Référence: i.ref || '', Nom: i.name, Catégorie: i.category || '', Quantité: i.qty, 'Prix unitaire (Ar)': i.price, 'Valeur (Ar)': i.qty * i.price };
+      return {
+        Référence: i.ref || '', Nom: i.name, Catégorie: i.category || '', Quantité: i.qty,
+        Unité: i.unit || 'pièce', 'Prix unitaire (Ar)': i.price, 'Valeur (Ar)': i.qty * i.price,
+        'Seuil d\'alerte': i.seuil != null ? i.seuil : 5, Fournisseur: i.supplier || ''
+      };
     });
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
@@ -1799,8 +2285,10 @@
 
   // ---------------- INVITER DES AMIS ----------------
   function setupInviteLink(){
-    const link = window.location.href.split('?')[0] + '?invite=1';
+    const sub = ensureInstallDate();
+    const link = window.location.href.split('?')[0] + '?invite=1&ref=' + encodeURIComponent(sub.id);
     document.getElementById('inviteLink').value = link;
+    refreshReferralProgress();
   }
 
   document.getElementById('copyInviteBtn').addEventListener('click', function(){
@@ -1836,10 +2324,53 @@
       tbody.appendChild(tr);
     });
 
-    // le panel "Code maître" n'est visible que pour le propriétaire de l'app
+    // "Visiteurs du site", "Connexions" et "Code maître" ne sont visibles que pour le propriétaire de l'app
     const isAdmin = currentUser && currentUser.email &&
       currentUser.email.trim().toLowerCase() === OWNER_EMAIL.toLowerCase();
     document.getElementById('masterCodePanel').style.display = isAdmin ? 'block' : 'none';
+    document.getElementById('adminVisitsPanel').style.display = isAdmin ? 'block' : 'none';
+    document.getElementById('adminLoginsPanel').style.display = isAdmin ? 'block' : 'none';
+    if(isAdmin) renderSiteVisits();
+    renderProfileForm();
+  }
+
+  function renderProfileForm(){
+    if(!currentUser) return;
+    document.getElementById('profileName').value = currentUser.name || '';
+    document.getElementById('profileEmail').value = currentUser.email || '';
+    document.getElementById('profilePhone').value = currentUser.phone || '';
+  }
+
+  function shortUserAgent(ua){
+    if(!ua) return '—';
+    if(/Mobi|Android/i.test(ua)) return 'Mobile';
+    if(/iPad|Tablet/i.test(ua)) return 'Tablette';
+    return 'Ordinateur';
+  }
+
+  function renderSiteVisits(){
+    const tbody = document.getElementById('siteVisitsTableBody');
+    const emptyHint = document.getElementById('siteVisitsEmptyHint');
+    if(!tbody || !window.__sb){ return; }
+    window.__sb.from('site_visits')
+      .select('path,referrer,user_agent,created_at')
+      .order('created_at', { ascending: false })
+      .limit(50)
+      .then(function(res){
+        if(!res || !res.data){ return; }
+        tbody.innerHTML = '';
+        emptyHint.style.display = res.data.length ? 'none' : 'block';
+        res.data.forEach(function(v){
+          const tr = document.createElement('tr');
+          const d = v.created_at ? new Date(v.created_at).toLocaleString('fr-FR') : '—';
+          tr.innerHTML =
+            '<td>' + d + '</td>' +
+            '<td>' + escapeHtml(v.path || '—') + '</td>' +
+            '<td>' + escapeHtml(v.referrer || 'Direct') + '</td>' +
+            '<td>' + shortUserAgent(v.user_agent) + '</td>';
+          tbody.appendChild(tr);
+        });
+      }, function(){});
   }
 
   document.getElementById('clearLoginsBtn').addEventListener('click', function(){
