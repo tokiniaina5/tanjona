@@ -80,6 +80,74 @@
   }
   .field input:focus{ outline:none; border-color: var(--cyan); }
 
+  /* ---------- abonnement / paywall ---------- */
+  .paywall-plans{ display:flex; gap:0.8rem; margin-bottom:1.2rem; }
+  .plan-card{
+    flex:1;
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:1rem 0.8rem;
+    cursor:pointer;
+    text-align:center;
+    background: var(--bg);
+    transition: border-color 0.12s ease, background 0.12s ease;
+  }
+  .plan-card:hover{ border-color: var(--cyan); }
+  .plan-card.selected{ border-color: var(--cyan); background: var(--panel-2); }
+  .plan-card .plan-name{
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color: var(--muted);
+  }
+  .plan-card .plan-price{
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    margin: 0.4rem 0 0.2rem;
+    color: var(--text);
+  }
+  .plan-card .plan-note{ font-size:0.72rem; color: var(--muted); }
+  .paywall-pay{
+    background: var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding: 0.9rem 1rem;
+    margin-bottom: 1.2rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .paywall-pay strong{ color: var(--text); }
+  .trial-banner{
+    background: var(--panel-2);
+    border:1px solid var(--line);
+    border-left: 4px solid var(--cyan);
+    border-radius:8px;
+    padding: 0.7rem 1rem;
+    margin-bottom: 1rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:1rem;
+    flex-wrap:wrap;
+  }
+  .trial-banner strong{ color: var(--text); }
+
+  .notif-item{
+    padding: 0.65rem 0.9rem;
+    border-bottom: 1px solid var(--line);
+    font-size: 0.78rem;
+    color: var(--text);
+    line-height:1.5;
+  }
+  .notif-item:last-child{ border-bottom:none; }
+  .notif-item .notif-icon{ margin-right:0.35rem; }
+  .notif-item .notif-date{ display:block; font-size:0.68rem; color: var(--muted); margin-top:0.15rem; }
+  .notif-empty{ padding: 1.2rem 0.9rem; text-align:center; font-size:0.8rem; color: var(--muted); }
+
   .btn{
     font-family: var(--font-mono);
     font-size: 0.82rem;
@@ -345,8 +413,73 @@
         <label for="loginEmail">Email</label>
         <input id="loginEmail" type="email" required placeholder="vous@exemple.com">
       </div>
+      <div class="field">
+        <label for="loginPhone">Numéro de téléphone</label>
+        <input id="loginPhone" type="tel" placeholder="034 00 000 00">
+      </div>
+      <div class="field">
+        <label for="loginLogo">Logo (image)</label>
+        <input id="loginLogo" type="file" accept="image/*">
+        <p style="font-size:0.72rem; color:var(--muted); margin-top:0.4rem;">Obligatoire uniquement à la 1ère connexion — ensuite votre nom suffit à retrouver votre logo.</p>
+      </div>
       <button type="submit" class="btn btn-primary">Se connecter</button>
     </form>
+  </div>
+</div>
+
+<!-- ============ AUTO-POPUP : INFO ABONNEMENT ============ -->
+<div id="autoNoticeModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); align-items:center; justify-content:center; z-index:200; padding:1rem;">
+  <div class="login-card" style="max-width:380px; position:relative;">
+    <button type="button" id="autoNoticeClose" aria-label="Fermer" style="position:absolute; top:0.7rem; right:0.9rem; background:none; border:none; color:var(--muted); font-size:1.2rem; cursor:pointer; line-height:1;">✕</button>
+    <div class="eyebrow">Gestion de Stockage</div>
+    <h1 id="autoNoticeTitle" style="font-size:1.15rem;">Essai gratuit &amp; abonnement</h1>
+    <p class="sub" id="autoNoticeText">
+      L'application est <strong>gratuite pendant 3 mois</strong>. Passé ce délai, un abonnement
+      <strong>mensuel</strong> ou <strong>annuel</strong> sera demandé pour continuer à l'utiliser.
+      En cas de non-paiement, l'accès sera bloqué ; un <strong>code de déverrouillage</strong> vous sera
+      alors envoyé par email pour réactiver votre compte.
+    </p>
+    <button type="button" class="btn btn-primary" id="autoNoticeLoginBtn" style="width:100%; display:none;">Se connecter pour débloquer</button>
+  </div>
+</div>
+
+<!-- ============ ABONNEMENT / PAYWALL ============ -->
+<div id="paywallScreen" style="display:none; min-height:100vh; align-items:center; justify-content:center; padding:2rem;">
+  <div class="login-card" style="max-width:420px;">
+    <div class="eyebrow">Gestion de Stockage</div>
+    <h1>Abonnement requis</h1>
+    <p class="sub">Votre essai gratuit de 3 mois est terminé. Choisissez une formule pour continuer à utiliser l'application.</p>
+
+    <div class="paywall-plans">
+      <div class="plan-card selected" data-plan="mensuel" id="planMensuel">
+        <div class="plan-name">Mensuel</div>
+        <div class="plan-price">15 000 Ar</div>
+        <div class="plan-note">par mois</div>
+      </div>
+      <div class="plan-card" data-plan="annuel" id="planAnnuel">
+        <div class="plan-name">Annuel</div>
+        <div class="plan-price">150 000 Ar</div>
+        <div class="plan-note">par an (2 mois offerts)</div>
+      </div>
+    </div>
+
+    <div class="paywall-pay">
+      <strong>Comment payer :</strong><br>
+      Envoyez le montant de la formule choisie via MVola, Orange Money ou Airtel Money au <strong>034 00 000 00</strong>.
+      Ensuite, cliquez sur « Signaler mon paiement » : un mail sera envoyé au vendeur avec votre nom et vos
+      coordonnées. Il vous communiquera un code de déverrouillage à saisir ci-dessous.
+    </div>
+
+    <button type="button" class="btn" id="sendCodeBtn" style="width:100%; margin-bottom:0.8rem;">Signaler mon paiement par mail</button>
+
+    <div class="field">
+      <label for="paywallCodeInput">Code de déverrouillage donné par le vendeur</label>
+      <input id="paywallCodeInput" type="text" inputmode="numeric" maxlength="6" placeholder="------">
+    </div>
+    <p id="codeStatus" style="font-size:0.75rem; color:var(--muted); margin:-0.4rem 0 0.8rem;"></p>
+
+    <button type="button" class="btn btn-primary" id="confirmPaymentBtn" style="width:100%;" disabled>Valider le code et débloquer</button>
+    <button type="button" class="btn" id="paywallLogoutBtn" style="width:100%; margin-top:0.6rem;">Se déconnecter</button>
   </div>
 </div>
 
@@ -356,7 +489,21 @@
     <aside class="sidebar">
       <div class="sidebar-top">
         <div class="brand">Stock<span>Manager</span></div>
-        <button class="menu-toggle" id="menuToggle" aria-label="Ouvrir le menu" aria-expanded="false">☰</button>
+        <div style="display:flex; align-items:center; gap:0.5rem; position:relative;">
+          <button class="menu-toggle" id="notifToggle" aria-label="Notifications" aria-expanded="false" style="position:relative;">
+            🔔
+            <span id="notifBadge" style="display:none; position:absolute; top:-4px; right:-4px; background:#ff6b6b; color:#fff; font-size:0.62rem; font-weight:700; border-radius:999px; min-width:16px; height:16px; line-height:16px; text-align:center; padding:0 3px;">0</span>
+          </button>
+          <button class="menu-toggle" id="menuToggle" aria-label="Ouvrir le menu" aria-expanded="false">☰</button>
+
+          <div id="notifPanel" style="display:none; position:absolute; top:44px; right:0; width:300px; max-height:360px; overflow-y:auto; background:var(--panel); border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.35); z-index:50;">
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:0.7rem 0.9rem; border-bottom:1px solid var(--line);">
+              <strong style="font-size:0.85rem;">Notifications</strong>
+              <button type="button" id="notifClearBtn" style="background:none; border:none; color:var(--cyan); font-size:0.72rem; cursor:pointer;">Tout effacer</button>
+            </div>
+            <div id="notifList"></div>
+          </div>
+        </div>
       </div>
       <div class="brand-sub">Tanjona · Gestion de Stockage</div>
 
@@ -389,6 +536,11 @@
             <button class="btn btn-amber btn-sm" id="exportExcelBtn">Exporter en Excel</button>
             <button class="btn btn-violet btn-sm" id="downloadJsonBtn">Télécharger les données</button>
           </div>
+        </div>
+
+        <div class="trial-banner" id="trialBanner" style="display:none;">
+          <span><strong id="trialDaysLeft">—</strong> jours restants sur votre essai gratuit de 3 mois.</span>
+          <button type="button" class="btn btn-primary btn-sm" id="subscribeNowBtn">S'abonner maintenant</button>
         </div>
 
         <div class="dash-tabs">
@@ -586,6 +738,37 @@
           <tbody id="loginsTableBody"></tbody>
         </table>
         <p class="empty-hint" id="loginsEmptyHint" style="display:none;">Aucune connexion enregistrée.</p>
+
+        <div class="panel" id="masterCodePanel" style="margin-top:1.5rem; display:none;">
+          <h3>🔑 Code de déverrouillage (admin — vous uniquement)</h3>
+          <p style="font-size:0.8rem; color:var(--muted); margin-bottom:0.8rem;">
+            Ce code unique est celui que vous communiquez à un client après avoir vérifié son paiement.
+            Il débloque n'importe quel compte bloqué sur cette application.
+          </p>
+          <div class="form-grid">
+            <div class="field" style="margin-bottom:0;">
+              <label for="masterCodeInput">Code maître</label>
+              <input id="masterCodeInput" type="text" inputmode="numeric" maxlength="6" placeholder="------">
+            </div>
+          </div>
+          <button type="button" class="btn btn-primary btn-sm" id="saveMasterCodeBtn" style="width:auto; margin-top:0.8rem;">Enregistrer le code</button>
+          <span id="masterCodeStatus" style="font-size:0.78rem; color:var(--muted); margin-left:0.6rem;"></span>
+
+          <div style="margin-top:1.2rem; padding-top:1.2rem; border-top:1px solid var(--line);">
+            <h3 style="font-size:0.95rem;">Tester le code</h3>
+            <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.6rem;">
+              Vérifiez ici que le code fonctionne, comme si vous étiez un client bloqué.
+            </p>
+            <div class="form-grid">
+              <div class="field" style="margin-bottom:0;">
+                <label for="testCodeInput">Code à tester</label>
+                <input id="testCodeInput" type="text" inputmode="numeric" maxlength="6" placeholder="------">
+              </div>
+            </div>
+            <button type="button" class="btn btn-sm" id="testCodeBtn" style="width:auto; margin-top:0.8rem;">Vérifier</button>
+            <span id="testCodeResult" style="font-size:0.85rem; font-weight:600; margin-left:0.6rem;"></span>
+          </div>
+        </div>
       </section>
 
     </main>
@@ -600,6 +783,87 @@
   const STORAGE_ITEMS = 'stockmanager_items';
   const STORAGE_LOGINS = 'stockmanager_logins';
   const STORAGE_MOVEMENTS = 'stockmanager_movements';
+  const STORAGE_SUBSCRIPTION = 'stockmanager_subscription';
+  const STORAGE_PROFILES = 'stockmanager_profiles';
+  const STORAGE_MASTER_CODE = 'stockmanager_master_code';
+  const OWNER_EMAIL = 'rasolofonirainytokiniaina@gmail.com';
+  const TRIAL_DAYS = 90;
+
+  function loadMasterCode(){
+    return localStorage.getItem(STORAGE_MASTER_CODE) || '';
+  }
+  function saveMasterCode(code){ localStorage.setItem(STORAGE_MASTER_CODE, code.trim()); }
+
+  // Envoie (depuis l'appareil du client) un mail au propriétaire de l'app,
+  // avec le nom du client (celui saisi au login) et un code de référence,
+  // pour signaler qui a effectué le paiement.
+  function notifyOwnerOfPayment(clientName, clientEmail, clientPhone, plan){
+    const refCode = String(Math.floor(100000 + Math.random() * 900000));
+    const subject = encodeURIComponent('Paiement — ' + clientName);
+    const body = encodeURIComponent(
+      'Bonjour,\n\n' +
+      'Le client suivant signale avoir effectué le paiement de son abonnement Gestion de Stockage :\n\n' +
+      'Nom (login) : ' + clientName + '\n' +
+      'Email : ' + clientEmail + '\n' +
+      'Téléphone : ' + (clientPhone || '—') + '\n' +
+      'Formule choisie : ' + (plan === 'annuel' ? 'Annuel' : 'Mensuel') + '\n' +
+      'Code de référence : ' + refCode + '\n\n' +
+      'Merci de vérifier la réception du paiement puis de communiquer le code de déverrouillage à ce client.'
+    );
+    window.location.href = 'mailto:' + OWNER_EMAIL + '?subject=' + subject + '&body=' + body;
+    return refCode;
+  }
+  // le code de déverrouillage est unique (maître) : celui que le propriétaire
+  // communique au client après vérification du paiement débloque l'accès.
+  function verifyMasterCode(input){
+    const master = loadMasterCode();
+    return !!master && master === input.trim();
+  }
+
+  function loadProfiles(){
+    try { return JSON.parse(localStorage.getItem(STORAGE_PROFILES)) || {}; }
+    catch(e){ return {}; }
+  }
+  function saveProfiles(profiles){ localStorage.setItem(STORAGE_PROFILES, JSON.stringify(profiles)); }
+  function findProfile(name){
+    const profiles = loadProfiles();
+    return profiles[name.trim().toLowerCase()] || null;
+  }
+  function upsertProfile(name, data){
+    const profiles = loadProfiles();
+    const key = name.trim().toLowerCase();
+    profiles[key] = Object.assign({}, profiles[key], data);
+    saveProfiles(profiles);
+  }
+
+  function loadSubscription(){
+    try { return JSON.parse(localStorage.getItem(STORAGE_SUBSCRIPTION)) || null; }
+    catch(e){ return null; }
+  }
+  function saveSubscription(sub){ localStorage.setItem(STORAGE_SUBSCRIPTION, JSON.stringify(sub)); }
+  function ensureInstallDate(){
+    let sub = loadSubscription();
+    if(!sub){
+      sub = { installDate: new Date().toISOString(), plan: null, paidUntil: null };
+      saveSubscription(sub);
+    }
+    return sub;
+  }
+  // renvoie { status: 'trial'|'active'|'expired', daysLeft }
+  function getSubscriptionStatus(){
+    const sub = ensureInstallDate();
+    const now = new Date();
+    if(sub.paidUntil && new Date(sub.paidUntil) > now){
+      return { status: 'active', daysLeft: 0 };
+    }
+    const installDate = new Date(sub.installDate);
+    const trialEnd = new Date(installDate.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
+    if(now < trialEnd){
+      const daysLeft = Math.max(0, Math.ceil((trialEnd - now) / (24 * 60 * 60 * 1000)));
+      return { status: 'trial', daysLeft: daysLeft };
+    }
+    return { status: 'expired', daysLeft: 0 };
+  }
 
   function loadItems(){
     try { return JSON.parse(localStorage.getItem(STORAGE_ITEMS)) || []; }
@@ -618,6 +882,50 @@
     catch(e){ return []; }
   }
   function saveMovements(movements){ localStorage.setItem(STORAGE_MOVEMENTS, JSON.stringify(movements)); }
+
+  const STORAGE_NOTIFICATIONS = 'stockmanager_notifications';
+  function loadNotifications(){
+    try { return JSON.parse(localStorage.getItem(STORAGE_NOTIFICATIONS)) || []; }
+    catch(e){ return []; }
+  }
+  function saveNotifications(list){ localStorage.setItem(STORAGE_NOTIFICATIONS, JSON.stringify(list)); }
+  function pushNotification(type, message){
+    const list = loadNotifications();
+    list.unshift({
+      type: type, message: message,
+      date: new Date().toLocaleString('fr-FR'),
+      read: false
+    });
+    saveNotifications(list.slice(0, 50));
+    renderNotifications();
+  }
+  function notifIcon(type){
+    if(type === 'vente') return '🛒';
+    if(type === 'facture') return '🧾';
+    if(type === 'rupture') return '⚠️';
+    return '🔔';
+  }
+  function renderNotifications(){
+    const list = loadNotifications();
+    const listEl = document.getElementById('notifList');
+    const badge = document.getElementById('notifBadge');
+    if(!listEl || !badge) return;
+    const unread = list.filter(function(n){ return !n.read; }).length;
+    if(unread > 0){
+      badge.style.display = 'block';
+      badge.textContent = unread > 9 ? '9+' : String(unread);
+    } else {
+      badge.style.display = 'none';
+    }
+    if(!list.length){
+      listEl.innerHTML = '<div class="notif-empty">Aucune notification.</div>';
+      return;
+    }
+    listEl.innerHTML = list.map(function(n){
+      return '<div class="notif-item"><span class="notif-icon">' + notifIcon(n.type) + '</span>' +
+        escapeHtml(n.message) + '<span class="notif-date">' + n.date + '</span></div>';
+    }).join('');
+  }
 
   let idCounter = Date.now();
   function genId(){ idCounter += 1; return 'itm_' + idCounter; }
@@ -666,23 +974,14 @@
   // ---------------- LOGIN ----------------
   const loginScreen = document.getElementById('loginScreen');
   const appScreen = document.getElementById('appScreen');
+  const paywallScreen = document.getElementById('paywallScreen');
   const loginForm = document.getElementById('loginForm');
+  let selectedPlan = 'mensuel';
+  let codeVerified = false;
 
-  loginForm.addEventListener('submit', function(e){
-    e.preventDefault();
-    const name = document.getElementById('loginName').value.trim();
-    const email = document.getElementById('loginEmail').value.trim();
-    if(!name || !email) return;
-
-    currentUser = { name, email };
-    const logins = loadLogins();
-    logins.unshift({ name, email, date: new Date().toLocaleString('fr-FR') });
-    saveLogins(logins);
-
-    document.getElementById('currentUserName').textContent = name;
-    document.getElementById('currentUserEmail').textContent = email;
-
+  function openApp(){
     loginScreen.style.display = 'none';
+    paywallScreen.style.display = 'none';
     appScreen.style.display = 'block';
 
     renderStock();
@@ -691,6 +990,109 @@
     renderFilters();
     renderDashboard();
     setupInviteLink();
+    updateTrialBanner();
+    renderNotifications();
+  }
+
+  function openPaywall(){
+    loginScreen.style.display = 'none';
+    appScreen.style.display = 'none';
+    paywallScreen.style.display = 'flex';
+    codeVerified = false;
+    document.getElementById('paywallCodeInput').value = '';
+    document.getElementById('codeStatus').textContent = '';
+    document.getElementById('confirmPaymentBtn').disabled = true;
+  }
+
+  function updateTrialBanner(){
+    const st = getSubscriptionStatus();
+    const banner = document.getElementById('trialBanner');
+    if(st.status === 'trial'){
+      banner.style.display = 'flex';
+      document.getElementById('trialDaysLeft').textContent = st.daysLeft;
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+
+  loginForm.addEventListener('submit', function(e){
+    e.preventDefault();
+    const name = document.getElementById('loginName').value.trim();
+    const email = document.getElementById('loginEmail').value.trim();
+    const phoneInput = document.getElementById('loginPhone').value.trim();
+    const logoFile = document.getElementById('loginLogo').files[0];
+    if(!name || !email) return;
+
+    const existingProfile = findProfile(name);
+    if(!existingProfile && !logoFile){
+      alert('Veuillez ajouter un logo pour votre première connexion.');
+      return;
+    }
+    const phone = phoneInput || (existingProfile ? existingProfile.phone : '');
+    if(!phone){ alert('Veuillez indiquer votre numéro de téléphone.'); return; }
+
+    function finishLogin(logoDataUrl){
+      const logo = logoDataUrl || (existingProfile ? existingProfile.logo : null);
+      currentUser = { name, email, phone, logo: logo };
+      upsertProfile(name, { name, email, phone, logo: logo });
+
+      const logins = loadLogins();
+      logins.unshift({ name, email, phone, date: new Date().toLocaleString('fr-FR') });
+      saveLogins(logins);
+
+      document.getElementById('currentUserName').textContent = name;
+      document.getElementById('currentUserEmail').textContent = email;
+
+      const st = getSubscriptionStatus();
+      if(st.status === 'expired'){
+        openPaywall();
+      } else {
+        openApp();
+      }
+    }
+
+    if(logoFile){
+      const reader = new FileReader();
+      reader.onload = function(ev){ finishLogin(ev.target.result); };
+      reader.onerror = function(){ finishLogin(null); };
+      reader.readAsDataURL(logoFile);
+    } else {
+      finishLogin(null);
+    }
+  });
+
+  function showAutoNotice(){
+    const st = getSubscriptionStatus();
+    const modal = document.getElementById('autoNoticeModal');
+    const closeBtn = document.getElementById('autoNoticeClose');
+    const loginBtn = document.getElementById('autoNoticeLoginBtn');
+    const title = document.getElementById('autoNoticeTitle');
+    const text = document.getElementById('autoNoticeText');
+
+    if(st.status === 'expired'){
+      title.textContent = 'Abonnement requis';
+      text.innerHTML = 'Votre essai gratuit de <strong>3 mois</strong> est terminé. L\'accès est <strong>bloqué</strong> ' +
+        'tant que le paiement (mensuel ou annuel) n\'est pas confirmé par le <strong>code de déverrouillage</strong> ' +
+        'envoyé par email. Connectez-vous pour recevoir votre code.';
+      closeBtn.style.display = 'none';
+      loginBtn.style.display = 'block';
+    } else {
+      title.textContent = 'Essai gratuit & abonnement';
+      text.innerHTML = 'L\'application est <strong>gratuite pendant 3 mois</strong>. Passé ce délai, un abonnement ' +
+        '<strong>mensuel</strong> ou <strong>annuel</strong> sera demandé pour continuer à l\'utiliser. ' +
+        'En cas de non-paiement, l\'accès sera bloqué ; un <strong>code de déverrouillage</strong> vous sera ' +
+        'alors envoyé par email pour réactiver votre compte.';
+      closeBtn.style.display = 'block';
+      loginBtn.style.display = 'none';
+    }
+    modal.style.display = 'flex';
+  }
+  document.getElementById('autoNoticeClose').addEventListener('click', function(){
+    document.getElementById('autoNoticeModal').style.display = 'none';
+  });
+  document.getElementById('autoNoticeLoginBtn').addEventListener('click', function(){
+    document.getElementById('autoNoticeModal').style.display = 'none';
+    document.getElementById('loginName').focus();
   });
 
   document.getElementById('logoutBtn').addEventListener('click', function(){
@@ -698,6 +1100,66 @@
     appScreen.style.display = 'none';
     loginScreen.style.display = 'flex';
     loginForm.reset();
+    showAutoNotice();
+  });
+
+  document.getElementById('paywallLogoutBtn').addEventListener('click', function(){
+    currentUser = null;
+    paywallScreen.style.display = 'none';
+    loginScreen.style.display = 'flex';
+    loginForm.reset();
+    showAutoNotice();
+  });
+
+  document.getElementById('subscribeNowBtn').addEventListener('click', function(){
+    openPaywall();
+  });
+
+  // affichage automatique dès l'ouverture de la page (écran de connexion)
+  showAutoNotice();
+
+  document.getElementById('planMensuel').addEventListener('click', function(){
+    selectedPlan = 'mensuel';
+    document.getElementById('planMensuel').classList.add('selected');
+    document.getElementById('planAnnuel').classList.remove('selected');
+  });
+  document.getElementById('planAnnuel').addEventListener('click', function(){
+    selectedPlan = 'annuel';
+    document.getElementById('planAnnuel').classList.add('selected');
+    document.getElementById('planMensuel').classList.remove('selected');
+  });
+
+  document.getElementById('sendCodeBtn').addEventListener('click', function(){
+    if(!currentUser || !currentUser.name){ alert('Nom introuvable.'); return; }
+    notifyOwnerOfPayment(currentUser.name, currentUser.email, currentUser.phone, selectedPlan);
+    document.getElementById('codeStatus').textContent = 'Un mail a été préparé pour le vendeur avec votre nom (' + currentUser.name + '). Il vous communiquera votre code de déverrouillage.';
+  });
+
+  document.getElementById('paywallCodeInput').addEventListener('input', function(){
+    const val = this.value.trim();
+    const status = document.getElementById('codeStatus');
+    const confirmBtn = document.getElementById('confirmPaymentBtn');
+    if(val.length === 6 && verifyMasterCode(val)){
+      codeVerified = true;
+      status.textContent = 'Code valide ✓';
+      confirmBtn.disabled = false;
+    } else {
+      codeVerified = false;
+      confirmBtn.disabled = true;
+      if(val.length === 6){ status.textContent = 'Code incorrect.'; }
+    }
+  });
+
+  document.getElementById('confirmPaymentBtn').addEventListener('click', function(){
+    if(!codeVerified){ alert('Veuillez saisir le code de vérification reçu par mail.'); return; }
+    const sub = ensureInstallDate();
+    const now = new Date();
+    const durationDays = selectedPlan === 'annuel' ? 365 : 30;
+    sub.plan = selectedPlan;
+    sub.paidUntil = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString();
+    saveSubscription(sub);
+    alert('Compte débloqué. Merci ! Votre abonnement ' + (selectedPlan === 'annuel' ? 'annuel' : 'mensuel') + ' est actif.');
+    openApp();
   });
 
   // ---------------- NAVIGATION ----------------
@@ -708,6 +1170,39 @@
       var isOpen = navList.classList.toggle('open');
       menuToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
       menuToggle.textContent = isOpen ? '✕' : '☰';
+    });
+  }
+
+  // ---------------- NOTIFICATIONS ----------------
+  var notifToggle = document.getElementById('notifToggle');
+  var notifPanel = document.getElementById('notifPanel');
+  if(notifToggle && notifPanel){
+    notifToggle.addEventListener('click', function(e){
+      e.stopPropagation();
+      var isOpen = notifPanel.style.display === 'block';
+      notifPanel.style.display = isOpen ? 'none' : 'block';
+      notifToggle.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+      if(!isOpen){
+        // marque tout comme lu à l'ouverture
+        var list = loadNotifications();
+        list.forEach(function(n){ n.read = true; });
+        saveNotifications(list);
+        renderNotifications();
+      }
+    });
+    document.addEventListener('click', function(e){
+      if(notifPanel.style.display === 'block' && !notifPanel.contains(e.target) && e.target !== notifToggle){
+        notifPanel.style.display = 'none';
+        notifToggle.setAttribute('aria-expanded', 'false');
+      }
+    });
+  }
+  var notifClearBtn = document.getElementById('notifClearBtn');
+  if(notifClearBtn){
+    notifClearBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      saveNotifications([]);
+      renderNotifications();
     });
   }
 
@@ -790,13 +1285,19 @@
     if(!qty || qty <= 0){ alert('Quantité invalide.'); return; }
     if(qty > item.qty){ alert("La quantité dépasse le stock disponible."); return; }
     item.qty -= qty;
-    saveItems(items);
     movements.push({
       itemId: item.id, ref: item.ref || '', name: item.name, category: item.category || '',
       type: 'sortie', qty: qty, price: item.price, value: qty * item.price,
       date: new Date().toISOString(), day: dayKey(new Date())
     });
     saveMovements(movements);
+    pushNotification('vente', 'Entana « ' + item.name + ' » efa lafo : ' + qty + ' unité(s).');
+
+    if(item.qty <= 0){
+      items.splice(idx, 1);
+      pushNotification('rupture', 'Entana « ' + item.name + ' » efa lany, voafafa tao amin\'ny stock.');
+    }
+    saveItems(items);
     renderStock();
     renderFilters();
     renderDashboard();
@@ -1173,8 +1674,15 @@
     doc.text('Facture N° : ' + invoiceNo, rightX, 27, { align: 'right' });
     doc.text('Date : ' + today, rightX, 32, { align: 'right' });
 
+    if(currentUser && currentUser.logo){
+      try{ doc.addImage(currentUser.logo, marginX, 8, 20, 20); }catch(err){}
+    }
     doc.setFontSize(10);
-    doc.text(emissEmail, marginX, 33);
+    doc.text(emissEmail, currentUser && currentUser.logo ? marginX + 24 : marginX, 20);
+    if(currentUser && currentUser.phone){
+      doc.setFontSize(9);
+      doc.text(currentUser.phone, currentUser && currentUser.logo ? marginX + 24 : marginX, 26);
+    }
 
     // ---- bloc "Facturé à" ----
     doc.setTextColor(90, 90, 90);
@@ -1257,6 +1765,7 @@
     doc.text('MERCI POUR VOTRE CONFIANCE', marginX, 291);
 
     doc.save('facture-' + customer.replace(/\s+/g, '-').toLowerCase() + '.pdf');
+    pushNotification('facture', 'Facture ho an\'i ' + customer + ' efa lasa (téléchargée).');
   });
 
   document.getElementById('mailInvoiceBtn').addEventListener('click', function(){
@@ -1281,9 +1790,11 @@
       '\nTotal : ' + formatAr(total) + '\n' +
       'Date : ' + new Date().toLocaleDateString('fr-FR') + '\n\n' +
       'Merci de votre confiance.\n\n' +
-      (currentUser && currentUser.email ? currentUser.email : '')
+      (currentUser && currentUser.email ? currentUser.email : '') +
+      (currentUser && currentUser.phone ? '\n' + currentUser.phone : '')
     );
     window.location.href = 'mailto:' + customerEmail + '?subject=' + subject + '&body=' + body;
+    pushNotification('facture', 'Facture ho an\'i ' + customer + ' efa lasa (nalefa amin\'ny mail).');
   });
 
   // ---------------- INVITER DES AMIS ----------------
@@ -1324,12 +1835,43 @@
       tr.innerHTML = '<td>' + escapeHtml(l.name) + '</td><td>' + escapeHtml(l.email) + '</td><td>' + escapeHtml(l.date) + '</td>';
       tbody.appendChild(tr);
     });
+
+    // le panel "Code maître" n'est visible que pour le propriétaire de l'app
+    const isAdmin = currentUser && currentUser.email &&
+      currentUser.email.trim().toLowerCase() === OWNER_EMAIL.toLowerCase();
+    document.getElementById('masterCodePanel').style.display = isAdmin ? 'block' : 'none';
   }
 
   document.getElementById('clearLoginsBtn').addEventListener('click', function(){
     if(confirm("Vider tout l'historique des connexions ?")){
       saveLogins([]);
       renderLogins();
+    }
+  });
+
+  // ---------------- CODE MAÎTRE (admin) ----------------
+  const masterCodeInput = document.getElementById('masterCodeInput');
+  if(masterCodeInput){ masterCodeInput.value = loadMasterCode(); }
+  document.getElementById('saveMasterCodeBtn').addEventListener('click', function(){
+    const val = masterCodeInput.value.trim();
+    if(!/^\d{4,6}$/.test(val)){
+      document.getElementById('masterCodeStatus').textContent = 'Le code doit contenir 4 à 6 chiffres.';
+      return;
+    }
+    saveMasterCode(val);
+    document.getElementById('masterCodeStatus').textContent = 'Code enregistré ✓';
+  });
+
+  document.getElementById('testCodeBtn').addEventListener('click', function(){
+    const val = document.getElementById('testCodeInput').value.trim();
+    const result = document.getElementById('testCodeResult');
+    if(!val){ result.textContent = ''; return; }
+    if(verifyMasterCode(val)){
+      result.textContent = '✓ Ce code fonctionne, il débloquera un compte bloqué.';
+      result.style.color = '#4fd8a0';
+    } else {
+      result.textContent = '✗ Ce code ne correspond pas au code maître enregistré.';
+      result.style.color = '#ff6b6b';
     }
   });
 
