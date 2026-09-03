@@ -332,6 +332,67 @@
   }
   .filter-clear:hover{ text-decoration:underline; }
 
+  .community-grid{ display:grid; grid-template-columns: 1.3fr 1fr; gap:0.9rem; margin-bottom:1.4rem; align-items:start; }
+  .community-sub{ font-size:0.8rem; color:var(--muted); margin-bottom:0.9rem; line-height:1.5; }
+  .marketplace-row{ display:flex; flex-wrap:wrap; gap:0.6rem; }
+  .marketplace-row a.btn{ display:inline-block; text-align:center; width:auto; }
+
+  /* ---------- Accueil style "réseau social" ---------- */
+  .fb-main{ display:flex; flex-direction:column; gap:0.9rem; }
+  .fb-avatar{
+    width:42px; height:42px; min-width:42px; border-radius:50%;
+    background:linear-gradient(135deg, var(--cyan), var(--violet));
+    color:#04191b; font-family:var(--font-display); font-weight:700; font-size:1rem;
+    display:flex; align-items:center; justify-content:center; text-transform:uppercase;
+  }
+  .fb-composer-row{ display:flex; align-items:center; gap:0.7rem; }
+  .fb-composer-input{
+    flex-grow:1; padding:0.75rem 1rem; border-radius:999px;
+    border:1px solid var(--line); background:var(--bg); color:var(--text); font-size:0.92rem;
+  }
+  .fb-composer-input:focus{ outline:none; border-color:var(--cyan); }
+  .fb-composer-extra{ display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.8rem; padding-top:0.8rem; border-top:1px solid var(--line); }
+  .fb-composer-extra input, .fb-composer-extra select{
+    flex:1; min-width:130px; padding:0.6rem 0.8rem; border-radius:8px;
+    border:1px solid var(--line); background:var(--bg); color:var(--text); font-size:0.82rem;
+  }
+  .fb-composer-extra input:focus, .fb-composer-extra select:focus{ outline:none; border-color:var(--cyan); }
+  .fb-composer-extra select{ flex:0 0 auto; min-width:140px; }
+
+  .fb-feed{ display:flex; flex-direction:column; gap:0.9rem; }
+  .fb-post{
+    background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:1.1rem;
+  }
+  .fb-post.fb-post-live{ border-color:var(--red); box-shadow:0 0 0 1px rgba(239,106,106,0.25); }
+  .fb-post.fb-post-entana{ border-color:var(--amber); }
+  .fb-post-head{ display:flex; align-items:center; gap:0.7rem; margin-bottom:0.7rem; }
+  .fb-post-name{ font-weight:600; font-size:0.92rem; color:var(--text); }
+  .fb-post-meta{ font-size:0.72rem; color:var(--muted); display:flex; gap:0.4rem; align-items:center; flex-wrap:wrap; }
+  .fb-network-badge{
+    font-family:var(--font-mono); font-size:0.62rem; text-transform:uppercase; letter-spacing:0.04em;
+    color:var(--cyan); border:1px solid rgba(79,216,224,0.35); background:rgba(79,216,224,0.08);
+    border-radius:999px; padding:0.1rem 0.5rem;
+  }
+  .fb-type-badge{
+    font-family:var(--font-mono); font-size:0.62rem; text-transform:uppercase; letter-spacing:0.04em;
+    border-radius:999px; padding:0.1rem 0.5rem; font-weight:700;
+  }
+  .fb-type-badge.live{ color:#fff; background:var(--red); animation:fbLivePulse 1.6s infinite; }
+  .fb-type-badge.entana{ color:#04191b; background:var(--amber); }
+  @keyframes fbLivePulse{ 0%,100%{ opacity:1; } 50%{ opacity:0.55; } }
+  .fb-post-price{ font-family:var(--font-display); font-weight:700; color:var(--amber); font-size:1rem; margin-top:0.5rem; }
+  .fb-post-body{ font-size:0.9rem; line-height:1.55; color:var(--text); white-space:pre-wrap; word-break:break-word; }
+  .fb-post-link{
+    display:block; margin-top:0.8rem; padding:0.7rem 0.9rem; border-radius:10px;
+    border:1px solid var(--line); background:var(--panel-2); color:var(--cyan);
+    font-size:0.8rem; text-decoration:none; word-break:break-all;
+  }
+  .fb-post-link:hover{ border-color:var(--cyan); }
+  .fb-post-actions{ display:flex; gap:1.2rem; margin-top:0.9rem; padding-top:0.7rem; border-top:1px solid var(--line); }
+  .fb-post-actions span{ font-size:0.78rem; color:var(--muted); }
+
+  .fb-sidebar{ position:sticky; top:0.5rem; }
+
   .kpi-row{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:0.9rem; margin-bottom:1.4rem; }
   .kpi-card{
     background:linear-gradient(135deg, rgba(79,216,224,0.1), rgba(139,147,255,0.08));
@@ -359,6 +420,7 @@
 
   @media (max-width: 820px){
     .mid-grid{ grid-template-columns: 1fr; }
+    .community-grid{ grid-template-columns: 1fr; }
     .filters-panel{ flex-direction:column; gap:1rem; }
     .filter-clear{ align-self:flex-start; margin-left:0; }
   }
@@ -511,6 +573,7 @@
         <div class="nav-item active" data-section="stock">📦 Stock</div>
         <div class="nav-item" data-section="factures">🧾 Factures</div>
         <div class="nav-item" data-section="inviter">✉️ Inviter des amis</div>
+        <div class="nav-item" data-section="contact">📞 Nous contacter</div>
         <div class="nav-item" data-section="wallet">💰 Portefeuille</div>
         <div class="nav-item" data-section="connexions" id="navParametres">⚙️ Paramètres</div>
 
@@ -545,12 +608,62 @@
         </div>
 
         <div class="dash-tabs">
-          <div class="dash-tab active" data-dash="dashboard">📊 Tableau de bord</div>
+          <div class="dash-tab active" data-dash="accueil">🏠 Accueil</div>
+          <div class="dash-tab" data-dash="dashboard">📊 Tableau de bord</div>
           <div class="dash-tab" data-dash="articles">📦 Articles</div>
         </div>
 
+        <!-- ===== ACCUEIL ===== -->
+        <div class="dash-view active" id="dash-accueil">
+          <div class="community-grid">
+            <div class="fb-main">
+              <div class="panel fb-composer" style="margin-top:0;">
+                <div class="fb-composer-row">
+                  <div class="fb-avatar" id="composerAvatar">?</div>
+                  <input type="text" id="newsMessage" class="fb-composer-input" placeholder="Inona no vaovao aminao, ry client?">
+                </div>
+                <div class="fb-composer-extra">
+                  <select id="newsType">
+                    <option value="vaovao">📰 Vaovao</option>
+                    <option value="live">🔴 Live direct</option>
+                    <option value="entana">🛒 Entana amidy</option>
+                  </select>
+                  <input type="text" id="newsNetwork" placeholder="Avy aiza io? (Facebook, WhatsApp, TikTok...)">
+                  <input type="url" id="newsLink" placeholder="Rohy (live, varotra, na hafa)">
+                  <input type="number" id="newsPrice" min="0" placeholder="Vidiny Ar (raha entana amidy)" style="max-width:170px;">
+                  <button type="button" class="btn btn-primary btn-sm" id="postNewsBtn" style="width:auto;">Publier</button>
+                </div>
+              </div>
+
+              <div id="communityNewsList" class="fb-feed"></div>
+              <div class="empty-hint" id="communityNewsEmpty" style="display:none;">Tsy mbola misy vaovao. Ianao no ho voalohany hizara zavatra!</div>
+            </div>
+
+            <div class="fb-sidebar">
+              <div class="panel" style="margin-top:0;">
+                <h3>🌍 Achats internationaux</h3>
+                <p class="community-sub">Rohy mankany amin'ny varotra international (Alibaba, AliExpress, sy ny hafa).</p>
+                <div id="marketplaceLinks" class="marketplace-row"></div>
+                <div id="marketplaceAdminForm" style="display:none; margin-top:1rem; border-top:1px solid var(--line); padding-top:1rem;">
+                  <div class="form-grid">
+                    <div class="field" style="margin-bottom:0;">
+                      <label>Anarana</label>
+                      <input type="text" id="newMarketName" placeholder="Ex: DHgate">
+                    </div>
+                    <div class="field" style="margin-bottom:0;">
+                      <label>Lien</label>
+                      <input type="url" id="newMarketUrl" placeholder="https://...">
+                    </div>
+                    <button type="button" class="btn btn-violet btn-sm" id="addMarketBtn">Ajouter</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- ===== DASHBOARD ===== -->
-        <div class="dash-view active" id="dash-dashboard">
+        <div class="dash-view" id="dash-dashboard">
 
           <div class="filters-panel">
             <div class="filter-group">
@@ -777,6 +890,125 @@
             <button class="btn btn-violet" id="sendInviteBtn" style="width:auto;">Ouvrir l'email d'invitation</button>
           </div>
         </div>
+
+        <div class="panel">
+          <h3>Partager sur les réseaux sociaux</h3>
+          <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.8rem; line-height:1.5;">
+            Envoyez votre lien directement sur un réseau social. Dès que votre ami ouvre l'application
+            via ce lien, il est automatiquement compté dans « Vos parrainages » ci-dessus — aucune
+            confirmation manuelle n'est nécessaire de votre part.
+          </p>
+          <div class="actions-row" style="flex-wrap:wrap; gap:0.6rem;">
+            <button type="button" class="btn" id="shareWhatsappBtn" style="border-color:#25D366; color:#25D366;">WhatsApp</button>
+            <button type="button" class="btn" id="shareFacebookBtn" style="border-color:#1877F2; color:#1877F2;">Facebook</button>
+            <button type="button" class="btn" id="shareTiktokBtn" style="border-color:#e7e9ea; color:#e7e9ea;">TikTok</button>
+            <button type="button" class="btn" id="shareThreadsBtn" style="border-color:#e7e9ea; color:#e7e9ea;">Threads</button>
+            <button type="button" class="btn" id="shareTwitterBtn" style="border-color:#e7e9ea; color:#e7e9ea;">X (Twitter)</button>
+            <button type="button" class="btn" id="shareInstagramBtn" style="border-color:#E1306C; color:#E1306C;">Instagram</button>
+            <button type="button" class="btn" id="shareWechatBtn" style="border-color:#07C160; color:#07C160;">WeChat</button>
+            <button type="button" class="btn btn-primary" id="shareMoreBtn" style="display:none;">📲 Autres applis</button>
+            <span id="customSocialButtons" style="display:contents;"></span>
+            <button type="button" class="btn btn-amber" id="addSocialToggleBtn" title="Ajouter un réseau social">＋ Ajouter</button>
+          </div>
+
+          <div id="addSocialForm" style="display:none; margin-top:0.9rem; padding-top:0.9rem; border-top:1px solid var(--line);">
+            <div class="form-grid">
+              <div class="field" style="margin-bottom:0;">
+                <label for="newSocialName">Nom du réseau</label>
+                <input id="newSocialName" type="text" placeholder="Ex : Snapchat">
+              </div>
+              <div class="field" style="margin-bottom:0;">
+                <label for="newSocialUrl">Lien de partage</label>
+                <input id="newSocialUrl" type="text" placeholder="https://exemple.com/partager?url={lien}&texte={message}">
+              </div>
+            </div>
+            <p style="font-size:0.72rem; color:var(--muted); margin-top:0.5rem; line-height:1.5;">
+              Utilisez <code>{lien}</code> et/ou <code>{message}</code> dans l'URL : ils seront remplacés
+              automatiquement par votre lien d'invitation et le message. Si le réseau ne propose pas
+              d'URL de partage, laissez ce champ vide : le message sera simplement copié.
+            </p>
+            <button type="button" class="btn btn-primary btn-sm" id="saveSocialBtn" style="width:auto; margin-top:0.6rem;">Enregistrer ce réseau</button>
+            <span id="addSocialStatus" style="font-size:0.78rem; color:var(--muted); margin-left:0.6rem;"></span>
+          </div>
+
+          <p style="font-size:0.72rem; color:var(--muted); margin-top:0.7rem; line-height:1.5;">
+            Instagram, TikTok et WeChat ne permettent pas de préremplir un message depuis un site web : votre
+            message est copié automatiquement, il ne reste qu'à le coller dans la discussion.
+          </p>
+        </div>
+      </section>
+
+      <!-- ---- NOUS CONTACTER (visible aux clients ET à l'admin) ---- -->
+      <section class="section" id="section-contact">
+        <div class="section-head">
+          <div>
+            <h2>Nous contacter</h2>
+            <p>Une question, un souci ? Écrivez-nous directement sur l'un de ces réseaux.</p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Contactez le service client</h3>
+          <div class="actions-row" id="contactButtonsRow" style="flex-wrap:wrap; gap:0.6rem;"></div>
+          <p class="empty-hint" id="contactButtonsEmptyHint" style="display:none;">
+            Aucun canal de contact n'a encore été configuré. Revenez bientôt !
+          </p>
+        </div>
+
+        <div class="panel" id="contactAdminPanel" style="display:none;">
+          <h3>⚙️ Configurer vos canaux de contact (admin — vous uniquement)</h3>
+          <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.8rem;">
+            Renseignez vos comptes réels : ces boutons seront visibles par <strong>tous vos clients</strong>
+            dans « Nous contacter », pour qu'ils puissent vous écrire directement.
+          </p>
+          <div class="form-grid">
+            <div class="field" style="margin-bottom:0;">
+              <label for="contactWhatsappInput">Numéro WhatsApp (avec indicatif, chiffres uniquement)</label>
+              <input id="contactWhatsappInput" type="text" placeholder="261340000000">
+            </div>
+            <div class="field" style="margin-bottom:0;">
+              <label for="contactFacebookInput">Page Facebook (URL)</label>
+              <input id="contactFacebookInput" type="text" placeholder="https://facebook.com/votrepage">
+            </div>
+            <div class="field" style="margin-bottom:0;">
+              <label for="contactInstagramInput">Profil Instagram (URL)</label>
+              <input id="contactInstagramInput" type="text" placeholder="https://instagram.com/votrecompte">
+            </div>
+            <div class="field" style="margin-bottom:0;">
+              <label for="contactTiktokInput">Profil TikTok (URL)</label>
+              <input id="contactTiktokInput" type="text" placeholder="https://tiktok.com/@votrecompte">
+            </div>
+            <div class="field" style="margin-bottom:0;">
+              <label for="contactThreadsInput">Profil Threads (URL)</label>
+              <input id="contactThreadsInput" type="text" placeholder="https://threads.net/@votrecompte">
+            </div>
+            <div class="field" style="margin-bottom:0;">
+              <label for="contactTwitterInput">Profil X / Twitter (URL)</label>
+              <input id="contactTwitterInput" type="text" placeholder="https://x.com/votrecompte">
+            </div>
+            <div class="field" style="margin-bottom:0;">
+              <label for="contactWechatInput">Identifiant WeChat</label>
+              <input id="contactWechatInput" type="text" placeholder="ID WeChat">
+            </div>
+          </div>
+          <button type="button" class="btn btn-primary btn-sm" id="saveContactChannelsBtn" style="width:auto; margin-top:0.8rem;">Enregistrer</button>
+          <span id="contactChannelsStatus" style="font-size:0.78rem; color:var(--muted); margin-left:0.6rem;"></span>
+
+          <div style="margin-top:1.2rem; padding-top:1.2rem; border-top:1px solid var(--line);">
+            <h3 style="font-size:0.95rem;">Ajouter un autre canal</h3>
+            <div class="form-grid">
+              <div class="field" style="margin-bottom:0;">
+                <label for="newContactName">Nom</label>
+                <input id="newContactName" type="text" placeholder="Ex : Viber">
+              </div>
+              <div class="field" style="margin-bottom:0;">
+                <label for="newContactUrl">Lien ou identifiant</label>
+                <input id="newContactUrl" type="text" placeholder="https://... (laisser vide = simple copie)">
+              </div>
+            </div>
+            <button type="button" class="btn btn-sm" id="addContactChannelBtn" style="width:auto; margin-top:0.6rem;">Ajouter ce canal</button>
+          </div>
+        </div>
       </section>
 
       <!-- ---- PORTEFEUILLE ---- -->
@@ -792,13 +1024,45 @@
         <div class="panel" id="walletAuthPanel">
           <h3>Vérification requise</h3>
           <p style="font-size:0.85rem; color:var(--muted); line-height:1.6; margin-bottom:1rem;">
-            Connectez-vous avec votre compte Google pour ouvrir votre portefeuille —
-            cela prouve que c'est bien vous.
+            Ressaisissez votre nom et votre email — s'ils correspondent à ceux utilisés
+            lors de votre connexion, votre portefeuille s'ouvrira automatiquement.
           </p>
-          <button type="button" class="btn btn-primary" id="walletGoogleBtn">
-            Continuer avec Google
-          </button>
+          <form id="walletVerifyForm">
+            <div class="field">
+              <label for="walletVerifyName">Nom</label>
+              <input id="walletVerifyName" type="text" placeholder="Votre nom" required>
+            </div>
+            <div class="field">
+              <label for="walletVerifyEmail">Email</label>
+              <input id="walletVerifyEmail" type="email" placeholder="Votre email" required>
+            </div>
+            <button type="submit" class="btn btn-primary" id="walletVerifyBtn">
+              Ouvrir mon portefeuille
+            </button>
+          </form>
           <p id="walletAuthStatus" style="font-size:0.8rem; color:var(--cyan); margin-top:0.8rem;"></p>
+
+          <div style="margin-top:1.4rem; padding-top:1.2rem; border-top:1px solid var(--line);">
+            <h3 style="font-size:0.95rem;">Paiement en ligne — PayPal</h3>
+            <p style="font-size:0.82rem; color:var(--muted); line-height:1.6; margin:0.4rem 0 1rem;">
+              Reliez un compte PayPal pour pouvoir payer en ligne depuis votre portefeuille.
+            </p>
+            <div id="paypalNoAccountBlock">
+              <a class="btn btn-sm" href="https://www.paypal.com/signup" target="_blank" rel="noopener">
+                Je n'ai pas de compte PayPal — Créer un compte
+              </a>
+            </div>
+            <div style="margin-top:0.8rem;">
+              <form id="paypalConnectForm" style="display:flex; gap:0.6rem; flex-wrap:wrap; align-items:flex-end;">
+                <div class="field" style="margin-bottom:0; flex:1; min-width:200px;">
+                  <label for="paypalEmailInput">J'ai déjà un compte — email PayPal</label>
+                  <input id="paypalEmailInput" type="email" placeholder="votre-email@paypal.com" required>
+                </div>
+                <button type="submit" class="btn btn-sm" id="paypalConnectBtn">Connecter</button>
+              </form>
+              <p id="paypalConnectStatus" style="font-size:0.8rem; color:var(--cyan); margin-top:0.6rem;"></p>
+            </div>
+          </div>
         </div>
 
         <!-- vue connectée -->
@@ -814,6 +1078,10 @@
                 <div class="plan-note">Crédits disponibles</div>
                 <div class="plan-price" id="walletBalance" style="font-size:1.4rem; color:var(--cyan);">0</div>
               </div>
+              <div>
+                <div class="plan-note">PayPal</div>
+                <div class="plan-price" id="walletPaypalStatus" style="font-size:1rem;">Non relié</div>
+              </div>
             </div>
             <button type="button" class="btn btn-sm" id="walletSignOutBtn" style="margin-top:1rem;">Se déconnecter du portefeuille</button>
           </div>
@@ -828,7 +1096,7 @@
                 <button type="button" class="btn btn-sm" id="redeemTrialBtn" style="width:100%; margin-top:0.7rem;">Utiliser</button>
               </div>
               <div class="plan-card" style="cursor:default;">
-                <div class="plan-name">facebook</div>
+                <div class="plan-name">Booster</div>
                 <div class="plan-price">Live 24h</div>
                 <div class="plan-note">5 crédits</div>
                 <button type="button" class="btn btn-sm" id="redeemBoosterBtn" style="width:100%; margin-top:0.7rem;">Utiliser</button>
@@ -844,7 +1112,7 @@
           </div>
 
           <div class="panel" id="walletBoosterPanel" style="display:none;">
-            <h3> actif sur facebook</h3>
+            <h3>Booster actif</h3>
             <p style="font-size:0.85rem; color:var(--muted); margin-bottom:0.8rem;">
               Valable jusqu'au <strong id="walletBoosterUntil" style="color:var(--text);">—</strong>.
             </p>
@@ -926,33 +1194,33 @@
         </div>
 
         <div class="panel" id="masterCodePanel" style="display:none;">
-          <h3>🔑 Code de déverrouillage (admin — vous uniquement)</h3>
+          <h3>🔑 Codes de déverrouillage (admin — vous uniquement)</h3>
           <p style="font-size:0.8rem; color:var(--muted); margin-bottom:0.8rem;">
-            Ce code unique est celui que vous communiquez à un client après avoir vérifié son paiement.
-            Il débloque n'importe quel compte bloqué sur cette application.
+            Chaque client bloqué reçoit automatiquement son propre code (généré quand il clique sur
+            « Signaler mon paiement »). Le code est valable <strong>30 minutes</strong> et accepte
+            <strong>3 essais</strong> maximum ; passé ce délai ou ces essais, un nouveau code est généré
+            automatiquement. Retrouvez ici le code actif à communiquer à chaque client après vérification
+            de son paiement.
           </p>
-          <div class="form-grid">
-            <div class="field" style="margin-bottom:0;">
-              <label for="masterCodeInput">Code maître</label>
-              <input id="masterCodeInput" type="text" inputmode="numeric" maxlength="6" placeholder="------">
-            </div>
-          </div>
-          <button type="button" class="btn btn-primary btn-sm" id="saveMasterCodeBtn" style="width:auto; margin-top:0.8rem;">Enregistrer le code</button>
-          <span id="masterCodeStatus" style="font-size:0.78rem; color:var(--muted); margin-left:0.6rem;"></span>
+          <table>
+            <thead><tr><th>Client (email)</th><th>Code actif</th><th>Généré à</th><th>Expire dans</th><th>Essais</th><th></th></tr></thead>
+            <tbody id="clientCodesTableBody"></tbody>
+          </table>
+          <p class="empty-hint" id="clientCodesEmptyHint" style="display:none;">Aucun code en attente pour le moment.</p>
 
           <div style="margin-top:1.2rem; padding-top:1.2rem; border-top:1px solid var(--line);">
-            <h3 style="font-size:0.95rem;">Tester le code</h3>
+            <h3 style="font-size:0.95rem;">Générer un code manuellement</h3>
             <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.6rem;">
-              Vérifiez ici que le code fonctionne, comme si vous étiez un client bloqué.
+              Utile si le client vous contacte directement sans passer par « Signaler mon paiement ».
             </p>
             <div class="form-grid">
               <div class="field" style="margin-bottom:0;">
-                <label for="testCodeInput">Code à tester</label>
-                <input id="testCodeInput" type="text" inputmode="numeric" maxlength="6" placeholder="------">
+                <label for="manualCodeEmailInput">Email du client</label>
+                <input id="manualCodeEmailInput" type="email" placeholder="client@exemple.com">
               </div>
             </div>
-            <button type="button" class="btn btn-sm" id="testCodeBtn" style="width:auto; margin-top:0.8rem;">Vérifier</button>
-            <span id="testCodeResult" style="font-size:0.85rem; font-weight:600; margin-left:0.6rem;"></span>
+            <button type="button" class="btn btn-primary btn-sm" id="generateManualCodeBtn" style="width:auto; margin-top:0.8rem;">Générer un nouveau code</button>
+            <span id="manualCodeStatus" style="font-size:0.78rem; color:var(--muted); margin-left:0.6rem;"></span>
           </div>
         </div>
       </section>
@@ -971,7 +1239,9 @@
   const STORAGE_MOVEMENTS = 'stockmanager_movements';
   const STORAGE_SUBSCRIPTION = 'stockmanager_subscription';
   const STORAGE_PROFILES = 'stockmanager_profiles';
-  const STORAGE_MASTER_CODE = 'stockmanager_master_code';
+  const STORAGE_CLIENT_CODES = 'stockmanager_client_codes';
+  const CODE_VALID_MS = 30 * 60 * 1000; // 30 minutes
+  const CODE_MAX_ATTEMPTS = 3;
   const OWNER_EMAIL = 'rasolofonirainytokiniaina@gmail.com';
   const TRIAL_DAYS = 90;
   const REFERRALS_PER_BONUS_DAY = 10; // 10 olona nampiasa ny lien = +1 andro essai gratuit
@@ -987,16 +1257,70 @@
     }catch(e){ return null; }
   }
 
-  function loadMasterCode(){
-    return localStorage.getItem(STORAGE_MASTER_CODE) || '';
+  // ---- Codes de déverrouillage individuels (par client) ----
+  // Chaque client bloqué obtient son propre code, valable CODE_VALID_MS et
+  // accepté au maximum CODE_MAX_ATTEMPTS fois. Passé le délai ou les essais,
+  // un nouveau code est généré automatiquement.
+  function loadClientCodes(){
+    try { return JSON.parse(localStorage.getItem(STORAGE_CLIENT_CODES)) || {}; }
+    catch(e){ return {}; }
   }
-  function saveMasterCode(code){ localStorage.setItem(STORAGE_MASTER_CODE, code.trim()); }
+  function saveClientCodes(map){ localStorage.setItem(STORAGE_CLIENT_CODES, JSON.stringify(map)); }
+  function normEmail(email){ return (email || '').trim().toLowerCase(); }
+
+  // Crée (ou remplace) le code actif d'un client et le renvoie.
+  function generateClientCode(email){
+    const key = normEmail(email);
+    if(!key) return null;
+    const codes = loadClientCodes();
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    codes[key] = { code: code, generatedAt: new Date().toISOString(), attempts: 0 };
+    saveClientCodes(codes);
+    return code;
+  }
+  function getClientCodeEntry(email){
+    const codes = loadClientCodes();
+    return codes[normEmail(email)] || null;
+  }
+  function clearClientCode(email){
+    const codes = loadClientCodes();
+    delete codes[normEmail(email)];
+    saveClientCodes(codes);
+  }
+
+  // Vérifie le code saisi par un client bloqué.
+  // Retourne { ok, message, regenerated, disabledInput }
+  function checkClientCode(email, input){
+    const key = normEmail(email);
+    const codes = loadClientCodes();
+    const entry = codes[key];
+    if(!entry){
+      return { ok:false, message:'Aucun code n\'a encore été généré pour vous. Cliquez sur « Signaler mon paiement par mail » pour en recevoir un.' };
+    }
+    const age = Date.now() - new Date(entry.generatedAt).getTime();
+    if(age > CODE_VALID_MS){
+      generateClientCode(email);
+      return { ok:false, regenerated:true, message:'Le code n\'a pas été saisi dans le délai de 30 minutes. Un nouveau code a été généré : contactez le vendeur pour le récupérer.' };
+    }
+    if(entry.code === input.trim()){
+      clearClientCode(email);
+      return { ok:true, message:'Code valide ✓ Compte débloqué.' };
+    }
+    entry.attempts = (entry.attempts || 0) + 1;
+    if(entry.attempts >= CODE_MAX_ATTEMPTS){
+      generateClientCode(email);
+      return { ok:false, regenerated:true, message:'Code incorrect. Vous avez atteint les 3 essais autorisés. Un nouveau code a été généré : contactez le vendeur pour le récupérer.' };
+    }
+    codes[key] = entry;
+    saveClientCodes(codes);
+    return { ok:false, message:'Code incorrect (' + entry.attempts + '/' + CODE_MAX_ATTEMPTS + ' essais).' };
+  }
 
   // Envoie (depuis l'appareil du client) un mail au propriétaire de l'app,
-  // avec le nom du client (celui saisi au login) et un code de référence,
-  // pour signaler qui a effectué le paiement.
+  // avec le nom du client (celui saisi au login) et le code généré pour lui,
+  // pour signaler qui a effectué le paiement et quel code lui communiquer.
   function notifyOwnerOfPayment(clientName, clientEmail, clientPhone, plan){
-    const refCode = String(Math.floor(100000 + Math.random() * 900000));
+    const code = generateClientCode(clientEmail);
     const subject = encodeURIComponent('Paiement — ' + clientName);
     const body = encodeURIComponent(
       'Bonjour,\n\n' +
@@ -1005,17 +1329,11 @@
       'Email : ' + clientEmail + '\n' +
       'Téléphone : ' + (clientPhone || '—') + '\n' +
       'Formule choisie : ' + (plan === 'annuel' ? 'Annuel' : 'Mensuel') + '\n' +
-      'Code de référence : ' + refCode + '\n\n' +
-      'Merci de vérifier la réception du paiement puis de communiquer le code de déverrouillage à ce client.'
+      'Code de déverrouillage généré pour ce client : ' + code + ' (valable 30 minutes, 3 essais)\n\n' +
+      'Merci de vérifier la réception du paiement puis de communiquer ce code à ce client.'
     );
     window.location.href = 'mailto:' + OWNER_EMAIL + '?subject=' + subject + '&body=' + body;
-    return refCode;
-  }
-  // le code de déverrouillage est unique (maître) : celui que le propriétaire
-  // communique au client après vérification du paiement débloque l'accès.
-  function verifyMasterCode(input){
-    const master = loadMasterCode();
-    return !!master && master === input.trim();
+    return code;
   }
 
   function loadProfiles(){
@@ -1279,7 +1597,6 @@
   const paywallScreen = document.getElementById('paywallScreen');
   const loginForm = document.getElementById('loginForm');
   let selectedPlan = 'mensuel';
-  let codeVerified = false;
 
   function openApp(){
     loginScreen.style.display = 'none';
@@ -1292,6 +1609,7 @@
     renderInvoiceItems();
     renderFilters();
     renderDashboard();
+    renderCommunityPanel();
     setupInviteLink();
     updateTrialBanner();
     renderNotifications();
@@ -1302,7 +1620,6 @@
     loginScreen.style.display = 'none';
     appScreen.style.display = 'none';
     paywallScreen.style.display = 'flex';
-    codeVerified = false;
     document.getElementById('paywallCodeInput').value = '';
     document.getElementById('codeStatus').textContent = '';
     document.getElementById('confirmPaymentBtn').disabled = true;
@@ -1339,40 +1656,79 @@
     });
   }
 
-  // ---------------- PORTEFEUILLE : authentification réelle (Google / email) ----------------
+  // ---------------- PORTEFEUILLE : vérification par correspondance nom/email ----------------
+  const WALLET_SESSION_KEY = 'wallet_session_v1';
+  const WALLET_PAYPAL_KEY = 'wallet_paypal_v1';
   let walletSession = null;
 
-  function initWalletAuth(){
-    if(!window.__sb || !window.__sb.auth) return;
-    window.__sb.auth.getSession().then(function(res){
-      walletSession = (res && res.data && res.data.session) || null;
-      renderWallet();
-    }, function(){});
-    window.__sb.auth.onAuthStateChange(function(_event, session){
-      walletSession = session || null;
-      renderWallet();
-    });
+  function loadWalletSession(){
+    try{ return JSON.parse(localStorage.getItem(WALLET_SESSION_KEY) || 'null'); }
+    catch(e){ return null; }
+  }
+  function saveWalletSession(session){
+    try{
+      if(session) localStorage.setItem(WALLET_SESSION_KEY, JSON.stringify(session));
+      else localStorage.removeItem(WALLET_SESSION_KEY);
+    }catch(e){}
   }
 
-  function walletSignInGoogle(){
+  function loadWalletPaypal(){
+    try{ return JSON.parse(localStorage.getItem(WALLET_PAYPAL_KEY) || 'null'); }
+    catch(e){ return null; }
+  }
+  function saveWalletPaypal(data){
+    try{
+      if(data) localStorage.setItem(WALLET_PAYPAL_KEY, JSON.stringify(data));
+      else localStorage.removeItem(WALLET_PAYPAL_KEY);
+    }catch(e){}
+  }
+
+  function initWalletAuth(){
+    walletSession = loadWalletSession();
+    renderWallet();
+  }
+
+  function normalizeMatch(str){
+    return (str || '').trim().toLowerCase();
+  }
+
+  document.getElementById('walletVerifyForm').addEventListener('submit', function(e){
+    e.preventDefault();
     const statusEl = document.getElementById('walletAuthStatus');
-    if(!window.__sb || !window.__sb.auth){
-      if(statusEl) statusEl.textContent = 'Connexion Google indisponible pour le moment.';
+    const name = document.getElementById('walletVerifyName').value.trim();
+    const email = document.getElementById('walletVerifyEmail').value.trim();
+
+    if(!currentUser){
+      if(statusEl) statusEl.textContent = 'Veuillez d\'abord vous connecter à l\'application.';
       return;
     }
-    if(statusEl) statusEl.textContent = 'Redirection vers Google…';
-    window.__sb.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.href.split('?')[0] }
-    });
-  }
+    if(normalizeMatch(name) !== normalizeMatch(currentUser.name) ||
+       normalizeMatch(email) !== normalizeMatch(currentUser.email)){
+      if(statusEl) statusEl.textContent = 'Le nom et l\'email ne correspondent pas à votre connexion. Réessayez.';
+      return;
+    }
+
+    walletSession = { user: { name: currentUser.name, email: currentUser.email } };
+    saveWalletSession(walletSession);
+    if(statusEl) statusEl.textContent = '';
+    renderWallet();
+  });
+
+  document.getElementById('paypalConnectForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    const statusEl = document.getElementById('paypalConnectStatus');
+    const email = document.getElementById('paypalEmailInput').value.trim();
+    if(!email){ return; }
+    saveWalletPaypal({ email: email, connectedAt: new Date().toISOString() });
+    document.getElementById('paypalEmailInput').value = '';
+    if(statusEl) statusEl.textContent = 'Compte PayPal relié (' + email + ') ✓';
+    renderWallet();
+  });
 
   function walletSignOut(){
-    if(!window.__sb || !window.__sb.auth) return;
-    window.__sb.auth.signOut().then(function(){
-      walletSession = null;
-      renderWallet();
-    }, function(){});
+    walletSession = null;
+    saveWalletSession(null);
+    renderWallet();
   }
 
   function renderWallet(){
@@ -1391,6 +1747,12 @@
     const sub = ensureInstallDate();
     document.getElementById('walletVerifiedEmail').textContent = walletSession.user.email || '—';
     document.getElementById('walletBalance').textContent = getAvailableCredits(sub);
+
+    const paypal = loadWalletPaypal();
+    const paypalStatusEl = document.getElementById('walletPaypalStatus');
+    if(paypalStatusEl){
+      paypalStatusEl.textContent = paypal && paypal.email ? paypal.email : 'Non relié';
+    }
 
     const boosterPanel = document.getElementById('walletBoosterPanel');
     const boosterActive = sub.boosterActiveUntil && new Date(sub.boosterActiveUntil) > new Date();
@@ -1545,7 +1907,6 @@
   recordReferralIfNeeded();
   initWalletAuth();
 
-  document.getElementById('walletGoogleBtn').addEventListener('click', walletSignInGoogle);
   document.getElementById('walletSignOutBtn').addEventListener('click', walletSignOut);
   document.getElementById('redeemTrialBtn').addEventListener('click', function(){ redeemCredits('trial'); });
   document.getElementById('redeemBoosterBtn').addEventListener('click', function(){ redeemCredits('booster'); });
@@ -1573,21 +1934,25 @@
 
   document.getElementById('paywallCodeInput').addEventListener('input', function(){
     const val = this.value.trim();
-    const status = document.getElementById('codeStatus');
-    const confirmBtn = document.getElementById('confirmPaymentBtn');
-    if(val.length === 6 && verifyMasterCode(val)){
-      codeVerified = true;
-      status.textContent = 'Code valide ✓';
-      confirmBtn.disabled = false;
-    } else {
-      codeVerified = false;
-      confirmBtn.disabled = true;
-      if(val.length === 6){ status.textContent = 'Code incorrect.'; }
-    }
+    document.getElementById('confirmPaymentBtn').disabled = val.length !== 6;
   });
 
   document.getElementById('confirmPaymentBtn').addEventListener('click', function(){
-    if(!codeVerified){ alert('Veuillez saisir le code de vérification reçu par mail.'); return; }
+    if(!currentUser || !currentUser.email){ alert('Email introuvable.'); return; }
+    const codeInput = document.getElementById('paywallCodeInput');
+    const val = codeInput.value.trim();
+    const status = document.getElementById('codeStatus');
+    if(val.length !== 6){ status.textContent = 'Le code doit contenir 6 chiffres.'; return; }
+
+    const result = checkClientCode(currentUser.email, val);
+    status.textContent = result.message;
+
+    if(!result.ok){
+      codeInput.value = '';
+      document.getElementById('confirmPaymentBtn').disabled = true;
+      return;
+    }
+
     const sub = ensureInstallDate();
     const now = new Date();
     const bankedDays = sub.subscriptionCreditDays || 0;
@@ -1652,7 +2017,7 @@
       nav.classList.add('active');
       document.getElementById('section-' + nav.dataset.section).classList.add('active');
       if(nav.dataset.section === 'factures') renderInvoiceItems();
-      if(nav.dataset.section === 'stock'){ renderFilters(); renderDashboard(); }
+      if(nav.dataset.section === 'stock'){ renderFilters(); renderDashboard(); renderCommunityPanel(); }
       // ferme le menu mobile après avoir choisi une section
       if(navList && navList.classList.contains('open')){
         navList.classList.remove('open');
@@ -1668,6 +2033,7 @@
       tab.classList.add('active');
       document.getElementById('dash-' + tab.dataset.dash).classList.add('active');
       if(tab.dataset.dash === 'dashboard'){ renderFilters(); renderDashboard(); }
+      if(tab.dataset.dash === 'accueil'){ renderCommunityPanel(); }
     });
   });
 
@@ -2312,6 +2678,268 @@
     window.location.href = 'mailto:' + email + '?subject=' + subject + '&body=' + body;
   });
 
+  // ---------------- PARTAGE RÉSEAUX SOCIAUX ----------------
+  function inviteMessage(link){
+    return 'Salut ! Je t\'invite à essayer cette application de gestion de stockage : ' + link;
+  }
+  function copyToClipboardSilently(text){
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).catch(function(){});
+    }
+  }
+
+  document.getElementById('shareWhatsappBtn').addEventListener('click', function(){
+    const link = document.getElementById('inviteLink').value;
+    window.open('https://wa.me/?text=' + encodeURIComponent(inviteMessage(link)), '_blank');
+  });
+
+  document.getElementById('shareFacebookBtn').addEventListener('click', function(){
+    const link = document.getElementById('inviteLink').value;
+    window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(link), '_blank');
+  });
+
+  document.getElementById('shareThreadsBtn').addEventListener('click', function(){
+    const link = document.getElementById('inviteLink').value;
+    window.open('https://www.threads.net/intent/post?text=' + encodeURIComponent(inviteMessage(link)), '_blank');
+  });
+
+  // TikTok n'a pas d'URL de partage officielle pour du texte : on copie le message.
+  document.getElementById('shareTiktokBtn').addEventListener('click', function(){
+    const link = document.getElementById('inviteLink').value;
+    copyToClipboardSilently(inviteMessage(link));
+    alert('Votre message a été copié. Ouvrez TikTok et collez-le dans un message ou une légende.');
+    window.open('https://www.tiktok.com/', '_blank');
+  });
+
+  document.getElementById('shareTwitterBtn').addEventListener('click', function(){
+    const link = document.getElementById('inviteLink').value;
+    window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(inviteMessage(link)) + '&url=' + encodeURIComponent(link), '_blank');
+  });
+
+  // Instagram et WeChat n'offrent pas de lien web permettant de préremplir un message :
+  // on copie le message et on ouvre l'appli/le site pour que l'utilisateur le colle lui-même.
+  document.getElementById('shareInstagramBtn').addEventListener('click', function(){
+    const link = document.getElementById('inviteLink').value;
+    copyToClipboardSilently(inviteMessage(link));
+    alert('Votre message a été copié. Ouvrez Instagram (story ou message direct) et collez-le.');
+    window.open('https://www.instagram.com/', '_blank');
+  });
+
+  document.getElementById('shareWechatBtn').addEventListener('click', function(){
+    const link = document.getElementById('inviteLink').value;
+    copyToClipboardSilently(inviteMessage(link));
+    alert('Votre message a été copié. Ouvrez WeChat et collez-le dans une discussion.');
+  });
+
+  // Sur mobile, la feuille de partage native permet d'atteindre n'importe quelle appli
+  // installée (Instagram, WeChat, Messenger, etc.) directement avec le lien prérempli.
+  var shareMoreBtn = document.getElementById('shareMoreBtn');
+  if(navigator.share){
+    shareMoreBtn.style.display = 'inline-flex';
+    shareMoreBtn.addEventListener('click', function(){
+      const link = document.getElementById('inviteLink').value;
+      navigator.share({
+        title: 'Gestion de Stockage',
+        text: inviteMessage(link),
+        url: link
+      }).catch(function(){});
+    });
+  }
+
+  // ---------------- RÉSEAUX SOCIAUX PERSONNALISÉS (ajoutés par l'utilisateur) ----------------
+  const STORAGE_CUSTOM_SOCIALS = 'stockmanager_custom_socials';
+  function loadCustomSocials(){
+    try { return JSON.parse(localStorage.getItem(STORAGE_CUSTOM_SOCIALS)) || []; }
+    catch(e){ return []; }
+  }
+  function saveCustomSocials(list){ localStorage.setItem(STORAGE_CUSTOM_SOCIALS, JSON.stringify(list)); }
+
+  function renderCustomSocials(){
+    const container = document.getElementById('customSocialButtons');
+    const list = loadCustomSocials();
+    container.innerHTML = '';
+    list.forEach(function(social, index){
+      const wrap = document.createElement('span');
+      wrap.style.display = 'inline-flex';
+      wrap.style.alignItems = 'center';
+      wrap.style.gap = '0.2rem';
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn';
+      btn.style.borderColor = 'var(--cyan)';
+      btn.style.color = 'var(--cyan)';
+      btn.textContent = social.name;
+      btn.addEventListener('click', function(){
+        const link = document.getElementById('inviteLink').value;
+        const message = inviteMessage(link);
+        if(!social.url){
+          copyToClipboardSilently(message);
+          alert('Votre message a été copié. Collez-le dans ' + social.name + '.');
+          return;
+        }
+        const built = social.url.replace(/\{lien\}/g, encodeURIComponent(link)).replace(/\{message\}/g, encodeURIComponent(message));
+        window.open(built, '_blank');
+      });
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'btn btn-red btn-sm';
+      removeBtn.title = 'Retirer ' + social.name;
+      removeBtn.textContent = '×';
+      removeBtn.addEventListener('click', function(){
+        const current = loadCustomSocials();
+        current.splice(index, 1);
+        saveCustomSocials(current);
+        renderCustomSocials();
+      });
+      wrap.appendChild(btn);
+      wrap.appendChild(removeBtn);
+      container.appendChild(wrap);
+    });
+  }
+  renderCustomSocials();
+
+  document.getElementById('addSocialToggleBtn').addEventListener('click', function(){
+    const form = document.getElementById('addSocialForm');
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+  });
+
+  document.getElementById('saveSocialBtn').addEventListener('click', function(){
+    const name = document.getElementById('newSocialName').value.trim();
+    const url = document.getElementById('newSocialUrl').value.trim();
+    const status = document.getElementById('addSocialStatus');
+    if(!name){ status.textContent = 'Veuillez donner un nom au réseau.'; return; }
+    const list = loadCustomSocials();
+    list.push({ name: name, url: url });
+    saveCustomSocials(list);
+    renderCustomSocials();
+    document.getElementById('newSocialName').value = '';
+    document.getElementById('newSocialUrl').value = '';
+    status.textContent = '« ' + name + ' » ajouté ✓';
+  });
+
+  // ---------------- NOUS CONTACTER (visible à tous les clients) ----------------
+  const STORAGE_CONTACT_CHANNELS = 'stockmanager_contact_channels';
+  const STORAGE_CONTACT_EXTRA = 'stockmanager_contact_extra';
+  const CONTACT_FIELD_MAP = [
+    { key: 'whatsapp', inputId: 'contactWhatsappInput', label: 'WhatsApp', color: '#25D366', isPhone: true },
+    { key: 'facebook', inputId: 'contactFacebookInput', label: 'Facebook', color: '#1877F2' },
+    { key: 'instagram', inputId: 'contactInstagramInput', label: 'Instagram', color: '#E1306C' },
+    { key: 'tiktok', inputId: 'contactTiktokInput', label: 'TikTok', color: '#e7e9ea' },
+    { key: 'threads', inputId: 'contactThreadsInput', label: 'Threads', color: '#e7e9ea' },
+    { key: 'twitter', inputId: 'contactTwitterInput', label: 'X (Twitter)', color: '#e7e9ea' },
+    { key: 'wechat', inputId: 'contactWechatInput', label: 'WeChat', color: '#07C160', isId: true }
+  ];
+
+  function loadContactChannels(){
+    try { return JSON.parse(localStorage.getItem(STORAGE_CONTACT_CHANNELS)) || {}; }
+    catch(e){ return {}; }
+  }
+  function saveContactChannels(obj){ localStorage.setItem(STORAGE_CONTACT_CHANNELS, JSON.stringify(obj)); }
+  function loadContactExtra(){
+    try { return JSON.parse(localStorage.getItem(STORAGE_CONTACT_EXTRA)) || []; }
+    catch(e){ return []; }
+  }
+  function saveContactExtra(list){ localStorage.setItem(STORAGE_CONTACT_EXTRA, JSON.stringify(list)); }
+
+  function renderContactButtons(){
+    const row = document.getElementById('contactButtonsRow');
+    const emptyHint = document.getElementById('contactButtonsEmptyHint');
+    if(!row) return;
+    const channels = loadContactChannels();
+    const extra = loadContactExtra();
+    row.innerHTML = '';
+    let count = 0;
+
+    CONTACT_FIELD_MAP.forEach(function(field){
+      const value = (channels[field.key] || '').trim();
+      if(!value) return;
+      count++;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn';
+      btn.style.borderColor = field.color;
+      btn.style.color = field.color;
+      btn.textContent = field.label;
+      btn.addEventListener('click', function(){
+        if(field.isPhone){
+          window.open('https://wa.me/' + value.replace(/[^\d]/g, ''), '_blank');
+        } else if(field.isId){
+          copyToClipboardSilently(value);
+          alert('Identifiant WeChat copié : ' + value + '. Ouvrez WeChat et recherchez ce contact.');
+        } else {
+          window.open(value, '_blank');
+        }
+      });
+      row.appendChild(btn);
+    });
+
+    extra.forEach(function(item){
+      count++;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn';
+      btn.style.borderColor = 'var(--cyan)';
+      btn.style.color = 'var(--cyan)';
+      btn.textContent = item.name;
+      btn.addEventListener('click', function(){
+        if(!item.url){
+          copyToClipboardSilently(item.name);
+          alert('Ouvrez ' + item.name + ' pour nous contacter.');
+          return;
+        }
+        if(/^https?:\/\//i.test(item.url)){
+          window.open(item.url, '_blank');
+        } else {
+          copyToClipboardSilently(item.url);
+          alert('Identifiant copié : ' + item.url + '. Ouvrez ' + item.name + ' et recherchez ce contact.');
+        }
+      });
+      row.appendChild(btn);
+    });
+
+    emptyHint.style.display = count ? 'none' : 'block';
+  }
+
+  function loadContactAdminForm(){
+    const channels = loadContactChannels();
+    CONTACT_FIELD_MAP.forEach(function(field){
+      const input = document.getElementById(field.inputId);
+      if(input) input.value = channels[field.key] || '';
+    });
+  }
+
+  const saveContactChannelsBtn = document.getElementById('saveContactChannelsBtn');
+  if(saveContactChannelsBtn){
+    loadContactAdminForm();
+    saveContactChannelsBtn.addEventListener('click', function(){
+      const channels = {};
+      CONTACT_FIELD_MAP.forEach(function(field){
+        const input = document.getElementById(field.inputId);
+        channels[field.key] = input ? input.value.trim() : '';
+      });
+      saveContactChannels(channels);
+      renderContactButtons();
+      document.getElementById('contactChannelsStatus').textContent = 'Enregistré ✓ Visible par vos clients.';
+    });
+  }
+
+  const addContactChannelBtn = document.getElementById('addContactChannelBtn');
+  if(addContactChannelBtn){
+    addContactChannelBtn.addEventListener('click', function(){
+      const name = document.getElementById('newContactName').value.trim();
+      const url = document.getElementById('newContactUrl').value.trim();
+      if(!name) return;
+      const list = loadContactExtra();
+      list.push({ name: name, url: url });
+      saveContactExtra(list);
+      renderContactButtons();
+      document.getElementById('newContactName').value = '';
+      document.getElementById('newContactUrl').value = '';
+    });
+  }
+
+  renderContactButtons();
+
   // ---------------- CONNEXIONS ----------------
   function renderLogins(){
     const logins = loadLogins();
@@ -2330,7 +2958,8 @@
     document.getElementById('masterCodePanel').style.display = isAdmin ? 'block' : 'none';
     document.getElementById('adminVisitsPanel').style.display = isAdmin ? 'block' : 'none';
     document.getElementById('adminLoginsPanel').style.display = isAdmin ? 'block' : 'none';
-    if(isAdmin) renderSiteVisits();
+    document.getElementById('contactAdminPanel').style.display = isAdmin ? 'block' : 'none';
+    if(isAdmin){ renderSiteVisits(); renderClientCodesAdmin(); }
     renderProfileForm();
   }
 
@@ -2380,30 +3009,190 @@
     }
   });
 
-  // ---------------- CODE MAÎTRE (admin) ----------------
-  const masterCodeInput = document.getElementById('masterCodeInput');
-  if(masterCodeInput){ masterCodeInput.value = loadMasterCode(); }
-  document.getElementById('saveMasterCodeBtn').addEventListener('click', function(){
-    const val = masterCodeInput.value.trim();
-    if(!/^\d{4,6}$/.test(val)){
-      document.getElementById('masterCodeStatus').textContent = 'Le code doit contenir 4 à 6 chiffres.';
-      return;
-    }
-    saveMasterCode(val);
-    document.getElementById('masterCodeStatus').textContent = 'Code enregistré ✓';
-  });
+  // ---------------- CODES DE DÉVERROUILLAGE PAR CLIENT (admin) ----------------
+  // Ouvre le client mail de l'admin, adressé au client, prérempli avec son code.
+  function sendCodeToClientByMail(email, code){
+    const subject = encodeURIComponent('Votre code de déverrouillage — Gestion de Stockage');
+    const body = encodeURIComponent(
+      'Bonjour,\n\n' +
+      'Voici votre code de déverrouillage pour réactiver votre compte Gestion de Stockage :\n\n' +
+      'Code : ' + code + '\n\n' +
+      'Ce code est valable 30 minutes et accepte 3 essais. Passé ce délai, contactez-nous pour en recevoir un nouveau.\n\n' +
+      'Merci !'
+    );
+    window.location.href = 'mailto:' + email + '?subject=' + subject + '&body=' + body;
+  }
 
-  document.getElementById('testCodeBtn').addEventListener('click', function(){
-    const val = document.getElementById('testCodeInput').value.trim();
-    const result = document.getElementById('testCodeResult');
-    if(!val){ result.textContent = ''; return; }
-    if(verifyMasterCode(val)){
-      result.textContent = '✓ Ce code fonctionne, il débloquera un compte bloqué.';
-      result.style.color = '#4fd8a0';
-    } else {
-      result.textContent = '✗ Ce code ne correspond pas au code maître enregistré.';
-      result.style.color = '#ff6b6b';
+  function renderClientCodesAdmin(){
+    const tbody = document.getElementById('clientCodesTableBody');
+    const emptyHint = document.getElementById('clientCodesEmptyHint');
+    if(!tbody) return;
+    const codes = loadClientCodes();
+    const emails = Object.keys(codes);
+    tbody.innerHTML = '';
+    emptyHint.style.display = emails.length ? 'none' : 'block';
+    emails.forEach(function(email){
+      const entry = codes[email];
+      const generatedAt = new Date(entry.generatedAt);
+      const remainingMs = CODE_VALID_MS - (Date.now() - generatedAt.getTime());
+      const remainingLabel = remainingMs > 0 ? Math.ceil(remainingMs / 60000) + ' min' : 'Expiré';
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + escapeHtml(email) + '</td>' +
+        '<td style="font-family:var(--font-mono); font-weight:600;">' + escapeHtml(entry.code) + '</td>' +
+        '<td>' + escapeHtml(generatedAt.toLocaleString('fr-FR')) + '</td>' +
+        '<td>' + remainingLabel + '</td>' +
+        '<td>' + (entry.attempts || 0) + '/' + CODE_MAX_ATTEMPTS + '</td>' +
+        '<td style="white-space:nowrap;">' +
+          '<button type="button" class="btn btn-primary btn-sm send-client-code-btn" data-email="' + escapeHtml(email) + '" data-code="' + escapeHtml(entry.code) + '" style="margin-right:0.4rem;">Envoyer</button>' +
+          '<button type="button" class="btn btn-red btn-sm clear-client-code-btn" data-email="' + escapeHtml(email) + '">Supprimer</button>' +
+        '</td>';
+      tbody.appendChild(tr);
+    });
+    tbody.querySelectorAll('.send-client-code-btn').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        sendCodeToClientByMail(btn.getAttribute('data-email'), btn.getAttribute('data-code'));
+      });
+    });
+    tbody.querySelectorAll('.clear-client-code-btn').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        clearClientCode(btn.getAttribute('data-email'));
+        renderClientCodesAdmin();
+      });
+    });
+  }
+
+  // ---------------- COMMUNAUTÉ CLIENTS & ACHATS INTERNATIONAUX ----------------
+  const DEFAULT_MARKETPLACES = [
+    { name: 'Alibaba', url: 'https://www.alibaba.com' },
+    { name: 'AliExpress', url: 'https://www.aliexpress.com' }
+  ];
+
+  function addMarketplaceBtn(row, name, url){
+    const a = document.createElement('a');
+    a.href = url; a.target = '_blank'; a.rel = 'noopener';
+    a.className = 'btn btn-sm';
+    a.textContent = '🔗 ' + name;
+    row.appendChild(a);
+  }
+
+  function renderMarketplaceLinks(){
+    const row = document.getElementById('marketplaceLinks');
+    if(!row) return;
+    row.innerHTML = '';
+    DEFAULT_MARKETPLACES.forEach(function(m){ addMarketplaceBtn(row, m.name, m.url); });
+    if(window.__sb){
+      window.__sb.from('marketplace_links').select('name,url').order('created_at', { ascending: true })
+        .then(function(res){
+          if(res && res.data){ res.data.forEach(function(m){ addMarketplaceBtn(row, m.name, m.url); }); }
+        }, function(){});
     }
+  }
+
+  const addMarketBtn = document.getElementById('addMarketBtn');
+  if(addMarketBtn){
+    addMarketBtn.addEventListener('click', function(){
+      const name = document.getElementById('newMarketName').value.trim();
+      const url = document.getElementById('newMarketUrl').value.trim();
+      if(!name || !url) return;
+      if(!window.__sb){ alert('Tsy misy fifandraisana amin\'ny serveur.'); return; }
+      window.__sb.from('marketplace_links').insert({ name: name, url: url }).then(function(){
+        document.getElementById('newMarketName').value = '';
+        document.getElementById('newMarketUrl').value = '';
+        renderMarketplaceLinks();
+      }, function(){ alert("Tsy voaray ny fanampiana rohy."); });
+    });
+  }
+
+  function initials(name){
+    if(!name) return '?';
+    const parts = name.trim().split(/\s+/);
+    const chars = parts.length > 1 ? (parts[0][0] + parts[1][0]) : parts[0].slice(0,2);
+    return chars.toUpperCase();
+  }
+
+  function renderCommunityNews(){
+    const list = document.getElementById('communityNewsList');
+    const emptyHint = document.getElementById('communityNewsEmpty');
+    if(!list) return;
+    if(!window.__sb){ list.innerHTML=''; emptyHint.style.display = 'block'; return; }
+    window.__sb.from('client_news').select('client_name,network,message,link,type,price,created_at')
+      .order('created_at', { ascending: false }).limit(30)
+      .then(function(res){
+        list.innerHTML = '';
+        const rows = (res && res.data) || [];
+        emptyHint.style.display = rows.length ? 'none' : 'block';
+        rows.forEach(function(n){
+          const div = document.createElement('div');
+          const type = n.type || 'vaovao';
+          div.className = 'fb-post' + (type === 'live' ? ' fb-post-live' : type === 'entana' ? ' fb-post-entana' : '');
+          const d = n.created_at ? new Date(n.created_at).toLocaleString('fr-FR') : '';
+          const typeBadge = type === 'live'
+            ? '<span class="fb-type-badge live">🔴 LIVE DIRECT</span>'
+            : (type === 'entana' ? '<span class="fb-type-badge entana">🛒 Entana amidy</span>' : '');
+          div.innerHTML =
+            '<div class="fb-post-head">' +
+              '<div class="fb-avatar">' + escapeHtml(initials(n.client_name)) + '</div>' +
+              '<div>' +
+                '<div class="fb-post-name">' + escapeHtml(n.client_name || 'Client') + '</div>' +
+                '<div class="fb-post-meta">' + typeBadge + '<span class="fb-network-badge">' + escapeHtml(n.network || 'Autre') + '</span><span>' + d + '</span></div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="fb-post-body">' + escapeHtml(n.message || '') + '</div>' +
+            (n.price ? '<div class="fb-post-price">' + formatAr(n.price) + '</div>' : '') +
+            (n.link ? '<a href="' + escapeHtml(n.link) + '" target="_blank" rel="noopener" class="fb-post-link">🔗 ' + escapeHtml(n.link) + '</a>' : '') +
+            '<div class="fb-post-actions"><span>👍 J\'aime</span><span>💬 Commenter</span><span>↗️ Partager</span></div>';
+          list.appendChild(div);
+        });
+      }, function(){ list.innerHTML=''; emptyHint.style.display = 'block'; });
+  }
+
+  const postNewsBtn = document.getElementById('postNewsBtn');
+  if(postNewsBtn){
+    postNewsBtn.addEventListener('click', function(){
+      const type = document.getElementById('newsType').value || 'vaovao';
+      const network = document.getElementById('newsNetwork').value.trim();
+      const message = document.getElementById('newsMessage').value.trim();
+      const link = document.getElementById('newsLink').value.trim();
+      const priceVal = document.getElementById('newsPrice').value.trim();
+      if(!message){ alert('Soraty ny vaovao aloha.'); return; }
+      if(!window.__sb){ alert('Tsy misy fifandraisana amin\'ny serveur.'); return; }
+      const clientName = (currentUser && currentUser.name) || 'Client';
+      window.__sb.from('client_news').insert({
+        client_name: clientName, network: network || 'Autre', message: message, link: link,
+        type: type, price: priceVal ? Number(priceVal) : null
+      }).then(function(){
+        document.getElementById('newsType').value = 'vaovao';
+        document.getElementById('newsNetwork').value = '';
+        document.getElementById('newsMessage').value = '';
+        document.getElementById('newsLink').value = '';
+        document.getElementById('newsPrice').value = '';
+        renderCommunityNews();
+      }, function(){ alert("Tsy voaray ny fanambarana."); });
+    });
+  }
+
+  function renderCommunityPanel(){
+    const avatar = document.getElementById('composerAvatar');
+    if(avatar){ avatar.textContent = initials(currentUser && currentUser.name); }
+    renderCommunityNews();
+    renderMarketplaceLinks();
+    const marketAdmin = document.getElementById('marketplaceAdminForm');
+    if(marketAdmin){
+      const isAdmin = currentUser && currentUser.email &&
+        currentUser.email.trim().toLowerCase() === OWNER_EMAIL.toLowerCase();
+      marketAdmin.style.display = isAdmin ? 'block' : 'none';
+    }
+  }
+
+  document.getElementById('generateManualCodeBtn').addEventListener('click', function(){
+    const email = document.getElementById('manualCodeEmailInput').value.trim();
+    const status = document.getElementById('manualCodeStatus');
+    if(!email){ status.textContent = 'Veuillez saisir un email.'; return; }
+    const code = generateClientCode(email);
+    status.textContent = 'Code ' + code + ' généré pour ' + email + ' ✓';
+    document.getElementById('manualCodeEmailInput').value = '';
+    renderClientCodesAdmin();
   });
 
 })();
