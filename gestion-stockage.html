@@ -60,6 +60,7 @@
     line-height:1.5;
   }
   .field{ margin-bottom: 1rem; }
+  input[readonly]{ opacity:0.65; cursor:not-allowed; }
   .field label{
     display:block;
     font-family: var(--font-mono);
@@ -148,6 +149,14 @@
   .notif-item .notif-date{ display:block; font-size:0.68rem; color: var(--muted); margin-top:0.15rem; }
   .notif-empty{ padding: 1.2rem 0.9rem; text-align:center; font-size:0.8rem; color: var(--muted); }
 
+  .search-result-group{ padding:0.5rem 0.9rem; font-family:var(--font-mono); font-size:0.66rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em; }
+  .search-result-item{ padding:0.55rem 0.9rem; cursor:pointer; font-size:0.82rem; border-bottom:1px dashed var(--line); }
+  .search-result-item:hover{ background:var(--panel-2); }
+  .search-result-item:last-child{ border-bottom:none; }
+  .search-result-item .muted{ color:var(--muted); font-size:0.76rem; }
+  @keyframes searchFlash{ 0%{ background: rgba(79,216,224,0.35); } 100%{ background:transparent; } }
+  .search-highlight{ animation: searchFlash 1.8s ease; }
+
   .btn{
     font-family: var(--font-mono);
     font-size: 0.82rem;
@@ -176,6 +185,10 @@
   .btn-red{ border-color: var(--red); color: var(--red); }
   .btn-red:hover{ background: rgba(239,106,106,0.1); }
   .btn-sm{ padding: 0.4rem 0.7rem; font-size: 0.72rem; }
+  .btn-icon{ width:2.15rem; height:2.15rem; padding:0; display:inline-flex; align-items:center; justify-content:center; font-size:1rem; line-height:1; }
+  .table-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; margin-top:1rem; }
+  .table-scroll table{ margin-top:0; min-width:640px; }
+  #movementsTableBody tr{ touch-action: pan-y; }
 
   /* ---------- app shell ---------- */
   #appScreen{ display:none; min-height:100vh; }
@@ -505,6 +518,61 @@
   </div>
 </div>
 
+<!-- ============ MODIFIER UN ARTICLE ============ -->
+<div id="editItemModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); align-items:center; justify-content:center; z-index:200; padding:1rem;">
+  <div class="panel" style="max-width:480px; width:100%; max-height:90vh; overflow-y:auto;">
+    <h3>Modifier l'article</h3>
+    <div class="form-grid">
+      <div class="field" style="margin-bottom:0;">
+        <label>Référence (automatique)</label>
+        <input id="editItemRef" type="text" readonly>
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>Nom</label>
+        <input id="editItemName" type="text" placeholder="Ex: Câble USB">
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>Catégorie</label>
+        <input id="editItemCategory" type="text" placeholder="Ex: Électronique">
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>Quantité</label>
+        <input id="editItemQty" type="number" min="0" value="1">
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>Unité</label>
+        <select id="editItemUnit">
+          <option value="pièce">Pièce</option>
+          <option value="kg">Kg</option>
+          <option value="g">g</option>
+          <option value="l">Litre</option>
+          <option value="m">Mètre</option>
+          <option value="boîte">Boîte</option>
+          <option value="carton">Carton</option>
+          <option value="sac">Sac</option>
+          <option value="paire">Paire</option>
+        </select>
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>Prix unitaire (Ar)</label>
+        <input id="editItemPrice" type="number" min="0" value="0">
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>Seuil d'alerte</label>
+        <input id="editItemSeuil" type="number" min="0" value="5">
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>Fournisseur (optionnel)</label>
+        <input id="editItemSupplier" type="text" placeholder="Ex: Grossiste Analakely">
+      </div>
+    </div>
+    <div style="display:flex; gap:0.6rem; margin-top:1rem;">
+      <button type="button" class="btn" id="editItemCancelBtn" style="width:auto;">Annuler</button>
+      <button type="button" class="btn btn-primary" id="editItemSaveBtn" style="width:auto;">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============ ABONNEMENT / PAYWALL ============ -->
 <div id="paywallScreen" style="display:none; min-height:100vh; align-items:center; justify-content:center; padding:2rem;">
   <div class="login-card" style="max-width:420px;">
@@ -547,6 +615,36 @@
 
 <!-- ============ APP ============ -->
 <div id="appScreen">
+  <div id="callOverlay" style="display:none; position:fixed; inset:0; background:rgba(4,8,10,0.94); z-index:200; align-items:center; justify-content:center; flex-direction:column; padding:1.5rem; text-align:center;">
+    <div id="callIncomingBox" style="display:none;">
+      <div style="font-family:var(--font-mono); font-size:0.75rem; color:var(--cyan); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:0.5rem;" id="callIncomingType">Antso miditra...</div>
+      <div style="font-family:var(--font-display); font-size:1.4rem; margin-bottom:1.6rem; color:var(--text);" id="callIncomingName">—</div>
+      <div style="display:flex; gap:1.2rem; justify-content:center;">
+        <button type="button" class="btn btn-primary btn-icon" id="callAcceptBtn" style="border-radius:50%; width:64px; height:64px; font-size:1.4rem;">✅</button>
+        <button type="button" class="btn btn-red btn-icon" id="callDeclineBtn" style="border-radius:50%; width:64px; height:64px; font-size:1.4rem;">❌</button>
+      </div>
+    </div>
+
+    <div id="callOutgoingBox" style="display:none;">
+      <div style="font-family:var(--font-mono); font-size:0.75rem; color:var(--cyan); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:0.5rem;">Miantso...</div>
+      <div style="font-family:var(--font-display); font-size:1.4rem; margin-bottom:1.6rem; color:var(--text);" id="callOutgoingName">—</div>
+      <button type="button" class="btn btn-red btn-icon" id="callCancelBtn" style="border-radius:50%; width:64px; height:64px; font-size:1.4rem;">❌</button>
+    </div>
+
+    <div id="callActiveBox" style="display:none; width:100%; max-width:520px;">
+      <div style="font-size:0.85rem; color:var(--muted); margin-bottom:0.6rem;" id="callActiveWith">—</div>
+      <div style="position:relative;">
+        <video id="callRemoteVideo" autoplay playsinline style="width:100%; border-radius:12px; background:#000; max-height:60vh;"></video>
+        <video id="callLocalVideo" autoplay playsinline muted style="position:absolute; bottom:10px; right:10px; width:110px; border-radius:8px; border:2px solid var(--line); background:#000;"></video>
+      </div>
+      <div style="display:flex; gap:0.8rem; justify-content:center; margin-top:1rem; flex-wrap:wrap;">
+        <button type="button" class="btn btn-sm" id="callMuteBtn">🎙️ Mute</button>
+        <button type="button" class="btn btn-sm" id="callCamBtn">📷 Kamera</button>
+        <button type="button" class="btn btn-red btn-sm" id="callHangupBtn">📞 Ajanona</button>
+      </div>
+    </div>
+  </div>
+
   <div class="shell">
     <aside class="sidebar">
       <div class="sidebar-top">
@@ -569,11 +667,17 @@
       </div>
       <div class="brand-sub">Tanjona · Gestion de Stockage</div>
 
+      <div class="global-search" style="position:relative; margin:0.9rem 0;">
+        <input type="text" id="globalSearchInput" placeholder="🔍 Rechercher un article, un mouvement..." autocomplete="off" style="width:100%; padding:0.6rem 0.8rem; border-radius:8px; border:1px solid var(--line); background:var(--bg); color:var(--text); font-size:0.82rem; box-sizing:border-box;">
+        <div id="globalSearchResults" style="display:none; position:absolute; top:110%; left:0; right:0; background:var(--panel); border:1px solid var(--line); border-radius:10px; max-height:340px; overflow-y:auto; z-index:60; box-shadow:0 8px 24px rgba(0,0,0,0.35);"></div>
+      </div>
+
       <div class="nav-list" id="navList">
         <div class="nav-item active" data-section="stock">📦 Stock</div>
         <div class="nav-item" data-section="factures">🧾 Factures</div>
         <div class="nav-item" data-section="inviter">✉️ Inviter des amis</div>
         <div class="nav-item" data-section="contact">📞 Nous contacter</div>
+        <div class="nav-item" data-section="live">🎥 Live &amp; Appels</div>
         <div class="nav-item" data-section="wallet">💰 Portefeuille</div>
         <div class="nav-item" data-section="connexions" id="navParametres">⚙️ Paramètres</div>
 
@@ -734,8 +838,8 @@
             <h3>Ajouter un article (entrée en stock)</h3>
             <div class="form-grid">
               <div class="field" style="margin-bottom:0;">
-                <label>Référence</label>
-                <input id="itemRef" type="text" placeholder="Ex: B1">
+                <label>Référence (automatique)</label>
+                <input id="itemRef" type="text" readonly>
               </div>
               <div class="field" style="margin-bottom:0;">
                 <label>Nom</label>
@@ -779,22 +883,27 @@
             </div>
           </div>
 
-          <table id="stockTable">
-            <thead>
-              <tr><th>Réf.</th><th>Nom</th><th>Catégorie</th><th>Quantité</th><th>Unité</th><th>Prix unitaire</th><th>Valeur</th><th>Seuil</th><th>Fournisseur</th><th></th></tr>
-            </thead>
-            <tbody id="stockTableBody"></tbody>
-          </table>
+          <div class="table-scroll">
+            <table id="stockTable">
+              <thead>
+                <tr><th>Réf.</th><th>Nom</th><th>Catégorie</th><th>Quantité</th><th>Unité</th><th>Prix unitaire</th><th>Valeur</th><th>Seuil</th><th>Fournisseur</th><th></th></tr>
+              </thead>
+              <tbody id="stockTableBody"></tbody>
+            </table>
+          </div>
           <p class="empty-hint" id="stockEmptyHint" style="display:none;">Aucun article pour le moment. Ajoutez-en un ci-dessus.</p>
 
           <div class="panel">
             <h3>📜 Historique des mouvements</h3>
-            <table id="movementsTable">
-              <thead>
-                <tr><th>Date</th><th>Type</th><th>Réf.</th><th>Nom</th><th>Catégorie</th><th>Quantité</th><th>Valeur</th></tr>
-              </thead>
-              <tbody id="movementsTableBody"></tbody>
-            </table>
+            <p style="font-size:0.76rem; color:var(--muted); margin:-0.4rem 0 0.6rem;">💡 Amin'ny telefaonina : kisaho ankavia/ankavanana ny andalana iray mba hamafana azy. Amin'ny ordinateur : tsindrio ny totozy eo amin'ilay andalana ary kisaho (glisser) ankavia/ankavanana.</p>
+            <div class="table-scroll">
+              <table id="movementsTable">
+                <thead>
+                  <tr><th>Date</th><th>Type</th><th>Réf.</th><th>Nom</th><th>Catégorie</th><th>Quantité</th><th>Valeur</th><th>Remarque</th></tr>
+                </thead>
+                <tbody id="movementsTableBody"></tbody>
+              </table>
+            </div>
             <p class="empty-hint" id="movementsEmptyHint" style="display:none;">Aucun mouvement enregistré pour le moment.</p>
           </div>
         </div>
@@ -955,6 +1064,18 @@
           </p>
         </div>
 
+        <div class="panel" id="inAppCallPanel" style="display:none;">
+          <h3>📲 Antso ao anaty appli (mivantana)</h3>
+          <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.8rem;">
+            Antso feo na video mivantana amin'ny mpitantana, ao anatin'ity appli ity ihany — tsy mila mivoaka mankany WhatsApp na app hafa.
+          </p>
+          <div style="display:flex; align-items:center; gap:0.8rem; flex-wrap:wrap;">
+            <button type="button" class="btn btn-primary btn-sm" id="inAppCallAudioBtn">📞 Antso feo</button>
+            <button type="button" class="btn btn-primary btn-sm" id="inAppCallVideoBtn">📹 Antso video</button>
+            <span style="font-size:0.78rem; color:var(--muted);" id="ownerOnlineStatus">—</span>
+          </div>
+        </div>
+
         <div class="panel" id="contactAdminPanel" style="display:none;">
           <h3>⚙️ Configurer vos canaux de contact (admin — vous uniquement)</h3>
           <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.8rem;">
@@ -1007,6 +1128,66 @@
               </div>
             </div>
             <button type="button" class="btn btn-sm" id="addContactChannelBtn" style="width:auto; margin-top:0.6rem;">Ajouter ce canal</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---- LIVE & APPELS ---- -->
+      <section class="section" id="section-live">
+        <div class="section-head">
+          <div>
+            <h2>Live &amp; Appels</h2>
+            <p>Antso feo/video mivantana amin'ny mpanjifa, ary "Live direct" hampisehoana entana amin'ny olona maro miaraka.</p>
+          </div>
+        </div>
+
+        <div class="panel" id="liveNoticePanel" style="display:none; border-left:4px solid var(--red); margin-bottom:1rem;">
+          <div id="liveActiveList"></div>
+        </div>
+
+        <div class="community-grid">
+          <div class="fb-main">
+            <div class="panel" style="margin-top:0;">
+              <h3>🔴 Live direct</h3>
+              <p class="community-sub">Manombohy live mivantana hampisehoana ny entanao amin'ny olona rehetra mijery ankehitriny.</p>
+
+              <div id="liveIdleControls">
+                <button type="button" class="btn btn-red" id="startLiveBtn">🔴 Manomboka Live</button>
+              </div>
+
+              <div id="liveBroadcasterView" style="display:none;">
+                <video id="liveBroadcasterVideo" autoplay muted playsinline style="width:100%; max-width:480px; border-radius:10px; background:#000;"></video>
+                <div style="margin-top:0.6rem; display:flex; align-items:center; gap:0.8rem; flex-wrap:wrap;">
+                  <span style="font-size:0.8rem; color:var(--muted);">👁️ <span id="liveViewerCount">0</span> mijery</span>
+                  <button type="button" class="btn btn-red btn-sm" id="stopLiveBtn">Ajanona ny Live</button>
+                </div>
+              </div>
+
+              <div id="liveViewerView" style="display:none;">
+                <video id="liveViewerVideo" autoplay playsinline style="width:100%; max-width:480px; border-radius:10px; background:#000;"></video>
+                <div style="margin-top:0.6rem; display:flex; align-items:center; gap:0.8rem; flex-wrap:wrap;">
+                  <span style="font-size:0.8rem; color:var(--muted);">Mijery ny live an'i <strong id="liveViewerHost">—</strong></span>
+                  <button type="button" class="btn btn-sm" id="leaveLiveBtn">Miala</button>
+                </div>
+              </div>
+
+              <div id="liveChatBox" style="display:none; margin-top:0.8rem; border-top:1px solid var(--line); padding-top:0.8rem;">
+                <div id="liveChatMessages" style="max-height:180px; overflow-y:auto; font-size:0.8rem; margin-bottom:0.5rem;"></div>
+                <div style="display:flex; gap:0.5rem;">
+                  <input type="text" id="liveChatInput" placeholder="Soraty hafatra..." style="flex:1; padding:0.5rem 0.7rem; border-radius:8px; border:1px solid var(--line); background:var(--bg); color:var(--text); font-size:0.82rem;">
+                  <button type="button" class="btn btn-sm" id="liveChatSendBtn">Alefa</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="fb-sidebar">
+            <div class="panel" style="margin-top:0;">
+              <h3>📞 Antso mivantana</h3>
+              <p class="community-sub">Ireo olona miditra ao amin'ny app ankehitriny. Tsindrio hiantso azy.</p>
+              <div id="onlineUsersList"></div>
+              <p class="empty-hint" id="onlineUsersEmpty" style="display:none;">Tsy misy olona miditra ankehitriny.</p>
+            </div>
           </div>
         </div>
       </section>
@@ -1143,10 +1324,22 @@
           <p style="font-size:0.8rem; color:var(--muted); margin-bottom:0.8rem;">
             Ces informations apparaissent sur vos factures.
           </p>
+          <div style="display:flex; align-items:center; gap:0.9rem; margin-bottom:1.1rem;">
+            <img id="profilePhotoPreview" alt="Photo de profil" style="width:64px; height:64px; border-radius:50%; object-fit:cover; background:var(--panel-2); border:1px solid var(--line); display:none;">
+            <div id="profilePhotoPlaceholder" style="width:64px; height:64px; border-radius:50%; background:var(--panel-2); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:1.7rem;">👤</div>
+            <div>
+              <div style="font-size:0.82rem; color:var(--text);">Photo / logo de profil</div>
+              <div style="font-size:0.74rem; color:var(--muted);">Choisissez une image dans votre dossier ci-dessous.</div>
+            </div>
+          </div>
           <div class="form-grid">
             <div class="field" style="margin-bottom:0;">
               <label for="profileName">Nom</label>
               <input id="profileName" type="text">
+            </div>
+            <div class="field" style="margin-bottom:0;">
+              <label for="profileCompany">Nom de la société</label>
+              <input id="profileCompany" type="text" placeholder="Ex: Ma Société SARL">
             </div>
             <div class="field" style="margin-bottom:0;">
               <label for="profileEmail">Email</label>
@@ -1155,6 +1348,14 @@
             <div class="field" style="margin-bottom:0;">
               <label for="profilePhone">Téléphone</label>
               <input id="profilePhone" type="tel">
+            </div>
+            <div class="field" style="margin-bottom:0;">
+              <label for="profileNif">NIF</label>
+              <input id="profileNif" type="text" placeholder="Ex: 1234567890">
+            </div>
+            <div class="field" style="margin-bottom:0;">
+              <label for="profileStat">STAT</label>
+              <input id="profileStat" type="text" placeholder="Ex: 12345 11 2020 0 12345">
             </div>
             <div class="field" style="margin-bottom:0;">
               <label for="profileLogo">Logo (image)</label>
@@ -1520,6 +1721,7 @@
     if(type === 'facture') return '🧾';
     if(type === 'rupture') return '⚠️';
     if(type === 'parrainage') return '💰';
+    if(type === 'modification') return '✏️';
     return '🔔';
   }
   function renderNotifications(){
@@ -1614,6 +1816,9 @@
     updateTrialBanner();
     renderNotifications();
     renderWallet();
+    initPresence();
+    initCallSignaling();
+    initLiveSignaling();
   }
 
   function openPaywall(){
@@ -1789,8 +1994,13 @@
 
     function finishLogin(logoDataUrl){
       const logo = logoDataUrl || (existingProfile ? existingProfile.logo : null);
-      currentUser = { name, email, phone, logo: logo };
-      upsertProfile(name, { name, email, phone, logo: logo });
+      currentUser = {
+        name, email, phone, logo: logo,
+        company: existingProfile ? (existingProfile.company || '') : '',
+        nif: existingProfile ? (existingProfile.nif || '') : '',
+        stat: existingProfile ? (existingProfile.stat || '') : ''
+      };
+      upsertProfile(name, { name, email, phone, logo: logo, company: currentUser.company, nif: currentUser.nif, stat: currentUser.stat });
 
       const logins = loadLogins();
       logins.unshift({ name, email, phone, date: new Date().toLocaleString('fr-FR') });
@@ -1820,18 +2030,22 @@
   document.getElementById('saveProfileBtn').addEventListener('click', function(){
     if(!currentUser) return;
     const name = document.getElementById('profileName').value.trim();
+    const company = document.getElementById('profileCompany').value.trim();
     const email = document.getElementById('profileEmail').value.trim();
     const phone = document.getElementById('profilePhone').value.trim();
+    const nif = document.getElementById('profileNif').value.trim();
+    const stat = document.getElementById('profileStat').value.trim();
     const logoFile = document.getElementById('profileLogo').files[0];
     if(!name || !email){ alert('Le nom et l\'email sont obligatoires.'); return; }
 
     function finishSave(logoDataUrl){
       const logo = logoDataUrl || currentUser.logo || null;
-      currentUser = { name, email, phone, logo: logo };
-      upsertProfile(name, { name, email, phone, logo: logo });
+      currentUser = { name, company, email, phone, nif, stat, logo: logo };
+      upsertProfile(name, { name, company, email, phone, nif, stat, logo: logo });
       document.getElementById('currentUserName').textContent = name;
       document.getElementById('currentUserEmail').textContent = email;
       document.getElementById('profileLogo').value = '';
+      updateProfilePhotoPreview(logo);
       const status = document.getElementById('profileSaveStatus');
       status.textContent = 'Profil enregistré.';
       setTimeout(function(){ status.textContent = ''; }, 3000);
@@ -1882,6 +2096,7 @@
   });
 
   document.getElementById('logoutBtn').addEventListener('click', function(){
+    teardownRealtimeFeatures();
     currentUser = null;
     appScreen.style.display = 'none';
     loginScreen.style.display = 'flex';
@@ -2018,6 +2233,7 @@
       document.getElementById('section-' + nav.dataset.section).classList.add('active');
       if(nav.dataset.section === 'factures') renderInvoiceItems();
       if(nav.dataset.section === 'stock'){ renderFilters(); renderDashboard(); renderCommunityPanel(); }
+      if(nav.dataset.section === 'live'){ renderOnlineClientsForCall(); renderLiveList(); }
       // ferme le menu mobile après avoir choisi une section
       if(navList && navList.classList.contains('open')){
         navList.classList.remove('open');
@@ -2037,15 +2253,107 @@
     });
   });
 
+  // ---------------- RECHERCHE GLOBALE ----------------
+  function highlightRow(selector){
+    const row = document.querySelector(selector);
+    if(!row) return;
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    row.classList.remove('search-highlight');
+    void row.offsetWidth; // relance l'animation si déjà utilisée
+    row.classList.add('search-highlight');
+  }
+
+  function goToStockSection(dashTab){
+    const navStock = document.querySelector('.nav-item[data-section="stock"]');
+    if(navStock && !navStock.classList.contains('active')) navStock.click();
+    const tab = document.querySelector('.dash-tab[data-dash="' + dashTab + '"]');
+    if(tab && !tab.classList.contains('active')) tab.click();
+  }
+
+  function performGlobalSearch(query){
+    const resultsEl = document.getElementById('globalSearchResults');
+    const q = query.trim().toLowerCase();
+    if(!q){ resultsEl.style.display = 'none'; resultsEl.innerHTML = ''; return; }
+
+    const itemMatches = items.filter(function(it){
+      return [it.ref, it.name, it.category, it.supplier].some(function(f){ return (f || '').toLowerCase().includes(q); });
+    });
+    const moveMatches = movements.filter(function(m){
+      return [m.ref, m.name, m.category, m.note].some(function(f){ return (f || '').toLowerCase().includes(q); });
+    }).sort(function(a, b){ return new Date(b.date) - new Date(a.date); });
+
+    let html = '';
+    if(!itemMatches.length && !moveMatches.length){
+      html = '<div class="notif-empty">Aucun résultat pour « ' + escapeHtml(query) + ' ».</div>';
+    } else {
+      if(itemMatches.length){
+        html += '<div class="search-result-group">📦 Articles</div>';
+        itemMatches.slice(0, 8).forEach(function(it){
+          html += '<div class="search-result-item" data-goto-item="' + escapeHtml(it.id) + '">' +
+            '<strong>' + escapeHtml(it.name) + '</strong> <span class="muted">Réf. ' + escapeHtml(it.ref || '—') +
+            (it.category ? ' · ' + escapeHtml(it.category) : '') + '</span></div>';
+        });
+      }
+      if(moveMatches.length){
+        html += '<div class="search-result-group">📜 Mouvements</div>';
+        moveMatches.slice(0, 8).forEach(function(m){
+          const icon = m.type === 'entree' ? '▲' : (m.type === 'sortie' ? '▼' : '✎');
+          const key = (m.itemId || '') + '_' + m.date + '_' + m.type;
+          html += '<div class="search-result-item" data-goto-move="' + escapeHtml(key) + '">' +
+            icon + ' <strong>' + escapeHtml(m.name) + '</strong> <span class="muted">' + escapeHtml(m.note || m.category || '') + '</span></div>';
+        });
+      }
+    }
+    resultsEl.innerHTML = html;
+    resultsEl.style.display = 'block';
+  }
+
+  var globalSearchInput = document.getElementById('globalSearchInput');
+  var globalSearchResults = document.getElementById('globalSearchResults');
+  if(globalSearchInput){
+    globalSearchInput.addEventListener('input', function(){
+      performGlobalSearch(globalSearchInput.value);
+    });
+    globalSearchInput.addEventListener('focus', function(){
+      if(globalSearchInput.value.trim()) performGlobalSearch(globalSearchInput.value);
+    });
+    globalSearchResults.addEventListener('click', function(e){
+      const itemEl = e.target.closest('[data-goto-item]');
+      const moveEl = e.target.closest('[data-goto-move]');
+      if(itemEl){
+        goToStockSection('articles');
+        setTimeout(function(){ highlightRow('#stockTableBody tr[data-item-id="' + CSS.escape(itemEl.dataset.gotoItem) + '"]'); }, 60);
+      } else if(moveEl){
+        goToStockSection('articles');
+        setTimeout(function(){ highlightRow('#movementsTableBody tr[data-move-key="' + CSS.escape(moveEl.dataset.gotoMove) + '"]'); }, 60);
+      }
+      globalSearchResults.style.display = 'none';
+      globalSearchInput.value = '';
+    });
+    document.addEventListener('click', function(e){
+      if(globalSearchResults.style.display === 'block' && !globalSearchResults.contains(e.target) && e.target !== globalSearchInput){
+        globalSearchResults.style.display = 'none';
+      }
+    });
+  }
+
   // ---------------- STOCK ----------------
-  function formatAr(n){ return Number(n).toLocaleString('fr-FR') + ' Ar'; }
+  function formatAr(n){
+    // espace normale comme séparateur de milliers (une espace fine insécable n'est pas
+    // supportée par les polices standards du PDF et provoque un décalage/débordement)
+    const num = Math.round(Number(n) || 0);
+    const withSpaces = num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    return withSpaces + ' Ar';
+  }
 
   function renderStock(){
     const tbody = document.getElementById('stockTableBody');
     tbody.innerHTML = '';
     document.getElementById('stockEmptyHint').style.display = items.length ? 'none' : 'block';
+    refreshItemRefField();
     items.forEach(function(item, idx){
       const tr = document.createElement('tr');
+      tr.dataset.itemId = item.id;
       const lowStock = Number(item.qty) <= Number(item.seuil || 5);
       tr.innerHTML =
         '<td>' + escapeHtml(item.ref || '—') + '</td>' +
@@ -2058,8 +2366,9 @@
         '<td>' + (item.seuil != null ? item.seuil : 5) + '</td>' +
         '<td>' + escapeHtml(item.supplier || '—') + '</td>' +
         '<td style="white-space:nowrap;">' +
-          '<button class="btn btn-amber btn-sm" data-sortie="' + idx + '" style="width:auto; margin-right:0.4rem;">Sortie</button>' +
-          '<button class="btn btn-red btn-sm" data-idx="' + idx + '" style="width:auto;">Supprimer</button>' +
+          '<button class="btn btn-violet btn-icon" data-edit="' + idx + '" title="Modifier" aria-label="Modifier" style="margin-right:0.35rem;">✏️</button>' +
+          '<button class="btn btn-amber btn-icon" data-sortie="' + idx + '" title="Sortie" aria-label="Sortie" style="margin-right:0.35rem;">📤</button>' +
+          '<button class="btn btn-red btn-icon" data-idx="' + idx + '" title="Supprimer" aria-label="Supprimer">🗑️</button>' +
         '</td>';
       tbody.appendChild(tr);
     });
@@ -2084,7 +2393,84 @@
         handleSortie(Number(btn.dataset.sortie));
       });
     });
+    tbody.querySelectorAll('button[data-edit]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        openEditModal(Number(btn.dataset.edit));
+      });
+    });
   }
+
+  // ---------------- MODIFIER UN ARTICLE ----------------
+  let editingIdx = null;
+
+  function openEditModal(idx){
+    const item = items[idx];
+    if(!item) return;
+    editingIdx = idx;
+    document.getElementById('editItemRef').value = item.ref || '';
+    document.getElementById('editItemName').value = item.name || '';
+    document.getElementById('editItemCategory').value = item.category || '';
+    document.getElementById('editItemQty').value = item.qty != null ? item.qty : 0;
+    document.getElementById('editItemUnit').value = item.unit || 'pièce';
+    document.getElementById('editItemPrice').value = item.price != null ? item.price : 0;
+    document.getElementById('editItemSeuil').value = item.seuil != null ? item.seuil : 5;
+    document.getElementById('editItemSupplier').value = item.supplier || '';
+    document.getElementById('editItemModal').style.display = 'flex';
+  }
+
+  function closeEditModal(){
+    editingIdx = null;
+    document.getElementById('editItemModal').style.display = 'none';
+  }
+
+  document.getElementById('editItemCancelBtn').addEventListener('click', closeEditModal);
+  document.getElementById('editItemModal').addEventListener('click', function(e){
+    if(e.target === document.getElementById('editItemModal')) closeEditModal();
+  });
+
+  document.getElementById('editItemSaveBtn').addEventListener('click', function(){
+    if(editingIdx === null) return;
+    const item = items[editingIdx];
+    if(!item) return;
+    const name = document.getElementById('editItemName').value.trim();
+    if(!name){ alert('Le nom est obligatoire.'); return; }
+    const before = {
+      name: item.name, category: item.category, qty: item.qty, unit: item.unit,
+      price: item.price, seuil: item.seuil, supplier: item.supplier
+    };
+    item.name = name;
+    item.category = document.getElementById('editItemCategory').value.trim();
+    item.qty = Number(document.getElementById('editItemQty').value) || 0;
+    item.unit = document.getElementById('editItemUnit').value || 'pièce';
+    item.price = Number(document.getElementById('editItemPrice').value) || 0;
+    item.seuil = Number(document.getElementById('editItemSeuil').value) || 0;
+    item.supplier = document.getElementById('editItemSupplier').value.trim();
+    saveItems(items);
+
+    // enregistre la modification dans l'historique des mouvements + notification
+    const changes = [];
+    if(before.name !== item.name) changes.push('nom : ' + before.name + ' → ' + item.name);
+    if((before.category || '') !== (item.category || '')) changes.push('catégorie : ' + (before.category || '—') + ' → ' + (item.category || '—'));
+    if(Number(before.qty) !== Number(item.qty)) changes.push('quantité : ' + before.qty + ' → ' + item.qty);
+    if((before.unit || '') !== (item.unit || '')) changes.push('unité : ' + (before.unit || '—') + ' → ' + (item.unit || '—'));
+    if(Number(before.price) !== Number(item.price)) changes.push('prix : ' + formatAr(before.price) + ' → ' + formatAr(item.price));
+    if(Number(before.seuil) !== Number(item.seuil)) changes.push('seuil : ' + before.seuil + ' → ' + item.seuil);
+    if((before.supplier || '') !== (item.supplier || '')) changes.push('fournisseur : ' + (before.supplier || '—') + ' → ' + (item.supplier || '—'));
+    const note = changes.length ? changes.join(' ; ') : 'aucun changement de valeur';
+    movements.push({
+      itemId: item.id, ref: item.ref || '', name: item.name, category: item.category || '',
+      type: 'modification', qty: item.qty, price: item.price, value: item.qty * item.price,
+      date: new Date().toISOString(), day: dayKey(new Date()), note: note
+    });
+    saveMovements(movements);
+    pushNotification('modification', 'Entana « ' + item.name + ' » novaina : ' + note);
+
+    closeEditModal();
+    renderStock();
+    renderMovementsHistory();
+    renderFilters();
+    renderDashboard();
+  });
 
   function handleSortie(idx){
     const item = items[idx];
@@ -2120,8 +2506,22 @@
     return div.innerHTML;
   }
 
+  function nextRef(){
+    let maxNum = 0;
+    items.forEach(function(it){
+      const n = parseInt(it.ref, 10);
+      if(!isNaN(n) && n > maxNum) maxNum = n;
+    });
+    return String(maxNum + 1);
+  }
+
+  function refreshItemRefField(){
+    const el = document.getElementById('itemRef');
+    if(el) el.value = nextRef();
+  }
+  refreshItemRefField();
+
   document.getElementById('addItemBtn').addEventListener('click', function(){
-    const ref = document.getElementById('itemRef').value.trim();
     const name = document.getElementById('itemName').value.trim();
     const category = document.getElementById('itemCategory').value.trim();
     const qty = Number(document.getElementById('itemQty').value) || 0;
@@ -2131,16 +2531,16 @@
     const supplier = document.getElementById('itemSupplier').value.trim();
     if(!name) return;
 
-    // raha efa misy article mitovy (ref raha nisy, na anarana raha tsy nisy ref), ampio ny stock efa ao
+    // raha efa misy article mitovy anarana, ampio ny stock efa ao
     // fa tsy mamorona andalana vaovao — mba hifanarahan'ny Articles amin'ny Tableau de bord
     const existing = items.find(function(it){
-      if(ref) return (it.ref || '').toLowerCase() === ref.toLowerCase();
-      return !it.ref && it.name.toLowerCase() === name.toLowerCase();
+      return it.name.toLowerCase() === name.toLowerCase();
     });
 
-    let id;
+    let id, ref;
     if(existing){
       id = existing.id;
+      ref = existing.ref;
       existing.qty = Number(existing.qty) + qty;
       if(category) existing.category = category;
       if(price > 0) existing.price = price;
@@ -2149,6 +2549,7 @@
       if(supplier) existing.supplier = supplier;
     } else {
       id = genId();
+      ref = nextRef();
       items.push({ id, ref, name, category, qty, unit, price, seuil, supplier });
     }
     saveItems(items);
@@ -2161,13 +2562,13 @@
       });
       saveMovements(movements);
     }
-    document.getElementById('itemRef').value = '';
     document.getElementById('itemName').value = '';
     document.getElementById('itemCategory').value = '';
     document.getElementById('itemQty').value = 1;
     document.getElementById('itemPrice').value = 0;
     document.getElementById('itemSeuil').value = 5;
     document.getElementById('itemSupplier').value = '';
+    refreshItemRefField();
     renderStock();
     renderMovementsHistory();
     renderFilters();
@@ -2175,9 +2576,9 @@
   });
 
   function movementTypeLabel(type){
-    return type === 'entree'
-      ? '<span style="color:#6ee7b7;">▲ Entrée</span>'
-      : '<span style="color:var(--amber);">▼ Sortie</span>';
+    if(type === 'entree') return '<span style="color:#6ee7b7;">▲ Entrée</span>';
+    if(type === 'modification') return '<span style="color:var(--violet);">✎ Modification</span>';
+    return '<span style="color:var(--amber);">▼ Sortie</span>';
   }
 
   function renderMovementsHistory(){
@@ -2188,6 +2589,7 @@
     document.getElementById('movementsEmptyHint').style.display = sorted.length ? 'none' : 'block';
     sorted.forEach(function(m){
       const tr = document.createElement('tr');
+      tr.dataset.moveKey = (m.itemId || '') + '_' + m.date + '_' + m.type;
       const d = new Date(m.date);
       const dateStr = isNaN(d) ? m.day : d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
       tr.innerHTML =
@@ -2197,8 +2599,83 @@
         '<td>' + escapeHtml(m.name) + '</td>' +
         '<td>' + escapeHtml(m.category || '—') + '</td>' +
         '<td>' + m.qty + '</td>' +
-        '<td>' + formatAr(m.value) + '</td>';
+        '<td>' + formatAr(m.value) + '</td>' +
+        '<td>' + escapeHtml(m.note || '—') + '</td>';
       tbody.appendChild(tr);
+      attachSwipeToDelete(tr, m);
+    });
+  }
+
+  function attachSwipeToDelete(row, movement){
+    let startX = 0, currentX = 0, dragging = false;
+    const threshold = 70;
+    row.style.willChange = 'transform, opacity';
+    row.style.cursor = 'grab';
+
+    function onStart(clientX){
+      startX = clientX;
+      currentX = 0;
+      dragging = true;
+      row.style.transition = 'none';
+      row.style.cursor = 'grabbing';
+    }
+    function onMove(clientX){
+      if(!dragging) return;
+      currentX = clientX - startX;
+      row.style.transform = 'translateX(' + currentX + 'px)';
+      row.style.opacity = String(Math.max(1 - Math.abs(currentX) / 220, 0.25));
+    }
+    function onEnd(){
+      if(!dragging) return;
+      dragging = false;
+      row.style.cursor = 'grab';
+      row.style.transition = 'transform 0.25s ease, opacity 0.25s ease';
+      if(Math.abs(currentX) > threshold){
+        const dir = currentX > 0 ? 1 : -1;
+        row.style.transform = 'translateX(' + (dir * 400) + 'px)';
+        row.style.opacity = '0';
+        setTimeout(function(){
+          const i = movements.indexOf(movement);
+          if(i > -1){ movements.splice(i, 1); saveMovements(movements); }
+          renderMovementsHistory();
+          renderDashboard();
+        }, 220);
+      } else {
+        row.style.transform = 'translateX(0)';
+        row.style.opacity = '1';
+      }
+    }
+    function onCancel(){
+      dragging = false;
+      row.style.cursor = 'grab';
+      row.style.transition = 'transform 0.25s ease, opacity 0.25s ease';
+      row.style.transform = 'translateX(0)';
+      row.style.opacity = '1';
+    }
+
+    // ---- tactile (téléphone/tablette) ----
+    row.addEventListener('touchstart', function(e){
+      if(e.touches.length !== 1) return;
+      onStart(e.touches[0].clientX);
+    }, { passive: true });
+    row.addEventListener('touchmove', function(e){
+      if(dragging) onMove(e.touches[0].clientX);
+    }, { passive: true });
+    row.addEventListener('touchend', onEnd);
+    row.addEventListener('touchcancel', onCancel);
+
+    // ---- souris (ordinateur) : cliquer-glisser sur l'andalana ----
+    row.addEventListener('mousedown', function(e){
+      e.preventDefault();
+      onStart(e.clientX);
+      function onMouseMove(ev){ onMove(ev.clientX); }
+      function onMouseUp(){
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+        onEnd();
+      }
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
     });
   }
 
@@ -2502,6 +2979,10 @@
     const marginX = 14;
     const rightX = pageW - marginX;
     const emissEmail = currentUser && currentUser.email ? currentUser.email : '—';
+    const emissCompany = currentUser && currentUser.company ? currentUser.company : '';
+    const emissPhone = currentUser && currentUser.phone ? currentUser.phone : '';
+    const emissNif = currentUser && currentUser.nif ? currentUser.nif : '';
+    const emissStat = currentUser && currentUser.stat ? currentUser.stat : '';
     const invoiceNo = '#' + String(Date.now()).slice(-6);
     const today = new Date().toLocaleDateString('fr-FR');
 
@@ -2529,12 +3010,23 @@
     if(currentUser && currentUser.logo){
       try{ doc.addImage(currentUser.logo, marginX, 8, 20, 20); }catch(err){}
     }
-    doc.setFontSize(10);
-    doc.text(emissEmail, currentUser && currentUser.logo ? marginX + 24 : marginX, 20);
-    if(currentUser && currentUser.phone){
-      doc.setFontSize(9);
-      doc.text(currentUser.phone, currentUser && currentUser.logo ? marginX + 24 : marginX, 26);
-    }
+    const leftX = currentUser && currentUser.logo ? marginX + 24 : marginX;
+    const nifStatParts = [];
+    if(emissNif) nifStatParts.push('NIF : ' + emissNif);
+    if(emissStat) nifStatParts.push('STAT : ' + emissStat);
+    const headerLines = [];
+    if(emissCompany) headerLines.push({ text: emissCompany, bold: true, size: 11 });
+    headerLines.push({ text: emissEmail, bold: false, size: 9.5 });
+    if(emissPhone) headerLines.push({ text: emissPhone, bold: false, size: 9 });
+    if(nifStatParts.length) headerLines.push({ text: nifStatParts.join('   '), bold: false, size: 8.5 });
+
+    let ly = 14;
+    headerLines.forEach(function(line){
+      doc.setFont(undefined, line.bold ? 'bold' : 'normal');
+      doc.setFontSize(line.size);
+      doc.text(line.text, leftX, ly);
+      ly += line.bold ? 6.5 : 5;
+    });
 
     // ---- bloc "Facturé à" ----
     doc.setTextColor(90, 90, 90);
@@ -2642,8 +3134,11 @@
       '\nTotal : ' + formatAr(total) + '\n' +
       'Date : ' + new Date().toLocaleDateString('fr-FR') + '\n\n' +
       'Merci de votre confiance.\n\n' +
+      (currentUser && currentUser.company ? currentUser.company + '\n' : '') +
       (currentUser && currentUser.email ? currentUser.email : '') +
-      (currentUser && currentUser.phone ? '\n' + currentUser.phone : '')
+      (currentUser && currentUser.phone ? '\n' + currentUser.phone : '') +
+      (currentUser && currentUser.nif ? '\nNIF : ' + currentUser.nif : '') +
+      (currentUser && currentUser.stat ? '\nSTAT : ' + currentUser.stat : '')
     );
     window.location.href = 'mailto:' + customerEmail + '?subject=' + subject + '&body=' + body;
     pushNotification('facture', 'Facture ho an\'i ' + customer + ' efa lasa (nalefa amin\'ny mail).');
@@ -2830,23 +3325,46 @@
     { key: 'wechat', inputId: 'contactWechatInput', label: 'WeChat', color: '#07C160', isId: true }
   ];
 
-  function loadContactChannels(){
+  // Cache locale (fallback hors-ligne / si Supabase indisponible) : ne fait PAS foi,
+  // sert uniquement à ne pas afficher un écran vide pendant le chargement réseau.
+  function loadContactChannelsLocal(){
     try { return JSON.parse(localStorage.getItem(STORAGE_CONTACT_CHANNELS)) || {}; }
     catch(e){ return {}; }
   }
-  function saveContactChannels(obj){ localStorage.setItem(STORAGE_CONTACT_CHANNELS, JSON.stringify(obj)); }
-  function loadContactExtra(){
+  function saveContactChannelsLocal(obj){ localStorage.setItem(STORAGE_CONTACT_CHANNELS, JSON.stringify(obj)); }
+  function loadContactExtraLocal(){
     try { return JSON.parse(localStorage.getItem(STORAGE_CONTACT_EXTRA)) || []; }
     catch(e){ return []; }
   }
-  function saveContactExtra(list){ localStorage.setItem(STORAGE_CONTACT_EXTRA, JSON.stringify(list)); }
+  function saveContactExtraLocal(list){ localStorage.setItem(STORAGE_CONTACT_EXTRA, JSON.stringify(list)); }
+
+  // Va chercher les canaux configurés par l'admin sur le serveur (Supabase), pour
+  // qu'ils soient visibles par TOUS les clients, quel que soit leur appareil.
+  function fetchContactChannels(callback){
+    if(!window.__sb){
+      callback(loadContactChannelsLocal(), loadContactExtraLocal());
+      return;
+    }
+    Promise.all([
+      window.__sb.from('contact_channels').select('*').eq('id', 1).maybeSingle(),
+      window.__sb.from('contact_extra_channels').select('name,url').order('created_at', { ascending: true })
+    ]).then(function(results){
+      const chRes = results[0], exRes = results[1];
+      const channels = (chRes && chRes.data) ? chRes.data : loadContactChannelsLocal();
+      const extra = (exRes && exRes.data) ? exRes.data : loadContactExtraLocal();
+      saveContactChannelsLocal(channels);
+      saveContactExtraLocal(extra);
+      callback(channels, extra);
+    }, function(){
+      callback(loadContactChannelsLocal(), loadContactExtraLocal());
+    });
+  }
 
   function renderContactButtons(){
     const row = document.getElementById('contactButtonsRow');
     const emptyHint = document.getElementById('contactButtonsEmptyHint');
     if(!row) return;
-    const channels = loadContactChannels();
-    const extra = loadContactExtra();
+    fetchContactChannels(function(channels, extra){
     row.innerHTML = '';
     let count = 0;
 
@@ -2898,13 +3416,48 @@
     });
 
     emptyHint.style.display = count ? 'none' : 'block';
+    renderInAppCallPanel();
+    });
+  }
+
+  // ---------------- ANTSO AO ANATY APPLI, avy amin'ny pejy "Nous contacter" ----------------
+  function renderInAppCallPanel(){
+    const panel = document.getElementById('inAppCallPanel');
+    if(!panel) return;
+    const me = myIdentity();
+    if(me.isAdmin || !window.__sb){
+      panel.style.display = 'none';
+      return;
+    }
+    panel.style.display = 'block';
+    const statusEl = document.getElementById('ownerOnlineStatus');
+    const ownerOnline = !!presenceState[OWNER_EMAIL.toLowerCase()];
+    if(statusEl){
+      statusEl.textContent = ownerOnline ? '🟢 Miditra ankehitriny' : '⚪ Tsy miditra ankehitriny (mety tsy hovaliana avy hatrany)';
+    }
+  }
+
+  const inAppCallAudioBtn = document.getElementById('inAppCallAudioBtn');
+  if(inAppCallAudioBtn){
+    inAppCallAudioBtn.addEventListener('click', function(){
+      const p = presenceState[OWNER_EMAIL.toLowerCase()];
+      startCall(OWNER_EMAIL.toLowerCase(), (p && p.name) || 'Admin', 'audio');
+    });
+  }
+  const inAppCallVideoBtn = document.getElementById('inAppCallVideoBtn');
+  if(inAppCallVideoBtn){
+    inAppCallVideoBtn.addEventListener('click', function(){
+      const p = presenceState[OWNER_EMAIL.toLowerCase()];
+      startCall(OWNER_EMAIL.toLowerCase(), (p && p.name) || 'Admin', 'video');
+    });
   }
 
   function loadContactAdminForm(){
-    const channels = loadContactChannels();
-    CONTACT_FIELD_MAP.forEach(function(field){
-      const input = document.getElementById(field.inputId);
-      if(input) input.value = channels[field.key] || '';
+    fetchContactChannels(function(channels){
+      CONTACT_FIELD_MAP.forEach(function(field){
+        const input = document.getElementById(field.inputId);
+        if(input) input.value = channels[field.key] || '';
+      });
     });
   }
 
@@ -2912,14 +3465,25 @@
   if(saveContactChannelsBtn){
     loadContactAdminForm();
     saveContactChannelsBtn.addEventListener('click', function(){
-      const channels = {};
+      const channels = { id: 1 };
       CONTACT_FIELD_MAP.forEach(function(field){
         const input = document.getElementById(field.inputId);
         channels[field.key] = input ? input.value.trim() : '';
       });
-      saveContactChannels(channels);
-      renderContactButtons();
-      document.getElementById('contactChannelsStatus').textContent = 'Enregistré ✓ Visible par vos clients.';
+      saveContactChannelsLocal(channels);
+      const status = document.getElementById('contactChannelsStatus');
+      if(!window.__sb){
+        renderContactButtons();
+        status.textContent = 'Enregistré localement (pas de connexion serveur) — vos clients ne le verront pas.';
+        return;
+      }
+      window.__sb.from('contact_channels').upsert(channels).then(function(){
+        renderContactButtons();
+        status.textContent = 'Enregistré ✓ Visible par tous vos clients.';
+      }, function(){
+        renderContactButtons();
+        status.textContent = "Échec de l'enregistrement serveur. Réessayez.";
+      });
     });
   }
 
@@ -2929,16 +3493,591 @@
       const name = document.getElementById('newContactName').value.trim();
       const url = document.getElementById('newContactUrl').value.trim();
       if(!name) return;
-      const list = loadContactExtra();
-      list.push({ name: name, url: url });
-      saveContactExtra(list);
-      renderContactButtons();
-      document.getElementById('newContactName').value = '';
-      document.getElementById('newContactUrl').value = '';
+      if(!window.__sb){
+        const list = loadContactExtraLocal();
+        list.push({ name: name, url: url });
+        saveContactExtraLocal(list);
+        renderContactButtons();
+        document.getElementById('newContactName').value = '';
+        document.getElementById('newContactUrl').value = '';
+        return;
+      }
+      window.__sb.from('contact_extra_channels').insert({ name: name, url: url }).then(function(){
+        renderContactButtons();
+        document.getElementById('newContactName').value = '';
+        document.getElementById('newContactUrl').value = '';
+      }, function(){
+        alert("Échec de l'enregistrement du canal sur le serveur.");
+      });
     });
   }
 
   renderContactButtons();
+
+  // ---------------- IDENTITÉ & PRÉSENCE TEMPS RÉEL (appels + live) ----------------
+  const ICE_SERVERS = { iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' }
+  ] };
+
+  function myIdentity(){
+    const email = (currentUser && currentUser.email) ? currentUser.email.trim().toLowerCase() : 'invite-' + Math.random().toString(36).slice(2);
+    const name = (currentUser && currentUser.name) || 'Utilisateur';
+    const isAdmin = !!(currentUser && currentUser.email && currentUser.email.trim().toLowerCase() === OWNER_EMAIL.toLowerCase());
+    return { email: email, name: name, isAdmin: isAdmin };
+  }
+
+  let presenceChannel = null;
+  let presenceState = {};
+
+  function initPresence(){
+    if(!window.__sb || presenceChannel) return;
+    const me = myIdentity();
+    presenceChannel = window.__sb.channel('presence-tanjona', { config: { presence: { key: me.email } } });
+    presenceChannel.on('presence', { event: 'sync' }, function(){
+      const state = presenceChannel.presenceState();
+      presenceState = {};
+      Object.keys(state).forEach(function(key){
+        if(state[key] && state[key][0]) presenceState[key] = state[key][0];
+      });
+      renderOnlineClientsForCall();
+      renderLiveList();
+      renderInAppCallPanel();
+    });
+    presenceChannel.subscribe(function(status){
+      if(status === 'SUBSCRIBED'){
+        presenceChannel.track({ name: me.name, isAdmin: me.isAdmin, live: false, at: Date.now() });
+      }
+    });
+  }
+
+  function updateMyPresence(patch){
+    if(!presenceChannel) return;
+    const me = myIdentity();
+    const current = presenceState[me.email] || { name: me.name, isAdmin: me.isAdmin, live: false };
+    presenceChannel.track(Object.assign({}, current, patch, { at: Date.now() }));
+  }
+
+  function renderOnlineClientsForCall(){
+    const list = document.getElementById('onlineUsersList');
+    const emptyHint = document.getElementById('onlineUsersEmpty');
+    if(!list) return;
+    const me = myIdentity();
+    list.innerHTML = '';
+    const others = Object.keys(presenceState).filter(function(email){ return email !== me.email; });
+    emptyHint.style.display = others.length ? 'none' : 'block';
+    others.forEach(function(email){
+      const p = presenceState[email];
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex; align-items:center; justify-content:space-between; padding:0.6rem 0; border-bottom:1px solid var(--line);';
+      row.innerHTML =
+        '<div><strong style="font-size:0.85rem;">' + escapeHtml(p.name || email) + '</strong>' +
+        (p.isAdmin ? ' <span style="font-size:0.68rem; color:var(--cyan);">(Admin)</span>' : '') +
+        (p.live ? ' <span style="font-size:0.68rem; color:var(--red);">🔴 Live</span>' : '') + '</div>' +
+        '<div style="display:flex; gap:0.4rem;">' +
+          '<button type="button" class="btn btn-sm call-audio-btn" title="Antso feo" data-email="' + escapeHtml(email) + '" data-name="' + escapeHtml(p.name || email) + '">📞</button>' +
+          '<button type="button" class="btn btn-sm call-video-btn" title="Antso video" data-email="' + escapeHtml(email) + '" data-name="' + escapeHtml(p.name || email) + '">📹</button>' +
+        '</div>';
+      list.appendChild(row);
+    });
+    list.querySelectorAll('.call-audio-btn').forEach(function(btn){
+      btn.addEventListener('click', function(){ startCall(btn.getAttribute('data-email'), btn.getAttribute('data-name'), 'audio'); });
+    });
+    list.querySelectorAll('.call-video-btn').forEach(function(btn){
+      btn.addEventListener('click', function(){ startCall(btn.getAttribute('data-email'), btn.getAttribute('data-name'), 'video'); });
+    });
+  }
+
+  // ---------------- SONNERIE ----------------
+  let ringtoneInterval = null, ringtoneCtx = null;
+  function playRingtone(){
+    stopRingtone();
+    try{
+      ringtoneCtx = new (window.AudioContext || window.webkitAudioContext)();
+      function beep(){
+        if(!ringtoneCtx) return;
+        const osc = ringtoneCtx.createOscillator();
+        const gain = ringtoneCtx.createGain();
+        osc.frequency.value = 880;
+        gain.gain.value = 0.15;
+        osc.connect(gain).connect(ringtoneCtx.destination);
+        osc.start();
+        osc.stop(ringtoneCtx.currentTime + 0.35);
+      }
+      beep();
+      ringtoneInterval = setInterval(beep, 1200);
+    }catch(e){}
+  }
+  function stopRingtone(){
+    if(ringtoneInterval){ clearInterval(ringtoneInterval); ringtoneInterval = null; }
+    if(ringtoneCtx){ try{ ringtoneCtx.close(); }catch(e){} ringtoneCtx = null; }
+  }
+
+  // ---------------- APPELS 1-À-1 (WebRTC + signal via Supabase Realtime) ----------------
+  let callSignalChannel = null;
+  let activeCall = null;
+
+  function initCallSignaling(){
+    if(!window.__sb || callSignalChannel) return;
+    callSignalChannel = window.__sb.channel('call-signal-tanjona');
+    callSignalChannel.on('broadcast', { event: 'signal' }, function(msg){ handleCallSignal(msg.payload || {}); });
+    callSignalChannel.subscribe();
+  }
+  function sendCallSignal(payload){ if(callSignalChannel) callSignalChannel.send({ type: 'broadcast', event: 'signal', payload: payload }); }
+
+  function startCall(targetEmail, targetName, callType){
+    if(!window.__sb){ alert('Tsy misy fifandraisana amin\'ny serveur.'); return; }
+    if(activeCall){ alert('Efa misy antso mandeha.'); return; }
+    const me = myIdentity();
+    navigator.mediaDevices.getUserMedia({ audio: true, video: callType === 'video' }).then(function(stream){
+      const roomId = 'call-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+      const pc = new RTCPeerConnection(ICE_SERVERS);
+      activeCall = { roomId: roomId, peer: pc, localStream: stream, withEmail: targetEmail, withName: targetName, callType: callType, direction: 'outgoing', status: 'ringing' };
+      stream.getTracks().forEach(function(t){ pc.addTrack(t, stream); });
+      pc.ontrack = function(e){ attachRemoteStream(e.streams[0]); };
+      pc.onicecandidate = function(e){
+        if(e.candidate) sendCallSignal({ kind: 'ice', roomId: roomId, from: me.email, to: targetEmail, candidate: e.candidate });
+      };
+      showOutgoingCallUI();
+      pc.createOffer().then(function(offer){ return pc.setLocalDescription(offer); }).then(function(){
+        sendCallSignal({ kind: 'ring', roomId: roomId, from: me.email, fromName: me.name, to: targetEmail, callType: callType, sdp: pc.localDescription });
+      });
+      activeCall.timeoutId = setTimeout(function(){
+        if(activeCall && activeCall.roomId === roomId && activeCall.status === 'ringing'){
+          sendCallSignal({ kind: 'end', roomId: roomId, from: me.email, to: targetEmail, reason: 'timeout' });
+          endCall();
+        }
+      }, 45000);
+    }).catch(function(err){
+      alert("Tsy afaka mampiasa ny kamera/mikrofonao: " + err.message);
+    });
+  }
+
+  function handleCallSignal(payload){
+    if(!payload || !payload.kind) return;
+    const me = myIdentity();
+    if(payload.to !== me.email) return;
+    if(payload.kind === 'ring') onIncomingRing(payload);
+    else if(payload.kind === 'answer') onCallAnswered(payload);
+    else if(payload.kind === 'ice') onRemoteIce(payload);
+    else if(payload.kind === 'reject') onCallRejected(payload);
+    else if(payload.kind === 'end') onCallEnded(payload);
+  }
+
+  function onIncomingRing(payload){
+    const me = myIdentity();
+    if(activeCall){
+      sendCallSignal({ kind: 'reject', roomId: payload.roomId, from: me.email, to: payload.from, reason: 'busy' });
+      return;
+    }
+    activeCall = { roomId: payload.roomId, withEmail: payload.from, withName: payload.fromName, callType: payload.callType, direction: 'incoming', status: 'ringing', offerSdp: payload.sdp, pendingIce: [] };
+    showIncomingCallUI();
+  }
+
+  function acceptIncomingCall(){
+    const call = activeCall;
+    if(!call) return;
+    const me = myIdentity();
+    navigator.mediaDevices.getUserMedia({ audio: true, video: call.callType === 'video' }).then(function(stream){
+      const pc = new RTCPeerConnection(ICE_SERVERS);
+      call.peer = pc; call.localStream = stream; call.status = 'connecting';
+      stream.getTracks().forEach(function(t){ pc.addTrack(t, stream); });
+      pc.ontrack = function(e){ attachRemoteStream(e.streams[0]); };
+      pc.onicecandidate = function(e){
+        if(e.candidate) sendCallSignal({ kind: 'ice', roomId: call.roomId, from: me.email, to: call.withEmail, candidate: e.candidate });
+      };
+      pc.setRemoteDescription(new RTCSessionDescription(call.offerSdp)).then(function(){
+        return pc.createAnswer();
+      }).then(function(answer){
+        return pc.setLocalDescription(answer);
+      }).then(function(){
+        sendCallSignal({ kind: 'answer', roomId: call.roomId, from: me.email, to: call.withEmail, sdp: pc.localDescription });
+        call.status = 'connected';
+        updateCallUIStatus();
+        (call.pendingIce || []).forEach(function(c){ pc.addIceCandidate(new RTCIceCandidate(c)).catch(function(){}); });
+        call.pendingIce = [];
+      });
+    }).catch(function(err){
+      sendCallSignal({ kind: 'reject', roomId: call.roomId, from: me.email, to: call.withEmail, reason: 'no-media' });
+      activeCall = null;
+      hideCallUI();
+      alert("Tsy afaka mampiasa ny kamera/mikrofonao: " + err.message);
+    });
+  }
+
+  function declineIncomingCall(){
+    if(!activeCall) return;
+    sendCallSignal({ kind: 'reject', roomId: activeCall.roomId, from: myIdentity().email, to: activeCall.withEmail, reason: 'declined' });
+    endCall();
+  }
+
+  function onCallAnswered(payload){
+    if(!activeCall || activeCall.roomId !== payload.roomId) return;
+    clearTimeout(activeCall.timeoutId);
+    activeCall.peer.setRemoteDescription(new RTCSessionDescription(payload.sdp)).then(function(){
+      activeCall.status = 'connected';
+      updateCallUIStatus();
+    });
+  }
+
+  function onRemoteIce(payload){
+    if(!activeCall || activeCall.roomId !== payload.roomId) return;
+    if(!activeCall.peer){ activeCall.pendingIce = activeCall.pendingIce || []; activeCall.pendingIce.push(payload.candidate); return; }
+    activeCall.peer.addIceCandidate(new RTCIceCandidate(payload.candidate)).catch(function(){});
+  }
+
+  function onCallRejected(payload){
+    if(!activeCall || activeCall.roomId !== payload.roomId) return;
+    clearTimeout(activeCall.timeoutId);
+    endCall();
+  }
+
+  function onCallEnded(payload){
+    if(!activeCall || activeCall.roomId !== payload.roomId) return;
+    endCall();
+  }
+
+  function endCall(){
+    const call = activeCall;
+    if(call){
+      clearTimeout(call.timeoutId);
+      if(call.peer){ try{ call.peer.close(); }catch(e){} }
+      if(call.localStream){ call.localStream.getTracks().forEach(function(t){ t.stop(); }); }
+    }
+    activeCall = null;
+    hideCallUI();
+  }
+
+  function hangupCall(){
+    if(!activeCall) return;
+    sendCallSignal({ kind: 'end', roomId: activeCall.roomId, from: myIdentity().email, to: activeCall.withEmail });
+    endCall();
+  }
+
+  function showOutgoingCallUI(){
+    document.getElementById('callOverlay').style.display = 'flex';
+    document.getElementById('callIncomingBox').style.display = 'none';
+    document.getElementById('callActiveBox').style.display = 'none';
+    document.getElementById('callOutgoingBox').style.display = 'block';
+    document.getElementById('callOutgoingName').textContent = activeCall.withName || activeCall.withEmail;
+  }
+  function showIncomingCallUI(){
+    document.getElementById('callOverlay').style.display = 'flex';
+    document.getElementById('callOutgoingBox').style.display = 'none';
+    document.getElementById('callActiveBox').style.display = 'none';
+    document.getElementById('callIncomingBox').style.display = 'block';
+    document.getElementById('callIncomingType').textContent = activeCall.callType === 'video' ? 'Antso video miditra...' : 'Antso feo miditra...';
+    document.getElementById('callIncomingName').textContent = activeCall.withName || activeCall.withEmail;
+    playRingtone();
+  }
+  function updateCallUIStatus(){
+    stopRingtone();
+    document.getElementById('callOverlay').style.display = 'flex';
+    document.getElementById('callIncomingBox').style.display = 'none';
+    document.getElementById('callOutgoingBox').style.display = 'none';
+    document.getElementById('callActiveBox').style.display = 'block';
+    document.getElementById('callActiveWith').textContent = (activeCall.callType === 'video' ? '📹 ' : '📞 ') + (activeCall.withName || activeCall.withEmail);
+    if(activeCall.localStream){
+      document.getElementById('callLocalVideo').srcObject = activeCall.localStream;
+      document.getElementById('callLocalVideo').style.display = activeCall.callType === 'video' ? 'block' : 'none';
+    }
+  }
+  function attachRemoteStream(stream){
+    document.getElementById('callRemoteVideo').srcObject = stream;
+    if(activeCall) updateCallUIStatus();
+  }
+  function hideCallUI(){
+    stopRingtone();
+    document.getElementById('callOverlay').style.display = 'none';
+    document.getElementById('callRemoteVideo').srcObject = null;
+    document.getElementById('callLocalVideo').srcObject = null;
+    document.getElementById('callMuteBtn').textContent = '🎙️ Mute';
+    document.getElementById('callCamBtn').textContent = '📷 Kamera';
+  }
+
+  const callAcceptBtn = document.getElementById('callAcceptBtn');
+  if(callAcceptBtn) callAcceptBtn.addEventListener('click', acceptIncomingCall);
+  const callDeclineBtn = document.getElementById('callDeclineBtn');
+  if(callDeclineBtn) callDeclineBtn.addEventListener('click', declineIncomingCall);
+  const callCancelBtn = document.getElementById('callCancelBtn');
+  if(callCancelBtn) callCancelBtn.addEventListener('click', function(){
+    if(!activeCall) return;
+    sendCallSignal({ kind: 'end', roomId: activeCall.roomId, from: myIdentity().email, to: activeCall.withEmail, reason: 'cancelled' });
+    endCall();
+  });
+  const callHangupBtn = document.getElementById('callHangupBtn');
+  if(callHangupBtn) callHangupBtn.addEventListener('click', hangupCall);
+  const callMuteBtn = document.getElementById('callMuteBtn');
+  if(callMuteBtn) callMuteBtn.addEventListener('click', function(){
+    if(!activeCall || !activeCall.localStream) return;
+    const tracks = activeCall.localStream.getAudioTracks();
+    const nowMuted = tracks.length && tracks[0].enabled;
+    tracks.forEach(function(t){ t.enabled = !nowMuted; });
+    callMuteBtn.textContent = nowMuted ? '🔇 Unmute' : '🎙️ Mute';
+  });
+  const callCamBtn = document.getElementById('callCamBtn');
+  if(callCamBtn) callCamBtn.addEventListener('click', function(){
+    if(!activeCall || !activeCall.localStream) return;
+    const tracks = activeCall.localStream.getVideoTracks();
+    if(!tracks.length) return;
+    const nowOn = tracks[0].enabled;
+    tracks.forEach(function(t){ t.enabled = !nowOn; });
+    callCamBtn.textContent = nowOn ? '📷 Camera ON' : '📷 Kamera';
+  });
+
+  // ---------------- LIVE DIRECT (1 vers plusieurs, mesh WebRTC) ----------------
+  let liveSignalChannel = null;
+  let myLive = null;
+  let watchingLive = null;
+
+  function initLiveSignaling(){
+    if(!window.__sb || liveSignalChannel) return;
+    liveSignalChannel = window.__sb.channel('live-signal-tanjona');
+    liveSignalChannel.on('broadcast', { event: 'signal' }, function(msg){ handleLiveSignal(msg.payload || {}); });
+    liveSignalChannel.subscribe();
+  }
+  function sendLiveSignal(payload){ if(liveSignalChannel) liveSignalChannel.send({ type: 'broadcast', event: 'signal', payload: payload }); }
+
+  function renderLiveList(){
+    const panel = document.getElementById('liveNoticePanel');
+    const box = document.getElementById('liveActiveList');
+    if(!panel || !box) return;
+    const excluded = myLive ? myLive.broadcaster : null;
+    const lives = Object.keys(presenceState).filter(function(email){ return presenceState[email].live && email !== excluded; });
+    box.innerHTML = '';
+    panel.style.display = lives.length ? 'block' : 'none';
+    lives.forEach(function(email){
+      const p = presenceState[email];
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex; align-items:center; justify-content:space-between; padding:0.4rem 0;';
+      const alreadyWatching = watchingLive && watchingLive.broadcasterEmail === email;
+      row.innerHTML = '<span>🔴 <strong>' + escapeHtml(p.name || email) + '</strong> dia mandeha Live ankehitriny</span>' +
+        (alreadyWatching ? '<span class="btn btn-sm" style="opacity:0.6;">Mijery izao</span>' :
+          '<button type="button" class="btn btn-red btn-sm join-live-btn" data-email="' + escapeHtml(email) + '" data-name="' + escapeHtml(p.name || email) + '">Mijery</button>');
+      box.appendChild(row);
+    });
+    box.querySelectorAll('.join-live-btn').forEach(function(btn){
+      btn.addEventListener('click', function(){ joinLive(btn.getAttribute('data-email'), btn.getAttribute('data-name')); });
+    });
+  }
+
+  function startLive(){
+    if(!window.__sb){ alert('Tsy misy fifandraisana amin\'ny serveur.'); return; }
+    if(myLive){ alert('Efa mandeha ny Live-nao.'); return; }
+    if(watchingLive){ alert('Mijanona amin\'ny live jerena aloha vao manomboka anao manokana.'); return; }
+    navigator.mediaDevices.getUserMedia({ audio: true, video: true }).then(function(stream){
+      const me = myIdentity();
+      myLive = { broadcaster: me.email, name: me.name, stream: stream, viewers: {} };
+      document.getElementById('liveBroadcasterVideo').srcObject = stream;
+      showBroadcasterUI();
+      updateMyPresence({ live: true });
+    }).catch(function(err){
+      alert("Tsy afaka mampiasa ny kamera/mikrofonao: " + err.message);
+    });
+  }
+
+  function stopLive(){
+    if(!myLive) return;
+    Object.keys(myLive.viewers).forEach(function(v){
+      try{ myLive.viewers[v].close(); }catch(e){}
+      sendLiveSignal({ kind: 'ended', broadcaster: myLive.broadcaster, viewer: v });
+    });
+    myLive.stream.getTracks().forEach(function(t){ t.stop(); });
+    myLive = null;
+    updateMyPresence({ live: false });
+    hideBroadcasterUI();
+  }
+
+  function onViewerJoin(payload){
+    if(!myLive) return;
+    const viewerEmail = payload.viewer;
+    const pc = new RTCPeerConnection(ICE_SERVERS);
+    myLive.viewers[viewerEmail] = pc;
+    myLive.stream.getTracks().forEach(function(t){ pc.addTrack(t, myLive.stream); });
+    pc.onicecandidate = function(e){
+      if(e.candidate) sendLiveSignal({ kind: 'ice-b', broadcaster: myLive.broadcaster, viewer: viewerEmail, candidate: e.candidate });
+    };
+    pc.createOffer().then(function(offer){ return pc.setLocalDescription(offer); }).then(function(){
+      sendLiveSignal({ kind: 'offer', broadcaster: myLive.broadcaster, viewer: viewerEmail, sdp: pc.localDescription });
+    });
+    updateViewerCount();
+  }
+  function onViewerAnswer(payload){
+    const pc = myLive.viewers[payload.viewer];
+    if(!pc) return;
+    pc.setRemoteDescription(new RTCSessionDescription(payload.sdp)).catch(function(){});
+  }
+  function onViewerIce(payload){
+    const pc = myLive.viewers[payload.viewer];
+    if(!pc) return;
+    pc.addIceCandidate(new RTCIceCandidate(payload.candidate)).catch(function(){});
+  }
+  function onViewerLeave(payload){
+    const pc = myLive.viewers[payload.viewer];
+    if(pc){ try{ pc.close(); }catch(e){} delete myLive.viewers[payload.viewer]; updateViewerCount(); }
+  }
+  function updateViewerCount(){
+    const el = document.getElementById('liveViewerCount');
+    if(el && myLive) el.textContent = Object.keys(myLive.viewers).length;
+  }
+
+  function joinLive(broadcasterEmail, broadcasterName){
+    if(!window.__sb){ alert('Tsy misy fifandraisana amin\'ny serveur.'); return; }
+    if(watchingLive){ alert('Mijery live hafa efa ianao.'); return; }
+    if(myLive){ alert('Ajanony aloha ny Live ataonao vao mijery an\'ny hafa.'); return; }
+    const me = myIdentity();
+    const pc = new RTCPeerConnection(ICE_SERVERS);
+    watchingLive = { broadcasterEmail: broadcasterEmail, broadcasterName: broadcasterName, peer: pc, pendingIce: [] };
+    pc.ontrack = function(e){ document.getElementById('liveViewerVideo').srcObject = e.streams[0]; };
+    pc.onicecandidate = function(e){
+      if(e.candidate) sendLiveSignal({ kind: 'ice-v', broadcaster: broadcasterEmail, viewer: me.email, candidate: e.candidate });
+    };
+    showLiveViewerUI(broadcasterName);
+    sendLiveSignal({ kind: 'join', broadcaster: broadcasterEmail, viewer: me.email, viewerName: me.name });
+  }
+  function onBroadcasterOffer(payload){
+    if(!watchingLive) return;
+    const pc = watchingLive.peer;
+    pc.setRemoteDescription(new RTCSessionDescription(payload.sdp)).then(function(){
+      return pc.createAnswer();
+    }).then(function(answer){
+      return pc.setLocalDescription(answer);
+    }).then(function(){
+      sendLiveSignal({ kind: 'answer', broadcaster: watchingLive.broadcasterEmail, viewer: myIdentity().email, sdp: pc.localDescription });
+      (watchingLive.pendingIce || []).forEach(function(c){ pc.addIceCandidate(new RTCIceCandidate(c)).catch(function(){}); });
+      watchingLive.pendingIce = [];
+    });
+  }
+  function onBroadcasterIce(payload){
+    if(!watchingLive) return;
+    if(!watchingLive.peer.remoteDescription){ watchingLive.pendingIce.push(payload.candidate); return; }
+    watchingLive.peer.addIceCandidate(new RTCIceCandidate(payload.candidate)).catch(function(){});
+  }
+  function leaveLive(){
+    if(!watchingLive) return;
+    sendLiveSignal({ kind: 'leave', broadcaster: watchingLive.broadcasterEmail, viewer: myIdentity().email });
+    try{ watchingLive.peer.close(); }catch(e){}
+    watchingLive = null;
+    hideLiveViewerUI();
+  }
+  function onLiveEndedByBroadcaster(){
+    if(watchingLive){ try{ watchingLive.peer.close(); }catch(e){} }
+    watchingLive = null;
+    hideLiveViewerUI();
+    alert('Vita ny Live.');
+  }
+
+  function handleLiveSignal(payload){
+    if(!payload || !payload.kind) return;
+    const me = myIdentity();
+    if(payload.kind === 'chat'){
+      const isMyLive = myLive && payload.broadcaster === myLive.broadcaster;
+      const isWatching = watchingLive && payload.broadcaster === watchingLive.broadcasterEmail;
+      if(isMyLive || isWatching) appendLiveChatMessage(payload);
+      return;
+    }
+    if(payload.kind === 'ended'){
+      if(watchingLive && payload.broadcaster === watchingLive.broadcasterEmail) onLiveEndedByBroadcaster();
+      return;
+    }
+    if(myLive && payload.broadcaster === myLive.broadcaster){
+      if(payload.kind === 'join'){ onViewerJoin(payload); return; }
+      if(payload.kind === 'answer' && myLive.viewers[payload.viewer]){ onViewerAnswer(payload); return; }
+      if(payload.kind === 'ice-v' && myLive.viewers[payload.viewer]){ onViewerIce(payload); return; }
+      if(payload.kind === 'leave'){ onViewerLeave(payload); return; }
+    }
+    if(watchingLive && payload.viewer === me.email && payload.broadcaster === watchingLive.broadcasterEmail){
+      if(payload.kind === 'offer'){ onBroadcasterOffer(payload); return; }
+      if(payload.kind === 'ice-b'){ onBroadcasterIce(payload); return; }
+    }
+  }
+
+  function sendLiveChat(text){
+    const me = myIdentity();
+    const broadcasterEmail = myLive ? myLive.broadcaster : (watchingLive ? watchingLive.broadcasterEmail : null);
+    if(!broadcasterEmail || !text) return;
+    sendLiveSignal({ kind: 'chat', broadcaster: broadcasterEmail, from: me.email, fromName: me.name, text: text, at: Date.now() });
+  }
+  function appendLiveChatMessage(payload){
+    const box = document.getElementById('liveChatMessages');
+    if(!box) return;
+    const div = document.createElement('div');
+    div.style.marginBottom = '0.35rem';
+    div.innerHTML = '<strong>' + escapeHtml(payload.fromName || payload.from || '?') + ':</strong> ' + escapeHtml(payload.text || '');
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function showBroadcasterUI(){
+    document.getElementById('liveIdleControls').style.display = 'none';
+    document.getElementById('liveBroadcasterView').style.display = 'block';
+    document.getElementById('liveViewerView').style.display = 'none';
+    document.getElementById('liveChatBox').style.display = 'block';
+    document.getElementById('liveChatMessages').innerHTML = '';
+    document.getElementById('liveViewerCount').textContent = '0';
+  }
+  function hideBroadcasterUI(){
+    document.getElementById('liveBroadcasterView').style.display = 'none';
+    document.getElementById('liveIdleControls').style.display = 'block';
+    document.getElementById('liveChatBox').style.display = 'none';
+    document.getElementById('liveBroadcasterVideo').srcObject = null;
+  }
+  function showLiveViewerUI(hostName){
+    document.getElementById('liveIdleControls').style.display = 'none';
+    document.getElementById('liveBroadcasterView').style.display = 'none';
+    document.getElementById('liveViewerView').style.display = 'block';
+    document.getElementById('liveViewerHost').textContent = hostName;
+    document.getElementById('liveChatBox').style.display = 'block';
+    document.getElementById('liveChatMessages').innerHTML = '';
+  }
+  function hideLiveViewerUI(){
+    document.getElementById('liveViewerView').style.display = 'none';
+    document.getElementById('liveIdleControls').style.display = 'block';
+    document.getElementById('liveChatBox').style.display = 'none';
+    document.getElementById('liveViewerVideo').srcObject = null;
+  }
+
+  const startLiveBtn = document.getElementById('startLiveBtn');
+  if(startLiveBtn) startLiveBtn.addEventListener('click', startLive);
+  const stopLiveBtn = document.getElementById('stopLiveBtn');
+  if(stopLiveBtn) stopLiveBtn.addEventListener('click', stopLive);
+  const leaveLiveBtn = document.getElementById('leaveLiveBtn');
+  if(leaveLiveBtn) leaveLiveBtn.addEventListener('click', leaveLive);
+  const liveChatSendBtn = document.getElementById('liveChatSendBtn');
+  if(liveChatSendBtn){
+    liveChatSendBtn.addEventListener('click', function(){
+      const input = document.getElementById('liveChatInput');
+      const text = input.value.trim();
+      if(!text) return;
+      sendLiveChat(text);
+      appendLiveChatMessage({ fromName: myIdentity().name + ' (ianao)', text: text });
+      input.value = '';
+    });
+  }
+  const liveChatInput = document.getElementById('liveChatInput');
+  if(liveChatInput){
+    liveChatInput.addEventListener('keydown', function(e){
+      if(e.key === 'Enter') liveChatSendBtn.click();
+    });
+  }
+
+  function teardownRealtimeFeatures(){
+    if(activeCall) hangupCall();
+    if(myLive) stopLive();
+    if(watchingLive) leaveLive();
+    if(presenceChannel){ try{ presenceChannel.unsubscribe(); }catch(e){} presenceChannel = null; }
+    if(callSignalChannel){ try{ callSignalChannel.unsubscribe(); }catch(e){} callSignalChannel = null; }
+    if(liveSignalChannel){ try{ liveSignalChannel.unsubscribe(); }catch(e){} liveSignalChannel = null; }
+    presenceState = {};
+  }
+
+  window.addEventListener('beforeunload', function(){
+    if(activeCall) sendCallSignal({ kind: 'end', roomId: activeCall.roomId, from: myIdentity().email, to: activeCall.withEmail });
+    if(myLive){
+      Object.keys(myLive.viewers).forEach(function(v){ sendLiveSignal({ kind: 'ended', broadcaster: myLive.broadcaster, viewer: v }); });
+    }
+    if(watchingLive) sendLiveSignal({ kind: 'leave', broadcaster: watchingLive.broadcasterEmail, viewer: myIdentity().email });
+  });
 
   // ---------------- CONNEXIONS ----------------
   function renderLogins(){
@@ -2966,8 +4105,37 @@
   function renderProfileForm(){
     if(!currentUser) return;
     document.getElementById('profileName').value = currentUser.name || '';
+    document.getElementById('profileCompany').value = currentUser.company || '';
     document.getElementById('profileEmail').value = currentUser.email || '';
     document.getElementById('profilePhone').value = currentUser.phone || '';
+    document.getElementById('profileNif').value = currentUser.nif || '';
+    document.getElementById('profileStat').value = currentUser.stat || '';
+    updateProfilePhotoPreview(currentUser.logo || null);
+  }
+
+  function updateProfilePhotoPreview(src){
+    const img = document.getElementById('profilePhotoPreview');
+    const placeholder = document.getElementById('profilePhotoPlaceholder');
+    if(!img || !placeholder) return;
+    if(src){
+      img.src = src;
+      img.style.display = 'block';
+      placeholder.style.display = 'none';
+    } else {
+      img.style.display = 'none';
+      placeholder.style.display = 'flex';
+    }
+  }
+
+  const profileLogoInput = document.getElementById('profileLogo');
+  if(profileLogoInput){
+    profileLogoInput.addEventListener('change', function(){
+      const file = profileLogoInput.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = function(ev){ updateProfilePhotoPreview(ev.target.result); };
+      reader.readAsDataURL(file);
+    });
   }
 
   function shortUserAgent(ua){
