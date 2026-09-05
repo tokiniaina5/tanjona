@@ -507,12 +507,22 @@
     });
   }
 
+  // Rohy mampiditra mivantana amin'ny Live : ny mpanjifa manokatra azy dia
+  // tafiditra ao amin'ny live avy hatrany aorian'ny fidirana, tsy mila mitady.
+  function liveJoinLink(){
+    const me = myIdentity();
+    const base = (typeof appShareLink === 'function') ? appShareLink() : window.location.href;
+    const sep = base.indexOf('?') >= 0 ? '&' : '?';
+    return base + sep + 'live=' + encodeURIComponent(me.email) + '&name=' + encodeURIComponent(me.name);
+  }
+
   // Fanambarana ny Live any amin'ireo tambajotra voarafitra (WhatsApp, Facebook…).
   function announceLiveOnNetworks(name){
     if(typeof shareContent !== 'function') return;
     shareContent({
       title: 'Live direct — Gestion de Stockage',
-      text: '🔴 ' + (name || 'Izahay') + ' dia manao LIVE DIRECT ankehitriny ao amin\'ny appli. Tongava mijery !'
+      text: '🔴 ' + (name || 'Izahay') + ' dia manao LIVE DIRECT ankehitriny. Tsindrio ity rohy ity dia tafiditra avy hatrany ianao :',
+      url: liveJoinLink()
     });
   }
 
@@ -768,6 +778,113 @@
     renderLiveList();
   }
 
+  // ---------------- ROHY MIFANDRAY HO AZY (?live= / ?call=) ----------------
+  // Ny mpanjifa dia tsy mila mitady na inona na inona ao amin'ny appli : ny
+  // fanokafana ilay rohy nozaraina no mampiditra azy mivantana amin'ny Live na
+  // manomboka ny antso. Andrasana ny fidirana (login) vao tanterahina.
+  function pendingLinkAction(){
+    try{
+      const p = new URLSearchParams(window.location.search);
+      const live = (p.get('live') || '').trim().toLowerCase();
+      if(live) return { kind: 'live', email: live, name: p.get('name') || live };
+      const call = (p.get('call') || '').trim().toLowerCase();
+      if(call){
+        const type = (p.get('type') || 'video').toLowerCase() === 'audio' ? 'audio' : 'video';
+        return { kind: 'call', email: call, name: p.get('name') || call, type: type };
+      }
+    }catch(e){}
+    return null;
+  }
+
+  let linkActionDone = false;
+  function runPendingLinkAction(){
+    if(linkActionDone) return;
+    const action = pendingLinkAction();
+    if(!action) return;
+    const me = myIdentity();
+    if(action.email === me.email) return; // tsy miantso ny tenany
+    linkActionDone = true;
+
+    const nav = document.querySelector('.nav-item[data-section="live"]');
+    if(nav && !nav.classList.contains('active')) nav.click();
+
+    if(action.kind === 'call'){
+      // Antso mivantana : ny fangatahana kamera dia mitaky tsindry an-tanana,
+      // ka bokotra no aseho fa tsy antso mandeha ho azy.
+      showLinkActionPrompt(
+        '📞 Antso amin\'i ' + action.name,
+        'Tsindrio mba hanomboka ny antso ' + (action.type === 'audio' ? 'feo' : 'video') + '.',
+        'Antsoy izao',
+        function(){ startCall(action.email, action.name, action.type); }
+      );
+      return;
+    }
+
+    // Live : andrasana kely ny presence mba hahafantarana raha mbola mandeha.
+    setTimeout(function(){
+      const p = presenceState[action.email];
+      if(p && p.live){ joinLive(action.email, p.name || action.name); return; }
+      showLinkActionPrompt(
+        '🔴 Live an\'i ' + action.name,
+        'Tsy mandeha intsony ny Live, na mbola tsy tafiditra ny fifandraisana. ' +
+        'Andramo indray rehefa mahita ny bokotra « Mijery » ianao.',
+        null, null
+      );
+    }, 2500);
+  }
+
+  // Bandeau kely eo ambonin'ny "Live & Appels" ho an'ny rohy nozaraina.
+  function showLinkActionPrompt(title, text, btnLabel, onClick){
+    const host = document.getElementById('liveJoinChoices');
+    if(!host) return;
+    host.style.display = 'block';
+    const box = document.createElement('div');
+    box.className = 'notif-optin';
+    box.innerHTML = '<span><strong>' + escapeHtml(title) + '</strong> — ' + escapeHtml(text) + '</span>';
+    if(btnLabel && onClick){
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn btn-red btn-sm';
+      btn.style.width = 'auto';
+      btn.textContent = btnLabel;
+      btn.addEventListener('click', function(){ box.remove(); onClick(); });
+      box.appendChild(btn);
+    }
+    host.insertBefore(box, host.firstChild);
+  }
+
+  // Rohy antso : ny mpanjifa manokatra azy dia tonga dia manomboka antso aminao.
+  function callInviteLink(type){
+    const me = myIdentity();
+    const base = (typeof appShareLink === 'function') ? appShareLink() : window.location.href;
+    const sep = base.indexOf('?') >= 0 ? '&' : '?';
+    return base + sep + 'call=' + encodeURIComponent(me.email) +
+      '&type=' + (type === 'audio' ? 'audio' : 'video') +
+      '&name=' + encodeURIComponent(me.name);
+  }
+
+  const shareCallLinkBtn = document.getElementById('shareCallLinkBtn');
+  if(shareCallLinkBtn){
+    shareCallLinkBtn.addEventListener('click', function(){
+      if(typeof shareContent !== 'function') return;
+      shareContent({
+        title: 'Antso video — Gestion de Stockage',
+        text: '📹 Tsindrio ity rohy ity dia miantso ahy mivantana amin\'ny video ianao :',
+        url: callInviteLink('video')
+      });
+    });
+  }
+
+  const copyCallLinkBtn = document.getElementById('copyCallLinkBtn');
+  if(copyCallLinkBtn){
+    copyCallLinkBtn.addEventListener('click', function(){
+      if(typeof copyToClipboardSilently === 'function') copyToClipboardSilently(callInviteLink('video'));
+      const original = copyCallLinkBtn.textContent;
+      copyCallLinkBtn.textContent = 'Voadika ✓';
+      setTimeout(function(){ copyCallLinkBtn.textContent = original; }, 1800);
+    });
+  }
+
   const startLiveBtn = document.getElementById('startLiveBtn');
   if(startLiveBtn) startLiveBtn.addEventListener('click', startLive);
   const stopLiveBtn = document.getElementById('stopLiveBtn');
@@ -785,8 +902,7 @@
   const copyLiveLinkBtn = document.getElementById('copyLiveLinkBtn');
   if(copyLiveLinkBtn){
     copyLiveLinkBtn.addEventListener('click', function(){
-      if(typeof appShareLink !== 'function') return;
-      const link = appShareLink();
+      const link = liveJoinLink();
       if(typeof copyToClipboardSilently === 'function') copyToClipboardSilently(link);
       const original = copyLiveLinkBtn.textContent;
       copyLiveLinkBtn.textContent = 'Voadika ✓';

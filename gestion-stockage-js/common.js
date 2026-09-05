@@ -399,6 +399,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
     initPresence();
     initCallSignaling();
     initLiveSignaling();
+    // Rohy misy "?live=" na "?call=" : mifandray avy hatrany, tsy mila mitety
+    // ny appli ny mpanjifa — ny fanokafana ny rohy no ampy.
+    if(typeof runPendingLinkAction === 'function') runPendingLinkAction();
   }
 
   function openPaywall(){
