@@ -194,11 +194,29 @@
   }
   function sendCallSignal(payload){ if(callSignalChannel) callSignalChannel.send({ type: 'broadcast', event: 'signal', payload: payload }); }
 
+  // Ny kamera dia alaina FOANA (na dia antso feo aza), fa atsahatra
+  // (enabled = false) raha antso feo. Izay no ahafahan'ny bokotra « 📷 Kamera »
+  // mampandeha azy eo no eo mandritra ny antso : ny piste video dia efa napetraka
+  // tao amin'ny fifandraisana hatramin'ny voalohany, ka tsy mila fifampiraharahana
+  // (renegotiation) vaovao. Teo aloha dia tsy nisy piste video mihitsy tamin'ny
+  // antso feo, ka tsy nanao na inona na inona ilay bokotra.
+  function getCallMedia(wantVideo){
+    return navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+      .then(function(stream){
+        if(!wantVideo) stream.getVideoTracks().forEach(function(t){ t.enabled = false; });
+        return stream;
+      })
+      .catch(function(){
+        // Tsy misy kamera na nolavina ny kamera : antso feo ihany.
+        return navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      });
+  }
+
   function startCall(targetEmail, targetName, callType){
     if(!window.__sb){ alert('Tsy misy fifandraisana amin\'ny serveur.'); return; }
     if(activeCall){ alert('Efa misy antso mandeha.'); return; }
     const me = myIdentity();
-    navigator.mediaDevices.getUserMedia({ audio: true, video: callType === 'video' }).then(function(stream){
+    getCallMedia(callType === 'video').then(function(stream){
       const roomId = 'call-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
       const pc = new RTCPeerConnection(ICE_SERVERS);
       activeCall = { roomId: roomId, peer: pc, localStream: stream, withEmail: targetEmail, withName: targetName, callType: callType, direction: 'outgoing', status: 'ringing' };
@@ -259,7 +277,7 @@
     const call = activeCall;
     if(!call) return;
     const me = myIdentity();
-    navigator.mediaDevices.getUserMedia({ audio: true, video: call.callType === 'video' }).then(function(stream){
+    getCallMedia(call.callType === 'video').then(function(stream){
       const pc = new RTCPeerConnection(ICE_SERVERS);
       call.peer = pc; call.localStream = stream; call.status = 'connecting';
       stream.getTracks().forEach(function(t){ pc.addTrack(t, stream); });
@@ -359,8 +377,20 @@
     document.getElementById('callActiveBox').style.display = 'block';
     document.getElementById('callActiveWith').textContent = (activeCall.callType === 'video' ? '📹 ' : '📞 ') + (activeCall.withName || activeCall.withEmail);
     if(activeCall.localStream){
-      document.getElementById('callLocalVideo').srcObject = activeCall.localStream;
-      document.getElementById('callLocalVideo').style.display = activeCall.callType === 'video' ? 'block' : 'none';
+      const localEl = document.getElementById('callLocalVideo');
+      const videoTracks = activeCall.localStream.getVideoTracks();
+      localEl.srcObject = activeCall.localStream;
+      // Aseho ny sary kelinao raha misy piste video mandeha. Amin'ny antso feo
+      // dia miafina izy, fa mipoitra avy hatrany rehefa tsindriana « Kamera ».
+      const camOn = videoTracks.length > 0 && videoTracks[0].enabled;
+      localEl.style.display = camOn ? 'block' : 'none';
+      const camBtn = document.getElementById('callCamBtn');
+      if(camBtn){
+        camBtn.disabled = videoTracks.length === 0;
+        camBtn.textContent = videoTracks.length === 0
+          ? '📷 Tsy misy kamera'
+          : (camOn ? '📷 Kamera' : '📷 Sokafy ny kamera');
+      }
     }
   }
   function attachRemoteStream(stream){
@@ -373,7 +403,10 @@
     document.getElementById('callRemoteVideo').srcObject = null;
     document.getElementById('callLocalVideo').srcObject = null;
     document.getElementById('callMuteBtn').textContent = '🎙️ Mute';
-    document.getElementById('callCamBtn').textContent = '📷 Kamera';
+    const camBtn = document.getElementById('callCamBtn');
+    camBtn.textContent = '📷 Kamera';
+    camBtn.disabled = false;
+    document.getElementById('callLocalVideo').style.display = 'none';
   }
 
   const callAcceptBtn = document.getElementById('callAcceptBtn');
@@ -400,10 +433,15 @@
   if(callCamBtn) callCamBtn.addEventListener('click', function(){
     if(!activeCall || !activeCall.localStream) return;
     const tracks = activeCall.localStream.getVideoTracks();
-    if(!tracks.length) return;
+    if(!tracks.length){
+      alert('Tsy misy kamera hita amin\'ity fitaovana ity, na nolavina ny alalana.');
+      return;
+    }
     const nowOn = tracks[0].enabled;
     tracks.forEach(function(t){ t.enabled = !nowOn; });
-    callCamBtn.textContent = nowOn ? '📷 Camera ON' : '📷 Kamera';
+    // Ny sary kelinao dia asehoina na afenina araka izany.
+    document.getElementById('callLocalVideo').style.display = nowOn ? 'none' : 'block';
+    callCamBtn.textContent = nowOn ? '📷 Sokafy ny kamera' : '📷 Kamera';
   });
 
   // ---------------- LIVE DIRECT (1 vers plusieurs, mesh WebRTC) ----------------
