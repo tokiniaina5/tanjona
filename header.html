@@ -130,12 +130,14 @@
   .label-photo::before{ background: #ff6fae; box-shadow:0 0 8px #ff6fae; }
   .label-montage::before{ background: #ffe066; box-shadow:0 0 8px #ffe066; }
   .label-anim3d::before{ background: #9bd85a; box-shadow:0 0 8px #9bd85a; }
+  .label-stock::before{ background: #2ecfa5; box-shadow:0 0 8px #2ecfa5; }
   .label-web{ color: var(--cyan); }
   .label-mcu{ color: var(--amber); }
   .label-calc{ color: #8b93ff; }
   .label-photo{ color: #ff6fae; }
   .label-montage{ color: #ffe066; }
   .label-anim3d{ color: #9bd85a; }
+  .label-stock{ color: #2ecfa5; }
 
   .scene-wrap{
     position:absolute;
@@ -207,6 +209,7 @@
   .line-photo{ color: #ff6fae; text-shadow: 0 0 44px rgba(255,111,174,0.3); }
   .line-montage{ color: #ffe066; text-shadow: 0 0 44px rgba(255,224,102,0.3); }
   .line-anim3d{ color: #9bd85a; text-shadow: 0 0 44px rgba(155,216,90,0.3); }
+  .line-stock{ color: #2ecfa5; text-shadow: 0 0 44px rgba(46,207,165,0.3); }
 
   @media (max-width: 880px){
     .header{
@@ -285,6 +288,7 @@
           <div class="backdrop-line line-anim3d">Robot</div>
           <div class="backdrop-line line-montage">Montage Vidéo</div>
           <div class="backdrop-line line-photo">Photographe</div>
+          <div class="backdrop-line line-stock">Relations Commerciaux Internationaux et Gestion</div>
           <p class="backdrop-about" data-cms="hero_about">Tanjona — développeur basé à Madagascar, entre web, programmation PIC &amp; ESP32, calculateur moteur voiture, animation 3D, montage vidéo et photographie.</p>
         </div>
       </div>
@@ -296,6 +300,7 @@
     <a class="node-label label-montage" id="labelMontage" href="montage-video.html">Montage Vidéo</a>
     <a class="node-label label-anim3d" id="labelAnim3d" href="animation3d.html">Robot</a>
     <a class="node-label label-photo" id="labelPhoto" href="photographe.html">Photographe</a>
+    <a class="node-label label-stock" id="labelStock" href="gestion-stockage.html">Relations Commerciaux Internationaux et Gestion</a>
   </div>
 </header>
 
@@ -904,6 +909,70 @@
   animCube.position.set(0.2, -1.9, -0.4);
   worldGroup.add(animCube);
 
+  // orbiting node 7: RELATIONS COMMERCIAUX INTERNATIONAUX ET GESTION —
+  // a wireframe globe (international) with a tilted trade-route ring,
+  // sitting above a small stack of crates and a briefcase (gestion / stock)
+  function makeGlobeCase(color){
+    const g = new THREE.Group();
+
+    // wireframe globe
+    const globeGeo = new THREE.SphereGeometry(0.34, 16, 12);
+    const globeEdges = new THREE.EdgesGeometry(globeGeo);
+    const globeWire = new THREE.LineSegments(globeEdges, new THREE.LineBasicMaterial({ color, transparent:true, opacity:0.85 }));
+    globeWire.position.set(0, 0.42, 0);
+    g.add(globeWire);
+    const globeFace = new THREE.Mesh(globeGeo, new THREE.MeshStandardMaterial({ color: 0x0f1519, emissive: color, emissiveIntensity:0.18, metalness:0.3, roughness:0.6, transparent:true, opacity:0.35 }));
+    globeFace.position.copy(globeWire.position);
+    g.add(globeFace);
+
+    // tilted "trade route" ring around the globe
+    const tradeRing = new THREE.Mesh(new THREE.TorusGeometry(0.46, 0.012, 8, 32), new THREE.MeshBasicMaterial({ color }));
+    tradeRing.position.copy(globeWire.position);
+    tradeRing.rotation.x = Math.PI/2.6;
+    g.add(tradeRing);
+
+    // a couple of small "pin" markers on the globe, like international contact points
+    const pinMat = new THREE.MeshBasicMaterial({ color });
+    [[0.24, 0.10, 0.2], [-0.2, -0.12, 0.24], [0.05, 0.28, -0.2]].forEach(([x,y,z])=>{
+      const pin = new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 8), pinMat);
+      pin.position.set(globeWire.position.x + x, globeWire.position.y + y, globeWire.position.z + z);
+      g.add(pin);
+    });
+
+    // briefcase (commercial / management), sitting just below the globe
+    const caseMat = new THREE.MeshStandardMaterial({ color: 0x14181c, emissive: color, emissiveIntensity:0.18, metalness:0.4, roughness:0.5 });
+    const caseBody = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.32, 0.16), caseMat);
+    caseBody.position.set(0, -0.1, 0);
+    g.add(caseBody);
+    const handle = new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.018, 6, 12, Math.PI), caseMat);
+    handle.position.set(0, 0.08, 0);
+    handle.rotation.z = Math.PI;
+    g.add(handle);
+    const clasp = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.05, 0.02), new THREE.MeshBasicMaterial({ color }));
+    clasp.position.set(0, -0.02, 0.09);
+    g.add(clasp);
+
+    // small stack of stock crates beside the briefcase (gestion de stock)
+    const crateMat = new THREE.MeshStandardMaterial({ color: 0x1b2126, emissive: color, emissiveIntensity:0.12, metalness:0.3, roughness:0.6 });
+    const crateGeo = new THREE.BoxGeometry(0.16, 0.14, 0.16);
+    const crate1 = new THREE.Mesh(crateGeo, crateMat);
+    crate1.position.set(-0.38, -0.19, 0.02);
+    g.add(crate1);
+    const crate2 = new THREE.Mesh(crateGeo, crateMat);
+    crate2.position.set(-0.24, -0.19, 0.02);
+    g.add(crate2);
+    const crate3 = new THREE.Mesh(new THREE.BoxGeometry(0.14,0.12,0.14), crateMat);
+    crate3.position.set(-0.31, -0.06, 0.02);
+    g.add(crate3);
+
+    g.userData = { globeWire, tradeRing, crate1, crate2, crate3 };
+    return g;
+  }
+
+  const globeCase = makeGlobeCase(0x2ecfa5);
+  globeCase.position.set(1.7, 3.15, -0.35);
+  worldGroup.add(globeCase);
+
   // decorative background: 9 planets + a moon, scattered widely across the scene like the star
   // particle field (not clustered together) — purely decorative, no labels, each drifts slowly
   // around the world origin at its own (large, spread-out) radius so they never bunch up.
@@ -977,7 +1046,8 @@
   const link4 = makeLink(camera3d, 0xff6fae);
   const link5 = makeLink(clapper, 0xffe066);
   const link6 = makeLink(animCube, 0x9bd85a);
-  worldGroup.add(link1, link2, link3, link4, link5, link6);
+  const link7 = makeLink(globeCase, 0x2ecfa5);
+  worldGroup.add(link1, link2, link3, link4, link5, link6, link7);
 
   // particle field
   const particleCount = 140;
@@ -1030,6 +1100,7 @@
   const labelMontage = document.getElementById('labelMontage');
   const labelAnim3d = document.getElementById('labelAnim3d');
   const labelPhoto = document.getElementById('labelPhoto');
+  const labelStock = document.getElementById('labelStock');
   const _labelVec = new THREE.Vector3();
   function positionLabel(el, object3D){
     object3D.getWorldPosition(_labelVec);
@@ -1231,6 +1302,15 @@
       animCube.userData.base.scale.set(1 + (1-squash)*0.4, squash, 1 + (1-squash)*0.4);
     }
 
+    globeCase.position.y = 3.15 + Math.sin(t*0.5 + 6) * 0.13;
+    globeCase.rotation.y = t * 0.35;
+    if(globeCase.userData.globeWire){
+      globeCase.userData.globeWire.rotation.y = t * 0.5;
+    }
+    if(globeCase.userData.tradeRing){
+      globeCase.userData.tradeRing.rotation.z = t * 0.4;
+    }
+
     // solar system: each planet drifts slowly around the world origin at its own wide radius,
     // the moon orbits Earth — all spread apart so nothing clusters
     Object.values(solarSystem.userData.planets).forEach(p=>{
@@ -1248,7 +1328,7 @@
       pr.paper.position.z = pr.parkedZ + (pr.ejectedZ - pr.parkedZ) * printEjectAmount;
     }
 
-    [ [link1, gear], [link2, chip], [link3, brackets], [link4, camera3d], [link5, clapper], [link6, animCube] ].forEach(([link, node])=>{
+    [ [link1, gear], [link2, chip], [link3, brackets], [link4, camera3d], [link5, clapper], [link6, animCube], [link7, globeCase] ].forEach(([link, node])=>{
       const posAttr = link.geometry.attributes.position;
       posAttr.setXYZ(1, node.position.x, node.position.y, node.position.z);
       posAttr.needsUpdate = true;
@@ -1268,6 +1348,7 @@
     positionLabel(labelMontage, clapper);
     positionLabel(labelAnim3d, animCube);
     positionLabel(labelPhoto, camera3d);
+    positionLabel(labelStock, globeCase);
 
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
