@@ -440,12 +440,55 @@
     box.querySelectorAll('.join-live-btn').forEach(function(btn){
       btn.addEventListener('click', function(){ joinLive(btn.getAttribute('data-email'), btn.getAttribute('data-name')); });
     });
+    renderLiveJoinChoices(lives);
+  }
+
+  // Ny bokotra "Mijery" dia apetraka koa EO AMBONIN'NY "Manomboka Live", satria
+  // io no voalohany hitan'ny olona : maro no nanindry "Manomboka Live" nefa ny
+  // tiany dia mijery — ka ny kamerany manokana no nisokatra.
+  function renderLiveJoinChoices(lives){
+    const box = document.getElementById('liveJoinChoices');
+    if(!box) return;
+    box.innerHTML = '';
+    if(!lives || !lives.length || myLive || watchingLive){
+      box.style.display = 'none';
+      return;
+    }
+    box.style.display = 'block';
+    lives.forEach(function(email){
+      const p = presenceState[email] || {};
+      const name = p.name || email;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn btn-red';
+      btn.style.cssText = 'width:auto; margin-bottom:0.6rem;';
+      btn.textContent = '👁️ Mijery ny live an\'i ' + name;
+      btn.addEventListener('click', function(){ joinLive(email, name); });
+      box.appendChild(btn);
+    });
   }
 
   function startLive(){
     if(!window.__sb){ alert('Tsy misy fifandraisana amin\'ny serveur.'); return; }
     if(myLive){ alert('Efa mandeha ny Live-nao.'); return; }
     if(watchingLive){ alert('Mijanona amin\'ny live jerena aloha vao manomboka anao manokana.'); return; }
+
+    // Fanontaniana raha efa misy live mandeha : matetika ny olona te-HIJERY no
+    // manindry ity bokotra ity, ka ny kamerany manokana indray no misokatra.
+    const meNow = myIdentity();
+    const otherLives = Object.keys(presenceState).filter(function(email){
+      return presenceState[email] && presenceState[email].live && email !== meNow.email;
+    });
+    if(otherLives.length){
+      const otherName = (presenceState[otherLives[0]] || {}).name || otherLives[0];
+      const watchIt = confirm(
+        'Misy Live mandeha an\'i ' + otherName + '.\n\n' +
+        'OK = mijery ny live an\'i ' + otherName + '\n' +
+        'Annuler = manomboka ny Live-nao manokana (hisokatra ny kameranao)'
+      );
+      if(watchIt){ joinLive(otherLives[0], otherName); return; }
+    }
+
     navigator.mediaDevices.getUserMedia({ audio: true, video: true }).then(function(stream){
       const me = myIdentity();
       myLive = { broadcaster: me.email, name: me.name, stream: stream, viewers: {} };
@@ -700,12 +743,14 @@
     document.getElementById('liveChatBox').style.display = 'block';
     document.getElementById('liveChatMessages').innerHTML = '';
     document.getElementById('liveViewerCount').textContent = '0';
+    renderLiveList();
   }
   function hideBroadcasterUI(){
     document.getElementById('liveBroadcasterView').style.display = 'none';
     document.getElementById('liveIdleControls').style.display = 'block';
     document.getElementById('liveChatBox').style.display = 'none';
     document.getElementById('liveBroadcasterVideo').srcObject = null;
+    renderLiveList();
   }
   function showLiveViewerUI(hostName){
     document.getElementById('liveIdleControls').style.display = 'none';
@@ -720,6 +765,7 @@
     document.getElementById('liveIdleControls').style.display = 'block';
     document.getElementById('liveChatBox').style.display = 'none';
     document.getElementById('liveViewerVideo').srcObject = null;
+    renderLiveList();
   }
 
   const startLiveBtn = document.getElementById('startLiveBtn');
