@@ -726,6 +726,27 @@
   if(startLiveBtn) startLiveBtn.addEventListener('click', startLive);
   const stopLiveBtn = document.getElementById('stopLiveBtn');
   if(stopLiveBtn) stopLiveBtn.addEventListener('click', stopLive);
+
+  // Fizarana ny rohy mandritra ny Live : azo averina impiry impiry, mba
+  // hahatongavan'ny fanasana amin'ny mpanjifa tsirairay na dia efa nanomboka aza.
+  const shareLiveBtn = document.getElementById('shareLiveBtn');
+  if(shareLiveBtn){
+    shareLiveBtn.addEventListener('click', function(){
+      announceLiveOnNetworks(myLive ? myLive.name : myIdentity().name);
+    });
+  }
+
+  const copyLiveLinkBtn = document.getElementById('copyLiveLinkBtn');
+  if(copyLiveLinkBtn){
+    copyLiveLinkBtn.addEventListener('click', function(){
+      if(typeof appShareLink !== 'function') return;
+      const link = appShareLink();
+      if(typeof copyToClipboardSilently === 'function') copyToClipboardSilently(link);
+      const original = copyLiveLinkBtn.textContent;
+      copyLiveLinkBtn.textContent = 'Voadika ✓';
+      setTimeout(function(){ copyLiveLinkBtn.textContent = original; }, 1800);
+    });
+  }
   const leaveLiveBtn = document.getElementById('leaveLiveBtn');
   if(leaveLiveBtn) leaveLiveBtn.addEventListener('click', leaveLive);
   const liveChatSendBtn = document.getElementById('liveChatSendBtn');
