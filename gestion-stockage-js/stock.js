@@ -175,26 +175,10 @@
   }
   purgeExpiredOrphanMovements();
 
-  // ---------------- SOUS-ONGLETS ARTICLES (Ajouter / Vente / Acheter / Gestion de compte) ----------------
-  document.querySelectorAll('.articles-tab').forEach(function(tab){
-    tab.addEventListener('click', function(){
-      document.querySelectorAll('.articles-tab').forEach(function(t){ t.classList.remove('active'); });
-      document.querySelectorAll('.articles-view').forEach(function(v){ v.classList.remove('active'); });
-      tab.classList.add('active');
-      document.getElementById('articles-' + tab.dataset.articlesTab).classList.add('active');
-      if(tab.dataset.articlesTab === 'vente'){
-        if(typeof populateVenteItemSelect === 'function') populateVenteItemSelect();
-        if(typeof populateVenteClientSelect === 'function') populateVenteClientSelect();
-        if(typeof updateVenteInfo === 'function') updateVenteInfo();
-      }
-      if(tab.dataset.articlesTab === 'acheter'){
-        if(typeof populateAcheterItemSelect === 'function') populateAcheterItemSelect();
-      }
-      if(tab.dataset.articlesTab === 'comptes'){
-        if(typeof renderClientsList === 'function') renderClientsList();
-      }
-    });
-  });
+  // Note : Ajouter / Vente / Acheter / Gestion de compte dia lasa dash-tab
+  // lehibe mitovy amin'ny Accueil/Tableau de bord, mipetraka aorian'ny
+  // "Articles" — ny fifandimbiasany dia votoatin'ilay listener ".dash-tab"
+  // ao amin'ny common.js ankehitriny.
 
   function escapeHtml(str){
     const div = document.createElement('div');

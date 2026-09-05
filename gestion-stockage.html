@@ -246,7 +246,16 @@
         <div class="dash-tabs">
           <div class="dash-tab active" data-dash="accueil">🏠 Accueil</div>
           <div class="dash-tab" data-dash="dashboard">📊 Tableau de bord</div>
-          <div class="dash-tab" data-dash="articles">📦 Articles</div>
+          <div class="dash-tab" data-dash="historique">📜 Historique des mouvements</div>
+          <div class="dash-tab" data-dash="ajouter">➕ Ajouter</div>
+          <div class="dash-tab" data-dash="vente">💵 Vente</div>
+          <div class="dash-tab" data-dash="acheter">🛒 Acheter</div>
+          <div class="dash-tab" data-dash="comptes">👥 Gestion de compte</div>
+        </div>
+
+        <div class="global-search" style="position:relative; margin:0 0 1.2rem;">
+          <input type="text" id="globalSearchInput" placeholder="🔍 Rechercher un article, un mouvement..." autocomplete="off" style="width:100%; padding:0.6rem 0.8rem; border-radius:8px; border:1px solid var(--line); background:var(--bg); color:var(--text); font-size:0.82rem; box-sizing:border-box;">
+          <div id="globalSearchResults" style="display:none; position:absolute; top:110%; left:0; right:0; background:var(--panel); border:1px solid var(--line); border-radius:10px; max-height:340px; overflow-y:auto; z-index:60; box-shadow:0 8px 24px rgba(0,0,0,0.35);"></div>
         </div>
 
         <!-- ===== ACCUEIL ===== -->
@@ -370,23 +379,8 @@
           </div>
         </div>
 
-        <!-- ===== ARTICLES ===== -->
-        <div class="dash-view" id="dash-articles">
-
-          <div class="global-search" style="position:relative; margin:0 0 1.2rem;">
-            <input type="text" id="globalSearchInput" placeholder="🔍 Rechercher un article, un mouvement..." autocomplete="off" style="width:100%; padding:0.6rem 0.8rem; border-radius:8px; border:1px solid var(--line); background:var(--bg); color:var(--text); font-size:0.82rem; box-sizing:border-box;">
-            <div id="globalSearchResults" style="display:none; position:absolute; top:110%; left:0; right:0; background:var(--panel); border:1px solid var(--line); border-radius:10px; max-height:340px; overflow-y:auto; z-index:60; box-shadow:0 8px 24px rgba(0,0,0,0.35);"></div>
-          </div>
-
-          <div class="articles-tabs">
-            <div class="articles-tab active" data-articles-tab="ajouter">➕ Ajouter</div>
-            <div class="articles-tab" data-articles-tab="vente">💵 Vente</div>
-            <div class="articles-tab" data-articles-tab="acheter">🛒 Acheter</div>
-            <div class="articles-tab" data-articles-tab="comptes">👥 Gestion de compte</div>
-          </div>
-
-          <!-- ===== AJOUTER ===== -->
-          <div class="articles-view active" id="articles-ajouter">
+        <!-- ===== HISTORIQUE DES MOUVEMENTS ===== -->
+        <div class="dash-view" id="dash-historique">
 
             <div class="panel">
               <h3>📜 Historique des mouvements</h3>
@@ -401,7 +395,10 @@
               </div>
               <p class="empty-hint" id="movementsEmptyHint" style="display:none;">Aucun mouvement enregistré pour le moment.</p>
             </div>
+        </div>
 
+        <!-- ===== AJOUTER ===== -->
+        <div class="dash-view" id="dash-ajouter">
             <div class="panel">
               <h3>Ajouter un article (entrée en stock)</h3>
               <div class="form-grid">
@@ -460,10 +457,10 @@
               </table>
             </div>
             <p class="empty-hint" id="stockEmptyHint" style="display:none;">Aucun article pour le moment. Ajoutez-en un ci-dessus.</p>
-          </div>
+        </div>
 
           <!-- ===== VENTE ===== -->
-          <div class="articles-view" id="articles-vente">
+          <div class="dash-view" id="dash-vente">
             <div class="panel">
               <h3>💵 Vente</h3>
               <p style="font-size:0.8rem; color:var(--muted); margin-bottom:0.8rem;">Misafidiana entana : ny stock dia hihena avy hatrany rehefa mivarotra.</p>
@@ -506,7 +503,7 @@
           </div>
 
           <!-- ===== ACHETER ===== -->
-          <div class="articles-view" id="articles-acheter">
+          <div class="dash-view" id="dash-acheter">
             <div class="panel">
               <h3>🛒 Acheter (réapprovisionnement)</h3>
               <p style="font-size:0.8rem; color:var(--muted); margin-bottom:0.8rem;">Misafidiana entana efa misy raha te-hanampy stock, na manorata anarana vaovao raha entana tsy mbola misy.</p>
@@ -556,7 +553,7 @@
           </div>
 
           <!-- ===== GESTION DE COMPTE ===== -->
-          <div class="articles-view" id="articles-comptes">
+          <div class="dash-view" id="dash-comptes">
             <div class="panel">
               <h3>👥 Ajouter un client</h3>
               <div class="form-grid">
@@ -593,7 +590,6 @@
             </div>
           </div>
 
-        </div>
       </section>
 
       <!-- ---- FACTURES ---- -->
@@ -650,6 +646,7 @@
             <input id="inviteLink" type="text" readonly>
             <button class="btn btn-amber" id="copyInviteBtn">Copier le lien</button>
           </div>
+          <p class="local-link-warning" id="localLinkWarning" style="display:none;"></p>
           <p style="font-size:0.78rem; color:var(--muted); margin-top:0.6rem; line-height:1.5;">
             Chaque personne qui ouvre l'application via ce lien vous rapporte
             <strong style="color:var(--text);">1 crédit</strong> dans votre
@@ -745,22 +742,16 @@
 
         <div class="panel">
           <h3>Contactez le service client</h3>
-          <div class="actions-row" id="contactButtonsRow" style="flex-wrap:wrap; gap:0.6rem;"></div>
+          <p style="font-size:0.78rem; color:var(--muted); margin-bottom:1rem;">
+            Bokotra telo ihany : antso, antso video, fizarana. Rehefa maro ny canal
+            misokatra dia asehoina ny lisitra mba hisafidiananao.
+          </p>
+
+          <div class="actions-row" id="contactMainActions" style="flex-wrap:wrap; gap:0.6rem;"></div>
+
           <p class="empty-hint" id="contactButtonsEmptyHint" style="display:none;">
             Aucun canal de contact n'a encore été configuré. Revenez bientôt !
           </p>
-        </div>
-
-        <div class="panel" id="inAppCallPanel" style="display:none;">
-          <h3>📲 Antso ao anaty appli (mivantana)</h3>
-          <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.8rem;">
-            Antso feo na video mivantana amin'ny mpitantana, ao anatin'ity appli ity ihany — tsy mila mivoaka mankany WhatsApp na app hafa.
-          </p>
-          <div style="display:flex; align-items:center; gap:0.8rem; flex-wrap:wrap;">
-            <button type="button" class="btn btn-primary btn-sm" id="inAppCallAudioBtn">📞 Antso feo</button>
-            <button type="button" class="btn btn-primary btn-sm" id="inAppCallVideoBtn">📹 Antso video</button>
-            <span style="font-size:0.78rem; color:var(--muted);" id="ownerOnlineStatus">—</span>
-          </div>
         </div>
 
         <div class="panel" id="contactAdminPanel" style="display:none;">
@@ -769,6 +760,12 @@
             Renseignez vos comptes réels : ces boutons seront visibles par <strong>tous vos clients</strong>
             dans « Nous contacter », pour qu'ils puissent vous écrire directement.
           </p>
+          <div class="field">
+            <label for="contactSiteUrlInput">Adresse publique du site (URL partagée à vos clients)</label>
+            <input id="contactSiteUrlInput" type="text" placeholder="https://mon-app.netlify.app/gestion-stockage.html">
+            <p class="local-link-warning" id="adminLinkWarning" style="display:none;"></p>
+          </div>
+
           <div class="form-grid">
             <div class="field" style="margin-bottom:0;">
               <label for="contactWhatsappInput">Numéro WhatsApp (avec indicatif, chiffres uniquement)</label>
@@ -838,12 +835,21 @@
               <h3>🔴 Live direct</h3>
               <p class="community-sub">Manombohy live mivantana hampisehoana ny entanao amin'ny olona rehetra mijery ankehitriny.</p>
 
+              <div class="notif-optin" id="notifOptIn" style="display:none;">
+                <span id="notifOptInText">🔔 Avelao ny fampandrenesana mba hahafantaranao ny Live na dia tsy eo amin'ity pejy ity aza ianao.</span>
+                <button type="button" class="btn btn-sm" id="notifOptInBtn" style="width:auto;">Avelao</button>
+              </div>
+
               <div id="liveIdleControls">
                 <button type="button" class="btn btn-red" id="startLiveBtn">🔴 Manomboka Live</button>
               </div>
 
               <div id="liveBroadcasterView" style="display:none;">
-                <video id="liveBroadcasterVideo" autoplay muted playsinline style="width:100%; max-width:480px; border-radius:10px; background:#000;"></video>
+                <div style="position:relative; width:100%; max-width:480px;">
+                  <video id="liveBroadcasterVideo" autoplay muted playsinline style="width:100%; border-radius:10px; background:#000; display:block;"></video>
+                  <span class="live-onair-badge">🔴 MIVANTANA</span>
+                </div>
+                <p class="live-reach" id="liveReachInfo">—</p>
                 <div style="margin-top:0.6rem; display:flex; align-items:center; gap:0.8rem; flex-wrap:wrap;">
                   <span style="font-size:0.8rem; color:var(--muted);">👁️ <span id="liveViewerCount">0</span> mijery</span>
                   <button type="button" class="btn btn-red btn-sm" id="stopLiveBtn">Ajanona ny Live</button>

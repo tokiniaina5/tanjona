@@ -14,8 +14,92 @@
   let presenceChannel = null;
   let presenceState = {};
 
+  // ---------------- FAMPANDRENESANA AN'NY NAVIGATEUR (système) ----------------
+  // Mba ho tonga any amin'ny olona ny vaovao na dia tsy eo amin'ny onglet aza izy,
+  // ka hidirany hijery ny Live. Ny navigateur dia mitaky tsindry an-tanana alohan'ny
+  // hangatahana alalana : ny tsindry voalohany ataon'ny mpampiasa no ampiasaina.
+  function ensureNotificationPermission(){
+    if(!('Notification' in window)) return;
+    if(Notification.permission !== 'default') return;
+    try { Notification.requestPermission(); } catch(e){}
+  }
+
+  // Bandeau ao amin'ny "Live & Appels" : hita raha mbola tsy nomena alalana, mba
+  // tsy hangina mangingina ny fampandrenesana.
+  function renderNotifOptIn(){
+    const box = document.getElementById('notifOptIn');
+    if(!box) return;
+    const text = document.getElementById('notifOptInText');
+    const btn = document.getElementById('notifOptInBtn');
+    if(!('Notification' in window)){ box.style.display = 'none'; return; }
+    if(Notification.permission === 'granted'){ box.style.display = 'none'; return; }
+    box.style.display = 'flex';
+    if(Notification.permission === 'denied'){
+      text.textContent = '🔕 Voasakana ny fampandrenesana amin\'ity navigateur ity. Sokafy ny paramètres ny site mba hamela azy — raha tsy izany dia ao anaty appli ihany no hahitanao ny Live.';
+      btn.style.display = 'none';
+      return;
+    }
+    text.textContent = '🔔 Avelao ny fampandrenesana mba hahafantaranao ny Live na dia tsy eo amin\'ity pejy ity aza ianao.';
+    btn.style.display = 'inline-flex';
+  }
+
+  const notifOptInBtn = document.getElementById('notifOptInBtn');
+  if(notifOptInBtn){
+    notifOptInBtn.addEventListener('click', function(){
+      if(!('Notification' in window)) return;
+      try {
+        const res = Notification.requestPermission(function(){ renderNotifOptIn(); });
+        if(res && typeof res.then === 'function') res.then(renderNotifOptIn, renderNotifOptIn);
+      } catch(e){ renderNotifOptIn(); }
+    });
+  }
+
+  function askNotificationPermissionOnFirstClick(){
+    if(!('Notification' in window) || Notification.permission !== 'default') return;
+    document.addEventListener('click', function once(){
+      document.removeEventListener('click', once);
+      ensureNotificationPermission();
+    });
+  }
+
+  // Fampandrenesana ivelan'ny onglet. Tsindriana azy dia miverina eto ny olona
+  // ary tanterahina ny asa (miditra amin'ny Live, na mamaly antso).
+  function showSystemNotification(title, body, tag, onClick){
+    if(!('Notification' in window) || Notification.permission !== 'granted') return null;
+    try {
+      const n = new Notification(title, { body: body, tag: tag, lang: 'mg' });
+      n.onclick = function(){
+        try { window.focus(); } catch(e){}
+        n.close();
+        if(onClick) onClick();
+      };
+      return n;
+    } catch(e){
+      // Amin'ny Chrome finday dia ilaina ny Service Worker : tsy mahavaky ny appli.
+      return null;
+    }
+  }
+
+  // Feo fohy manaitra rehefa misy Live manomboka (tsy toy ny ringtone miverimberina).
+  function playLiveChime(){
+    try{
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      [660, 880].forEach(function(freq, i){
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.frequency.value = freq;
+        gain.gain.value = 0.12;
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(ctx.currentTime + i * 0.18);
+        osc.stop(ctx.currentTime + i * 0.18 + 0.16);
+      });
+      setTimeout(function(){ try{ ctx.close(); }catch(e){} }, 900);
+    }catch(e){}
+  }
+
   function initPresence(){
     if(!window.__sb || presenceChannel) return;
+    askNotificationPermissionOnFirstClick();
     const me = myIdentity();
     presenceChannel = window.__sb.channel('presence-tanjona', { config: { presence: { key: me.email } } });
     presenceChannel.on('presence', { event: 'sync' }, function(){
@@ -26,7 +110,8 @@
       });
       renderOnlineClientsForCall();
       renderLiveList();
-      renderInAppCallPanel();
+      updateLiveReachInfo();
+      if(typeof updateOwnerPresenceLabel === 'function') updateOwnerPresenceLabel();
     });
     presenceChannel.subscribe(function(status){
       if(status === 'SUBSCRIBED'){
@@ -155,7 +240,19 @@
       return;
     }
     activeCall = { roomId: payload.roomId, withEmail: payload.from, withName: payload.fromName, callType: payload.callType, direction: 'incoming', status: 'ringing', offerSdp: payload.sdp, pendingIce: [] };
+    // Mitovy amin'ny Live : fampandrenesana ao amin'ny lakolosy koa, mba hisy
+    // dian'ilay antso na dia tsy voaray aza.
+    const who = payload.fromName || payload.from;
+    if(typeof pushNotification === 'function'){
+      pushNotification('antso', (payload.callType === 'video' ? '📹 Antso video' : '📞 Antso feo') +
+        ' avy amin\'i ' + who + '.');
+    }
     showIncomingCallUI();
+    showSystemNotification(
+      (payload.callType === 'video' ? '📹 Antso video' : '📞 Antso feo') + ' avy amin\'i ' + who,
+      'Tsindrio ity mba hiverina amin\'ny appli sy hamaly.',
+      'antso-' + payload.roomId
+    );
   }
 
   function acceptIncomingCall(){
@@ -355,8 +452,24 @@
       document.getElementById('liveBroadcasterVideo').srcObject = stream;
       showBroadcasterUI();
       updateMyPresence({ live: true });
+      // (1) Fampandrenesana ao anaty appli ho an'ny mpanjifa/namana rehetra.
+      sendLiveSignal({ kind: 'live-started', broadcaster: me.email, name: me.name });
+      updateLiveReachInfo();
+      // (2) Fanambarana any amin'ireo lien voarafitra, mba ho hitan'ny olona
+      // ivelan'ny appli koa. Menu no aseho fa tsy tabilao maro misokatra ho azy :
+      // sakanan'ny navigateur rehetra ny popup marobe tsy notsindrian'olona.
+      announceLiveOnNetworks(me.name);
     }).catch(function(err){
       alert("Tsy afaka mampiasa ny kamera/mikrofonao: " + err.message);
+    });
+  }
+
+  // Fanambarana ny Live any amin'ireo tambajotra voarafitra (WhatsApp, Facebook…).
+  function announceLiveOnNetworks(name){
+    if(typeof shareContent !== 'function') return;
+    shareContent({
+      title: 'Live direct — Gestion de Stockage',
+      text: '🔴 ' + (name || 'Izahay') + ' dia manao LIVE DIRECT ankehitriny ao amin\'ny appli. Tongava mijery !'
     });
   }
 
@@ -366,10 +479,71 @@
       try{ myLive.viewers[v].close(); }catch(e){}
       sendLiveSignal({ kind: 'ended', broadcaster: myLive.broadcaster, viewer: v });
     });
+    sendLiveSignal({ kind: 'live-stopped', broadcaster: myLive.broadcaster, name: myLive.name });
     myLive.stream.getTracks().forEach(function(t){ t.stop(); });
     myLive = null;
     updateMyPresence({ live: false });
     hideBroadcasterUI();
+  }
+
+  // ---------------- FAMPANDRENESANA LIVE (ho an'ny rehetra) ----------------
+  // Bandeau mihantona eo ambony, hita na aiza na aiza ao amin'ny appli, miaraka
+  // amin'ny fampandrenesana ao amin'ny lakolosy.
+  function onSomeoneWentLive(payload){
+    const name = payload.name || payload.broadcaster || 'Mpanjifa';
+    if(typeof pushNotification === 'function'){
+      pushNotification('live', '🔴 ' + name + ' dia manomboka LIVE DIRECT ankehitriny.');
+    }
+    showLiveToast(payload.broadcaster, name);
+    playLiveChime();
+    // Fampandrenesana an'ny navigateur : tsindriana dia miditra mivantana amin'ny Live.
+    showSystemNotification(
+      '🔴 ' + name + ' dia manao Live direct',
+      'Tsindrio ity mba hiditra hijery avy hatrany.',
+      'live-' + payload.broadcaster,
+      function(){
+        const nav = document.querySelector('.nav-item[data-section="live"]');
+        if(nav && !nav.classList.contains('active')) nav.click();
+        joinLive(payload.broadcaster, name);
+        removeLiveToast(payload.broadcaster);
+      }
+    );
+  }
+
+  function liveToastContainer(){
+    let box = document.getElementById('liveToastBox');
+    if(!box){
+      box = document.createElement('div');
+      box.id = 'liveToastBox';
+      box.style.cssText = 'position:fixed; top:0.8rem; right:0.8rem; left:0.8rem; z-index:190; ' +
+        'display:flex; flex-direction:column; gap:0.5rem; align-items:flex-end; pointer-events:none;';
+      document.body.appendChild(box);
+    }
+    return box;
+  }
+
+  function showLiveToast(email, name){
+    removeLiveToast(email);
+    const toast = document.createElement('div');
+    toast.className = 'live-toast';
+    toast.setAttribute('data-live-toast', email);
+    toast.innerHTML =
+      '<span>🔴 <strong>' + escapeHtml(name) + '</strong> dia manao Live direct</span>' +
+      '<button type="button" class="btn btn-red btn-sm live-toast-join" style="width:auto;">Mijery</button>' +
+      '<button type="button" class="btn btn-sm live-toast-close" style="width:auto;">✕</button>';
+    toast.querySelector('.live-toast-join').addEventListener('click', function(){
+      const nav = document.querySelector('.nav-item[data-section="live"]');
+      if(nav && !nav.classList.contains('active')) nav.click();
+      joinLive(email, name);
+      removeLiveToast(email);
+    });
+    toast.querySelector('.live-toast-close').addEventListener('click', function(){ removeLiveToast(email); });
+    liveToastContainer().appendChild(toast);
+  }
+
+  function removeLiveToast(email){
+    const el = document.querySelector('[data-live-toast="' + (window.CSS && CSS.escape ? CSS.escape(email) : email) + '"]');
+    if(el) el.remove();
   }
 
   function onViewerJoin(payload){
@@ -403,6 +577,23 @@
   function updateViewerCount(){
     const el = document.getElementById('liveViewerCount');
     if(el && myLive) el.textContent = Object.keys(myLive.viewers).length;
+    updateLiveReachInfo();
+  }
+
+  // Marika manamarina amin'ny mpanao Live fa tena mipoitra any amin'ny mpanjifa
+  // ny live-ny : firy no voampandre, firy no efa nanokatra.
+  function updateLiveReachInfo(){
+    const el = document.getElementById('liveReachInfo');
+    if(!el || !myLive) return;
+    const me = myIdentity();
+    const others = Object.keys(presenceState).filter(function(email){ return email !== me.email; });
+    const watching = Object.keys(myLive.viewers).length;
+    if(!others.length){
+      el.innerHTML = '⚠️ <strong>Tsy misy olona miditra ankehitriny.</strong> Rehefa misy miditra dia ho hitany avy hatrany ny live-nao.';
+      return;
+    }
+    el.innerHTML = '✅ Mipoitra any amin\'ny <strong>' + others.length + ' mpanjifa</strong> miditra ' +
+      'ankehitriny : bandeau 🔴 sy fampandrenesana. <strong>' + watching + '</strong> no efa mijery.';
   }
 
   function joinLive(broadcasterEmail, broadcasterName){
@@ -462,6 +653,16 @@
     }
     if(payload.kind === 'ended'){
       if(watchingLive && payload.broadcaster === watchingLive.broadcasterEmail) onLiveEndedByBroadcaster();
+      return;
+    }
+    // Fampandrenesana ho an'ny OLONA REHETRA miditra : tsy voafetra amin'ny
+    // mpijery efa mifandray, fa alefa amin'ny rehetra rehefa misy Live manomboka.
+    if(payload.kind === 'live-started'){
+      if(payload.broadcaster !== me.email) onSomeoneWentLive(payload);
+      return;
+    }
+    if(payload.kind === 'live-stopped'){
+      if(payload.broadcaster !== me.email) removeLiveToast(payload.broadcaster);
       return;
     }
     if(myLive && payload.broadcaster === myLive.broadcaster){

@@ -1,5 +1,5 @@
 /* ---------- Tableau de bord (Stock) ---------- */
-  .dash-tabs{ display:flex; gap:0.4rem; margin-bottom:1.4rem; border-bottom:1px solid var(--line); }
+  .dash-tabs{ display:flex; gap:0.4rem; margin-bottom:1.4rem; border-bottom:1px solid var(--line); flex-wrap:wrap; }
   .dash-tab{
     padding:0.65rem 1.1rem; font-size:0.85rem; color:var(--muted); cursor:pointer;
     border-bottom:2px solid transparent; font-family:var(--font-mono); user-select:none;
@@ -8,17 +8,6 @@
   .dash-tab.active{ color:var(--cyan); border-color:var(--cyan); }
   .dash-view{ display:none; }
   .dash-view.active{ display:block; }
-
-  /* ---------- Sous-onglets Articles (Ajouter / Vente / Acheter / Gestion de compte) ---------- */
-  .articles-tabs{ display:flex; gap:0.4rem; margin-bottom:1.4rem; border-bottom:1px solid var(--line); flex-wrap:wrap; }
-  .articles-tab{
-    padding:0.6rem 1rem; font-size:0.82rem; color:var(--muted); cursor:pointer;
-    border-bottom:2px solid transparent; font-family:var(--font-mono); user-select:none;
-  }
-  .articles-tab:hover{ color:var(--text); }
-  .articles-tab.active{ color:var(--cyan); border-color:var(--cyan); }
-  .articles-view{ display:none; }
-  .articles-view.active{ display:block; }
 
   .filters-panel{
     background:var(--panel); border:1px solid var(--line); border-radius:12px;
@@ -103,6 +92,42 @@
   .fb-post-link:hover{ border-color:var(--cyan); }
   .fb-post-actions{ display:flex; gap:1.2rem; margin-top:0.9rem; padding-top:0.7rem; border-top:1px solid var(--line); }
   .fb-post-actions span{ font-size:0.78rem; color:var(--muted); }
+  .fb-share-action:hover{ color:var(--cyan); }
+
+  /* ---------- Fampitandremana rohy an-toerana (localhost / file://) ---------- */
+  .local-link-warning{
+    font-size:0.76rem; color:var(--amber); line-height:1.5;
+    margin:0.6rem 0 0; padding-left:0.7rem; border-left:3px solid var(--amber);
+  }
+
+  /* ---------- Fangatahana alalana fampandrenesana ---------- */
+  .notif-optin{
+    display:flex; align-items:center; gap:0.7rem; flex-wrap:wrap;
+    background:var(--panel-2); border:1px solid var(--line); border-left:3px solid var(--amber);
+    border-radius:10px; padding:0.6rem 0.8rem; margin-bottom:0.9rem;
+    font-size:0.78rem; color:var(--muted);
+  }
+
+  /* ---------- Marika "mivantana" ho an'ny mpanao Live ---------- */
+  .live-onair-badge{
+    position:absolute; top:0.5rem; left:0.5rem;
+    font-family:var(--font-mono); font-size:0.65rem; font-weight:700; letter-spacing:0.06em;
+    color:#fff; background:var(--red); border-radius:999px; padding:0.2rem 0.6rem;
+    animation:fbLivePulse 1.6s infinite;
+  }
+  .live-reach{
+    font-size:0.76rem; color:var(--muted); margin:0.6rem 0 0;
+    padding-left:0.7rem; border-left:3px solid var(--red); line-height:1.5;
+  }
+  .live-reach strong{ color:var(--text); }
+
+  /* ---------- Bandeau "Live direct" (hita na aiza na aiza ao amin'ny appli) ---------- */
+  .live-toast{
+    pointer-events:auto; display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;
+    background:var(--panel); border:1px solid var(--red); border-left:4px solid var(--red);
+    border-radius:10px; padding:0.6rem 0.8rem; font-size:0.82rem;
+    box-shadow:0 8px 24px rgba(0,0,0,0.45); max-width:100%;
+  }
 
   .fb-sidebar{ position:sticky; top:0.5rem; }
 

@@ -300,6 +300,8 @@ const STORAGE_ITEMS = 'stockmanager_items';
     if(type === 'rupture') return '⚠️';
     if(type === 'parrainage') return '💰';
     if(type === 'modification') return '✏️';
+    if(type === 'live') return '🔴';
+    if(type === 'antso') return '📞';
     return '🔔';
   }
   function renderNotifications(){
@@ -811,7 +813,11 @@ const STORAGE_ITEMS = 'stockmanager_items';
       document.getElementById('section-' + nav.dataset.section).classList.add('active');
       if(nav.dataset.section === 'factures') renderInvoiceItems();
       if(nav.dataset.section === 'stock'){ renderFilters(); renderDashboard(); renderCommunityPanel(); }
-      if(nav.dataset.section === 'live'){ renderOnlineClientsForCall(); renderLiveList(); }
+      if(nav.dataset.section === 'live'){
+        renderOnlineClientsForCall();
+        renderLiveList();
+        if(typeof renderNotifOptIn === 'function') renderNotifOptIn();
+      }
       // ferme le menu mobile après avoir choisi une section
       if(navList && navList.classList.contains('open')){
         navList.classList.remove('open');
@@ -828,6 +834,25 @@ const STORAGE_ITEMS = 'stockmanager_items';
       document.getElementById('dash-' + tab.dataset.dash).classList.add('active');
       if(tab.dataset.dash === 'dashboard'){ renderFilters(); renderDashboard(); }
       if(tab.dataset.dash === 'accueil'){ renderCommunityPanel(); }
+      // Historique / Ajouter : averina soratana mba ho mifanaraka amin'ny vente
+      // sy ny achat vao vita (état du stock sy mouvements tsy ho tara).
+      if(tab.dataset.dash === 'historique'){
+        if(typeof renderMovementsHistory === 'function') renderMovementsHistory();
+      }
+      if(tab.dataset.dash === 'ajouter'){
+        if(typeof renderStock === 'function') renderStock();
+      }
+      if(tab.dataset.dash === 'vente'){
+        if(typeof populateVenteItemSelect === 'function') populateVenteItemSelect();
+        if(typeof populateVenteClientSelect === 'function') populateVenteClientSelect();
+        if(typeof updateVenteInfo === 'function') updateVenteInfo();
+      }
+      if(tab.dataset.dash === 'acheter'){
+        if(typeof populateAcheterItemSelect === 'function') populateAcheterItemSelect();
+      }
+      if(tab.dataset.dash === 'comptes'){
+        if(typeof renderClientsList === 'function') renderClientsList();
+      }
     });
   });
 
@@ -899,10 +924,10 @@ const STORAGE_ITEMS = 'stockmanager_items';
       const itemEl = e.target.closest('[data-goto-item]');
       const moveEl = e.target.closest('[data-goto-move]');
       if(itemEl){
-        goToStockSection('articles');
+        goToStockSection('ajouter');
         setTimeout(function(){ highlightRow('#stockTableBody tr[data-item-id="' + CSS.escape(itemEl.dataset.gotoItem) + '"]'); }, 60);
       } else if(moveEl){
-        goToStockSection('articles');
+        goToStockSection('historique');
         setTimeout(function(){ highlightRow('#movementsTableBody tr[data-move-key="' + CSS.escape(moveEl.dataset.gotoMove) + '"]'); }, 60);
       }
       globalSearchResults.style.display = 'none';

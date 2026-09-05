@@ -209,6 +209,57 @@
     }
   }
 
+  // Ny sary/video an'ilay post dia data: URL voatahiry ao amin'ny "image".
+  // Ovaina ho File mba ho azo alefa marina amin'ny feuille de partage.
+  function postMediaToFiles(sources){
+    return Promise.all(sources.slice(0, 10).map(function(src, i){
+      return fetch(src).then(function(r){ return r.blob(); }).then(function(blob){
+        const type = blob.type || 'image/png';
+        const ext = (type.split('/')[1] || 'png').split('+')[0];
+        return new File([blob], 'post-' + (i + 1) + '.' + ext, { type: type });
+      });
+    }));
+  }
+
+  // Fizarana ny post ao amin'ny Accueil. Amin'ny telefaonina, ny SARY na VIDEO
+  // mihitsy no alefa amin'ny feuille de partage, ka hitan'ny olona rehetra any
+  // amin'ilay tambajotra nofidina. Raha tsy misy media na tsy tohanan'ny
+  // navigateur izany, dia ny lahatsoratra sy ny rohy no zaraina.
+  function sharePost(n){
+    const parts = [];
+    if(n.client_name) parts.push(n.client_name + ' :');
+    if(n.message) parts.push(n.message);
+    if(n.price) parts.push('(' + formatAr(n.price) + ')');
+    const text = parts.join(' ').trim() || 'Vaovao ao amin\'ny Gestion de Stockage';
+    const link = (n.link && /^https?:\/\//i.test(n.link)) ? n.link : appShareLink();
+
+    function shareTextOnly(){
+      if(typeof shareContent === 'function'){
+        shareContent({ title: 'Gestion de Stockage', text: text, url: link });
+      } else {
+        copyToClipboardSilently(text + '\n' + link);
+        alert('Voadika ny hafatra.');
+      }
+    }
+
+    const media = parseNewsImages(n.image);
+    if(!media.length || !navigator.canShare || !navigator.share){
+      shareTextOnly();
+      return;
+    }
+    postMediaToFiles(media).then(function(files){
+      if(!navigator.canShare({ files: files })){
+        shareTextOnly();
+        return;
+      }
+      navigator.share({ text: text + '\n' + link, files: files }).catch(function(err){
+        // AbortError = nofoanan'ny mpampiasa ny fizarana : tsy misy atao.
+        if(err && err.name === 'AbortError') return;
+        shareTextOnly();
+      });
+    }, shareTextOnly);
+  }
+
   function renderCommunityNews(){
     const list = document.getElementById('communityNewsList');
     const emptyHint = document.getElementById('communityNewsEmpty');
@@ -254,7 +305,12 @@
             imagesHtml +
             (n.price ? '<div class="fb-post-price">' + formatAr(n.price) + '</div>' : '') +
             (n.link ? '<a href="' + escapeHtml(n.link) + '" target="_blank" rel="noopener" class="fb-post-link">🔗 ' + escapeHtml(n.link) + '</a>' : '') +
-            '<div class="fb-post-actions"><span>👍 J\'aime</span><span>💬 Commenter</span><span>↗️ Partager</span></div>';
+            '<div class="fb-post-actions"><span>👍 J\'aime</span><span>💬 Commenter</span>' +
+            '<span class="fb-share-action" data-share style="cursor:pointer;">↗️ Partager</span></div>';
+          const shareEl = div.querySelector('[data-share]');
+          if(shareEl){
+            shareEl.addEventListener('click', function(){ sharePost(n); });
+          }
           list.appendChild(div);
         });
       }, function(){ list.innerHTML=''; emptyHint.style.display = 'block'; });
