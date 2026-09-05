@@ -1,4 +1,4 @@
-  // ---------------- CONNEXIONS ----------------
+// ---------------- CONNEXIONS ----------------
   function renderLogins(){
     const logins = loadLogins();
     const tbody = document.getElementById('loginsTableBody');
@@ -198,12 +198,25 @@
     return chars.toUpperCase();
   }
 
+  function parseNewsImages(raw){
+    if(!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      if(Array.isArray(parsed)) return parsed;
+      return [raw];
+    } catch(e){
+      return [raw]; // ancien format : une seule image en texte brut
+    }
+  }
+
   function renderCommunityNews(){
     const list = document.getElementById('communityNewsList');
     const emptyHint = document.getElementById('communityNewsEmpty');
     if(!list) return;
     if(!window.__sb){ list.innerHTML=''; emptyHint.style.display = 'block'; return; }
-    window.__sb.from('client_news').select('client_name,network,message,link,type,price,created_at')
+    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    window.__sb.from('client_news').select('client_name,network,message,link,type,price,image,created_at')
+      .gte('created_at', oneWeekAgo)
       .order('created_at', { ascending: false }).limit(30)
       .then(function(res){
         list.innerHTML = '';
@@ -217,6 +230,18 @@
           const typeBadge = type === 'live'
             ? '<span class="fb-type-badge live">🔴 LIVE DIRECT</span>'
             : (type === 'entana' ? '<span class="fb-type-badge entana">🛒 Entana amidy</span>' : '');
+          const images = parseNewsImages(n.image);
+          let imagesHtml = '';
+          if(images.length === 1){
+            imagesHtml = '<img src="' + images[0] + '" alt="" style="max-width:100%; border-radius:10px; margin-top:0.6rem; display:block;">';
+          } else if(images.length > 1){
+            const cols = images.length === 2 ? '1fr 1fr' : (images.length === 3 ? '1fr 1fr 1fr' : '1fr 1fr');
+            imagesHtml = '<div style="display:grid; grid-template-columns:' + cols + '; gap:4px; margin-top:0.6rem;">' +
+              images.map(function(src){
+                return '<img src="' + src + '" alt="" style="width:100%; height:140px; object-fit:cover; border-radius:8px; display:block;">';
+              }).join('') +
+              '</div>';
+          }
           div.innerHTML =
             '<div class="fb-post-head">' +
               '<div class="fb-avatar">' + escapeHtml(initials(n.client_name)) + '</div>' +
@@ -226,6 +251,7 @@
               '</div>' +
             '</div>' +
             '<div class="fb-post-body">' + escapeHtml(n.message || '') + '</div>' +
+            imagesHtml +
             (n.price ? '<div class="fb-post-price">' + formatAr(n.price) + '</div>' : '') +
             (n.link ? '<a href="' + escapeHtml(n.link) + '" target="_blank" rel="noopener" class="fb-post-link">🔗 ' + escapeHtml(n.link) + '</a>' : '') +
             '<div class="fb-post-actions"><span>👍 J\'aime</span><span>💬 Commenter</span><span>↗️ Partager</span></div>';
@@ -234,26 +260,99 @@
       }, function(){ list.innerHTML=''; emptyHint.style.display = 'block'; });
   }
 
+  let pendingNewsImages = [];
+  const MAX_NEWS_IMAGES = 6;
+
+  const newsImageInput = document.getElementById('newsImage');
+  const newsImagePreviewWrap = document.getElementById('newsImagePreviewWrap');
+
+  function renderNewsImagePreviews(){
+    if(!newsImagePreviewWrap) return;
+    newsImagePreviewWrap.innerHTML = '';
+    if(!pendingNewsImages.length){
+      newsImagePreviewWrap.style.display = 'none';
+      return;
+    }
+    newsImagePreviewWrap.style.display = 'flex';
+    pendingNewsImages.forEach(function(src, idx){
+      const thumb = document.createElement('div');
+      thumb.style.cssText = 'position:relative; width:100px; height:100px;';
+      thumb.innerHTML =
+        '<img src="' + src + '" style="width:100%; height:100%; object-fit:cover; border-radius:10px; display:block; border:1px solid var(--line);">' +
+        '<button type="button" data-idx="' + idx + '" title="Esory ny sary" ' +
+        'style="position:absolute; top:-8px; right:-8px; background:#e5484d; color:#fff; border:none; border-radius:50%; width:22px; height:22px; cursor:pointer; line-height:1;">\u2715</button>';
+      newsImagePreviewWrap.appendChild(thumb);
+    });
+    newsImagePreviewWrap.querySelectorAll('button[data-idx]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        pendingNewsImages.splice(Number(btn.getAttribute('data-idx')), 1);
+        renderNewsImagePreviews();
+      });
+    });
+  }
+
+  function clearNewsImages(){
+    pendingNewsImages = [];
+    if(newsImageInput) newsImageInput.value = '';
+    renderNewsImagePreviews();
+  }
+
+  function resizeImageFile(file, callback){
+    const reader = new FileReader();
+    reader.onload = function(ev){
+      const img = new Image();
+      img.onload = function(){
+        const maxSide = 900;
+        let w = img.width, h = img.height;
+        if(w > maxSide || h > maxSide){
+          const ratio = Math.min(maxSide / w, maxSide / h);
+          w = Math.round(w * ratio);
+          h = Math.round(h * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        callback(canvas.toDataURL('image/jpeg', 0.82));
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  if(newsImageInput){
+    newsImageInput.addEventListener('change', function(){
+      const files = Array.from(newsImageInput.files || []);
+      if(!files.length) return;
+      const room = MAX_NEWS_IMAGES - pendingNewsImages.length;
+      if(room <= 0){
+        alert('Feno ' + MAX_NEWS_IMAGES + ' sary ny isan-tokony hafarana indray mandeha.');
+        newsImageInput.value = '';
+        return;
+      }
+      files.slice(0, room).forEach(function(file){
+        resizeImageFile(file, function(dataUrl){
+          pendingNewsImages.push(dataUrl);
+          renderNewsImagePreviews();
+        });
+      });
+      newsImageInput.value = '';
+    });
+  }
+
   const postNewsBtn = document.getElementById('postNewsBtn');
   if(postNewsBtn){
     postNewsBtn.addEventListener('click', function(){
-      const type = document.getElementById('newsType').value || 'vaovao';
-      const network = document.getElementById('newsNetwork').value.trim();
       const message = document.getElementById('newsMessage').value.trim();
-      const link = document.getElementById('newsLink').value.trim();
-      const priceVal = document.getElementById('newsPrice').value.trim();
-      if(!message){ alert('Soraty ny vaovao aloha.'); return; }
+      if(!message && !pendingNewsImages.length){ alert('Soraty ny vaovao na alao sary aloha.'); return; }
       if(!window.__sb){ alert('Tsy misy fifandraisana amin\'ny serveur.'); return; }
       const clientName = (currentUser && currentUser.name) || 'Client';
       window.__sb.from('client_news').insert({
-        client_name: clientName, network: network || 'Autre', message: message, link: link,
-        type: type, price: priceVal ? Number(priceVal) : null
+        client_name: clientName, network: 'Autre', message: message, link: '',
+        type: 'vaovao', price: null,
+        image: pendingNewsImages.length ? JSON.stringify(pendingNewsImages) : null
       }).then(function(){
-        document.getElementById('newsType').value = 'vaovao';
-        document.getElementById('newsNetwork').value = '';
         document.getElementById('newsMessage').value = '';
-        document.getElementById('newsLink').value = '';
-        document.getElementById('newsPrice').value = '';
+        clearNewsImages();
         renderCommunityNews();
       }, function(){ alert("Tsy voaray ny fanambarana."); });
     });
@@ -281,4 +380,3 @@
     document.getElementById('manualCodeEmailInput').value = '';
     renderClientCodesAdmin();
   });
-

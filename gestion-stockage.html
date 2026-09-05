@@ -261,17 +261,14 @@
               <div class="panel fb-composer" style="margin-top:0;">
                 <div class="fb-composer-row">
                   <div class="fb-avatar" id="composerAvatar">?</div>
-                  <input type="text" id="newsMessage" class="fb-composer-input" placeholder="Inona no vaovao aminao, ry client?">
+                  <div style="flex:1; display:flex; flex-direction:column; gap:0.6rem;">
+                    <div id="newsImagePreviewWrap" style="display:none; flex-wrap:wrap; gap:0.5rem;"></div>
+                    <input type="text" id="newsMessage" class="fb-composer-input" placeholder="Inona no vaovao aminao, ry client?" style="width:100%;">
+                  </div>
                 </div>
                 <div class="fb-composer-extra">
-                  <select id="newsType">
-                    <option value="vaovao">📰 Vaovao</option>
-                    <option value="live">🔴 Live direct</option>
-                    <option value="entana">🛒 Entana amidy</option>
-                  </select>
-                  <input type="text" id="newsNetwork" placeholder="Avy aiza io? (Facebook, WhatsApp, TikTok...)">
-                  <input type="url" id="newsLink" placeholder="Rohy (live, varotra, na hafa)">
-                  <input type="number" id="newsPrice" min="0" placeholder="Vidiny Ar (raha entana amidy)" style="max-width:170px;">
+                  <label for="newsImage" class="btn btn-sm" style="width:auto; cursor:pointer;">🖼️ Sary (maromaro azo alaina)</label>
+                  <input type="file" id="newsImage" accept="image/*" multiple style="display:none;">
                   <button type="button" class="btn btn-primary btn-sm" id="postNewsBtn" style="width:auto;">Publier</button>
                 </div>
               </div>
@@ -348,6 +345,15 @@
             <div class="chart-panel"><h4>Valeur des sorties par catégorie</h4><div class="chart-box" style="height:180px;"><canvas id="chartSortiesValue"></canvas></div></div>
           </div>
 
+          <div class="filter-group" style="margin:0 0 1rem;">
+            <h4>Période des tendances</h4>
+            <div id="trendPeriodChips">
+              <span class="filter-chip checked" data-period="day">Jour</span>
+              <span class="filter-chip" data-period="week">Semaine</span>
+              <span class="filter-chip" data-period="month">Mois</span>
+            </div>
+          </div>
+
           <div class="mid-grid">
             <div class="stack-panel">
               <div class="list-panel">
@@ -359,13 +365,13 @@
                 <div id="restockList"></div>
               </div>
             </div>
-            <div class="chart-panel"><h4>Total des entrées par jour</h4><div class="chart-box" style="height:240px;"><canvas id="chartEntreesDay"></canvas></div></div>
-            <div class="chart-panel"><h4>Total des sorties par jour</h4><div class="chart-box" style="height:240px;"><canvas id="chartSortiesDay"></canvas></div></div>
+            <div class="chart-panel"><h4>Total des entrées</h4><div class="chart-box" style="height:240px;"><canvas id="chartEntreesDay"></canvas></div></div>
+            <div class="chart-panel"><h4>Total des sorties</h4><div class="chart-box" style="height:240px;"><canvas id="chartSortiesDay"></canvas></div></div>
           </div>
 
           <div class="line-grid">
-            <div class="chart-panel"><h4>Valeur des entrées par jour</h4><div class="chart-box" style="height:200px;"><canvas id="chartEntreesValueDay"></canvas></div></div>
-            <div class="chart-panel"><h4>Valeur des sorties par jour</h4><div class="chart-box" style="height:200px;"><canvas id="chartSortiesValueDay"></canvas></div></div>
+            <div class="chart-panel"><h4>Valeur des entrées</h4><div class="chart-box" style="height:200px;"><canvas id="chartEntreesValueDay"></canvas></div></div>
+            <div class="chart-panel"><h4>Valeur des sorties</h4><div class="chart-box" style="height:200px;"><canvas id="chartSortiesValueDay"></canvas></div></div>
           </div>
         </div>
 
