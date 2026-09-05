@@ -9,6 +9,12 @@
       /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/i.test(url);
   }
 
+  // Adiresy publique an'ny appli. Io no alefa amin'ny rohy rehetra na dia
+  // sokafana avy amin'ny localhost aza ny pejy, mba tsy hisy rohy tsy misokatra
+  // any amin'ny mpanjifa. Ny admin dia afaka manova azy ao amin'ny
+  // « Nous contacter » → « Adresse publique du site ».
+  const DEFAULT_PUBLIC_URL = 'https://tokiniaina-tanjona.netlify.app/gestion-stockage';
+
   function publicBaseUrl(){
     let configured = '';
     try {
@@ -17,7 +23,7 @@
       }
     } catch(e){}
     if(configured && /^https?:\/\//i.test(configured)) return configured.replace(/\/+$/, '');
-    return window.location.href.split('?')[0].split('#')[0];
+    return DEFAULT_PUBLIC_URL;
   }
 
   function renderLocalLinkWarning(link){
