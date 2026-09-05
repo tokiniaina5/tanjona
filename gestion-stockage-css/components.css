@@ -1,4 +1,4 @@
-  /* ---------- Tableau de bord (Stock) ---------- */
+/* ---------- Tableau de bord (Stock) ---------- */
   .dash-tabs{ display:flex; gap:0.4rem; margin-bottom:1.4rem; border-bottom:1px solid var(--line); }
   .dash-tab{
     padding:0.65rem 1.1rem; font-size:0.85rem; color:var(--muted); cursor:pointer;
@@ -8,6 +8,17 @@
   .dash-tab.active{ color:var(--cyan); border-color:var(--cyan); }
   .dash-view{ display:none; }
   .dash-view.active{ display:block; }
+
+  /* ---------- Sous-onglets Articles (Ajouter / Vente / Acheter / Gestion de compte) ---------- */
+  .articles-tabs{ display:flex; gap:0.4rem; margin-bottom:1.4rem; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  .articles-tab{
+    padding:0.6rem 1rem; font-size:0.82rem; color:var(--muted); cursor:pointer;
+    border-bottom:2px solid transparent; font-family:var(--font-mono); user-select:none;
+  }
+  .articles-tab:hover{ color:var(--text); }
+  .articles-tab.active{ color:var(--cyan); border-color:var(--cyan); }
+  .articles-view{ display:none; }
+  .articles-view.active{ display:block; }
 
   .filters-panel{
     background:var(--panel); border:1px solid var(--line); border-radius:12px;

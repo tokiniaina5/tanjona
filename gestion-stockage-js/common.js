@@ -1,4 +1,4 @@
-  const STORAGE_ITEMS = 'stockmanager_items';
+const STORAGE_ITEMS = 'stockmanager_items';
   const STORAGE_LOGINS = 'stockmanager_logins';
   const STORAGE_MOVEMENTS = 'stockmanager_movements';
   const STORAGE_SUBSCRIPTION = 'stockmanager_subscription';
@@ -263,6 +263,20 @@
   }
   function saveMovements(movements){ localStorage.setItem(STORAGE_MOVEMENTS, JSON.stringify(movements)); }
 
+  // ---------------- GESTION DE COMPTE : clients & ventes à crédit ----------------
+  const STORAGE_CLIENTS = 'stockmanager_clients';
+  const STORAGE_CREDIT_SALES = 'stockmanager_credit_sales';
+  function loadClients(){
+    try { return JSON.parse(localStorage.getItem(STORAGE_CLIENTS)) || []; }
+    catch(e){ return []; }
+  }
+  function saveClients(list){ localStorage.setItem(STORAGE_CLIENTS, JSON.stringify(list)); }
+  function loadCreditSales(){
+    try { return JSON.parse(localStorage.getItem(STORAGE_CREDIT_SALES)) || []; }
+    catch(e){ return []; }
+  }
+  function saveCreditSales(list){ localStorage.setItem(STORAGE_CREDIT_SALES, JSON.stringify(list)); }
+
   const STORAGE_NOTIFICATIONS = 'stockmanager_notifications';
   function loadNotifications(){
     try { return JSON.parse(localStorage.getItem(STORAGE_NOTIFICATIONS)) || []; }
@@ -281,6 +295,7 @@
   }
   function notifIcon(type){
     if(type === 'vente') return '🛒';
+    if(type === 'achat') return '📥';
     if(type === 'facture') return '🧾';
     if(type === 'rupture') return '⚠️';
     if(type === 'parrainage') return '💰';
@@ -899,4 +914,3 @@
       }
     });
   }
-

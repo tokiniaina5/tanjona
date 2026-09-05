@@ -204,11 +204,6 @@
       </div>
       <div class="brand-sub">Tanjona · Gestion de Stockage</div>
 
-      <div class="global-search" style="position:relative; margin:0.9rem 0;">
-        <input type="text" id="globalSearchInput" placeholder="🔍 Rechercher un article, un mouvement..." autocomplete="off" style="width:100%; padding:0.6rem 0.8rem; border-radius:8px; border:1px solid var(--line); background:var(--bg); color:var(--text); font-size:0.82rem; box-sizing:border-box;">
-        <div id="globalSearchResults" style="display:none; position:absolute; top:110%; left:0; right:0; background:var(--panel); border:1px solid var(--line); border-radius:10px; max-height:340px; overflow-y:auto; z-index:60; box-shadow:0 8px 24px rgba(0,0,0,0.35);"></div>
-      </div>
-
       <div class="nav-list" id="navList">
         <div class="nav-item active" data-section="stock">📦 Stock</div>
         <div class="nav-item" data-section="factures">🧾 Factures</div>
@@ -377,78 +372,227 @@
 
         <!-- ===== ARTICLES ===== -->
         <div class="dash-view" id="dash-articles">
-          <div class="panel">
-            <h3>Ajouter un article (entrée en stock)</h3>
-            <div class="form-grid">
-              <div class="field" style="margin-bottom:0;">
-                <label>Référence (automatique)</label>
-                <input id="itemRef" type="text" readonly>
+
+          <div class="global-search" style="position:relative; margin:0 0 1.2rem;">
+            <input type="text" id="globalSearchInput" placeholder="🔍 Rechercher un article, un mouvement..." autocomplete="off" style="width:100%; padding:0.6rem 0.8rem; border-radius:8px; border:1px solid var(--line); background:var(--bg); color:var(--text); font-size:0.82rem; box-sizing:border-box;">
+            <div id="globalSearchResults" style="display:none; position:absolute; top:110%; left:0; right:0; background:var(--panel); border:1px solid var(--line); border-radius:10px; max-height:340px; overflow-y:auto; z-index:60; box-shadow:0 8px 24px rgba(0,0,0,0.35);"></div>
+          </div>
+
+          <div class="articles-tabs">
+            <div class="articles-tab active" data-articles-tab="ajouter">➕ Ajouter</div>
+            <div class="articles-tab" data-articles-tab="vente">💵 Vente</div>
+            <div class="articles-tab" data-articles-tab="acheter">🛒 Acheter</div>
+            <div class="articles-tab" data-articles-tab="comptes">👥 Gestion de compte</div>
+          </div>
+
+          <!-- ===== AJOUTER ===== -->
+          <div class="articles-view active" id="articles-ajouter">
+
+            <div class="panel">
+              <h3>📜 Historique des mouvements</h3>
+              <p style="font-size:0.76rem; color:var(--muted); margin:-0.4rem 0 0.6rem;">💡 Amin'ny telefaonina : kisaho ankavia/ankavanana ny andalana iray mba hamafana azy. Amin'ny ordinateur : tsindrio ny totozy eo amin'ilay andalana ary kisaho (glisser) ankavia/ankavanana. Ny mouvement an'ny entana efa voafafa dia mijanona eto 3 semaine raha tsy nofafanao an-tanana.</p>
+              <div class="table-scroll">
+                <table id="movementsTable">
+                  <thead>
+                    <tr><th>Date</th><th>Type</th><th>Réf.</th><th>Nom</th><th>Catégorie</th><th>Quantité</th><th>Valeur</th><th>Remarque</th></tr>
+                  </thead>
+                  <tbody id="movementsTableBody"></tbody>
+                </table>
               </div>
-              <div class="field" style="margin-bottom:0;">
-                <label>Nom</label>
-                <input id="itemName" type="text" placeholder="Ex: Câble USB">
-              </div>
-              <div class="field" style="margin-bottom:0;">
-                <label>Catégorie</label>
-                <input id="itemCategory" type="text" placeholder="Ex: Électronique">
-              </div>
-              <div class="field" style="margin-bottom:0;">
-                <label>Quantité</label>
-                <input id="itemQty" type="number" min="0" value="1">
-              </div>
-              <div class="field" style="margin-bottom:0;">
-                <label>Unité</label>
-                <select id="itemUnit">
-                  <option value="pièce">Pièce</option>
-                  <option value="kg">Kg</option>
-                  <option value="g">g</option>
-                  <option value="l">Litre</option>
-                  <option value="m">Mètre</option>
-                  <option value="boîte">Boîte</option>
-                  <option value="carton">Carton</option>
-                  <option value="sac">Sac</option>
-                  <option value="paire">Paire</option>
-                </select>
-              </div>
-              <div class="field" style="margin-bottom:0;">
-                <label>Prix unitaire (Ar)</label>
-                <input id="itemPrice" type="number" min="0" value="0">
-              </div>
-              <div class="field" style="margin-bottom:0;">
-                <label>Seuil d'alerte</label>
-                <input id="itemSeuil" type="number" min="0" value="5">
-              </div>
-              <div class="field" style="margin-bottom:0;">
-                <label>Fournisseur (optionnel)</label>
-                <input id="itemSupplier" type="text" placeholder="Ex: Grossiste Analakely">
-              </div>
-              <button class="btn btn-primary" id="addItemBtn" style="width:auto;">Ajouter</button>
+              <p class="empty-hint" id="movementsEmptyHint" style="display:none;">Aucun mouvement enregistré pour le moment.</p>
             </div>
-          </div>
 
-          <div class="table-scroll">
-            <table id="stockTable">
-              <thead>
-                <tr><th>Réf.</th><th>Nom</th><th>Catégorie</th><th>Quantité</th><th>Unité</th><th>Prix unitaire</th><th>Valeur</th><th>Seuil</th><th>Fournisseur</th><th></th></tr>
-              </thead>
-              <tbody id="stockTableBody"></tbody>
-            </table>
-          </div>
-          <p class="empty-hint" id="stockEmptyHint" style="display:none;">Aucun article pour le moment. Ajoutez-en un ci-dessus.</p>
+            <div class="panel">
+              <h3>Ajouter un article (entrée en stock)</h3>
+              <div class="form-grid">
+                <div class="field" style="margin-bottom:0;">
+                  <label>Référence (automatique)</label>
+                  <input id="itemRef" type="text" readonly>
+                </div>
+                <div class="field" style="margin-bottom:0;">
+                  <label>Nom</label>
+                  <input id="itemName" type="text" placeholder="Ex: Câble USB">
+                </div>
+                <div class="field" style="margin-bottom:0;">
+                  <label>Catégorie</label>
+                  <input id="itemCategory" type="text" placeholder="Ex: Électronique">
+                </div>
+                <div class="field" style="margin-bottom:0;">
+                  <label>Quantité</label>
+                  <input id="itemQty" type="number" min="0" value="1">
+                </div>
+                <div class="field" style="margin-bottom:0;">
+                  <label>Unité</label>
+                  <select id="itemUnit">
+                    <option value="pièce">Pièce</option>
+                    <option value="kg">Kg</option>
+                    <option value="g">g</option>
+                    <option value="l">Litre</option>
+                    <option value="m">Mètre</option>
+                    <option value="boîte">Boîte</option>
+                    <option value="carton">Carton</option>
+                    <option value="sac">Sac</option>
+                    <option value="paire">Paire</option>
+                  </select>
+                </div>
+                <div class="field" style="margin-bottom:0;">
+                  <label>Prix unitaire (Ar)</label>
+                  <input id="itemPrice" type="number" min="0" value="0">
+                </div>
+                <div class="field" style="margin-bottom:0;">
+                  <label>Seuil d'alerte</label>
+                  <input id="itemSeuil" type="number" min="0" value="5">
+                </div>
+                <div class="field" style="margin-bottom:0;">
+                  <label>Fournisseur (optionnel)</label>
+                  <input id="itemSupplier" type="text" placeholder="Ex: Grossiste Analakely">
+                </div>
+                <button class="btn btn-primary" id="addItemBtn" style="width:auto;">Ajouter</button>
+              </div>
+            </div>
 
-          <div class="panel">
-            <h3>📜 Historique des mouvements</h3>
-            <p style="font-size:0.76rem; color:var(--muted); margin:-0.4rem 0 0.6rem;">💡 Amin'ny telefaonina : kisaho ankavia/ankavanana ny andalana iray mba hamafana azy. Amin'ny ordinateur : tsindrio ny totozy eo amin'ilay andalana ary kisaho (glisser) ankavia/ankavanana.</p>
             <div class="table-scroll">
-              <table id="movementsTable">
+              <table id="stockTable">
                 <thead>
-                  <tr><th>Date</th><th>Type</th><th>Réf.</th><th>Nom</th><th>Catégorie</th><th>Quantité</th><th>Valeur</th><th>Remarque</th></tr>
+                  <tr><th>Réf.</th><th>Nom</th><th>Catégorie</th><th>Quantité</th><th>Unité</th><th>Prix unitaire</th><th>Valeur</th><th>Seuil</th><th>Fournisseur</th><th></th></tr>
                 </thead>
-                <tbody id="movementsTableBody"></tbody>
+                <tbody id="stockTableBody"></tbody>
               </table>
             </div>
-            <p class="empty-hint" id="movementsEmptyHint" style="display:none;">Aucun mouvement enregistré pour le moment.</p>
+            <p class="empty-hint" id="stockEmptyHint" style="display:none;">Aucun article pour le moment. Ajoutez-en un ci-dessus.</p>
           </div>
+
+          <!-- ===== VENTE ===== -->
+          <div class="articles-view" id="articles-vente">
+            <div class="panel">
+              <h3>💵 Vente</h3>
+              <p style="font-size:0.8rem; color:var(--muted); margin-bottom:0.8rem;">Misafidiana entana : ny stock dia hihena avy hatrany rehefa mivarotra.</p>
+              <div class="form-grid">
+                <div class="field" style="margin-bottom:0;">
+                  <label>Article</label>
+                  <select id="venteItemSelect"><option value="">— Choisir —</option></select>
+                </div>
+                <div class="field" style="margin-bottom:0;">
+                  <label>Quantité</label>
+                  <input id="venteQty" type="number" min="1" value="1">
+                </div>
+                <div class="field" style="margin-bottom:0;">
+                  <label>Stock disponible</label>
+                  <input id="venteStockAvail" type="text" readonly>
+                </div>
+                <div class="field" style="margin-bottom:0;">
+                  <label>Prix unitaire</label>
+                  <input id="venteUnitPrice" type="text" readonly>
+                </div>
+                <div class="field" style="margin-bottom:0;">
+                  <label>Total</label>
+                  <input id="venteTotal" type="text" readonly>
+                </div>
+                <div class="field" style="margin-bottom:0;">
+                  <label>Type de vente</label>
+                  <select id="venteType">
+                    <option value="comptant">Comptant (payé)</option>
+                    <option value="credit">Crédit (an-tsipiriany)</option>
+                  </select>
+                </div>
+                <div class="field" id="venteClientField" style="display:none; margin-bottom:0;">
+                  <label>Client</label>
+                  <select id="venteClientSelect"><option value="">— Choisir un client —</option></select>
+                </div>
+                <button class="btn btn-primary" id="venteConfirmBtn" style="width:auto;">Vendre</button>
+              </div>
+              <p id="venteStatus" style="font-size:0.8rem; color:var(--muted); margin-top:0.8rem;"></p>
+            </div>
+          </div>
+
+          <!-- ===== ACHETER ===== -->
+          <div class="articles-view" id="articles-acheter">
+            <div class="panel">
+              <h3>🛒 Acheter (réapprovisionnement)</h3>
+              <p style="font-size:0.8rem; color:var(--muted); margin-bottom:0.8rem;">Misafidiana entana efa misy raha te-hanampy stock, na manorata anarana vaovao raha entana tsy mbola misy.</p>
+              <div class="form-grid">
+                <div class="field" style="margin-bottom:0;">
+                  <label>Article existant</label>
+                  <select id="acheterItemSelect"><option value="">— Nouvel article —</option></select>
+                </div>
+                <div class="field" style="margin-bottom:0;">
+                  <label>Nom (si nouvel article)</label>
+                  <input id="acheterItemName" type="text" placeholder="Ex: Câble USB">
+                </div>
+                <div class="field" style="margin-bottom:0;">
+                  <label>Catégorie</label>
+                  <input id="acheterCategory" type="text" placeholder="Ex: Électronique">
+                </div>
+                <div class="field" style="margin-bottom:0;">
+                  <label>Quantité achetée</label>
+                  <input id="acheterQty" type="number" min="1" value="1">
+                </div>
+                <div class="field" style="margin-bottom:0;">
+                  <label>Unité</label>
+                  <select id="acheterUnit">
+                    <option value="pièce">Pièce</option>
+                    <option value="kg">Kg</option>
+                    <option value="g">g</option>
+                    <option value="l">Litre</option>
+                    <option value="m">Mètre</option>
+                    <option value="boîte">Boîte</option>
+                    <option value="carton">Carton</option>
+                    <option value="sac">Sac</option>
+                    <option value="paire">Paire</option>
+                  </select>
+                </div>
+                <div class="field" style="margin-bottom:0;">
+                  <label>Prix unitaire (Ar)</label>
+                  <input id="acheterPrice" type="number" min="0" value="0">
+                </div>
+                <div class="field" style="margin-bottom:0;">
+                  <label>Fournisseur</label>
+                  <input id="acheterSupplier" type="text" placeholder="Ex: Grossiste Analakely">
+                </div>
+                <button class="btn btn-primary" id="acheterConfirmBtn" style="width:auto;">Acheter</button>
+              </div>
+              <p id="acheterStatus" style="font-size:0.8rem; color:var(--muted); margin-top:0.8rem;"></p>
+            </div>
+          </div>
+
+          <!-- ===== GESTION DE COMPTE ===== -->
+          <div class="articles-view" id="articles-comptes">
+            <div class="panel">
+              <h3>👥 Ajouter un client</h3>
+              <div class="form-grid">
+                <div class="field" style="margin-bottom:0;">
+                  <label>Nom</label>
+                  <input id="clientName" type="text" placeholder="Ex: Rakoto">
+                </div>
+                <div class="field" style="margin-bottom:0;">
+                  <label>Téléphone</label>
+                  <input id="clientPhone" type="tel" placeholder="034 00 000 00">
+                </div>
+                <button class="btn btn-primary" id="addClientBtn" style="width:auto;">Ajouter</button>
+              </div>
+            </div>
+
+            <div class="table-scroll">
+              <table id="clientsTable">
+                <thead><tr><th>Nom</th><th>Téléphone</th><th>Dette totale</th><th></th></tr></thead>
+                <tbody id="clientsTableBody"></tbody>
+              </table>
+            </div>
+            <p class="empty-hint" id="clientsEmptyHint" style="display:none;">Aucun client pour le moment.</p>
+
+            <div class="panel" id="clientDetailPanel" style="display:none;">
+              <h3 id="clientDetailName">—</h3>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Date</th><th>Article</th><th>Qté</th><th>Montant</th><th>Statut</th><th></th></tr></thead>
+                  <tbody id="clientSalesTableBody"></tbody>
+                </table>
+              </div>
+              <p class="empty-hint" id="clientSalesEmptyHint" style="display:none;">Aucune vente à crédit pour ce client.</p>
+              <button class="btn btn-amber btn-sm" id="closeClientDetailBtn" style="margin-top:0.8rem; width:auto;">Fermer</button>
+            </div>
+          </div>
+
         </div>
       </section>
 
@@ -978,6 +1122,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="gestion-stockage-js/common.js"></script>
 <script src="gestion-stockage-js/stock.js"></script>
+<script src="gestion-stockage-js/ventes-achats.js"></script>
+<script src="gestion-stockage-js/comptes.js"></script>
 <script src="gestion-stockage-js/factures.js"></script>
 <script src="gestion-stockage-js/inviter.js"></script>
 <script src="gestion-stockage-js/contact.js"></script>

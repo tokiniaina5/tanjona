@@ -1,4 +1,4 @@
-  // ---------------- STOCK ----------------
+// ---------------- STOCK ----------------
   function formatAr(n){
     // espace normale comme séparateur de milliers (une espace fine insécable n'est pas
     // supportée par les polices standards du PDF et provoque un décalage/débordement)
@@ -36,13 +36,10 @@
     tbody.querySelectorAll('button[data-idx]').forEach(function(btn){
       btn.addEventListener('click', function(){
         const idx = Number(btn.dataset.idx);
-        const removed = items[idx];
         items.splice(idx, 1);
         saveItems(items);
-        if(removed){
-          movements = movements.filter(function(m){ return m.itemId !== removed.id; });
-          saveMovements(movements);
-        }
+        // Ny mouvement mikasika io entana voafafa io dia TSY esorina: mijanona
+        // 3 semaine (jereo purgeExpiredOrphanMovements) raha tsy nofafana an-tanana.
         renderStock();
         renderMovementsHistory();
         renderFilters();
@@ -160,6 +157,44 @@
     renderFilters();
     renderDashboard();
   }
+
+  // ---------------- PURGE HISTORIQUE (entana efa voafafa) ----------------
+  // Ny mouvement an'ny entana efa voafafa dia mijanona 3 semaine (21 andro)
+  // vao voafafa automatique, raha tsy nisy nanala azy an-tanana talohan'izay.
+  var MOVEMENT_ORPHAN_RETENTION_MS = 21 * 24 * 60 * 60 * 1000;
+  function purgeExpiredOrphanMovements(){
+    const existingIds = new Set(items.map(function(it){ return it.id; }));
+    const now = Date.now();
+    const before = movements.length;
+    movements = movements.filter(function(m){
+      if(existingIds.has(m.itemId)) return true;
+      const age = now - new Date(m.date).getTime();
+      return age <= MOVEMENT_ORPHAN_RETENTION_MS;
+    });
+    if(movements.length !== before) saveMovements(movements);
+  }
+  purgeExpiredOrphanMovements();
+
+  // ---------------- SOUS-ONGLETS ARTICLES (Ajouter / Vente / Acheter / Gestion de compte) ----------------
+  document.querySelectorAll('.articles-tab').forEach(function(tab){
+    tab.addEventListener('click', function(){
+      document.querySelectorAll('.articles-tab').forEach(function(t){ t.classList.remove('active'); });
+      document.querySelectorAll('.articles-view').forEach(function(v){ v.classList.remove('active'); });
+      tab.classList.add('active');
+      document.getElementById('articles-' + tab.dataset.articlesTab).classList.add('active');
+      if(tab.dataset.articlesTab === 'vente'){
+        if(typeof populateVenteItemSelect === 'function') populateVenteItemSelect();
+        if(typeof populateVenteClientSelect === 'function') populateVenteClientSelect();
+        if(typeof updateVenteInfo === 'function') updateVenteInfo();
+      }
+      if(tab.dataset.articlesTab === 'acheter'){
+        if(typeof populateAcheterItemSelect === 'function') populateAcheterItemSelect();
+      }
+      if(tab.dataset.articlesTab === 'comptes'){
+        if(typeof renderClientsList === 'function') renderClientsList();
+      }
+    });
+  });
 
   function escapeHtml(str){
     const div = document.createElement('div');
@@ -590,4 +625,3 @@
     a.click();
     URL.revokeObjectURL(url);
   });
-
