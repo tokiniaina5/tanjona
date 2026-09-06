@@ -164,6 +164,57 @@
       '&body=' + encodeURIComponent(body);
   }
 
+  // Demande à la fonction Supabase de poser un nouveau code sur le compte du
+  // client, de lever le blocage et de le lui envoyer par mail. Le navigateur
+  // n'a pas le droit de changer un mot de passe : seule la fonction l'a.
+  function sendNewCodeToClient(email){
+    if(!window.__sb || !window.__sb.functions || !window.__sb.functions.invoke){
+      return Promise.resolve({ ok: false, message: 'Fonction « reset-code » indisponible : déployez-la (voir LISEZ-MOI-SUPABASE.txt).' });
+    }
+    return window.__sb.functions.invoke('reset-code', { body: { email: normEmail(email) } })
+      .then(function(res){
+        if(res && res.error){
+          return { ok: false, message: 'Échec : ' + (res.error.message || 'erreur de la fonction') };
+        }
+        const data = res && res.data ? res.data : {};
+        if(!data.released){
+          return { ok: false, message: 'Échec : ' + (data.error || 'réponse inattendue') };
+        }
+        return { ok: true, mailSent: !!data.mailSent, code: data.code };
+      }, function(err){
+        return { ok: false, message: 'Appel impossible : ' + ((err && err.message) || 'réseau') };
+      });
+  }
+
+  // Notification au propriétaire dès qu'une alerte nouvelle est enregistrée :
+  // c'est le signal pour aller vérifier, sur le mail reçu, que la pièce
+  // d'identité correspond bien au titulaire du compte.
+  const ALERTS_SEEN_KEY = 'stockmanager_alerts_seen';
+  function notifyOwnerOfNewAlerts(){
+    if(!window.__sb) return;
+    if(!(typeof isOwnerEmail === 'function' && currentUser && isOwnerEmail(currentUser.email))) return;
+    let seen = [];
+    try { seen = JSON.parse(localStorage.getItem(ALERTS_SEEN_KEY)) || []; } catch(e){}
+    window.__sb.from('security_events')
+      .select('id,kind,email,created_at')
+      .order('created_at', { ascending: false })
+      .limit(50)
+      .then(function(res){
+        const rows = (res && res.data) ? res.data : [];
+        const fresh = rows.filter(function(r){ return seen.indexOf(r.id) < 0; });
+        if(fresh.length && seen.length){
+          pushNotification('info', fresh.length + ' alerte(s) de sécurité — vérifiez le mail reçu : ' +
+            'la pièce d\'identité doit correspondre au titulaire du compte.');
+        }
+        if(fresh.length){
+          try {
+            localStorage.setItem(ALERTS_SEEN_KEY,
+              JSON.stringify(fresh.map(function(r){ return r.id; }).concat(seen).slice(0, 300)));
+          } catch(e){}
+        }
+      }, function(){});
+  }
+
   // ---------------- RENDU DE L'ESPACE ADMIN ----------------
   function adminEscape(str){
     const div = document.createElement('div');
@@ -324,11 +375,46 @@
           mail.href = securityAlertMail(r.email, r.reason);
           actions.appendChild(mail);
 
+          // Vérifiez d'abord, sur le mail d'alerte, que la pièce d'identité
+          // correspond bien au titulaire : c'est ce qui distingue le client
+          // de celui qui essayait d'entrer à sa place.
+          const newCodeBtn = document.createElement('button');
+          newCodeBtn.type = 'button';
+          newCodeBtn.className = 'btn btn-primary btn-sm';
+          newCodeBtn.style.width = 'auto';
+          newCodeBtn.textContent = '🔑 Débloquer et envoyer un nouveau code';
+          newCodeBtn.addEventListener('click', function(){
+            newCodeBtn.disabled = true;
+            newCodeBtn.textContent = 'Envoi…';
+            sendNewCodeToClient(r.email).then(function(res){
+              if(!res.ok){
+                newCodeBtn.disabled = false;
+                newCodeBtn.textContent = '🔑 Débloquer et envoyer un nouveau code';
+                const warn = document.createElement('div');
+                warn.style.cssText = 'font-size:0.76rem; color:var(--amber); margin-top:0.5rem; line-height:1.5;';
+                warn.textContent = res.message;
+                card.appendChild(warn);
+                return;
+              }
+              const box = document.createElement('div');
+              box.style.cssText = 'margin-top:0.7rem; border-top:1px solid var(--line); padding-top:0.7rem; font-size:0.78rem; color:var(--cyan); line-height:1.6;';
+              box.innerHTML = res.mailSent
+                ? 'Blocage levé ✓ Le nouveau code a été envoyé à ' + adminEscape(r.email) + '.'
+                : 'Blocage levé ✓ Le mail n\'est pas parti — transmettez ce code au client :<br>' +
+                  '<strong style="font-family:var(--font-mono); font-size:1.1rem; letter-spacing:0.12em;">' +
+                  adminEscape(res.code || '—') + '</strong>';
+              card.appendChild(box);
+              newCodeBtn.remove();
+              pushNotification('info', 'Nouveau code envoyé à ' + r.email + '.');
+            });
+          });
+          actions.appendChild(newCodeBtn);
+
           const release = document.createElement('button');
           release.type = 'button';
-          release.className = 'btn btn-primary btn-sm';
+          release.className = 'btn btn-sm';
           release.style.width = 'auto';
-          release.textContent = '🔓 Lever le blocage';
+          release.textContent = '🔓 Lever le blocage seulement';
           release.addEventListener('click', function(){
             release.disabled = true;
             releaseAccount(r.email).then(function(){

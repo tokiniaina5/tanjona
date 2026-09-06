@@ -533,6 +533,8 @@ const STORAGE_ITEMS = 'stockmanager_items';
     if(typeof runPendingLinkAction === 'function') runPendingLinkAction();
     // étape 2 : pièce d'identité, réclamée tant qu'elle n'est pas renseignée
     if(typeof requireIdentity === 'function') requireIdentity();
+    // le propriétaire est prévenu des alertes enregistrées depuis sa dernière visite
+    if(typeof notifyOwnerOfNewAlerts === 'function') notifyOwnerOfNewAlerts();
   }
 
   function openPaywall(){

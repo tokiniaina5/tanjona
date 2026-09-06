@@ -218,3 +218,32 @@ Le code de la fonction est dans supabase/functions/send-alert/index.ts.
 Tant qu'elle n'est pas déployée, rien n'est perdu : l'alerte reste
 visible dans l'espace admin et en notification, et le blocage
 s'applique quand même.
+
+
+DÉBLOCAGE PAR LE PROPRIÉTAIRE — NOUVEAU CODE ENVOYÉ AU CLIENT
+------------------------------
+Quand une alerte arrive :
+1. Vous recevez le mail (compte visé + pièce d'identité déclarée) ET
+   une notification dans l'application vous invitant à vérifier que
+   cette identité correspond bien au titulaire du compte.
+2. Si c'est bien lui : espace admin > "Comptes bloqués" >
+   "🔑 Débloquer et envoyer un nouveau code". L'application :
+   - pose un nouveau code comme mot de passe du compte,
+   - lève le blocage,
+   - envoie le code au client par email.
+   Si le mail ne part pas, le code s'affiche à l'écran pour que vous
+   le transmettiez vous-même.
+3. Le client se connecte avec son email et ce code, entre directement
+   dans le site, puis choisit son propre code dans
+   Paramètres > Mon profil > "Nouveau mot de passe".
+Le bouton "🔓 Lever le blocage seulement" reste disponible quand le
+client se souvient de son code.
+
+DÉPLOYER CETTE FONCTION (une fois) :
+   supabase secrets set OWNER_NAME="Rasolofonirainy Tokiniaina Tanjona"
+   supabase functions deploy reset-code
+ATTENTION : déployez "reset-code" SANS --no-verify-jwt. C'est la
+vérification du jeton qui garantit que seul votre compte peut
+changer le mot de passe d'un client. La clé de service
+(SUPABASE_SERVICE_ROLE_KEY) est fournie automatiquement à la
+fonction par Supabase : ne la copiez jamais dans le site.
