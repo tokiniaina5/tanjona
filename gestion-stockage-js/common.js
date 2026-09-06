@@ -21,7 +21,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
     });
   }
   renderOwnerIdentity();
-  const TRIAL_DAYS = 90;
+  const TRIAL_DAYS = 7;
   const REFERRALS_PER_BONUS_DAY = 10; // 10 olona nampiasa ny lien = +1 andro essai gratuit
 
   function genInstallId(){
@@ -1572,14 +1572,14 @@ const STORAGE_ITEMS = 'stockmanager_items';
 
     if(st.status === 'expired'){
       title.textContent = 'Abonnement requis';
-      text.innerHTML = 'Votre essai gratuit de <strong>3 mois</strong> est terminé. L\'accès est <strong>bloqué</strong> ' +
+      text.innerHTML = 'Votre essai gratuit de <strong>7 jours</strong> est terminé. L\'accès est <strong>bloqué</strong> ' +
         'tant que le paiement (mensuel ou annuel) n\'est pas confirmé par le <strong>code de déverrouillage</strong> ' +
         'envoyé par email. Connectez-vous pour recevoir votre code.';
       closeBtn.style.display = 'none';
       loginBtn.style.display = 'block';
     } else {
       title.textContent = 'Essai gratuit & abonnement';
-      text.innerHTML = 'L\'application est <strong>gratuite pendant 3 mois</strong>. Passé ce délai, un abonnement ' +
+      text.innerHTML = 'L\'application est <strong>gratuite pendant 7 jours</strong>. Passé ce délai, un abonnement ' +
         '<strong>mensuel</strong> ou <strong>annuel</strong> sera demandé pour continuer à l\'utiliser. ' +
         'En cas de non-paiement, l\'accès sera bloqué ; un <strong>code de déverrouillage</strong> vous sera ' +
         'alors envoyé par email pour réactiver votre compte.';
