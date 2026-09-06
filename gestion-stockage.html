@@ -30,7 +30,19 @@
       <p id="quickLoginStatus" style="font-size:0.75rem; color:var(--muted); margin:-0.4rem 0 0.8rem; min-height:1.1em;"></p>
       <button type="submit" class="btn btn-primary">Se connecter</button>
       <button type="button" class="btn btn-sm" id="showFullLoginBtn" style="width:100%; margin-top:0.7rem;">Première connexion / autre compte</button>
+      <button type="button" class="btn btn-sm" id="sendResetLinkBtn" style="width:100%; margin-top:0.7rem;">✉️ Recevoir un lien par email</button>
     </form>
+
+    <!-- Retour depuis le lien de réinitialisation reçu par email -->
+    <div id="recoveryBox" style="display:none;">
+      <p class="sub" style="margin-bottom:1rem;">Choisissez votre nouveau code d'accès.</p>
+      <div class="field">
+        <label for="recoveryPassword">Nouveau mot de passe</label>
+        <input id="recoveryPassword" type="password" minlength="6" placeholder="6 caractères minimum" autocomplete="new-password">
+      </div>
+      <p id="recoveryStatus" style="font-size:0.78rem; color:var(--amber); margin:-0.2rem 0 0.8rem; line-height:1.5;"></p>
+      <button type="button" class="btn btn-primary" id="recoverySaveBtn" style="width:100%;">Enregistrer et entrer</button>
+    </div>
 
     <!-- Oubli : lettre de demande de validation envoyée au propriétaire -->
     <div id="forgotWrap" style="display:none;">

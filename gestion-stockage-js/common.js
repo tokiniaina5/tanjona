@@ -750,6 +750,76 @@ const STORAGE_ITEMS = 'stockmanager_items';
     }catch(e){}
   }
 
+  // ---------------- APPAREIL DU PROPRIÉTAIRE ----------------
+  // Après une connexion réussie du propriétaire, l'appareil est marqué comme
+  // sien. Sur cet appareil seulement, un code oublié n'enferme plus dehors :
+  // un code de secours s'affiche aussitôt et rouvre l'accès, sans paiement ni
+  // attente. Sur un appareil inconnu, il faut passer par le lien email.
+  const OWNER_DEVICE_KEY = 'stockmanager_owner_device';
+  const OWNER_RESCUE_KEY = 'stockmanager_owner_rescue';
+  const OWNER_RESCUE_LOG = 'stockmanager_owner_rescue_log';
+  const RESCUE_VALID_MS = 30 * 60 * 1000;
+
+  function isOwnerEmail(email){
+    return normEmail(email) === normEmail(OWNER_EMAIL);
+  }
+  function markOwnerDevice(){
+    try { localStorage.setItem(OWNER_DEVICE_KEY, new Date().toISOString()); } catch(e){}
+  }
+  function isOwnerDevice(){
+    try { return !!localStorage.getItem(OWNER_DEVICE_KEY); } catch(e){ return false; }
+  }
+  function loadRescue(){
+    try { return JSON.parse(localStorage.getItem(OWNER_RESCUE_KEY)) || null; } catch(e){ return null; }
+  }
+  function saveRescue(entry){
+    try { localStorage.setItem(OWNER_RESCUE_KEY, JSON.stringify(entry)); } catch(e){}
+  }
+  function clearRescue(){
+    try { localStorage.removeItem(OWNER_RESCUE_KEY); } catch(e){}
+  }
+  function logRescue(event){
+    let list = [];
+    try { list = JSON.parse(localStorage.getItem(OWNER_RESCUE_LOG)) || []; } catch(e){}
+    list.unshift({ event: event, date: new Date().toLocaleString('fr-FR') });
+    try { localStorage.setItem(OWNER_RESCUE_LOG, JSON.stringify(list.slice(0, 30))); } catch(e){}
+  }
+
+  // Génère et affiche un code de secours (propriétaire, appareil reconnu).
+  function offerOwnerRescueCode(){
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    return sha256Hex(normEmail(OWNER_EMAIL) + ':' + code).then(function(hash){
+      saveRescue({ hash: hash, expiresAt: Date.now() + RESCUE_VALID_MS });
+      logRescue('Code de secours affiché');
+      const status = document.getElementById('quickLoginStatus');
+      if(status){
+        status.innerHTML = 'Code oublié — vous êtes sur votre appareil habituel.<br>' +
+          'Code de secours : <strong style="color:var(--cyan); font-family:var(--font-mono); font-size:1.1rem; letter-spacing:0.15em;">' +
+          code + '</strong><br>Saisissez-le ci-dessus à la place du mot de passe (valable 30 minutes).';
+      }
+      return code;
+    });
+  }
+
+  // Vérifie le code de secours saisi à la place du mot de passe.
+  function tryOwnerRescueCode(email, code){
+    if(!isOwnerEmail(email) || !isOwnerDevice()) return Promise.resolve(false);
+    const entry = loadRescue();
+    if(!entry || !entry.hash) return Promise.resolve(false);
+    if(entry.expiresAt && Date.now() > entry.expiresAt){ clearRescue(); return Promise.resolve(false); }
+    return sha256Hex(normEmail(OWNER_EMAIL) + ':' + String(code).trim()).then(function(hash){
+      if(hash !== entry.hash) return false;
+      clearRescue();
+      logRescue('Accès rouvert avec le code de secours');
+      const profile = findProfileByEmail(OWNER_EMAIL) || {
+        name: OWNER_NAME, email: OWNER_EMAIL, phone: OWNER_PHONE,
+        logo: null, company: '', nif: '', stat: ''
+      };
+      loginFromProfile(profile);
+      return true;
+    });
+  }
+
   function profileFromAuthUser(user){
     const meta = (user && user.user_metadata) || {};
     const email = (user && user.email) || '';
@@ -769,6 +839,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
   function openAppForAuthUser(user, opts){
     currentUser = profileFromAuthUser(user);
     saveLastEmail(currentUser.email);
+    if(isOwnerEmail(currentUser.email)) markOwnerDevice();
     // cache local (le logo reste sur l'appareil, il n'est pas envoyé au serveur)
     upsertProfile(currentUser.name, {
       name: currentUser.name, email: currentUser.email, phone: currentUser.phone,
@@ -829,6 +900,74 @@ const STORAGE_ITEMS = 'stockmanager_items';
   if(showFullLoginBtn) showFullLoginBtn.addEventListener('click', function(){ showLoginMode('full'); });
   const showQuickLoginBtn = document.getElementById('showQuickLoginBtn');
   if(showQuickLoginBtn) showQuickLoginBtn.addEventListener('click', function(){ showLoginMode('quick'); });
+
+  // ---------------- LIEN DE RÉINITIALISATION PAR EMAIL ----------------
+  // Pour un appareil que l'application ne connaît pas : le lien n'arrive que
+  // dans la boîte mail du titulaire, personne d'autre ne peut s'en servir.
+  const sendResetLinkBtn = document.getElementById('sendResetLinkBtn');
+  if(sendResetLinkBtn){
+    sendResetLinkBtn.addEventListener('click', function(){
+      const status = document.getElementById('quickLoginStatus');
+      const email = document.getElementById('quickEmail').value.trim();
+      const auth = sbAuth();
+      if(!email){ if(status) status.textContent = 'Indiquez d\'abord votre email.'; return; }
+      if(!auth){ if(status) status.textContent = 'Serveur injoignable : réessayez une fois connecté à Internet.'; return; }
+      if(status) status.textContent = 'Envoi du lien…';
+      auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + window.location.pathname })
+        .then(function(res){
+          if(res && res.error){ if(status) status.textContent = authErrorText(res.error); return; }
+          if(status) status.textContent = 'Lien envoyé à ' + email + '. Ouvrez-le puis choisissez un nouveau code.';
+        }, function(){
+          if(status) status.textContent = 'Envoi impossible : vérifiez votre réseau.';
+        });
+    });
+  }
+
+  // Retour depuis le lien reçu : on demande le nouveau code puis on entre.
+  function showRecoveryBox(){
+    loginScreen.style.display = 'flex';
+    appScreen.style.display = 'none';
+    paywallScreen.style.display = 'none';
+    if(quickLoginForm) quickLoginForm.style.display = 'none';
+    loginForm.style.display = 'none';
+    const forgotWrap = document.getElementById('forgotWrap');
+    if(forgotWrap) forgotWrap.style.display = 'none';
+    const box = document.getElementById('recoveryBox');
+    if(box) box.style.display = 'block';
+    if(loginTitle) loginTitle.textContent = 'Nouveau code';
+    if(loginSub) loginSub.style.display = 'none';
+    const notice = document.getElementById('autoNoticeModal');
+    if(notice) notice.style.display = 'none';
+  }
+
+  const recoverySaveBtn = document.getElementById('recoverySaveBtn');
+  if(recoverySaveBtn){
+    recoverySaveBtn.addEventListener('click', function(){
+      const status = document.getElementById('recoveryStatus');
+      const value = document.getElementById('recoveryPassword').value;
+      const auth = sbAuth();
+      if(!auth){ status.textContent = 'Serveur injoignable.'; return; }
+      if(value.length < 6){ status.textContent = 'Le mot de passe doit contenir au moins 6 caractères.'; return; }
+      status.textContent = 'Enregistrement…';
+      auth.updateUser({ password: value }).then(function(res){
+        if(res && res.error){ status.textContent = authErrorText(res.error); return; }
+        auth.getSession().then(function(r){
+          const session = r && r.data && r.data.session;
+          const box = document.getElementById('recoveryBox');
+          if(box) box.style.display = 'none';
+          if(loginSub) loginSub.style.display = '';
+          if(session && session.user){ openAppForAuthUser(session.user); }
+          else { showLoginMode('quick'); }
+        }, function(){ showLoginMode('quick'); });
+      }, function(){ status.textContent = 'Enregistrement impossible : vérifiez votre réseau.'; });
+    });
+  }
+
+  if(sbAuth() && sbAuth().onAuthStateChange){
+    sbAuth().onAuthStateChange(function(event){
+      if(event === 'PASSWORD_RECOVERY') showRecoveryBox();
+    });
+  }
 
   // Ouvre l'application à partir d'un profil déjà enregistré.
   function loginFromProfile(profile){
@@ -1145,7 +1284,16 @@ const STORAGE_ITEMS = 'stockmanager_items';
     auth.signInWithPassword({ email: email, password: password }).then(function(res){
       quickLoginBusy = false;
       if(res && res.error){
-        if(status) status.textContent = silent ? '' : authErrorText(res.error);
+        // propriétaire sur son appareil habituel : pas de paiement, pas
+        // d'attente — un code de secours s'affiche et rouvre l'accès.
+        tryOwnerRescueCode(email, password).then(function(entered){
+          if(entered) return;
+          if(isOwnerEmail(email) && isOwnerDevice() && !loadRescue()){
+            offerOwnerRescueCode();
+            return;
+          }
+          if(status) status.textContent = silent ? '' : authErrorText(res.error);
+        });
         return;
       }
       if(status) status.textContent = '';
