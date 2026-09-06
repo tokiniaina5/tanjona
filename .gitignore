@@ -1,2 +1,6 @@
 .claude/
 .netlify/
+
+# fanalahidy miafina : tsy versionne, tsy alefa
+.env.secrets
+test-alerte.json
