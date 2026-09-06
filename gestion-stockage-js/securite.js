@@ -6,11 +6,11 @@
   //  - entrée forcée : codes erronés à répétition sur un compte.
   // Dans les deux cas le compte fautif est bloqué aussitôt, le propriétaire et
   // le client concerné sont prévenus, et le blocage se lève depuis l'espace
-  // admin. Le client dispose de 2 jours pour se manifester.
+  // admin. Aucun délai d'attente : dès que le propriétaire a vérifié
+  // l'identité, le déblocage prend effet immédiatement.
   const FAILED_ATTEMPTS_KEY = 'stockmanager_failed_attempts';
   const FAILED_WINDOW_MS = 15 * 60 * 1000;
   const FAILED_MAX = 5;
-  const ALERT_GRACE_DAYS = 2;
 
   function loadFailedAttempts(){
     try { return JSON.parse(localStorage.getItem(FAILED_ATTEMPTS_KEY)) || {}; }
@@ -145,7 +145,7 @@
     });
   }
 
-  // Message que le propriétaire envoie au client concerné (2 jours de délai).
+  // Message que le propriétaire envoie au client concerné.
   function securityAlertMail(email, reason){
     const body = [
       'Bonjour,',
@@ -155,7 +155,8 @@
       reason || '—',
       '',
       'Par précaution, l\'accès a été bloqué.',
-      'Vous disposez de ' + ALERT_GRACE_DAYS + ' jours pour me contacter afin de le rétablir.',
+      'Contactez-moi : dès que j\'aurai vérifié votre identité, je rétablis',
+      'votre accès et vous recevez un nouveau code. C\'est immédiat.',
       '',
       OWNER_NAME + ' — ' + OWNER_EMAIL
     ].join('\n');
@@ -371,7 +372,7 @@
           const mail = document.createElement('a');
           mail.className = 'btn btn-sm';
           mail.style.cssText = 'width:auto; text-decoration:none; display:inline-block;';
-          mail.textContent = '✉️ Prévenir (délai ' + ALERT_GRACE_DAYS + ' jours)';
+          mail.textContent = '✉️ Prévenir le client';
           mail.href = securityAlertMail(r.email, r.reason);
           actions.appendChild(mail);
 

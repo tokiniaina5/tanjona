@@ -85,8 +85,9 @@ Deno.serve(async (req: Request) => {
     line("Date de naissance", identity.birthDate),
     line("Lieu de naissance", identity.birthPlace),
     "",
-    "Le compte a été bloqué automatiquement. Le titulaire dispose de 2 jours",
-    "pour se manifester avant que vous ne décidiez de la suite.",
+    "Le compte a été bloqué automatiquement. Dès que vous aurez vérifié que",
+    "cette pièce d'identité correspond bien au titulaire, le déblocage et",
+    "l'envoi d'un nouveau code prennent effet immédiatement.",
     "",
     payload.ownerName ?? "",
   ].join("\n");

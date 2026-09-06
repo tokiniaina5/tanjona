@@ -161,7 +161,7 @@ Un menu "Espace admin" apparaît uniquement pour le propriétaire
 - les tentatives détectées sur les comptes clients ;
 - les tentatives détectées sur le compte du propriétaire ;
 - les comptes bloqués, avec un bouton pour prévenir la personne
-  (délai de 2 jours) et un autre pour lever le blocage.
+  et un autre pour lever le blocage (effet immédiat).
 
 Ce qui déclenche un blocage automatique :
 1. "Compte n°2" : quelqu'un s'inscrit avec le nom ou le numéro d'un
@@ -178,10 +178,9 @@ signalées.
 (tables "security_events" et "blocked_accounts").
 
 LIMITE : le solde réel PayPal n'est pas lisible par l'application ;
-seuls les paiements déclarés par les clients apparaissent. L'alerte
-"2 jours" est envoyée par un bouton (mailto) : un envoi entièrement
-automatique demanderait une Edge Function Supabase + un service
-d'emails.
+seuls les paiements déclarés par les clients apparaissent. Le message au client peut être envoyé d'un bouton (mailto) ; l'alerte
+au propriétaire, elle, part automatiquement dès que la fonction
+"send-alert" est déployée.
 
 
 ÉTAPE 2 — PIÈCE D'IDENTITÉ & ALERTE PAR EMAIL AUTOMATIQUE
