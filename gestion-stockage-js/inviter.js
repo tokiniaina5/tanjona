@@ -47,17 +47,57 @@
     refreshReferralProgress();
   }
 
+  // « Copier tout » : rassemble tous les liens de l'application (invitation,
+  // Live, appel vidéo, appel audio) en un seul texte prêt à être partagé.
+  function allShareLinksText(){
+    const lines = [];
+    const invite = document.getElementById('inviteLink').value;
+    lines.push('📦 Gestion de Stockage — rohy rehetra');
+    lines.push('');
+    lines.push('🔗 Fanasana (invitation) :');
+    lines.push(invite);
+    if(typeof liveJoinLink === 'function'){
+      lines.push('');
+      lines.push('🔴 Live direct :');
+      lines.push(liveJoinLink());
+    }
+    if(typeof callInviteLink === 'function'){
+      lines.push('');
+      lines.push('📹 Antso video :');
+      lines.push(callInviteLink('video'));
+      lines.push('');
+      lines.push('📞 Antso audio :');
+      lines.push(callInviteLink('audio'));
+    }
+    return lines.join('\n');
+  }
+
+  function copyTextWithFallback(text){
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      return navigator.clipboard.writeText(text);
+    }
+    return Promise.reject();
+  }
+
+  function legacyCopy(text){
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed; top:-1000px; left:-1000px;';
+    document.body.appendChild(ta);
+    ta.select();
+    try{ document.execCommand('copy'); }catch(e){}
+    document.body.removeChild(ta);
+  }
+
   document.getElementById('copyInviteBtn').addEventListener('click', function(){
-    const input = document.getElementById('inviteLink');
-    input.select();
-    navigator.clipboard.writeText(input.value).then(function(){
-      const btn = document.getElementById('copyInviteBtn');
+    const btn = document.getElementById('copyInviteBtn');
+    const text = allShareLinksText();
+    const done = function(){
       const original = btn.textContent;
       btn.textContent = 'Copié !';
       setTimeout(function(){ btn.textContent = original; }, 1500);
-    }).catch(function(){
-      document.execCommand('copy');
-    });
+    };
+    copyTextWithFallback(text).then(done, function(){ legacyCopy(text); done(); });
   });
 
   document.getElementById('sendInviteBtn').addEventListener('click', function(){

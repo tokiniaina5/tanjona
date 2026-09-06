@@ -34,7 +34,9 @@
   }
   .filter-clear:hover{ text-decoration:underline; }
 
-  .community-grid{ display:grid; grid-template-columns: 1.3fr 1fr; gap:0.9rem; margin-bottom:1.4rem; align-items:start; }
+  /* le panneau « Achats internationaux » est passé dans la barre du haut :
+     le fil d’actualité occupe désormais toute la largeur */
+  .community-grid{ display:grid; grid-template-columns: 1fr; gap:0.9rem; margin-bottom:1.4rem; align-items:start; }
   .community-sub{ font-size:0.8rem; color:var(--muted); margin-bottom:0.9rem; line-height:1.5; }
   .marketplace-row{ display:flex; flex-wrap:wrap; gap:0.6rem; }
   .marketplace-row a.btn{ display:inline-block; text-align:center; width:auto; }

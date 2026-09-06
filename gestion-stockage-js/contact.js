@@ -8,6 +8,8 @@
     // (invitation, fanambarana Live…). Raha tsy voafeno dia ny adiresy an'ity
     // pejy ity no alaina — izay tsy misokatra amin'ny olon-kafa raha localhost.
     { key: 'site_url', inputId: 'contactSiteUrlInput' },
+    // PayPal du propriétaire : frais de déblocage (mot de passe oublié)
+    { key: 'paypal', inputId: 'contactPaypalInput' },
     { key: 'whatsapp', inputId: 'contactWhatsappInput' },
     { key: 'facebook', inputId: 'contactFacebookInput' },
     { key: 'instagram', inputId: 'contactInstagramInput' },

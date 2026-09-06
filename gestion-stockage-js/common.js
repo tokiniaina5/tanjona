@@ -6,7 +6,21 @@ const STORAGE_ITEMS = 'stockmanager_items';
   const STORAGE_CLIENT_CODES = 'stockmanager_client_codes';
   const CODE_VALID_MS = 30 * 60 * 1000; // 30 minutes
   const CODE_MAX_ATTEMPTS = 3;
+  // Identité du propriétaire de l'application, affichée aux clients
+  // (paiement de l'abonnement, frais de déblocage, lettres envoyées).
   const OWNER_EMAIL = 'rasolofonirainytokiniaina@gmail.com';
+  const OWNER_NAME = 'Rasolofonirainy Tokiniaina Tanjona';
+  const OWNER_PHONE = '034 37 058 34';
+
+  // Remplit tous les éléments marqués data-owner="name|phone|email".
+  function renderOwnerIdentity(){
+    const values = { name: OWNER_NAME, phone: OWNER_PHONE, email: OWNER_EMAIL };
+    document.querySelectorAll('[data-owner]').forEach(function(el){
+      const value = values[el.getAttribute('data-owner')];
+      if(value) el.textContent = value;
+    });
+  }
+  renderOwnerIdentity();
   const TRIAL_DAYS = 90;
   const REFERRALS_PER_BONUS_DAY = 10; // 10 olona nampiasa ny lien = +1 andro essai gratuit
 
@@ -94,7 +108,8 @@ const STORAGE_ITEMS = 'stockmanager_items';
       'Téléphone : ' + (clientPhone || '—') + '\n' +
       'Formule choisie : ' + (plan === 'annuel' ? 'Annuel' : 'Mensuel') + '\n' +
       'Code de déverrouillage généré pour ce client : ' + code + ' (valable 30 minutes, 3 essais)\n\n' +
-      'Merci de vérifier la réception du paiement puis de communiquer ce code à ce client.'
+      'Merci de vérifier la réception du paiement puis de communiquer ce code à ce client.\n\n' +
+      'Destinataire : ' + OWNER_NAME + ' — ' + OWNER_PHONE + ' — ' + OWNER_EMAIL
     );
     window.location.href = 'mailto:' + OWNER_EMAIL + '?subject=' + subject + '&body=' + body;
     return code;
@@ -109,6 +124,26 @@ const STORAGE_ITEMS = 'stockmanager_items';
     const profiles = loadProfiles();
     return profiles[name.trim().toLowerCase()] || null;
   }
+  function findProfileByEmail(email){
+    const target = (email || '').trim().toLowerCase();
+    if(!target) return null;
+    const profiles = loadProfiles();
+    const key = Object.keys(profiles).find(function(k){
+      return (profiles[k].email || '').trim().toLowerCase() === target;
+    });
+    return key ? profiles[key] : null;
+  }
+  // Un compte est « rapide » dès qu'il possède un code d'accès enregistré.
+  function hasQuickAccounts(){
+    const profiles = loadProfiles();
+    return Object.keys(profiles).some(function(k){ return !!profiles[k].accessCode; });
+  }
+  // Quelqu'un s'est-il déjà connecté sur CET appareil ? Si non, c'est une
+  // première visite : on montre le formulaire complet, pas « Bon retour ».
+  function hasKnownAccounts(){
+    return Object.keys(loadProfiles()).length > 0;
+  }
+
   function upsertProfile(name, data){
     const profiles = loadProfiles();
     const key = name.trim().toLowerCase();
@@ -344,6 +379,49 @@ const STORAGE_ITEMS = 'stockmanager_items';
   let movements = loadMovements();
   let currentUser = null;
 
+  // ---------------- SESSION (rester connecté après actualisation) ----------------
+  // La session et la vue en cours sont mémorisées : actualiser la page ne
+  // renvoie plus vers l'écran de connexion, on reprend là où on était.
+  const STORAGE_SESSION = 'stockmanager_session';
+  const STORAGE_LAST_VIEW = 'stockmanager_last_view';
+
+  function saveSession(){
+    try{ localStorage.setItem(STORAGE_SESSION, JSON.stringify(currentUser)); }catch(e){}
+  }
+  function loadSession(){
+    try{ return JSON.parse(localStorage.getItem(STORAGE_SESSION)) || null; }catch(e){ return null; }
+  }
+  function clearSession(){
+    try{
+      localStorage.removeItem(STORAGE_SESSION);
+      localStorage.removeItem(STORAGE_LAST_VIEW);
+    }catch(e){}
+  }
+  function saveLastView(){
+    try{
+      const nav = document.querySelector('.nav-item.active');
+      const tab = document.querySelector('.dash-tab.active');
+      localStorage.setItem(STORAGE_LAST_VIEW, JSON.stringify({
+        section: nav ? nav.dataset.section : null,
+        dash: tab ? tab.dataset.dash : null
+      }));
+    }catch(e){}
+  }
+  function restoreLastView(){
+    let view = null;
+    try{ view = JSON.parse(localStorage.getItem(STORAGE_LAST_VIEW)) || null; }catch(e){}
+    if(!view) return;
+    if(view.section){
+      const nav = document.querySelector('.nav-item[data-section="' + view.section + '"]');
+      if(nav && !nav.classList.contains('active')) nav.click();
+    }
+    if(view.dash){
+      const tab = document.querySelector('.dash-tab[data-dash="' + view.dash + '"]');
+      if(tab && !tab.classList.contains('active')) tab.click();
+    }
+    if(typeof updateSubTabsVisibility === 'function') updateSubTabsVisibility();
+  }
+
   // ---------------- FILTRES DU TABLEAU DE BORD ----------------
   const selectedDays = new Set();
   const selectedCategories = new Set();
@@ -384,6 +462,8 @@ const STORAGE_ITEMS = 'stockmanager_items';
     loginScreen.style.display = 'none';
     paywallScreen.style.display = 'none';
     appScreen.style.display = 'block';
+    // la barre n’a une hauteur mesurable qu’une fois l’appli affichée
+    if(typeof updateTopbarHeight === 'function') updateTopbarHeight();
 
     renderStock();
     renderMovementsHistory();
@@ -559,8 +639,495 @@ const STORAGE_ITEMS = 'stockmanager_items';
     }
   }
 
+  // Traduit les erreurs Supabase les plus fréquentes, et affiche le message
+  // d'origine pour tout le reste : sans cela on ne sait pas quoi corriger.
+  function authErrorText(error){
+    const raw = (error && (error.message || error.error_description)) || 'erreur inconnue';
+    const low = raw.toLowerCase();
+    if(low.indexOf('email not confirmed') >= 0){
+      return 'Votre compte existe mais l\'email n\'est pas confirmé. Ouvrez le mail de confirmation, ' +
+        'ou demandez au propriétaire de décocher « Confirm email » dans Supabase.';
+    }
+    if(low.indexOf('invalid login credentials') >= 0){
+      return 'Email ou mot de passe incorrect.';
+    }
+    if(low.indexOf('signups not allowed') >= 0 || low.indexOf('signup is disabled') >= 0){
+      return 'La création de compte est désactivée sur le serveur (Supabase > Authentication > ' +
+        '« Allow new users to sign up »).';
+    }
+    if(low.indexOf('user already registered') >= 0 || low.indexOf('already been registered') >= 0){
+      return 'Cet email possède déjà un compte.';
+    }
+    if(low.indexOf('password') >= 0 && low.indexOf('6') >= 0){
+      return 'Le mot de passe doit contenir au moins 6 caractères.';
+    }
+    if(low.indexOf('rate limit') >= 0 || low.indexOf('too many') >= 0){
+      return 'Trop de tentatives : patientez quelques minutes.';
+    }
+    return raw;
+  }
+
+  // ---------------- AUTHENTIFICATION SUPABASE ----------------
+  // Le mot de passe n'est jamais conservé sur l'appareil : Supabase le garde
+  // haché côté serveur et renvoie une session utilisable depuis n'importe quel
+  // téléphone ou ordinateur. Sans Supabase (hors ligne, script bloqué), on
+  // retombe sur l'ancien code d'accès local.
+  function sbAuth(){
+    return (window.__sb && window.__sb.auth) ? window.__sb.auth : null;
+  }
+
+  // Chaque nouvelle inscription part automatiquement chez le propriétaire :
+  // il la retrouve dans Paramètres > « Nouvelles inscriptions » et dans son
+  // admin du site. Le client, lui, entre directement, sans rien attendre.
+  function recordNewSignup(name, email, phone){
+    if(!window.__sb) return;
+    const row = { name: name, email: normEmail(email), phone: phone || '' };
+    try{
+      window.__sb.from('client_signups').insert(row).then(function(){}, function(){});
+      window.__sb.from('contact_messages').insert({
+        name: name + ' (nouvelle inscription)',
+        email: normEmail(email),
+        message: [
+          'Nouvelle inscription à Gestion de Stockage :',
+          '',
+          'Nom : ' + name,
+          'Email : ' + normEmail(email),
+          'Téléphone : ' + (phone || '—'),
+          'Date : ' + new Date().toLocaleString('fr-FR'),
+          '',
+          'Destinataire : ' + OWNER_NAME + ' — ' + OWNER_EMAIL
+        ].join('\n')
+      }).then(function(){}, function(){});
+    }catch(e){}
+  }
+
+  function profileFromAuthUser(user){
+    const meta = (user && user.user_metadata) || {};
+    const email = (user && user.email) || '';
+    const local = findProfileByEmail(email) || {};
+    return {
+      name: meta.name || local.name || email.split('@')[0],
+      email: email,
+      phone: meta.phone || local.phone || '',
+      logo: local.logo || null,
+      company: meta.company || local.company || '',
+      nif: meta.nif || local.nif || '',
+      stat: meta.stat || local.stat || ''
+    };
+  }
+
+  // Ouvre l'application pour un utilisateur authentifié par Supabase.
+  function openAppForAuthUser(user, opts){
+    currentUser = profileFromAuthUser(user);
+    // cache local (le logo reste sur l'appareil, il n'est pas envoyé au serveur)
+    upsertProfile(currentUser.name, {
+      name: currentUser.name, email: currentUser.email, phone: currentUser.phone,
+      logo: currentUser.logo, company: currentUser.company,
+      nif: currentUser.nif, stat: currentUser.stat, accessCode: ''
+    });
+    const logins = loadLogins();
+    logins.unshift({ name: currentUser.name, email: currentUser.email, phone: currentUser.phone, date: new Date().toLocaleString('fr-FR') });
+    saveLogins(logins);
+    document.getElementById('currentUserName').textContent = currentUser.name;
+    document.getElementById('currentUserEmail').textContent = currentUser.email;
+    saveSession();
+    if(getSubscriptionStatus().status === 'expired'){
+      openPaywall();
+    } else {
+      openApp();
+      if(opts && opts.restoreView) restoreLastView();
+    }
+  }
+
+  // ---------------- CONNEXION RAPIDE (email + code) ----------------
+  const quickLoginForm = document.getElementById('quickLoginForm');
+  const loginTitle = document.getElementById('loginTitle');
+  const loginSub = document.getElementById('loginSub');
+
+  function showLoginMode(mode){
+    const quick = mode === 'quick';
+    if(quickLoginForm) quickLoginForm.style.display = quick ? 'block' : 'none';
+    loginForm.style.display = quick ? 'none' : 'block';
+    const backBtn = document.getElementById('showQuickLoginBtn');
+    if(backBtn) backBtn.style.display = quick ? 'none' : 'block';
+    if(loginTitle) loginTitle.textContent = quick ? 'Bon retour' : 'Connexion';
+    if(loginSub){
+      loginSub.textContent = quick
+        ? 'Entrez votre email et votre mot de passe : la connexion se valide automatiquement.'
+        : 'Première connexion : renseignez vos informations et choisissez un mot de passe pour créer votre compte.';
+    }
+    const status = document.getElementById('quickLoginStatus');
+    if(status) status.textContent = '';
+    const forgotWrap = document.getElementById('forgotWrap');
+    if(forgotWrap) forgotWrap.style.display = quick ? 'block' : 'none';
+    const forgotBox = document.getElementById('forgotBox');
+    if(forgotBox) forgotBox.style.display = 'none';
+  }
+  function refreshLoginMode(){
+    // On ouvre toujours sur la première connexion (inscription) : c'est là que
+    // la personne crée son compte. Celle qui en a déjà un bascule sur
+    // « Bon retour » avec le bouton « J'ai déjà un compte ».
+    showLoginMode('full');
+  }
+
+  const showFullLoginBtn = document.getElementById('showFullLoginBtn');
+  if(showFullLoginBtn) showFullLoginBtn.addEventListener('click', function(){ showLoginMode('full'); });
+  const showQuickLoginBtn = document.getElementById('showQuickLoginBtn');
+  if(showQuickLoginBtn) showQuickLoginBtn.addEventListener('click', function(){ showLoginMode('quick'); });
+
+  // Ouvre l'application à partir d'un profil déjà enregistré.
+  function loginFromProfile(profile){
+    currentUser = {
+      name: profile.name || '',
+      email: profile.email || '',
+      phone: profile.phone || '',
+      logo: profile.logo || null,
+      company: profile.company || '',
+      nif: profile.nif || '',
+      stat: profile.stat || ''
+    };
+    const logins = loadLogins();
+    logins.unshift({ name: currentUser.name, email: currentUser.email, phone: currentUser.phone, date: new Date().toLocaleString('fr-FR') });
+    saveLogins(logins);
+    document.getElementById('currentUserName').textContent = currentUser.name;
+    document.getElementById('currentUserEmail').textContent = currentUser.email;
+    saveSession();
+    if(getSubscriptionStatus().status === 'expired'){ openPaywall(); } else { openApp(); }
+  }
+
+  function tryQuickLogin(silent){
+    const status = document.getElementById('quickLoginStatus');
+    const email = document.getElementById('quickEmail').value.trim();
+    const code = document.getElementById('quickCode').value.trim();
+    if(!email || !code){
+      if(!silent && status) status.textContent = 'Email et code sont obligatoires.';
+      return false;
+    }
+    const profile = findProfileByEmail(email);
+    if(!profile || !profile.accessCode){
+      if(!silent && status) status.textContent = 'Aucun compte enregistré avec cet email sur cet appareil.';
+      return false;
+    }
+    if(String(profile.accessCode) !== code){
+      if(!silent && status) status.textContent = 'Code incorrect.';
+      return false;
+    }
+    if(status) status.textContent = '';
+    loginFromProfile(profile);
+    return true;
+  }
+
+  // ---------------- MOT DE PASSE OUBLIÉ ----------------
+  // Le client envoie une lettre de demande au propriétaire de l'application ;
+  // celui-ci lui renvoie le code de validation généré ici, qui rouvre l'accès
+  // sur cet appareil (les données de l'application y sont déjà enregistrées).
+  const forgotToggleBtn = document.getElementById('forgotToggleBtn');
+  if(forgotToggleBtn){
+    forgotToggleBtn.addEventListener('click', function(){
+      const box = document.getElementById('forgotBox');
+      const open = box.style.display === 'block';
+      box.style.display = open ? 'none' : 'block';
+      if(!open){
+        const quickEmail = document.getElementById('quickEmail').value.trim();
+        if(quickEmail && !document.getElementById('forgotEmail').value){
+          document.getElementById('forgotEmail').value = quickEmail;
+        }
+        if(typeof showPaypalTarget === 'function') showPaypalTarget();
+        const known = findProfileByEmail(document.getElementById('forgotEmail').value);
+        if(known){
+          if(!document.getElementById('forgotName').value) document.getElementById('forgotName').value = known.name || '';
+          if(!document.getElementById('forgotPhone').value) document.getElementById('forgotPhone').value = known.phone || '';
+        }
+      }
+    });
+  }
+
+  function forgotRequestLetter(name, email, phone, message, reference){
+    return [
+      'Bonjour,',
+      '',
+      'Un utilisateur de Gestion de Stockage ne se souvient plus de ses informations ' +
+      'de connexion et demande le déblocage de son accès :',
+      '',
+      'Nom : ' + name,
+      'Email : ' + email,
+      'Téléphone : ' + (phone || '—'),
+      'Message : ' + (message || '—'),
+      '',
+      'Frais de déblocage : 20 000 Ar (PayPal)',
+      'Référence du paiement : ' + (reference || '—'),
+      '',
+      'La demande apparaît aussi dans Paramètres > « Demandes de déblocage ».',
+      'Après vérification du paiement, cliquez sur « Confirmer le paiement » :',
+      'son accès se rouvre tout seul sur son appareil, aucun code à transmettre.',
+      '',
+      'Destinataire : ' + OWNER_NAME + ' — ' + OWNER_EMAIL
+    ].join('\n');
+  }
+
+  // ---- Frais de déblocage réglés sur le PayPal du propriétaire ----
+  const UNLOCK_FEE_AR = 20000;
+
+  function ownerPaypal(){
+    try{
+      if(typeof loadContactChannelsLocal === 'function'){
+        return (loadContactChannelsLocal().paypal || '').trim();
+      }
+    }catch(e){}
+    return '';
+  }
+
+  function paypalPayUrl(value){
+    const v = (value || '').trim();
+    if(!v) return '';
+    if(/^https?:\/\//i.test(v)) return v;
+    if(v.indexOf('@') >= 0) return 'https://www.paypal.com/paypalme/';   // pas de lien direct pour un email
+    return 'https://www.paypal.com/paypalme/' + v.replace(/^@/, '');
+  }
+
+  function showPaypalTarget(){
+    const target = document.getElementById('payUnlockTarget');
+    if(!target) return;
+    const value = ownerPaypal();
+    if(!value){
+      target.textContent = 'Le propriétaire n\'a pas encore renseigné son PayPal — envoyez quand même votre demande, il vous indiquera comment payer.';
+      return;
+    }
+    target.textContent = (value.indexOf('@') >= 0 && !/^https?:\/\//i.test(value))
+      ? 'Compte PayPal du propriétaire : ' + value
+      : 'Lien de paiement : ' + value;
+  }
+
+  // Le hash (jamais le code en clair) est ce qui transite et ce qui est stocké.
+  function sha256Hex(text){
+    if(!(window.crypto && window.crypto.subtle)) return Promise.resolve('plain:' + text);
+    const data = new TextEncoder().encode(text);
+    return window.crypto.subtle.digest('SHA-256', data).then(function(buf){
+      return Array.prototype.map.call(new Uint8Array(buf), function(b){
+        return ('0' + b.toString(16)).slice(-2);
+      }).join('');
+    });
+  }
+
+  const payUnlockBtn = document.getElementById('payUnlockBtn');
+  if(payUnlockBtn){
+    payUnlockBtn.addEventListener('click', function(){
+      const value = ownerPaypal();
+      const statusEl = document.getElementById('forgotStatus');
+      if(!value){
+        statusEl.textContent = 'Aucun compte PayPal n\'est configuré pour le moment. Envoyez votre demande : le propriétaire vous indiquera comment régler les ' + UNLOCK_FEE_AR.toLocaleString('fr-FR') + ' Ar.';
+        return;
+      }
+      if(value.indexOf('@') >= 0 && !/^https?:\/\//i.test(value)){
+        if(typeof copyToClipboardSilently === 'function') copyToClipboardSilently(value);
+        statusEl.textContent = 'Adresse PayPal copiée : ' + value + '. Envoyez-y ' + UNLOCK_FEE_AR.toLocaleString('fr-FR') + ' Ar, puis indiquez la référence ci-dessous.';
+        return;
+      }
+      window.open(paypalPayUrl(value), '_blank');
+    });
+  }
+
+  // Jeton d'appareil : seul l'appareil qui a envoyé la demande peut rouvrir
+  // l'accès. Il n'est jamais affiché, jamais transmis à personne — seule son
+  // empreinte SHA-256 part sur le serveur. Aucun code ne circule donc entre le
+  // propriétaire et le client, rien ne peut être intercepté ni réutilisé.
+  const UNLOCK_TOKEN_KEY = 'stockmanager_unlock_token';
+
+  function loadUnlockTokens(){
+    try { return JSON.parse(localStorage.getItem(UNLOCK_TOKEN_KEY)) || {}; }
+    catch(e){ return {}; }
+  }
+  function unlockTokenFor(email, create){
+    const map = loadUnlockTokens();
+    const key = normEmail(email);
+    if(!map[key] && create){
+      map[key] = (window.crypto && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : 'tok-' + Date.now() + '-' + Math.random().toString(36).slice(2, 12);
+      try { localStorage.setItem(UNLOCK_TOKEN_KEY, JSON.stringify(map)); } catch(e){}
+    }
+    return map[key] || null;
+  }
+
+  const sendForgotBtn = document.getElementById('sendForgotBtn');
+  if(sendForgotBtn){
+    sendForgotBtn.addEventListener('click', function(){
+      const statusEl = document.getElementById('forgotStatus');
+      const name = document.getElementById('forgotName').value.trim();
+      const email = document.getElementById('forgotEmail').value.trim();
+      const phone = document.getElementById('forgotPhone').value.trim();
+      const message = document.getElementById('forgotMessage').value.trim();
+      const reference = document.getElementById('forgotReference').value.trim();
+      if(!name || !email){
+        statusEl.textContent = 'Votre nom et votre email sont obligatoires.';
+        return;
+      }
+      if(!reference){
+        statusEl.textContent = 'Indiquez la référence de votre paiement PayPal (n° de transaction ou email utilisé).';
+        return;
+      }
+      if(!window.__sb){
+        statusEl.textContent = 'Serveur injoignable : réessayez une fois connecté à Internet.';
+        return;
+      }
+      const letter = forgotRequestLetter(name, email, phone, message, reference);
+      const mailLink = 'mailto:' + OWNER_EMAIL +
+        '?subject=' + encodeURIComponent('Demande de déblocage — ' + name) +
+        '&body=' + encodeURIComponent(letter);
+
+      statusEl.textContent = 'Envoi…';
+      const token = unlockTokenFor(email, true);
+      sha256Hex(token).then(function(deviceHash){
+        window.__sb.from('unlock_requests').insert({
+          name: name, email: normEmail(email), phone: phone, message: message,
+          amount: UNLOCK_FEE_AR, paypal_reference: reference,
+          status: 'pending', device_hash: deviceHash
+        }).then(function(res){
+          if(res && res.error){
+            statusEl.textContent = 'Envoi impossible : ' + (res.error.message || 'erreur serveur');
+            return;
+          }
+          pushNotification('info', 'Demande de déblocage envoyée (' + UNLOCK_FEE_AR.toLocaleString('fr-FR') + ' Ar). En attente de confirmation du propriétaire.');
+          statusEl.innerHTML = 'Demande envoyée au propriétaire ✓ Dès qu\'il confirme votre paiement, ' +
+            'votre accès se rouvre tout seul sur cet appareil — ne fermez pas cette page, ou revenez-y plus tard.<br>' +
+            '<a href="' + mailLink + '" style="color:var(--cyan);">✉️ Prévenir aussi par email</a>';
+          startUnlockWatch(email);
+        }, function(){
+          statusEl.textContent = 'Envoi impossible : vérifiez votre réseau.';
+        });
+      });
+    });
+  }
+
+  // Vérifie si le propriétaire a confirmé le paiement de cet appareil.
+  function checkUnlockConfirmed(email, silent){
+    const statusEl = document.getElementById('forgotStatus');
+    const token = unlockTokenFor(email, false);
+    if(!window.__sb){
+      if(!silent) statusEl.textContent = 'Serveur injoignable : réessayez une fois connecté à Internet.';
+      return;
+    }
+    if(!token){
+      if(!silent) statusEl.textContent = 'Aucune demande n\'a été envoyée depuis cet appareil pour cet email.';
+      return;
+    }
+    if(!silent) statusEl.textContent = 'Vérification…';
+    sha256Hex(token).then(function(deviceHash){
+      window.__sb.from('unlock_requests')
+        .select('id,status,expires_at,device_hash')
+        .eq('email', normEmail(email))
+        .eq('device_hash', deviceHash)
+        .eq('status', 'confirmed')
+        .order('confirmed_at', { ascending: false })
+        .limit(1)
+        .then(function(res){
+          const row = res && res.data && res.data[0];
+          if(!row){
+            if(!silent) statusEl.textContent = 'Votre paiement n\'a pas encore été confirmé par le propriétaire.';
+            return;
+          }
+          if(row.expires_at && new Date(row.expires_at) < new Date()){
+            if(!silent) statusEl.textContent = 'La confirmation a expiré. Contactez le propriétaire.';
+            return;
+          }
+          const profile = findProfileByEmail(email);
+          if(!profile){
+            statusEl.textContent = 'Paiement confirmé, mais aucun compte n\'est enregistré sur cet appareil pour cet email. Utilisez « Première connexion / autre compte ».';
+            return;
+          }
+          stopUnlockWatch();
+          window.__sb.from('unlock_requests')
+            .update({ status: 'used', used_at: new Date().toISOString() })
+            .eq('id', row.id).then(function(){}, function(){});
+          statusEl.textContent = 'Paiement confirmé ✓ Accès rétabli.';
+          pushNotification('info', 'Paiement confirmé par le propriétaire — accès rétabli.');
+          loginFromProfile(profile);
+        }, function(){
+          if(!silent) statusEl.textContent = 'Vérification impossible : vérifiez votre réseau.';
+        });
+    });
+  }
+
+  // Surveillance discrète pendant que le client attend la confirmation.
+  let unlockWatchTimer = null;
+  function startUnlockWatch(email){
+    stopUnlockWatch();
+    unlockWatchTimer = setInterval(function(){ checkUnlockConfirmed(email, true); }, 20000);
+  }
+  function stopUnlockWatch(){
+    if(unlockWatchTimer){ clearInterval(unlockWatchTimer); unlockWatchTimer = null; }
+  }
+
+  const checkUnlockBtn = document.getElementById('checkUnlockBtn');
+  if(checkUnlockBtn){
+    checkUnlockBtn.addEventListener('click', function(){
+      const email = document.getElementById('forgotEmail').value.trim();
+      if(!email){
+        document.getElementById('forgotStatus').textContent = 'Indiquez votre email.';
+        return;
+      }
+      checkUnlockConfirmed(email, false);
+    });
+  }
+
+  let quickLoginBusy = false;
+  let quickAutoTimer = null;
+
+  function submitQuickLogin(silent){
+    const auth = sbAuth();
+    if(!auth) return tryQuickLogin(silent);   // repli hors ligne
+    if(quickLoginBusy) return false;
+    const status = document.getElementById('quickLoginStatus');
+    const email = document.getElementById('quickEmail').value.trim();
+    const password = document.getElementById('quickCode').value;
+    if(!email || password.length < 6){
+      if(!silent && status) status.textContent = 'Email et mot de passe (6 caractères minimum) obligatoires.';
+      return false;
+    }
+    quickLoginBusy = true;
+    if(status) status.textContent = 'Connexion…';
+    auth.signInWithPassword({ email: email, password: password }).then(function(res){
+      quickLoginBusy = false;
+      if(res && res.error){
+        if(status) status.textContent = silent ? '' : authErrorText(res.error);
+        return;
+      }
+      if(status) status.textContent = '';
+      openAppForAuthUser(res.data.user);
+    }, function(){
+      quickLoginBusy = false;
+      if(status) status.textContent = 'Connexion impossible : vérifiez votre réseau.';
+    });
+    return true;
+  }
+
+  if(quickLoginForm){
+    quickLoginForm.addEventListener('submit', function(e){
+      e.preventDefault();
+      submitQuickLogin(false);
+    });
+    // « valider automatic » : la connexion part toute seule dès que la saisie
+    // est complète (petite pause pour ne pas appeler le serveur à chaque touche).
+    document.getElementById('quickCode').addEventListener('input', function(){
+      if(quickAutoTimer) clearTimeout(quickAutoTimer);
+      const auth = sbAuth();
+      if(!auth){ tryQuickLogin(true); return; }
+      quickAutoTimer = setTimeout(function(){ submitQuickLogin(true); }, 700);
+    });
+  }
+
+  // Affiche le message dans la carte de connexion : une alert() est parfois
+  // ignorée (navigateur intégré, aperçu VS Code) et l'utilisateur ne voyait
+  // alors rien se passer du tout.
+  function setLoginStatus(text){
+    const el = document.getElementById('loginStatus');
+    if(el) el.textContent = text || '';
+    if(text) console.warn('[connexion] ' + text);
+  }
+
   loginForm.addEventListener('submit', function(e){
     e.preventDefault();
+    setLoginStatus('');
     const name = document.getElementById('loginName').value.trim();
     const email = document.getElementById('loginEmail').value.trim();
     const phoneInput = document.getElementById('loginPhone').value.trim();
@@ -569,35 +1136,81 @@ const STORAGE_ITEMS = 'stockmanager_items';
 
     const existingProfile = findProfile(name);
     if(!existingProfile && !logoFile){
-      alert('Veuillez ajouter un logo pour votre première connexion.');
+      setLoginStatus('Veuillez ajouter un logo pour votre première connexion.');
       return;
     }
     const phone = phoneInput || (existingProfile ? existingProfile.phone : '');
-    if(!phone){ alert('Veuillez indiquer votre numéro de téléphone.'); return; }
+    if(!phone){ setLoginStatus('Veuillez indiquer votre numéro de téléphone.'); return; }
 
     function finishLogin(logoDataUrl){
       const logo = logoDataUrl || (existingProfile ? existingProfile.logo : null);
-      currentUser = {
-        name, email, phone, logo: logo,
-        company: existingProfile ? (existingProfile.company || '') : '',
-        nif: existingProfile ? (existingProfile.nif || '') : '',
-        stat: existingProfile ? (existingProfile.stat || '') : ''
-      };
-      upsertProfile(name, { name, email, phone, logo: logo, company: currentUser.company, nif: currentUser.nif, stat: currentUser.stat });
+      const company = existingProfile ? (existingProfile.company || '') : '';
+      const nif = existingProfile ? (existingProfile.nif || '') : '';
+      const stat = existingProfile ? (existingProfile.stat || '') : '';
+      const codeInput = document.getElementById('loginCode');
+      const password = codeInput ? codeInput.value : '';
+      const auth = sbAuth();
 
-      const logins = loadLogins();
-      logins.unshift({ name, email, phone, date: new Date().toLocaleString('fr-FR') });
-      saveLogins(logins);
-
-      document.getElementById('currentUserName').textContent = name;
-      document.getElementById('currentUserEmail').textContent = email;
-
-      const st = getSubscriptionStatus();
-      if(st.status === 'expired'){
-        openPaywall();
-      } else {
-        openApp();
+      // le logo reste sur l'appareil : il n'est pas envoyé au serveur
+      function cacheLocalProfile(accessCode){
+        upsertProfile(name, {
+          name: name, email: email, phone: phone, logo: logo,
+          company: company, nif: nif, stat: stat,
+          accessCode: accessCode
+        });
       }
+
+      function openLocally(){
+        currentUser = { name, email, phone, logo: logo, company: company, nif: nif, stat: stat };
+        const logins = loadLogins();
+        logins.unshift({ name, email, phone, date: new Date().toLocaleString('fr-FR') });
+        saveLogins(logins);
+        document.getElementById('currentUserName').textContent = name;
+        document.getElementById('currentUserEmail').textContent = email;
+        saveSession();
+        if(getSubscriptionStatus().status === 'expired'){ openPaywall(); } else { openApp(); }
+      }
+
+      if(!auth){
+        // pas de Supabase : ancien fonctionnement, code conservé localement
+        cacheLocalProfile(password.trim() || (existingProfile ? existingProfile.accessCode : ''));
+        openLocally();
+        return;
+      }
+
+      if(password.length < 6){
+        setLoginStatus('Le mot de passe doit contenir au moins 6 caractères.');
+        return;
+      }
+
+      cacheLocalProfile('');
+      const meta = { name: name, phone: phone, company: company, nif: nif, stat: stat };
+      auth.signUp({ email: email, password: password, options: { data: meta } }).then(function(res){
+        if(res && res.error){
+          // l'email existe peut-être déjà : on tente une connexion normale
+          auth.signInWithPassword({ email: email, password: password }).then(function(r2){
+            if(r2 && r2.error){
+              setLoginStatus(authErrorText(r2.error) +
+                ' (création du compte : ' + authErrorText(res.error) + ')');
+              return;
+            }
+            openAppForAuthUser(r2.data.user);
+          }, function(){ setLoginStatus('Connexion impossible : vérifiez votre réseau.'); });
+          return;
+        }
+        recordNewSignup(name, email, phone);
+        if(res.data && res.data.session){
+          openAppForAuthUser(res.data.user);
+        } else {
+          // confirmation par email activée sur le projet Supabase
+          setLoginStatus('Compte créé, mais le serveur demande une confirmation par email. ' +
+            'Ouvrez le mail envoyé à ' + email + ' et cliquez sur le lien, puis reconnectez-vous. ' +
+            'Pour supprimer cette étape : Supabase > Authentication > Sign In / Providers > Email > ' +
+            'décocher « Confirm email ».');
+          showLoginMode('quick');
+          document.getElementById('quickEmail').value = email;
+        }
+      }, function(){ setLoginStatus('Création du compte impossible : vérifiez votre réseau.'); });
     }
 
     if(logoFile){
@@ -624,13 +1237,45 @@ const STORAGE_ITEMS = 'stockmanager_items';
     function finishSave(logoDataUrl){
       const logo = logoDataUrl || currentUser.logo || null;
       currentUser = { name, company, email, phone, nif, stat, logo: logo };
-      upsertProfile(name, { name, company, email, phone, nif, stat, logo: logo });
+      const codeInput = document.getElementById('profileAccessCode');
+      const existing = findProfile(name);
+      const newPassword = codeInput ? codeInput.value : '';
+      const auth = sbAuth();
+      // avec Supabase le mot de passe n'est jamais gardé ici
+      const localCode = auth ? '' : (newPassword.trim() || (existing ? existing.accessCode : ''));
+      upsertProfile(name, { name, company, email, phone, nif, stat, logo: logo, accessCode: localCode });
       document.getElementById('currentUserName').textContent = name;
       document.getElementById('currentUserEmail').textContent = email;
+      saveSession();
       document.getElementById('profileLogo').value = '';
       updateProfilePhotoPreview(logo);
       const status = document.getElementById('profileSaveStatus');
       status.textContent = 'Profil enregistré.';
+
+      if(auth){
+        const update = { data: { name: name, phone: phone, company: company, nif: nif, stat: stat } };
+        if(newPassword){
+          if(newPassword.length < 6){
+            status.textContent = 'Profil enregistré, mais le mot de passe doit faire 6 caractères minimum.';
+            setTimeout(function(){ status.textContent = ''; }, 4000);
+            return;
+          }
+          update.password = newPassword;
+        }
+        auth.updateUser(update).then(function(res){
+          if(res && res.error){
+            status.textContent = 'Profil enregistré localement, mais la mise à jour du compte a échoué.';
+          } else if(newPassword){
+            status.textContent = 'Profil et mot de passe enregistrés.';
+            if(codeInput) codeInput.value = '';
+          }
+          setTimeout(function(){ status.textContent = ''; }, 4000);
+        }, function(){
+          status.textContent = 'Profil enregistré localement (serveur injoignable).';
+          setTimeout(function(){ status.textContent = ''; }, 4000);
+        });
+        return;
+      }
       setTimeout(function(){ status.textContent = ''; }, 3000);
     }
 
@@ -680,18 +1325,26 @@ const STORAGE_ITEMS = 'stockmanager_items';
 
   document.getElementById('logoutBtn').addEventListener('click', function(){
     teardownRealtimeFeatures();
+    var authOut = sbAuth();
+    if(authOut) authOut.signOut().then(function(){}, function(){});
+    clearSession();
     currentUser = null;
     appScreen.style.display = 'none';
     loginScreen.style.display = 'flex';
     loginForm.reset();
+    if(quickLoginForm) quickLoginForm.reset();
+    refreshLoginMode();
     showAutoNotice();
   });
 
   document.getElementById('paywallLogoutBtn').addEventListener('click', function(){
+    clearSession();
     currentUser = null;
     paywallScreen.style.display = 'none';
     loginScreen.style.display = 'flex';
     loginForm.reset();
+    if(quickLoginForm) quickLoginForm.reset();
+    refreshLoginMode();
     showAutoNotice();
   });
 
@@ -699,8 +1352,50 @@ const STORAGE_ITEMS = 'stockmanager_items';
     openPaywall();
   });
 
-  // affichage automatique dès l'ouverture de la page (écran de connexion)
-  showAutoNotice();
+  // Au chargement : si une session est enregistrée, on rouvre directement
+  // l'application (et la vue précédente) ; sinon on affiche l'écran de connexion.
+  const savedSession = loadSession();
+  if(savedSession && savedSession.name && savedSession.email){
+    currentUser = savedSession;
+    loginScreen.style.display = 'none';
+    document.getElementById('currentUserName').textContent = currentUser.name;
+    document.getElementById('currentUserEmail').textContent = currentUser.email;
+    // les autres fichiers (stock.js, ventes-achats.js...) ne sont chargés
+    // qu'après common.js : on attend qu'ils le soient pour ouvrir l'appli.
+    const resumeSession = function(){
+      if(getSubscriptionStatus().status === 'expired'){
+        openPaywall();
+      } else {
+        openApp();
+        restoreLastView();
+      }
+    };
+    if(document.readyState === 'loading'){
+      window.addEventListener('DOMContentLoaded', resumeSession);
+    } else {
+      setTimeout(resumeSession, 0);
+    }
+  } else {
+    refreshLoginMode();
+    const bootAuth = sbAuth();
+    if(bootAuth){
+      // une session Supabase valide (autre onglet, autre appareil déjà connecté
+      // sur ce navigateur) rouvre l'application sans redemander le mot de passe
+      bootAuth.getSession().then(function(res){
+        const session = res && res.data && res.data.session;
+        if(session && session.user){
+          const notice = document.getElementById('autoNoticeModal');
+          if(notice) notice.style.display = 'none';
+          openAppForAuthUser(session.user, { restoreView: true });
+        } else {
+          showAutoNotice();
+        }
+      }, function(){ showAutoNotice(); });
+    } else {
+      // affichage automatique dès l'ouverture de la page (écran de connexion)
+      showAutoNotice();
+    }
+  }
   // raha nampiasa lien fizarana (?ref=...) ilay mpampiasa vaovao, dia raiketina izany
   recordReferralIfNeeded();
   initWalletAuth();
@@ -772,6 +1467,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
       var isOpen = navList.classList.toggle('open');
       menuToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
       menuToggle.textContent = isOpen ? '✕' : '☰';
+      updateTopbarHeight();
     });
   }
 
@@ -785,6 +1481,12 @@ const STORAGE_ITEMS = 'stockmanager_items';
       notifPanel.style.display = isOpen ? 'none' : 'block';
       notifToggle.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
       if(!isOpen){
+        var mp = document.getElementById('marketPanel');
+        if(mp){
+          mp.style.display = 'none';
+          var mt = document.getElementById('marketToggle');
+          if(mt) mt.setAttribute('aria-expanded', 'false');
+        }
         // marque tout comme lu à l'ouverture
         var list = loadNotifications();
         list.forEach(function(n){ n.read = true; });
@@ -799,6 +1501,33 @@ const STORAGE_ITEMS = 'stockmanager_items';
       }
     });
   }
+  // Achats internationaux : panneau déroulant de la barre du haut (icône 🌍),
+  // même comportement que la cloche de notifications.
+  var marketToggle = document.getElementById('marketToggle');
+  var marketPanel = document.getElementById('marketPanel');
+  if(marketToggle && marketPanel){
+    marketToggle.addEventListener('click', function(e){
+      e.stopPropagation();
+      var isOpen = marketPanel.style.display === 'block';
+      marketPanel.style.display = isOpen ? 'none' : 'block';
+      marketToggle.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+      if(!isOpen){
+        // une seule liste ouverte à la fois
+        if(notifPanel){
+          notifPanel.style.display = 'none';
+          if(notifToggle) notifToggle.setAttribute('aria-expanded', 'false');
+        }
+        if(typeof renderMarketplaceLinks === 'function') renderMarketplaceLinks();
+      }
+    });
+    document.addEventListener('click', function(e){
+      if(marketPanel.style.display === 'block' && !marketPanel.contains(e.target) && e.target !== marketToggle){
+        marketPanel.style.display = 'none';
+        marketToggle.setAttribute('aria-expanded', 'false');
+      }
+    });
+  }
+
   var notifClearBtn = document.getElementById('notifClearBtn');
   if(notifClearBtn){
     notifClearBtn.addEventListener('click', function(e){
@@ -826,8 +1555,30 @@ const STORAGE_ITEMS = 'stockmanager_items';
         navList.classList.remove('open');
         if(menuToggle){ menuToggle.textContent = '☰'; menuToggle.setAttribute('aria-expanded','false'); }
       }
+      saveLastView();
     });
   });
+
+  // Hauteur réelle de la barre supérieure : les onglets principaux viennent
+  // se coller juste en dessous (valeur relue au redimensionnement).
+  function updateTopbarHeight(){
+    const bar = document.querySelector('.sidebar');
+    if(!bar) return;
+    document.documentElement.style.setProperty('--topbar-h', bar.offsetHeight + 'px');
+  }
+  updateTopbarHeight();
+  window.addEventListener('resize', updateTopbarHeight);
+
+  // Les onglets secondaires (Tableau de bord, Historique, Ajouter, Vente...)
+  // ne sont utiles qu'une fois dans « Articles » : on les masque sur l'Accueil.
+  function updateSubTabsVisibility(){
+    const subTabs = document.getElementById('stockSubTabs');
+    if(!subTabs) return;
+    const active = document.querySelector('.dash-tab.active');
+    const dash = active ? active.dataset.dash : 'accueil';
+    subTabs.style.display = dash === 'accueil' ? 'none' : '';
+  }
+  updateSubTabsVisibility();
 
   document.querySelectorAll('.dash-tab').forEach(function(tab){
     tab.addEventListener('click', function(){
@@ -845,6 +1596,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
       if(tab.dataset.dash === 'ajouter'){
         if(typeof renderStock === 'function') renderStock();
       }
+      if(tab.dataset.dash === 'articles'){
+        if(typeof renderStock === 'function') renderStock();
+      }
       if(tab.dataset.dash === 'vente'){
         if(typeof populateVenteItemSelect === 'function') populateVenteItemSelect();
         if(typeof populateVenteClientSelect === 'function') populateVenteClientSelect();
@@ -856,6 +1610,8 @@ const STORAGE_ITEMS = 'stockmanager_items';
       if(tab.dataset.dash === 'comptes'){
         if(typeof renderClientsList === 'function') renderClientsList();
       }
+      updateSubTabsVisibility();
+      saveLastView();
     });
   });
 
@@ -927,7 +1683,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
       const itemEl = e.target.closest('[data-goto-item]');
       const moveEl = e.target.closest('[data-goto-move]');
       if(itemEl){
-        goToStockSection('ajouter');
+        goToStockSection('articles');
         setTimeout(function(){ highlightRow('#stockTableBody tr[data-item-id="' + CSS.escape(itemEl.dataset.gotoItem) + '"]'); }, 60);
       } else if(moveEl){
         goToStockSection('historique');

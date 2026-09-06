@@ -190,6 +190,9 @@
     grid-template-columns: 1fr;
     min-height:100vh;
   }
+  /* sans min-width:0, un tableau large étire toute la grille au lieu de
+     défiler dans son propre conteneur (.table-scroll) */
+  .shell > *{ min-width: 0; }
   .sidebar{
     background: var(--panel);
     border-right: none;
@@ -198,6 +201,10 @@
     display:flex;
     flex-direction:column;
     align-items:stretch;
+    /* la barre reste visible pendant le défilement */
+    position: sticky;
+    top: 0;
+    z-index: 90;
   }
   .brand{
     font-family: var(--font-display);
@@ -260,7 +267,18 @@
   }
   .user-chip strong{ color: var(--text); display:block; margin-bottom:0.3rem; }
 
-  .content{ padding: 2.4rem 3vw; overflow-x:auto; }
+  /* overflow-x:clip (et non auto) : protège du débordement horizontal sans
+     créer de conteneur de défilement, ce qui casserait position:sticky. */
+  .content{ padding: 2.4rem 3vw; overflow-x:clip; }
+
+  /* onglets principaux (Accueil / Articles) collés sous la barre */
+  .dash-tabs-main{
+    position: sticky;
+    top: var(--topbar-h, 60px);
+    z-index: 80;
+    background: var(--bg);
+    padding-top: 0.6rem;
+  }
   .section{ display:none; }
   .section.active{ display:block; }
 

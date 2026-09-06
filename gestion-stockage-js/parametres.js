@@ -17,7 +17,9 @@
     document.getElementById('adminVisitsPanel').style.display = isAdmin ? 'block' : 'none';
     document.getElementById('adminLoginsPanel').style.display = isAdmin ? 'block' : 'none';
     document.getElementById('contactAdminPanel').style.display = isAdmin ? 'block' : 'none';
-    if(isAdmin){ renderSiteVisits(); renderClientCodesAdmin(); }
+    document.getElementById('unlockRequestsPanel').style.display = isAdmin ? 'block' : 'none';
+    document.getElementById('signupsPanel').style.display = isAdmin ? 'block' : 'none';
+    if(isAdmin){ renderSiteVisits(); renderClientCodesAdmin(); renderUnlockRequests(); renderSignups(); }
     renderProfileForm();
   }
 
@@ -29,6 +31,11 @@
     document.getElementById('profilePhone').value = currentUser.phone || '';
     document.getElementById('profileNif').value = currentUser.nif || '';
     document.getElementById('profileStat').value = currentUser.stat || '';
+    const savedProfile = (typeof findProfile === 'function') ? findProfile(currentUser.name || '') : null;
+    const codeInput = document.getElementById('profileAccessCode');
+    // avec Supabase le mot de passe n’est pas conservé ici : le champ reste vide
+    const hasAuth = !!(window.__sb && window.__sb.auth);
+    if(codeInput) codeInput.value = (!hasAuth && savedProfile && savedProfile.accessCode) ? savedProfile.accessCode : '';
     updateProfilePhotoPreview(currentUser.logo || null);
   }
 
@@ -436,3 +443,183 @@
     document.getElementById('manualCodeEmailInput').value = '';
     renderClientCodesAdmin();
   });
+  // ---------------- DEMANDES DE DÉBLOCAGE (propriétaire) ----------------
+  // Un client qui a oublié son mot de passe règle 20 000 Ar sur le PayPal du
+  // propriétaire puis envoie sa demande. Ici le propriétaire vérifie la
+  // réception du paiement, confirme, et un code est généré : il le copie et
+  // l'envoie au client, qui le saisit sur l'écran de connexion.
+  const UNLOCK_SEEN_KEY = 'stockmanager_unlock_seen';
+
+  function loadSeenUnlockIds(){
+    try { return JSON.parse(localStorage.getItem(UNLOCK_SEEN_KEY)) || []; }
+    catch(e){ return []; }
+  }
+  function saveSeenUnlockIds(ids){
+    try { localStorage.setItem(UNLOCK_SEEN_KEY, JSON.stringify(ids.slice(0, 200))); } catch(e){}
+  }
+
+  function unlockStatusLabel(status){
+    if(status === 'confirmed') return '<span style="color:var(--cyan);">Confirmé — accès rétabli</span>';
+    if(status === 'used') return '<span style="color:var(--muted);">Accès repris par le client</span>';
+    return '<span style="color:var(--amber);">En attente de confirmation</span>';
+  }
+
+  function renderUnlockRequests(){
+    const list = document.getElementById('unlockRequestsList');
+    const empty = document.getElementById('unlockRequestsEmpty');
+    if(!list) return;
+    if(!window.__sb){
+      list.innerHTML = '';
+      if(empty){ empty.style.display = 'block'; empty.textContent = 'Serveur injoignable : impossible de charger les demandes.'; }
+      return;
+    }
+    window.__sb.from('unlock_requests')
+      .select('id,name,email,phone,message,amount,paypal_reference,status,created_at')
+      .order('created_at', { ascending: false })
+      .limit(30)
+      .then(function(res){
+        const rows = (res && res.data) ? res.data : [];
+        list.innerHTML = '';
+        if(empty) empty.style.display = rows.length ? 'none' : 'block';
+
+        // notification pour les nouvelles demandes en attente
+        const seen = loadSeenUnlockIds();
+        const fresh = rows.filter(function(r){ return r.status === 'pending' && seen.indexOf(r.id) < 0; });
+        if(fresh.length){
+          pushNotification('info', fresh.length + ' nouvelle(s) demande(s) de déblocage à confirmer.');
+          saveSeenUnlockIds(fresh.map(function(r){ return r.id; }).concat(seen));
+        }
+
+        rows.forEach(function(row){
+          const card = document.createElement('div');
+          card.style.cssText = 'border:1px solid var(--line); border-radius:8px; padding:0.8rem 0.9rem; margin-bottom:0.7rem; background:var(--panel-2);';
+          card.innerHTML =
+            '<div style="font-size:0.86rem; color:var(--text);"><strong>' + escapeAdminHtml(row.name || '—') + '</strong></div>' +
+            '<div style="font-size:0.76rem; color:var(--muted); line-height:1.6; margin-top:0.3rem;">' +
+              'Email : ' + escapeAdminHtml(row.email || '—') + '<br>' +
+              'Téléphone : ' + escapeAdminHtml(row.phone || '—') + '<br>' +
+              'Message : ' + escapeAdminHtml(row.message || '—') + '<br>' +
+              'Montant : <strong style="color:var(--text);">' + (row.amount || 20000).toLocaleString('fr-FR') + ' Ar</strong> (PayPal)<br>' +
+              'Référence : ' + escapeAdminHtml(row.paypal_reference || '—') + '<br>' +
+              'Reçue le : ' + new Date(row.created_at).toLocaleString('fr-FR') + '<br>' +
+              'État : ' + unlockStatusLabel(row.status) +
+            '</div>';
+
+          const actions = document.createElement('div');
+          actions.style.cssText = 'display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.7rem; align-items:center;';
+          if(row.status === 'pending'){
+            const confirmBtn = document.createElement('button');
+            confirmBtn.type = 'button';
+            confirmBtn.className = 'btn btn-primary btn-sm';
+            confirmBtn.style.width = 'auto';
+            confirmBtn.textContent = '✅ Confirmer le paiement';
+            confirmBtn.addEventListener('click', function(){
+              confirmBtn.disabled = true;
+              confirmUnlockRequest(row, card, confirmBtn);
+            });
+            actions.appendChild(confirmBtn);
+          }
+          card.appendChild(actions);
+          list.appendChild(card);
+        });
+      }, function(){
+        list.innerHTML = '';
+        if(empty){ empty.style.display = 'block'; empty.textContent = 'Chargement impossible : vérifiez votre réseau.'; }
+      });
+  }
+
+  function escapeAdminHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML;
+  }
+
+  // Le code n'est stocké nulle part en clair : seul son empreinte (SHA-256)
+  // part sur le serveur, le code lui-même n'existe que sur cet écran.
+  // Aucun code n'est généré ni transmis : la confirmation rouvre directement
+  // l'accès sur l'appareil qui a envoyé la demande (identifié par son jeton).
+  function confirmUnlockRequest(row, card, btn){
+    window.__sb.from('unlock_requests').update({
+      status: 'confirmed',
+      confirmed_at: new Date().toISOString(),
+      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    }).eq('id', row.id).then(function(res){
+      if(res && res.error){
+        btn.disabled = false;
+        alert('Confirmation impossible : ' + (res.error.message || 'erreur serveur'));
+        return;
+      }
+      const box = document.createElement('div');
+      box.style.cssText = 'margin-top:0.7rem; border-top:1px solid var(--line); padding-top:0.7rem; font-size:0.78rem; color:var(--cyan); line-height:1.5;';
+      box.textContent = 'Paiement confirmé ✓ Le client retrouve son accès directement sur son appareil, sans code à transmettre.';
+      card.appendChild(box);
+      btn.remove();
+      pushNotification('info', 'Paiement confirmé pour ' + (row.name || row.email) + ' — accès rétabli.');
+    }, function(){
+      btn.disabled = false;
+      alert('Confirmation impossible : vérifiez votre réseau.');
+    });
+  }
+
+  const refreshUnlockRequestsBtn = document.getElementById('refreshUnlockRequestsBtn');
+  if(refreshUnlockRequestsBtn){
+    refreshUnlockRequestsBtn.addEventListener('click', renderUnlockRequests);
+  }
+
+  // ---------------- NOUVELLES INSCRIPTIONS (propriétaire) ----------------
+  const SIGNUPS_SEEN_KEY = 'stockmanager_signups_seen';
+
+  function loadSeenSignupIds(){
+    try { return JSON.parse(localStorage.getItem(SIGNUPS_SEEN_KEY)) || []; }
+    catch(e){ return []; }
+  }
+  function saveSeenSignupIds(ids){
+    try { localStorage.setItem(SIGNUPS_SEEN_KEY, JSON.stringify(ids.slice(0, 300))); } catch(e){}
+  }
+
+  function renderSignups(){
+    const body = document.getElementById('signupsTableBody');
+    const empty = document.getElementById('signupsEmpty');
+    if(!body) return;
+    if(!window.__sb){
+      body.innerHTML = '';
+      if(empty){ empty.style.display = 'block'; empty.textContent = 'Serveur injoignable : impossible de charger les inscriptions.'; }
+      return;
+    }
+    window.__sb.from('client_signups')
+      .select('id,name,email,phone,created_at')
+      .order('created_at', { ascending: false })
+      .limit(50)
+      .then(function(res){
+        const rows = (res && res.data) ? res.data : [];
+        body.innerHTML = '';
+        if(empty) empty.style.display = rows.length ? 'none' : 'block';
+
+        const seen = loadSeenSignupIds();
+        const fresh = rows.filter(function(r){ return seen.indexOf(r.id) < 0; });
+        if(fresh.length && seen.length){
+          pushNotification('info', fresh.length + ' nouvelle(s) inscription(s) à Gestion de Stockage.');
+        }
+        if(fresh.length){
+          saveSeenSignupIds(fresh.map(function(r){ return r.id; }).concat(seen));
+        }
+
+        rows.forEach(function(row){
+          const tr = document.createElement('tr');
+          tr.innerHTML =
+            '<td>' + new Date(row.created_at).toLocaleString('fr-FR') + '</td>' +
+            '<td>' + escapeAdminHtml(row.name || '—') + '</td>' +
+            '<td>' + escapeAdminHtml(row.email || '—') + '</td>' +
+            '<td>' + escapeAdminHtml(row.phone || '—') + '</td>';
+          body.appendChild(tr);
+        });
+      }, function(){
+        body.innerHTML = '';
+        if(empty){ empty.style.display = 'block'; empty.textContent = 'Chargement impossible : vérifiez votre réseau.'; }
+      });
+  }
+
+  const refreshSignupsBtn = document.getElementById('refreshSignupsBtn');
+  if(refreshSignupsBtn){
+    refreshSignupsBtn.addEventListener('click', renderSignups);
+  }

@@ -70,3 +70,82 @@ utilise encore une adresse provisoire (contact@tanjona.mg). Le
 formulaire principal, lui, fonctionne déjà pleinement via Supabase.
 Donnez-moi votre vraie adresse email quand vous voulez que je mette
 aussi ce lien à jour.
+
+
+CONNEXION DE L'APPLICATION "GESTION DE STOCKAGE"
+------------------------------
+La connexion à gestion-stockage.html utilise maintenant les vrais
+comptes Supabase (Authentication) :
+- 1ère connexion : nom, email, téléphone, logo + un MOT DE PASSE
+  (6 caractères minimum). Le compte est créé dans Supabase, le mot
+  de passe y est conservé chiffré (haché) — jamais sur l'appareil.
+- Ouvertures suivantes : email + mot de passe seulement. La
+  connexion se valide toute seule dès que la saisie est complète,
+  et fonctionne depuis n'importe quel téléphone ou ordinateur.
+- Le mot de passe se change dans Paramètres > Mon profil >
+  "Nouveau mot de passe".
+
+RÉGLAGE À FAIRE UNE FOIS dans Supabase :
+  Dashboard > Authentication > Sign In / Providers > Email
+  - "Confirm email" DÉSACTIVÉ  -> le client entre directement
+    après avoir créé son compte (recommandé).
+  - Si vous le laissez ACTIVÉ, le client reçoit un mail de
+    confirmation ; l'application le lui dit et lui demande de se
+    reconnecter ensuite. Pensez alors à renseigner l'URL du site
+    dans Authentication > URL Configuration > Site URL.
+
+À SAVOIR :
+- Seule la CONNEXION est partagée entre les appareils. Les données
+  (articles, mouvements, factures, clients) restent enregistrées
+  dans le navigateur de chaque appareil : en vous connectant sur un
+  autre téléphone, le stock y sera vide.
+- Le logo reste lui aussi sur l'appareil (il n'est pas envoyé au
+  serveur). Sur un nouvel appareil, la connexion rapide
+  (email + mot de passe) fonctionne quand même.
+- Si Supabase est injoignable (hors ligne), l'application retombe
+  sur l'ancien code d'accès local pour ne pas bloquer l'utilisateur.
+
+
+DÉBLOCAGE PAYANT (mot de passe oublié) — 20 000 Ar
+------------------------------
+Sur l'écran de connexion, "Mot de passe oublié ?" ouvre une demande
+de déblocage :
+1. Le client voit les frais (20 000 Ar) et le bouton "Payer sur
+   PayPal" (votre compte, renseigné dans "Nous contacter" >
+   panneau admin > "PayPal du propriétaire").
+2. Il saisit la référence du paiement puis envoie sa demande. Elle
+   est enregistrée dans la table "unlock_requests" ; une
+   notification apparaît chez lui ("en attente de confirmation").
+3. Vous la voyez dans Paramètres > "Demandes de déblocage" (visible
+   par vous seul) et vous recevez une notification à l'ouverture.
+4. Après vérification du paiement sur PayPal, cliquez sur
+   "Confirmer le paiement". C'est tout : AUCUN CODE À TRANSMETTRE.
+5. L'accès du client se rouvre tout seul, sur SON appareil : sa page
+   vérifie toutes les 20 secondes, et il peut aussi cliquer sur
+   "Vérifier si mon paiement est confirmé".
+
+À exécuter dans Supabase (SQL Editor) : la fin du fichier
+"supabase-schema.sql" (colonne "paypal" + table "unlock_requests").
+
+SÉCURITÉ : au moment de l'envoi de la demande, l'appareil du client
+crée un jeton aléatoire qu'il garde pour lui ; seule son empreinte
+SHA-256 part sur le serveur. Le déblocage n'est accordé qu'à
+l'appareil qui possède ce jeton. Personne d'autre — même en
+connaissant l'email du client — ne peut récupérer l'accès, et il n'y
+a aucun code qui pourrait être intercepté ou partagé.
+
+
+NOUVELLES INSCRIPTIONS — envoi automatique au propriétaire
+------------------------------
+Dès qu'une personne crée son compte (première connexion), ses
+coordonnées partent automatiquement chez le propriétaire :
+- table "client_signups" : visible dans Paramètres >
+  "Nouvelles inscriptions" (date, nom, email, téléphone), avec une
+  notification quand il y en a de nouvelles ;
+- table "contact_messages" : la même information apparaît aussi
+  dans /admin.html, sous le nom "... (nouvelle inscription)".
+Le client, lui, entre directement dans l'application : il n'y a
+rien à valider de votre part.
+
+À exécuter dans Supabase : la fin de "supabase-schema.sql"
+(table "client_signups").

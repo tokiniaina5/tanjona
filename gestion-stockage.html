@@ -14,8 +14,79 @@
 <div id="loginScreen">
   <div class="login-card">
     <div class="eyebrow">Gestion de Stockage</div>
-    <h1>Connexion</h1>
-    <p class="sub">Entrez votre nom et votre email pour accéder à l'application. Chaque connexion est enregistrée.</p>
+    <h1 id="loginTitle">Connexion</h1>
+    <p class="sub" id="loginSub">Première connexion : renseignez vos informations et choisissez un mot de passe pour créer votre compte.</p>
+
+    <!-- Retour d'un compte déjà enregistré : email + code suffisent -->
+    <form id="quickLoginForm" style="display:none;">
+      <div class="field">
+        <label for="quickEmail">Email</label>
+        <input id="quickEmail" type="email" required placeholder="vous@exemple.com" autocomplete="email">
+      </div>
+      <div class="field">
+        <label for="quickCode">Mot de passe</label>
+        <input id="quickCode" type="password" required minlength="6" placeholder="••••••" autocomplete="current-password">
+      </div>
+      <p id="quickLoginStatus" style="font-size:0.75rem; color:var(--muted); margin:-0.4rem 0 0.8rem; min-height:1.1em;"></p>
+      <button type="submit" class="btn btn-primary">Se connecter</button>
+      <button type="button" class="btn btn-sm" id="showFullLoginBtn" style="width:100%; margin-top:0.7rem;">Première connexion / autre compte</button>
+    </form>
+
+    <!-- Oubli : lettre de demande de validation envoyée au propriétaire -->
+    <div id="forgotWrap" style="display:none;">
+      <button type="button" class="btn btn-sm" id="forgotToggleBtn" style="width:100%; margin-top:0.7rem;">Mot de passe oublié ?</button>
+
+      <div id="forgotBox" style="display:none; margin-top:0.9rem; border-top:1px solid var(--line); padding-top:0.9rem;">
+        <p style="font-size:0.76rem; color:var(--muted); line-height:1.5; margin-bottom:0.9rem;">
+          Si vous ne vous souvenez plus des informations ci-dessus, envoyez une
+          <strong style="color:var(--text);">demande de déblocage</strong> au propriétaire de l'application.
+          Une fois votre paiement confirmé, votre accès se rouvre tout seul sur cet appareil.
+        </p>
+        <div class="field">
+          <label for="forgotName">Nom</label>
+          <input id="forgotName" type="text" placeholder="Votre nom">
+        </div>
+        <div class="field">
+          <label for="forgotEmail">Email</label>
+          <input id="forgotEmail" type="email" placeholder="vous@exemple.com">
+        </div>
+        <div class="field">
+          <label for="forgotPhone">Numéro de téléphone</label>
+          <input id="forgotPhone" type="tel" placeholder="034 00 000 00">
+        </div>
+        <div class="field">
+          <label for="forgotMessage">Message (facultatif)</label>
+          <input id="forgotMessage" type="text" placeholder="Ex : j'ai oublié mon mot de passe">
+        </div>
+        <div style="border:1px solid var(--line); border-radius:8px; padding:0.7rem 0.8rem; margin-bottom:0.9rem; background:var(--panel-2);">
+          <div style="font-size:0.76rem; color:var(--muted); line-height:1.5;">
+            Frais de déblocage : <strong style="color:var(--cyan);">20 000 Ar</strong>, à régler sur le PayPal du propriétaire.
+          </div>
+          <button type="button" class="btn btn-sm" id="payUnlockBtn" style="width:100%; margin-top:0.6rem;">💳 Payer 20 000 Ar sur PayPal</button>
+          <div id="payUnlockTarget" style="font-size:0.72rem; color:var(--muted); margin-top:0.5rem;"></div>
+          <div style="font-size:0.72rem; color:var(--muted); margin-top:0.5rem; line-height:1.6; border-top:1px solid var(--line); padding-top:0.5rem;">
+            Propriétaire : <strong style="color:var(--text);" data-owner="name"></strong><br>
+            <span data-owner="email"></span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="forgotReference">Référence du paiement PayPal</label>
+          <input id="forgotReference" type="text" placeholder="Ex : n° de transaction ou email PayPal utilisé">
+        </div>
+        <button type="button" class="btn btn-amber btn-sm" id="sendForgotBtn" style="width:100%;">✅ J'ai payé — envoyer ma demande</button>
+
+        <div style="margin-top:1rem; border-top:1px solid var(--line); padding-top:0.9rem;">
+          <p style="font-size:0.76rem; color:var(--muted); line-height:1.5; margin-bottom:0.7rem;">
+            Aucun code à recevoir : dès que le propriétaire confirme votre paiement, votre accès se rouvre
+            <strong style="color:var(--text);">directement ici, sur cet appareil</strong>. Personne d'autre
+            ne peut s'en servir à votre place.
+          </p>
+          <button type="button" class="btn btn-primary btn-sm" id="checkUnlockBtn" style="width:100%;">🔄 Vérifier si mon paiement est confirmé</button>
+        </div>
+        <p id="forgotStatus" style="font-size:0.75rem; color:var(--muted); margin-top:0.7rem; line-height:1.5;"></p>
+      </div>
+    </div>
+
     <form id="loginForm">
       <div class="field">
         <label for="loginName">Nom</label>
@@ -34,7 +105,14 @@
         <input id="loginLogo" type="file" accept="image/*">
         <p style="font-size:0.72rem; color:var(--muted); margin-top:0.4rem;">Obligatoire uniquement à la 1ère connexion — ensuite votre nom suffit à retrouver votre logo.</p>
       </div>
+      <div class="field">
+        <label for="loginCode">Mot de passe</label>
+        <input id="loginCode" type="password" required minlength="6" placeholder="6 caractères minimum" autocomplete="new-password">
+        <p style="font-size:0.72rem; color:var(--muted); margin-top:0.4rem;">Il est conservé chiffré sur le serveur (jamais sur cet appareil) et vous permet de vous connecter depuis n'importe quel téléphone ou ordinateur.</p>
+      </div>
+      <p id="loginStatus" style="font-size:0.78rem; color:var(--amber); margin:-0.2rem 0 0.8rem; line-height:1.5;"></p>
       <button type="submit" class="btn btn-primary">Se connecter</button>
+      <button type="button" class="btn btn-sm" id="showQuickLoginBtn" style="width:100%; margin-top:0.7rem; display:none;">J’ai déjà un compte — connexion rapide</button>
     </form>
   </div>
 </div>
@@ -132,7 +210,8 @@
 
     <div class="paywall-pay">
       <strong>Comment payer :</strong><br>
-      Envoyez le montant de la formule choisie via MVola, Orange Money ou Airtel Money au <strong>034 37 058 34 nom:rasolofonirainy tokiniaina t</strong>.
+      Envoyez le montant de la formule choisie via MVola, Orange Money ou Airtel Money au
+      <strong data-owner="phone"></strong>, au nom de <strong data-owner="name"></strong>.
       Ensuite, cliquez sur « Signaler mon paiement » : un mail sera envoyé au vendeur avec votre nom et vos
       coordonnées. Il vous communiquera un code de déverrouillage à saisir ci-dessous.
     </div>
@@ -191,6 +270,7 @@
             🔔
             <span id="notifBadge" style="display:none; position:absolute; top:-4px; right:-4px; background:#ff6b6b; color:#fff; font-size:0.62rem; font-weight:700; border-radius:999px; min-width:16px; height:16px; line-height:16px; text-align:center; padding:0 3px;">0</span>
           </button>
+          <button class="menu-toggle" id="marketToggle" aria-label="Achats internationaux" title="Achats internationaux" aria-expanded="false">🌍</button>
           <button class="menu-toggle" id="menuToggle" aria-label="Ouvrir le menu" aria-expanded="false">☰</button>
 
           <div id="notifPanel" style="display:none; position:absolute; top:44px; right:0; width:300px; max-height:360px; overflow-y:auto; background:var(--panel); border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.35); z-index:50;">
@@ -199,6 +279,29 @@
               <button type="button" id="notifClearBtn" style="background:none; border:none; color:var(--cyan); font-size:0.72rem; cursor:pointer;">Tout effacer</button>
             </div>
             <div id="notifList"></div>
+          </div>
+
+          <div id="marketPanel" style="display:none; position:absolute; top:44px; right:0; width:300px; max-height:360px; overflow-y:auto; background:var(--panel); border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.35); z-index:50;">
+            <div style="padding:0.7rem 0.9rem; border-bottom:1px solid var(--line);">
+              <strong style="font-size:0.85rem;">🌍 Achats internationaux</strong>
+            </div>
+            <div style="padding:0.8rem 0.9rem;">
+              <p class="community-sub" style="margin-bottom:0.8rem;">Rohy mankany amin'ny varotra international (Alibaba, AliExpress, sy ny hafa).</p>
+              <div id="marketplaceLinks" class="marketplace-row"></div>
+              <div id="marketplaceAdminForm" style="display:none; margin-top:1rem; border-top:1px solid var(--line); padding-top:1rem;">
+                <div class="form-grid">
+                  <div class="field" style="margin-bottom:0;">
+                    <label>Anarana</label>
+                    <input type="text" id="newMarketName" placeholder="Ex: DHgate">
+                  </div>
+                  <div class="field" style="margin-bottom:0;">
+                    <label>Lien</label>
+                    <input type="url" id="newMarketUrl" placeholder="https://...">
+                  </div>
+                  <button type="button" class="btn btn-violet btn-sm" id="addMarketBtn">Ajouter</button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -227,6 +330,16 @@
 
       <!-- ---- STOCK ---- -->
       <section class="section active" id="section-stock">
+        <div class="trial-banner" id="trialBanner" style="display:none;">
+          <span><strong id="trialDaysLeft">—</strong> jours restants sur votre essai gratuit de 3 mois. <em id="trialBonusNote" style="display:none; color:var(--cyan); font-style:normal;"></em></span>
+          <button type="button" class="btn btn-primary btn-sm" id="subscribeNowBtn">S'abonner maintenant</button>
+        </div>
+
+        <div class="dash-tabs dash-tabs-main" id="stockMainTabs">
+          <div class="dash-tab active" data-dash="accueil">🏠 Accueil</div>
+          <div class="dash-tab" data-dash="articles" style="margin-left:auto;">📦 Articles</div>
+        </div>
+
         <div class="section-head">
           <div>
             <h2>Stock</h2>
@@ -238,13 +351,7 @@
           </div>
         </div>
 
-        <div class="trial-banner" id="trialBanner" style="display:none;">
-          <span><strong id="trialDaysLeft">—</strong> jours restants sur votre essai gratuit de 3 mois. <em id="trialBonusNote" style="display:none; color:var(--cyan); font-style:normal;"></em></span>
-          <button type="button" class="btn btn-primary btn-sm" id="subscribeNowBtn">S'abonner maintenant</button>
-        </div>
-
-        <div class="dash-tabs">
-          <div class="dash-tab active" data-dash="accueil">🏠 Accueil</div>
+        <div class="dash-tabs" id="stockSubTabs">
           <div class="dash-tab" data-dash="dashboard">📊 Tableau de bord</div>
           <div class="dash-tab" data-dash="historique">📜 Historique des mouvements</div>
           <div class="dash-tab" data-dash="ajouter">➕ Ajouter</div>
@@ -280,28 +387,20 @@
               <div id="communityNewsList" class="fb-feed"></div>
               <div class="empty-hint" id="communityNewsEmpty" style="display:none;">Tsy mbola misy vaovao. Ianao no ho voalohany hizara zavatra!</div>
             </div>
-
-            <div class="fb-sidebar">
-              <div class="panel" style="margin-top:0;">
-                <h3>🌍 Achats internationaux</h3>
-                <p class="community-sub">Rohy mankany amin'ny varotra international (Alibaba, AliExpress, sy ny hafa).</p>
-                <div id="marketplaceLinks" class="marketplace-row"></div>
-                <div id="marketplaceAdminForm" style="display:none; margin-top:1rem; border-top:1px solid var(--line); padding-top:1rem;">
-                  <div class="form-grid">
-                    <div class="field" style="margin-bottom:0;">
-                      <label>Anarana</label>
-                      <input type="text" id="newMarketName" placeholder="Ex: DHgate">
-                    </div>
-                    <div class="field" style="margin-bottom:0;">
-                      <label>Lien</label>
-                      <input type="url" id="newMarketUrl" placeholder="https://...">
-                    </div>
-                    <button type="button" class="btn btn-violet btn-sm" id="addMarketBtn">Ajouter</button>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
+        </div>
+
+        <!-- ===== ARTICLES ===== -->
+        <div class="dash-view" id="dash-articles">
+          <div class="table-scroll">
+            <table id="stockTable">
+              <thead>
+                <tr><th>Réf.</th><th>Nom</th><th>Catégorie</th><th>Quantité</th><th>Unité</th><th>Prix unitaire</th><th>Valeur</th><th>Seuil</th><th>Fournisseur</th><th></th></tr>
+              </thead>
+              <tbody id="stockTableBody"></tbody>
+            </table>
+          </div>
+          <p class="empty-hint" id="stockEmptyHint" style="display:none;">Aucun article pour le moment. Ajoutez-en un depuis l’onglet « Ajouter ».</p>
         </div>
 
         <!-- ===== DASHBOARD ===== -->
@@ -448,15 +547,6 @@
               </div>
             </div>
 
-            <div class="table-scroll">
-              <table id="stockTable">
-                <thead>
-                  <tr><th>Réf.</th><th>Nom</th><th>Catégorie</th><th>Quantité</th><th>Unité</th><th>Prix unitaire</th><th>Valeur</th><th>Seuil</th><th>Fournisseur</th><th></th></tr>
-                </thead>
-                <tbody id="stockTableBody"></tbody>
-              </table>
-            </div>
-            <p class="empty-hint" id="stockEmptyHint" style="display:none;">Aucun article pour le moment. Ajoutez-en un ci-dessus.</p>
         </div>
 
           <!-- ===== VENTE ===== -->
@@ -644,7 +734,7 @@
           <h3>Lien d'invitation</h3>
           <div class="invite-box">
             <input id="inviteLink" type="text" readonly>
-            <button class="btn btn-amber" id="copyInviteBtn">Copier le lien</button>
+            <button class="btn btn-amber" id="copyInviteBtn" title="Copier tous les liens de l’application">Copier tout</button>
           </div>
           <p class="local-link-warning" id="localLinkWarning" style="display:none;"></p>
           <p style="font-size:0.78rem; color:var(--muted); margin-top:0.6rem; line-height:1.5;">
@@ -764,6 +854,12 @@
             <label for="contactSiteUrlInput">Adresse publique du site (URL partagée à vos clients)</label>
             <input id="contactSiteUrlInput" type="text" placeholder="https://tokiniaina-tanjona.netlify.app/gestion-stockage">
             <p class="local-link-warning" id="adminLinkWarning" style="display:none;"></p>
+          </div>
+
+          <div class="field">
+            <label for="contactPaypalInput">PayPal du propriétaire (email ou lien paypal.me)</label>
+            <input id="contactPaypalInput" type="text" placeholder="https://paypal.me/votrecompte">
+            <p style="font-size:0.72rem; color:var(--muted); margin-top:0.4rem;">Sert aux frais de déblocage (20 000 Ar) réglés par un client qui a oublié son mot de passe.</p>
           </div>
 
           <div class="form-grid">
@@ -1070,6 +1166,10 @@
               <input id="profileStat" type="text" placeholder="Ex: 12345 11 2020 0 12345">
             </div>
             <div class="field" style="margin-bottom:0;">
+              <label for="profileAccessCode">Nouveau mot de passe</label>
+              <input id="profileAccessCode" type="password" minlength="6" placeholder="Laisser vide pour ne pas changer" autocomplete="new-password">
+            </div>
+            <div class="field" style="margin-bottom:0;">
               <label for="profileLogo">Logo (image)</label>
               <input id="profileLogo" type="file" accept="image/*">
             </div>
@@ -1104,6 +1204,37 @@
             <tbody id="loginsTableBody"></tbody>
           </table>
           <p class="empty-hint" id="loginsEmptyHint" style="display:none;">Aucune connexion enregistrée.</p>
+        </div>
+
+        <div class="panel" id="signupsPanel" style="display:none;">
+          <h3>🆕 Nouvelles inscriptions (admin — vous uniquement)</h3>
+          <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.8rem;">
+            Chaque personne qui crée son compte apparaît ici automatiquement, avec ses coordonnées.
+            Elle entre directement dans l'application : rien à valider de votre part.
+          </p>
+          <div class="table-scroll">
+            <table id="signupsTable">
+              <thead>
+                <tr><th>Date</th><th>Nom</th><th>Email</th><th>Téléphone</th></tr>
+              </thead>
+              <tbody id="signupsTableBody"></tbody>
+            </table>
+          </div>
+          <p class="empty-hint" id="signupsEmpty" style="display:none;">Aucune inscription pour le moment.</p>
+          <button type="button" class="btn btn-sm" id="refreshSignupsBtn" style="width:auto; margin-top:0.8rem;">↻ Actualiser</button>
+        </div>
+
+        <div class="panel" id="unlockRequestsPanel" style="display:none;">
+          <h3>🔓 Demandes de déblocage (admin — vous uniquement)</h3>
+          <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.8rem;">
+            Chaque client ayant oublié son mot de passe règle <strong style="color:var(--text);">20 000 Ar</strong>
+            sur votre PayPal puis envoie sa demande ici. Vérifiez la réception du paiement puis cliquez sur
+            <strong style="color:var(--text);">Confirmer le paiement</strong> : l'accès se rouvre tout seul
+            sur l'appareil du client. Aucun code ne circule, rien à transmettre.
+          </p>
+          <div id="unlockRequestsList"></div>
+          <p class="empty-hint" id="unlockRequestsEmpty" style="display:none;">Aucune demande pour le moment.</p>
+          <button type="button" class="btn btn-sm" id="refreshUnlockRequestsBtn" style="width:auto; margin-top:0.8rem;">↻ Actualiser</button>
         </div>
 
         <div class="panel" id="masterCodePanel" style="display:none;">
