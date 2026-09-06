@@ -128,12 +128,16 @@
 
   // Appelée quand une alerte concerne un compte client : le mail part seul,
   // avec la pièce d'identité que le client a renseignée.
-  function notifyOwnerOfSecurityAlert(email, kind, detail){
+  function notifyOwnerOfSecurityAlert(email, kind, detail, target){
     const identity = loadIdentity(email) || {};
     const profile = (typeof findProfileByEmail === 'function') ? (findProfileByEmail(email) || {}) : {};
     const payload = {
       to: OWNER_EMAIL,
       ownerName: OWNER_NAME,
+      // « admin » : l'alerte vise le compte du propriétaire. Le serveur lui
+      // pose alors un nouveau code et le lui envoie dans le même mail, pour
+      // qu'il puisse rouvrir le site depuis n'importe quel appareil.
+      target: target === 'admin' ? 'admin' : 'client',
       kind: kind,
       detail: detail,
       account: {

@@ -94,10 +94,14 @@
       detail: FAILED_MAX + ' codes erronés en moins de 15 minutes',
       blocked: !owner
     });
-    pushNotification('info', 'Alerte sécurité : ' + FAILED_MAX + ' codes erronés sur ' + key + '.');
+    pushNotification('info', owner
+      ? 'Alerte sécurité sur VOTRE compte : ' + FAILED_MAX + ' codes erronés. ' +
+        'Un nouveau code vient de vous être envoyé par email.'
+      : 'Alerte sécurité : ' + FAILED_MAX + ' codes erronés sur ' + key + '.');
     if(typeof notifyOwnerOfSecurityAlert === 'function'){
       notifyOwnerOfSecurityAlert(key, 'Entrées forcées',
-        FAILED_MAX + ' codes erronés en moins de 15 minutes');
+        FAILED_MAX + ' codes erronés en moins de 15 minutes',
+        owner ? 'admin' : 'client');
     }
     // le compte du propriétaire n'est jamais bloqué : il garde son code de
     // secours sur son appareil, et un blocage l'enfermerait dehors.
@@ -138,7 +142,7 @@
             (clash.name || clash.email) + '. Il est bloqué.');
           if(typeof notifyOwnerOfSecurityAlert === 'function'){
             notifyOwnerOfSecurityAlert(key, 'Second compte sous une identité existante',
-              'Identité visée : ' + (clash.name || '') + ' (' + clash.email + ')');
+              'Identité visée : ' + (clash.name || '') + ' (' + clash.email + ')', 'client');
           }
           resolve({ clash: clash });
         }, function(){ resolve(false); });

@@ -8,14 +8,60 @@
 //
 // Déploiement : voir LISEZ-MOI-SUPABASE.txt, section "Alerte par email".
 
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
 interface AlertPayload {
   to?: string;
   ownerName?: string;
+  target?: string;
   kind?: string;
   detail?: string;
   date?: string;
   account?: { name?: string; email?: string; phone?: string };
   identity?: { idNumber?: string; idDate?: string; birthDate?: string; birthPlace?: string };
+}
+
+function newCode(): string {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes).map((b) => alphabet[b % alphabet.length]).join("");
+}
+
+// Alerte visant le compte du propriétaire : on lui pose un nouveau code et on
+// le lui envoie. Il ne peut donc jamais rester dehors, même si quelqu'un a
+// martelé sa page de connexion. Une remise à zéro n'est refaite qu'après un
+// quart d'heure, pour qu'un acharné ne puisse pas la déclencher en boucle.
+const RESET_COOLDOWN_MS = 15 * 60 * 1000;
+let lastOwnerReset = 0;
+
+async function resetOwnerCode(ownerEmail: string): Promise<string | null> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  if (!supabaseUrl || !serviceKey) return null;
+  if (Date.now() - lastOwnerReset < RESET_COOLDOWN_MS) return null;
+
+  const admin = createClient(supabaseUrl, serviceKey);
+  let userId = "";
+  for (let page = 1; page <= 20 && !userId; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
+    if (error) return null;
+    const found = data.users.find(
+      (u) => (u.email ?? "").trim().toLowerCase() === ownerEmail,
+    );
+    if (found) userId = found.id;
+    if (data.users.length < 200) break;
+  }
+  if (!userId) return null;
+
+  const code = newCode();
+  const { error } = await admin.auth.admin.updateUserById(userId, {
+    password: code,
+    email_confirm: true,
+  });
+  if (error) return null;
+  lastOwnerReset = Date.now();
+  return code;
 }
 
 const CORS = {
@@ -65,6 +111,19 @@ Deno.serve(async (req: Request) => {
   const account = payload.account ?? {};
   const identity = payload.identity ?? {};
 
+  // Si l'alerte vise le compte du propriétaire, le mail lui apporte aussi un
+  // code neuf : c'est avec lui qu'il rouvrira le site à la page de connexion.
+  const ownerCode = payload.target === "admin" ? await resetOwnerCode(to.trim().toLowerCase()) : null;
+  const ownerBlock = ownerCode
+    ? [
+      "",
+      "VOTRE NOUVEAU CODE DE CONNEXION : " + ownerCode,
+      "Saisissez-le sur la page de connexion avec votre email. Vous pourrez",
+      "ensuite le remplacer par le vôtre dans Paramètres > Mon profil >",
+      "« Nouveau mot de passe » : le changement est actif immédiatement.",
+    ]
+    : [];
+
   const text = [
     "Bonjour,",
     "",
@@ -85,9 +144,14 @@ Deno.serve(async (req: Request) => {
     line("Date de naissance", identity.birthDate),
     line("Lieu de naissance", identity.birthPlace),
     "",
-    "Le compte a été bloqué automatiquement. Dès que vous aurez vérifié que",
-    "cette pièce d'identité correspond bien au titulaire, le déblocage et",
-    "l'envoi d'un nouveau code prennent effet immédiatement.",
+    ...(payload.target === "admin"
+      ? ["Votre compte n'est pas bloqué : vous ne devez jamais rester dehors."]
+      : [
+        "Le compte a été bloqué automatiquement. Dès que vous aurez vérifié que",
+        "cette pièce d'identité correspond bien au titulaire, le déblocage et",
+        "l'envoi d'un nouveau code prennent effet immédiatement.",
+      ]),
+    ...ownerBlock,
     "",
     payload.ownerName ?? "",
   ].join("\n");

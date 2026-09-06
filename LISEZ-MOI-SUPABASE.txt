@@ -246,3 +246,23 @@ vérification du jeton qui garantit que seul votre compte peut
 changer le mot de passe d'un client. La clé de service
 (SUPABASE_SERVICE_ROLE_KEY) est fournie automatiquement à la
 fonction par Supabase : ne la copiez jamais dans le site.
+
+
+SI L'ALERTE VISE VOTRE PROPRE COMPTE (ADMIN)
+------------------------------
+Votre compte n'est jamais bloqué : vous ne devez jamais rester
+dehors. À la place :
+1. Une notification vous prévient dans l'application.
+2. Le mail d'alerte vous apporte un NOUVEAU CODE : la fonction
+   "send-alert" le pose elle-même sur votre compte (clé de service,
+   côté serveur). Vous vous connectez avec votre email et ce code,
+   depuis n'importe quel appareil.
+3. Vous le remplacez ensuite par le vôtre :
+   Paramètres > Mon profil > "Nouveau mot de passe" > Enregistrer.
+   Le nouveau code est utilisable immédiatement.
+Une remise à zéro n'est refaite qu'après un quart d'heure, pour
+qu'un acharné ne puisse pas la déclencher en boucle.
+
+Même principe pour un client : le code que vous lui envoyez depuis
+l'espace admin devient son mot de passe ; il peut le changer dans
+Paramètres et s'en servir aussitôt.
