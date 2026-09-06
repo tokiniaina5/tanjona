@@ -1837,13 +1837,34 @@ const STORAGE_ITEMS = 'stockmanager_items';
 
   // Hauteur réelle de la barre supérieure : les onglets principaux viennent
   // se coller juste en dessous (valeur relue au redimensionnement).
+  // Hauteur de la barre du haut : c'est sous elle que viennent se coller les
+  // onglets « Accueil / Articles ». Elle était mesurée une seule fois, à
+  // l'ouverture de l'application, avant que la mise en page ne soit stabilisée
+  // — la valeur retenue était deux fois trop grande et les onglets flottaient
+  // au milieu du fil d'actualité. On la relit donc à chaque changement utile.
+  let topbarMeasureQueued = false;
   function updateTopbarHeight(){
     const bar = document.querySelector('.sidebar');
     if(!bar) return;
-    document.documentElement.style.setProperty('--topbar-h', bar.offsetHeight + 'px');
+    const height = Math.round(bar.getBoundingClientRect().height);
+    if(height > 0){
+      document.documentElement.style.setProperty('--topbar-h', height + 'px');
+    }
+  }
+  function queueTopbarMeasure(){
+    if(topbarMeasureQueued) return;
+    topbarMeasureQueued = true;
+    requestAnimationFrame(function(){
+      topbarMeasureQueued = false;
+      updateTopbarHeight();
+    });
   }
   updateTopbarHeight();
-  window.addEventListener('resize', updateTopbarHeight);
+  window.addEventListener('resize', queueTopbarMeasure);
+  window.addEventListener('scroll', queueTopbarMeasure, { passive: true });
+  window.addEventListener('load', updateTopbarHeight);
+  // les images du fil d'actualité changent la hauteur en arrivant
+  document.addEventListener('load', queueTopbarMeasure, true);
 
   // Les onglets secondaires (Tableau de bord, Historique, Ajouter, Vente...)
   // ne sont utiles qu'une fois dans « Articles » : on les masque sur l'Accueil.
