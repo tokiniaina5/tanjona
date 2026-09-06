@@ -1879,10 +1879,15 @@ const STORAGE_ITEMS = 'stockmanager_items';
 
   document.querySelectorAll('.dash-tab').forEach(function(tab){
     tab.addEventListener('click', function(){
+      // « Appel vidéo » porte le même habillage que les onglets mais n'ouvre
+      // aucune vue : sans cette garde, il effaçait la vue affichée puis
+      // échouait sur un identifiant "dash-undefined".
+      const view = tab.dataset.dash ? document.getElementById('dash-' + tab.dataset.dash) : null;
+      if(!view) return;
       document.querySelectorAll('.dash-tab').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.dash-view').forEach(v => v.classList.remove('active'));
       tab.classList.add('active');
-      document.getElementById('dash-' + tab.dataset.dash).classList.add('active');
+      view.classList.add('active');
       if(tab.dataset.dash === 'dashboard'){ renderFilters(); renderDashboard(); }
       if(tab.dataset.dash === 'accueil'){ renderCommunityPanel(); }
       // Historique / Ajouter : averina soratana mba ho mifanaraka amin'ny vente
