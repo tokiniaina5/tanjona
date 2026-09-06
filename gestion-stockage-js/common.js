@@ -421,6 +421,16 @@ const STORAGE_ITEMS = 'stockmanager_items';
   // ---------------- SESSION (rester connecté après actualisation) ----------------
   // La session et la vue en cours sont mémorisées : actualiser la page ne
   // renvoie plus vers l'écran de connexion, on reprend là où on était.
+  // Email du dernier compte utilisé sur cet appareil : au retour, la personne
+  // n'a plus que son code à saisir, l'email est déjà là.
+  const STORAGE_LAST_EMAIL = 'stockmanager_last_email';
+  function saveLastEmail(email){
+    try { localStorage.setItem(STORAGE_LAST_EMAIL, (email || '').trim().toLowerCase()); } catch(e){}
+  }
+  function loadLastEmail(){
+    try { return localStorage.getItem(STORAGE_LAST_EMAIL) || ''; } catch(e){ return ''; }
+  }
+
   const STORAGE_SESSION = 'stockmanager_session';
   const STORAGE_LAST_VIEW = 'stockmanager_last_view';
 
@@ -758,6 +768,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
   // Ouvre l'application pour un utilisateur authentifié par Supabase.
   function openAppForAuthUser(user, opts){
     currentUser = profileFromAuthUser(user);
+    saveLastEmail(currentUser.email);
     // cache local (le logo reste sur l'appareil, il n'est pas envoyé au serveur)
     upsertProfile(currentUser.name, {
       name: currentUser.name, email: currentUser.email, phone: currentUser.phone,
@@ -797,6 +808,11 @@ const STORAGE_ITEMS = 'stockmanager_items';
     }
     const status = document.getElementById('quickLoginStatus');
     if(status) status.textContent = '';
+    if(quick){
+      const emailField = document.getElementById('quickEmail');
+      const known = loadLastEmail();
+      if(emailField && !emailField.value && known) emailField.value = known;
+    }
     const forgotWrap = document.getElementById('forgotWrap');
     if(forgotWrap) forgotWrap.style.display = quick ? 'block' : 'none';
     const forgotBox = document.getElementById('forgotBox');
@@ -816,6 +832,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
 
   // Ouvre l'application à partir d'un profil déjà enregistré.
   function loginFromProfile(profile){
+    saveLastEmail(profile && profile.email);
     currentUser = {
       name: profile.name || '',
       email: profile.email || '',
