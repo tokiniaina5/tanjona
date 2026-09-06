@@ -1,0 +1,4 @@
+# état local de la CLI Supabase : contient le mot de passe de la base,
+# ne doit jamais être publié ni versionné.
+.temp/
+.branches/
