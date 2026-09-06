@@ -531,6 +531,8 @@ const STORAGE_ITEMS = 'stockmanager_items';
     // Rohy misy "?live=" na "?call=" : mifandray avy hatrany, tsy mila mitety
     // ny appli ny mpanjifa — ny fanokafana ny rohy no ampy.
     if(typeof runPendingLinkAction === 'function') runPendingLinkAction();
+    // étape 2 : pièce d'identité, réclamée tant qu'elle n'est pas renseignée
+    if(typeof requireIdentity === 'function') requireIdentity();
   }
 
   function openPaywall(){

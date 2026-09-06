@@ -182,3 +182,39 @@ seuls les paiements déclarés par les clients apparaissent. L'alerte
 "2 jours" est envoyée par un bouton (mailto) : un envoi entièrement
 automatique demanderait une Edge Function Supabase + un service
 d'emails.
+
+
+ÉTAPE 2 — PIÈCE D'IDENTITÉ & ALERTE PAR EMAIL AUTOMATIQUE
+------------------------------
+Après s'être connecté, le client passe par une étape 2 obligatoire :
+numéro CIN ou passeport, date du document, date et lieu de naissance.
+Tant qu'elle n'est pas remplie, l'application ne s'ouvre pas. Ensuite
+il peut les corriger dans Paramètres > "Pièce d'identité".
+
+Où sont conservées ces informations : sur l'appareil du client et
+dans son compte Supabase (user_metadata, lisible par lui seul). Elles
+ne sont écrites dans AUCUNE table publique — un numéro de CIN et une
+date de naissance ne doivent pas être exposés.
+
+Quand une alerte de sécurité concerne un compte (second compte sous
+une identité existante, entrées forcées), l'application appelle la
+fonction "send-alert" qui vous envoie un mail contenant le compte
+visé ET cette pièce d'identité.
+
+DÉPLOYER L'ENVOI AUTOMATIQUE (une fois) :
+1. Créez un compte sur https://resend.com et générez une clé API.
+   (100 mails/jour gratuits ; l'expéditeur onboarding@resend.dev
+   fonctionne sans domaine à vérifier.)
+2. Installez la CLI Supabase : npm i -g supabase
+3. Dans le dossier du projet :
+     supabase login
+     supabase link --project-ref ezpsapvthujkhttbfhlr
+     supabase secrets set RESEND_API_KEY=re_xxxxxxxx
+     supabase secrets set OWNER_EMAIL=rasolofonirainytokiniaina@gmail.com
+     supabase functions deploy send-alert --no-verify-jwt
+4. C'est tout : les alertes partent seules.
+
+Le code de la fonction est dans supabase/functions/send-alert/index.ts.
+Tant qu'elle n'est pas déployée, rien n'est perdu : l'alerte reste
+visible dans l'espace admin et en notification, et le blocage
+s'applique quand même.

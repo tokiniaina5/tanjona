@@ -40,6 +40,7 @@
     const hasAuth = !!(window.__sb && window.__sb.auth);
     if(codeInput) codeInput.value = (!hasAuth && savedProfile && savedProfile.accessCode) ? savedProfile.accessCode : '';
     updateProfilePhotoPreview(currentUser.logo || null);
+    if(typeof renderIdentityForm === 'function') renderIdentityForm();
   }
 
   function updateProfilePhotoPreview(src){

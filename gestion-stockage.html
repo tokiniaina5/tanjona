@@ -130,6 +130,40 @@
 </div>
 
 <!-- ============ AUTO-POPUP : INFO ABONNEMENT ============ -->
+<!-- ============ ÉTAPE 2 : PIÈCE D'IDENTITÉ ============ -->
+<!-- Demandée juste après la connexion, avant d'entrer dans l'application.
+     Ces informations restent sur l'appareil et dans le compte du client ;
+     elles ne partent qu'au propriétaire, et seulement en cas d'alerte. -->
+<div id="identityGate" style="display:none; position:fixed; inset:0; background:rgba(4,8,10,0.94); align-items:center; justify-content:center; z-index:210; padding:1rem; overflow-y:auto;">
+  <div class="login-card" style="max-width:420px;">
+    <div class="eyebrow">Étape 2 sur 2</div>
+    <h1 style="font-size:1.15rem;">Vérification d'identité</h1>
+    <p class="sub">
+      Ces informations servent uniquement à vous identifier auprès du propriétaire
+      en cas d'alerte de sécurité sur votre compte. Elles restent sur cet appareil
+      et dans votre compte : personne d'autre ne les voit.
+    </p>
+    <div class="field">
+      <label for="idNumber">Numéro CIN ou passeport</label>
+      <input id="idNumber" type="text" placeholder="Ex : 101 234 567 890">
+    </div>
+    <div class="field">
+      <label for="idDate">Date de la CIN / du passeport</label>
+      <input id="idDate" type="date">
+    </div>
+    <div class="field">
+      <label for="birthDate">Date de naissance</label>
+      <input id="birthDate" type="date">
+    </div>
+    <div class="field">
+      <label for="birthPlace">Lieu de naissance</label>
+      <input id="birthPlace" type="text" placeholder="Ex : Antananarivo">
+    </div>
+    <p id="identityStatus" style="font-size:0.78rem; color:var(--amber); margin:-0.2rem 0 0.8rem; line-height:1.5;"></p>
+    <button type="button" class="btn btn-primary" id="identitySaveBtn" style="width:100%;">Enregistrer et entrer</button>
+  </div>
+</div>
+
 <div id="autoNoticeModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); align-items:center; justify-content:center; z-index:200; padding:1rem;">
   <div class="login-card" style="max-width:380px; position:relative;">
     <button type="button" id="autoNoticeClose" aria-label="Fermer" style="position:absolute; top:0.7rem; right:0.9rem; background:none; border:none; color:var(--muted); font-size:1.2rem; cursor:pointer; line-height:1;">✕</button>
@@ -1274,6 +1308,34 @@
             </div>
           </div>
           <button type="button" class="btn btn-primary btn-sm" id="saveProfileBtn" style="width:auto; margin-top:0.8rem;">Enregistrer</button>
+
+          <div style="margin-top:1.4rem; border-top:1px solid var(--line); padding-top:1.2rem;">
+            <h3 style="font-size:0.95rem;">🪪 Pièce d'identité</h3>
+            <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.8rem; line-height:1.5;">
+              Conservées sur cet appareil et dans votre compte. Elles ne sont transmises au
+              propriétaire que si une alerte de sécurité concerne votre compte.
+            </p>
+            <div class="form-grid">
+              <div class="field" style="margin-bottom:0;">
+                <label for="profileIdNumber">Numéro CIN ou passeport</label>
+                <input id="profileIdNumber" type="text" placeholder="Ex : 101 234 567 890">
+              </div>
+              <div class="field" style="margin-bottom:0;">
+                <label for="profileIdDate">Date de la CIN / du passeport</label>
+                <input id="profileIdDate" type="date">
+              </div>
+              <div class="field" style="margin-bottom:0;">
+                <label for="profileBirthDate">Date de naissance</label>
+                <input id="profileBirthDate" type="date">
+              </div>
+              <div class="field" style="margin-bottom:0;">
+                <label for="profileBirthPlace">Lieu de naissance</label>
+                <input id="profileBirthPlace" type="text" placeholder="Ex : Antananarivo">
+              </div>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" id="saveIdentityBtn" style="width:auto; margin-top:0.8rem;">Enregistrer la pièce d'identité</button>
+            <p id="profileIdentityStatus" style="font-size:0.78rem; color:var(--cyan); margin-top:0.6rem;"></p>
+          </div>
           <span id="profileSaveStatus" style="font-size:0.78rem; color:var(--muted); margin-left:0.6rem;"></span>
         </div>
 
@@ -1384,6 +1446,7 @@
 <script src="gestion-stockage-js/contact.js"></script>
 <script src="gestion-stockage-js/live.js"></script>
 <script src="gestion-stockage-js/parametres.js"></script>
+<script src="gestion-stockage-js/identite.js"></script>
 <script src="gestion-stockage-js/securite.js"></script>
 
 

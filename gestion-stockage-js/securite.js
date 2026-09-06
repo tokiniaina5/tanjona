@@ -95,6 +95,10 @@
       blocked: !owner
     });
     pushNotification('info', 'Alerte sécurité : ' + FAILED_MAX + ' codes erronés sur ' + key + '.');
+    if(typeof notifyOwnerOfSecurityAlert === 'function'){
+      notifyOwnerOfSecurityAlert(key, 'Entrées forcées',
+        FAILED_MAX + ' codes erronés en moins de 15 minutes');
+    }
     // le compte du propriétaire n'est jamais bloqué : il garde son code de
     // secours sur son appareil, et un blocage l'enfermerait dehors.
     if(!owner) blockAccount(key, 'Entrées forcées répétées');
@@ -132,6 +136,10 @@
           blockAccount(key, 'Second compte ouvert sous l\'identité d\'un autre client');
           pushNotification('info', 'Alerte sécurité : un second compte a été ouvert sous l\'identité de ' +
             (clash.name || clash.email) + '. Il est bloqué.');
+          if(typeof notifyOwnerOfSecurityAlert === 'function'){
+            notifyOwnerOfSecurityAlert(key, 'Second compte sous une identité existante',
+              'Identité visée : ' + (clash.name || '') + ' (' + clash.email + ')');
+          }
           resolve({ clash: clash });
         }, function(){ resolve(false); });
     });
