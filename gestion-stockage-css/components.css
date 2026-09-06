@@ -6,6 +6,13 @@
   }
   .dash-tab:hover{ color:var(--text); }
   .dash-tab.active{ color:var(--cyan); border-color:var(--cyan); }
+  /* appel vidéo : au centre de la rangée, en évidence sans être criard */
+  .dash-tab-call{ color:var(--cyan); }
+  .dash-tab-call:hover{ color:var(--text); }
+  .dash-tab-call span[aria-hidden]{ font-size:1.05rem; line-height:1; }
+  @media (max-width: 520px){
+    .dash-tab-call .call-tab-text{ display:none; }
+  }
   .dash-view{ display:none; }
   .dash-view.active{ display:block; }
 

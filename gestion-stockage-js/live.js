@@ -901,6 +901,32 @@
       '&name=' + encodeURIComponent(me.name);
   }
 
+  // Onglet « Appel vidéo » au centre de la rangée Accueil / Articles.
+  // C'est un vrai lien : on peut le copier ou le partager pour qu'un client
+  // appelle directement. Touché dans l'application, il lance l'appel plutôt
+  // que de recharger la page — et le propriétaire, lui, est mené à sa
+  // section « Live & Appels » (s'appeler soi-même n'aurait pas de sens).
+  const videoCallTab = document.getElementById('videoCallTab');
+  if(videoCallTab){
+    function refreshVideoCallTabLink(){
+      try{ videoCallTab.href = callInviteLink('video'); }catch(e){}
+    }
+    refreshVideoCallTabLink();
+    videoCallTab.addEventListener('click', function(e){
+      e.preventDefault();
+      refreshVideoCallTabLink();
+      const me = myIdentity();
+      if(me.isAdmin){
+        const navLive = document.querySelector('.nav-item[data-section="live"]');
+        if(navLive) navLive.click();
+        return;
+      }
+      const presence = (typeof presenceState === 'object')
+        ? presenceState[OWNER_EMAIL.toLowerCase()] : null;
+      startCall(OWNER_EMAIL.toLowerCase(), (presence && presence.name) || 'Admin', 'video');
+    });
+  }
+
   const shareCallLinkBtn = document.getElementById('shareCallLinkBtn');
   if(shareCallLinkBtn){
     shareCallLinkBtn.addEventListener('click', function(){

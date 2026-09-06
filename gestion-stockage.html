@@ -385,7 +385,13 @@
 
         <div class="dash-tabs dash-tabs-main" id="stockMainTabs">
           <div class="dash-tab active" data-dash="accueil">🏠 Accueil</div>
-          <div class="dash-tab" data-dash="articles" style="margin-left:auto;">📦 Articles</div>
+          <!-- Appel vidéo, au centre : un vrai lien (copiable, partageable),
+               qui lance directement l'appel quand on le touche dans l'appli. -->
+          <a id="videoCallTab" class="dash-tab dash-tab-call" href="#" title="Appel vidéo"
+             style="margin:0 auto; text-decoration:none; display:flex; align-items:center; gap:0.4rem;">
+            <span aria-hidden="true">📹</span><span class="call-tab-text">Appel vidéo</span>
+          </a>
+          <div class="dash-tab" data-dash="articles">📦 Articles</div>
         </div>
 
         <div class="section-head">
