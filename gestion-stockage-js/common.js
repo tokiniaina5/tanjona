@@ -836,7 +836,52 @@ const STORAGE_ITEMS = 'stockmanager_items';
   }
 
   // Ouvre l'application pour un utilisateur authentifié par Supabase.
+  // Referme l'application et ramène à l'écran de connexion avec un message :
+  // sert quand un compte se révèle bloqué alors qu'il vient de s'ouvrir.
+  // Compteur de session : une ouverture d'application lancée avant une
+  // fermeture forcée ne doit pas rouvrir la porte en arrivant en retard.
+  let loginEpoch = 0;
+
+  function forceSignOut(message){
+    loginEpoch += 1;
+    if(typeof teardownRealtimeFeatures === 'function') teardownRealtimeFeatures();
+    const auth = sbAuth();
+    if(auth) auth.signOut().then(function(){}, function(){});
+    clearSession();
+    currentUser = null;
+    appScreen.style.display = 'none';
+    paywallScreen.style.display = 'none';
+    loginScreen.style.display = 'flex';
+    showLoginMode('quick');
+    const status = document.getElementById('quickLoginStatus');
+    if(status) status.textContent = message || '';
+    setLoginStatus(message || '');
+  }
+
+  // Un compte signalé puis bloqué ne s'ouvre plus : on vérifie avant d'entrer.
   function openAppForAuthUser(user, opts){
+    const email = (user && user.email) || '';
+    const epoch = loginEpoch;
+    if(typeof isAccountBlocked !== 'function' || isOwnerEmail(email)){
+      openAppForAuthUserNow(user, opts);
+      return;
+    }
+    isAccountBlocked(email).then(function(blocked){
+      if(epoch !== loginEpoch) return;   // une fermeture forcée est passée entre-temps
+      if(!blocked){
+        openAppForAuthUserNow(user, opts);
+        if(typeof clearFailedAttempts === 'function') clearFailedAttempts(email);
+        return;
+      }
+      const status = document.getElementById('quickLoginStatus');
+      const message = 'Ce compte est bloqué : ' + (blocked.reason || 'activité suspecte') +
+        '. Contactez ' + OWNER_EMAIL + ' pour le rétablir.';
+      if(status) status.textContent = message;
+      setLoginStatus(message);
+    }, function(){ openAppForAuthUserNow(user, opts); });
+  }
+
+  function openAppForAuthUserNow(user, opts){
     currentUser = profileFromAuthUser(user);
     saveLastEmail(currentUser.email);
     if(isOwnerEmail(currentUser.email)) markOwnerDevice();
@@ -1288,6 +1333,8 @@ const STORAGE_ITEMS = 'stockmanager_items';
         // d'attente — un code de secours s'affiche et rouvre l'accès.
         tryOwnerRescueCode(email, password).then(function(entered){
           if(entered) return;
+          // entrées forcées : au-delà du seuil, le compte est bloqué
+          if(typeof noteFailedAttempt === 'function') noteFailedAttempt(email);
           if(isOwnerEmail(email) && isOwnerDevice() && !loadRescue()){
             offerOwnerRescueCode();
             return;
@@ -1408,6 +1455,15 @@ const STORAGE_ITEMS = 'stockmanager_items';
           return;
         }
         recordNewSignup(name, email, phone);
+        // « compte n°2 » sous l'identité d'un client existant : bloqué aussitôt
+        if(typeof checkDuplicateIdentity === 'function'){
+          checkDuplicateIdentity(name, email, phone).then(function(clash){
+            if(clash){
+              forceSignOut('Ce nom ou ce numéro appartient déjà à un autre compte. ' +
+                'Par sécurité, ce nouveau compte est bloqué et ' + OWNER_NAME + ' a été prévenu.');
+            }
+          });
+        }
         if(res.data && res.data.session){
           openAppForAuthUser(res.data.user);
         } else {
@@ -1758,6 +1814,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
       document.getElementById('section-' + nav.dataset.section).classList.add('active');
       if(nav.dataset.section === 'factures') renderInvoiceItems();
       if(nav.dataset.section === 'stock'){ renderFilters(); renderDashboard(); renderCommunityPanel(); }
+      if(nav.dataset.section === 'admin'){
+        if(typeof renderAdminSpace === 'function') renderAdminSpace();
+      }
       if(nav.dataset.section === 'live'){
         renderOnlineClientsForCall();
         renderLiveList();

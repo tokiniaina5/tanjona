@@ -16,6 +16,9 @@
     document.getElementById('masterCodePanel').style.display = isAdmin ? 'block' : 'none';
     document.getElementById('adminVisitsPanel').style.display = isAdmin ? 'block' : 'none';
     document.getElementById('adminLoginsPanel').style.display = isAdmin ? 'block' : 'none';
+    // l'entrée de menu « Espace admin » n'existe que pour le propriétaire
+    const navAdmin = document.getElementById('navAdmin');
+    if(navAdmin) navAdmin.style.display = isAdmin ? 'flex' : 'none';
     document.getElementById('contactAdminPanel').style.display = isAdmin ? 'block' : 'none';
     document.getElementById('unlockRequestsPanel').style.display = isAdmin ? 'block' : 'none';
     document.getElementById('signupsPanel').style.display = isAdmin ? 'block' : 'none';

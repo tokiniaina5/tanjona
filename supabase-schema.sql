@@ -334,3 +334,68 @@ create policy "anyone can read signups"
   on public.client_signups for select
   to anon, authenticated
   using (true);
+
+
+-- ============================================================
+-- Sécurité — Gestion de Stockage
+-- Journal des tentatives suspectes (second compte ouvert sous
+-- l'identité d'un client, entrées forcées) et comptes bloqués.
+-- Seul le propriétaire consulte tout cela, dans son espace admin.
+-- ============================================================
+create table if not exists public.security_events (
+  id uuid primary key default gen_random_uuid(),
+  kind text not null,                 -- duplicate_identity | brute_force | unknown_device
+  target text not null,               -- client | admin
+  email text,                         -- compte visé
+  name text,
+  phone text,
+  detail text,
+  device_hash text,
+  blocked boolean default false,
+  created_at timestamptz default now()
+);
+
+alter table public.security_events enable row level security;
+
+drop policy if exists "anyone can report a security event" on public.security_events;
+create policy "anyone can report a security event"
+  on public.security_events for insert
+  to anon, authenticated
+  with check (true);
+
+drop policy if exists "anyone can read security events" on public.security_events;
+create policy "anyone can read security events"
+  on public.security_events for select
+  to anon, authenticated
+  using (true);
+
+
+-- Comptes bloqués : l'application refuse de s'ouvrir tant que le
+-- propriétaire n'a pas levé le blocage depuis son espace admin.
+create table if not exists public.blocked_accounts (
+  email text primary key,
+  reason text,
+  blocked_at timestamptz default now(),
+  released_at timestamptz,
+  active boolean default true
+);
+
+alter table public.blocked_accounts enable row level security;
+
+drop policy if exists "anyone can read blocked accounts" on public.blocked_accounts;
+create policy "anyone can read blocked accounts"
+  on public.blocked_accounts for select
+  to anon, authenticated
+  using (true);
+
+drop policy if exists "anyone can block an account" on public.blocked_accounts;
+create policy "anyone can block an account"
+  on public.blocked_accounts for insert
+  to anon, authenticated
+  with check (true);
+
+drop policy if exists "anyone can update a blocked account" on public.blocked_accounts;
+create policy "anyone can update a blocked account"
+  on public.blocked_accounts for update
+  to anon, authenticated
+  using (true);

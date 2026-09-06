@@ -18,6 +18,8 @@ with attendu(objet, present) as (
   union all select 'table  referrals',              to_regclass('public.referrals')              is not null
   union all select 'table  unlock_requests',        to_regclass('public.unlock_requests')        is not null
   union all select 'table  client_signups',         to_regclass('public.client_signups')         is not null
+  union all select 'table  security_events',        to_regclass('public.security_events')        is not null
+  union all select 'table  blocked_accounts',       to_regclass('public.blocked_accounts')       is not null
 
   -- les 2 colonnes ajoutées par la dernière version
   union all select 'colonne contact_channels.paypal', exists(

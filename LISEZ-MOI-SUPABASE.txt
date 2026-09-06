@@ -149,3 +149,36 @@ rien à valider de votre part.
 
 À exécuter dans Supabase : la fin de "supabase-schema.sql"
 (table "client_signups").
+
+
+ESPACE ADMIN & SÉCURITÉ
+------------------------------
+Un menu "Espace admin" apparaît uniquement pour le propriétaire
+(reconnu par son email). Les clients ne le voient jamais. Il réunit :
+- les clients inscrits ;
+- l'argent déclaré (déblocages payés sur PayPal) et son total ;
+- les codes changés et les déblocages ;
+- les tentatives détectées sur les comptes clients ;
+- les tentatives détectées sur le compte du propriétaire ;
+- les comptes bloqués, avec un bouton pour prévenir la personne
+  (délai de 2 jours) et un autre pour lever le blocage.
+
+Ce qui déclenche un blocage automatique :
+1. "Compte n°2" : quelqu'un s'inscrit avec le nom ou le numéro d'un
+   client déjà enregistré, sous un autre email. Le nouveau compte est
+   bloqué immédiatement, l'application se referme et le propriétaire
+   est prévenu.
+2. Entrées forcées : 5 codes erronés en moins de 15 minutes sur le
+   même email. Le compte visé est bloqué.
+Le compte du PROPRIÉTAIRE n'est jamais bloqué automatiquement : il
+serait enfermé dehors. Ses tentatives sont journalisées et lui sont
+signalées.
+
+À exécuter dans Supabase : la fin de "supabase-schema.sql"
+(tables "security_events" et "blocked_accounts").
+
+LIMITE : le solde réel PayPal n'est pas lisible par l'application ;
+seuls les paiements déclarés par les clients apparaissent. L'alerte
+"2 jours" est envoyée par un bouton (mailto) : un envoi entièrement
+automatique demanderait une Edge Function Supabase + un service
+d'emails.

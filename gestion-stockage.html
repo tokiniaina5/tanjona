@@ -327,6 +327,8 @@
         <div class="nav-item" data-section="live">🎥 Live &amp; Appels</div>
         <div class="nav-item" data-section="wallet">💰 Portefeuille</div>
         <div class="nav-item" data-section="connexions" id="navParametres">⚙️ Paramètres</div>
+        <!-- Espace du propriétaire : masqué pour tous les clients -->
+        <div class="nav-item" data-section="admin" id="navAdmin" style="display:none;">🛡️ Espace admin</div>
 
         <div class="user-chip">
           <strong id="currentUserName">—</strong>
@@ -1130,6 +1132,91 @@
         </div>
       </section>
 
+      <!-- ---- ESPACE ADMIN (propriétaire uniquement) ---- -->
+      <section class="section" id="section-admin">
+        <div class="section-head">
+          <div>
+            <h2>Espace admin</h2>
+            <p>Vue d'ensemble réservée au propriétaire : clients, argent, codes et sécurité.</p>
+          </div>
+          <div class="actions-row">
+            <button class="btn btn-sm" id="refreshAdminBtn">↻ Actualiser</button>
+          </div>
+        </div>
+
+        <div class="kpi-row">
+          <div class="kpi-card"><div class="kpi-label">Clients inscrits</div><div class="kpi-value" id="adminKpiClients">0</div></div>
+          <div class="kpi-card"><div class="kpi-label">Argent déclaré</div><div class="kpi-value" id="adminKpiMoney">0 Ar</div></div>
+          <div class="kpi-card"><div class="kpi-label">Codes changés / déblocages</div><div class="kpi-value" id="adminKpiUnlocks">0</div></div>
+          <div class="kpi-card"><div class="kpi-label">Alertes de sécurité</div><div class="kpi-value" id="adminKpiAlerts">0</div></div>
+        </div>
+
+        <div class="panel">
+          <h3>🆕 Clients vaovao</h3>
+          <div class="table-scroll">
+            <table id="adminClientsTable">
+              <thead><tr><th>Date</th><th>Nom</th><th>Email</th><th>Téléphone</th></tr></thead>
+              <tbody id="adminClientsBody"></tbody>
+            </table>
+          </div>
+          <p class="empty-hint" id="adminClientsEmpty" style="display:none;">Aucune inscription pour le moment.</p>
+        </div>
+
+        <div class="panel">
+          <h3>💰 Vola miditra (déclaré)</h3>
+          <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.8rem;">
+            Paiements annoncés par les clients (déblocages réglés sur PayPal). Le solde réel de votre
+            compte PayPal se consulte chez PayPal : l'application ne peut pas le lire.
+          </p>
+          <div class="table-scroll">
+            <table id="adminMoneyTable">
+              <thead><tr><th>Date</th><th>Client</th><th>Montant</th><th>Référence</th><th>État</th></tr></thead>
+              <tbody id="adminMoneyBody"></tbody>
+            </table>
+          </div>
+          <p class="empty-hint" id="adminMoneyEmpty" style="display:none;">Aucun paiement déclaré.</p>
+        </div>
+
+        <div class="panel">
+          <h3>🔑 Codes changés &amp; déblocages payés</h3>
+          <div id="adminUnlocksList"></div>
+          <p class="empty-hint" id="adminUnlocksEmpty" style="display:none;">Aucun déblocage pour le moment.</p>
+        </div>
+
+        <div class="panel">
+          <h3>🛡️ Tentatives sur les comptes clients</h3>
+          <div class="table-scroll">
+            <table id="adminClientAlertsTable">
+              <thead><tr><th>Date</th><th>Type</th><th>Compte visé</th><th>Détail</th><th>État</th></tr></thead>
+              <tbody id="adminClientAlertsBody"></tbody>
+            </table>
+          </div>
+          <p class="empty-hint" id="adminClientAlertsEmpty" style="display:none;">Aucune tentative détectée.</p>
+        </div>
+
+        <div class="panel">
+          <h3>🛡️ Tentatives sur votre compte (admin)</h3>
+          <div class="table-scroll">
+            <table id="adminOwnerAlertsTable">
+              <thead><tr><th>Date</th><th>Type</th><th>Détail</th><th>État</th></tr></thead>
+              <tbody id="adminOwnerAlertsBody"></tbody>
+            </table>
+          </div>
+          <p class="empty-hint" id="adminOwnerAlertsEmpty" style="display:none;">Aucune tentative détectée.</p>
+        </div>
+
+        <div class="panel">
+          <h3>⛔ Comptes bloqués</h3>
+          <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.8rem;">
+            Un compte bloqué ne peut plus ouvrir l'application. Le client reçoit une alerte et dispose
+            de <strong style="color:var(--text);">2 jours</strong> pour vous contacter avant que vous ne
+            décidiez de la suite. Vous pouvez lever le blocage à tout moment.
+          </p>
+          <div id="adminBlockedList"></div>
+          <p class="empty-hint" id="adminBlockedEmpty" style="display:none;">Aucun compte bloqué.</p>
+        </div>
+      </section>
+
       <!-- ---- PARAMÈTRES ---- -->
       <section class="section" id="section-connexions">
         <div class="section-head">
@@ -1297,6 +1384,7 @@
 <script src="gestion-stockage-js/contact.js"></script>
 <script src="gestion-stockage-js/live.js"></script>
 <script src="gestion-stockage-js/parametres.js"></script>
+<script src="gestion-stockage-js/securite.js"></script>
 
 
 
