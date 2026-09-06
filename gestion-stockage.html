@@ -299,6 +299,24 @@
         <video id="callRemoteVideo" autoplay playsinline style="width:100%; border-radius:12px; background:#000; max-height:60vh;"></video>
         <video id="callLocalVideo" autoplay playsinline muted style="position:absolute; bottom:10px; right:10px; width:110px; border-radius:8px; border:2px solid var(--line); background:#000;"></video>
       </div>
+      <!-- Traduction en direct : ce que dit l'autre s'écrit dans votre langue,
+           et ce que vous dites part traduit dans la sienne. -->
+      <div id="callTranslateBox" style="margin-top:0.8rem; border:1px solid var(--line); border-radius:10px; padding:0.7rem 0.8rem; background:var(--panel-2); text-align:left;">
+        <div style="display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center; justify-content:space-between;">
+          <label style="font-size:0.74rem; color:var(--muted); display:flex; align-items:center; gap:0.4rem;">
+            🌍 Ma langue
+            <select id="callMyLang" style="padding:0.3rem 0.4rem; border-radius:6px; border:1px solid var(--line); background:var(--bg); color:var(--text); font-size:0.76rem;"></select>
+          </label>
+          <label style="font-size:0.74rem; color:var(--muted); display:flex; align-items:center; gap:0.4rem;">
+            Sa langue
+            <select id="callTheirLang" style="padding:0.3rem 0.4rem; border-radius:6px; border:1px solid var(--line); background:var(--bg); color:var(--text); font-size:0.76rem;"></select>
+          </label>
+          <button type="button" class="btn btn-sm" id="callTranslateToggle" style="width:auto;">🗣️ Traduire</button>
+        </div>
+        <p id="callTranslateHint" style="font-size:0.7rem; color:var(--muted); margin-top:0.5rem; line-height:1.5;"></p>
+        <div id="callSubtitles" style="margin-top:0.6rem; max-height:130px; overflow-y:auto; font-size:0.82rem; line-height:1.6;"></div>
+      </div>
+
       <div style="display:flex; gap:0.8rem; justify-content:center; margin-top:1rem; flex-wrap:wrap;">
         <button type="button" class="btn btn-sm" id="callMuteBtn">🎙️ Mute</button>
         <button type="button" class="btn btn-sm" id="callCamBtn">📷 Kamera</button>
@@ -1452,6 +1470,7 @@
 <script src="gestion-stockage-js/inviter.js"></script>
 <script src="gestion-stockage-js/contact.js"></script>
 <script src="gestion-stockage-js/live.js"></script>
+<script src="gestion-stockage-js/traduction.js"></script>
 <script src="gestion-stockage-js/parametres.js"></script>
 <script src="gestion-stockage-js/identite.js"></script>
 <script src="gestion-stockage-js/securite.js"></script>

@@ -266,3 +266,32 @@ qu'un acharné ne puisse pas la déclencher en boucle.
 Même principe pour un client : le code que vous lui envoyez depuis
 l'espace admin devient son mot de passe ; il peut le changer dans
 Paramètres et s'en servir aussitôt.
+
+
+TRADUCTION DES APPELS (fournisseurs internationaux)
+------------------------------
+Le lien "Appel vidéo", au centre de la rangée Accueil / Articles,
+sert à parler directement à un fournisseur : envoyez-lui le lien, il
+l'ouvre, l'appel démarre.
+
+Pendant l'appel, un bandeau "Traduire" apparaît :
+- chacun choisit sa langue (14 langues, dont chinois, anglais,
+  espagnol, arabe, hindi, portugais…) ;
+- ce que vous dites est reconnu, envoyé, puis traduit chez lui ;
+- ce qu'il dit s'affiche en sous-titre dans VOTRE langue et se lit
+  à voix haute.
+
+Limite : la reconnaissance de la parole n'existe que dans Chrome,
+Edge et Safari macOS récent. Ailleurs l'appel fonctionne, seule la
+traduction reste muette — l'application le dit clairement.
+
+DÉPLOYER LA TRADUCTION (une fois) :
+   supabase functions deploy translate --no-verify-jwt
+
+Sans clé, la fonction utilise MyMemory : gratuit, sans compte, mais
+limité en volume et de qualité moyenne. Pour une bien meilleure
+traduction, créez une clé sur https://www.deepl.com/pro-api (offre
+gratuite : 500 000 caractères/mois) puis :
+   supabase secrets set DEEPL_API_KEY=xxxxxxxx:fx
+La fonction prend alors DeepL, et retombe sur MyMemory en cas de
+problème.

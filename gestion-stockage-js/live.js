@@ -249,6 +249,8 @@
     else if(payload.kind === 'ice') onRemoteIce(payload);
     else if(payload.kind === 'reject') onCallRejected(payload);
     else if(payload.kind === 'end') onCallEnded(payload);
+    // paroles reconnues chez l'autre : traduites puis affichées ici
+    else if(payload.kind === 'speech'){ if(typeof onRemoteSpeech === 'function') onRemoteSpeech(payload); }
   }
 
   function onIncomingRing(payload){
@@ -337,6 +339,7 @@
   }
 
   function endCall(){
+    if(typeof resetCallTranslation === 'function') resetCallTranslation();
     const call = activeCall;
     if(call){
       clearTimeout(call.timeoutId);
