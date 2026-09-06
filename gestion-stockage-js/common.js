@@ -119,7 +119,46 @@ const STORAGE_ITEMS = 'stockmanager_items';
     try { return JSON.parse(localStorage.getItem(STORAGE_PROFILES)) || {}; }
     catch(e){ return {}; }
   }
-  function saveProfiles(profiles){ localStorage.setItem(STORAGE_PROFILES, JSON.stringify(profiles)); }
+  // Une photo d'appareil photo utilisée comme logo dépassait le quota du
+  // navigateur (~5 Mo) : l'écriture levait une exception et la connexion
+  // s'arrêtait sans le moindre message. On réduit l'image avant (voir
+  // shrinkImage) et on n'échoue plus silencieusement ici.
+  function saveProfiles(profiles){
+    try{
+      localStorage.setItem(STORAGE_PROFILES, JSON.stringify(profiles));
+      return true;
+    }catch(e){
+      // deuxième essai sans les logos, qui sont de loin le plus volumineux
+      try{
+        const light = {};
+        Object.keys(profiles).forEach(function(k){
+          light[k] = Object.assign({}, profiles[k], { logo: null });
+        });
+        localStorage.setItem(STORAGE_PROFILES, JSON.stringify(light));
+      }catch(e2){}
+      return false;
+    }
+  }
+
+  // Réduit une image (data URL) à maxPx de côté et la recompresse en JPEG.
+  // Une photo de 4 Mo tombe ainsi à quelques dizaines de Ko.
+  function shrinkImage(dataUrl, maxPx, callback){
+    if(!dataUrl || dataUrl.indexOf('data:image') !== 0){ callback(dataUrl); return; }
+    const img = new Image();
+    img.onload = function(){
+      try{
+        const ratio = Math.min(1, maxPx / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * ratio));
+        const h = Math.max(1, Math.round(img.height * ratio));
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        callback(canvas.toDataURL('image/jpeg', 0.82));
+      }catch(e){ callback(dataUrl); }
+    };
+    img.onerror = function(){ callback(dataUrl); };
+    img.src = dataUrl;
+  }
   function findProfile(name){
     const profiles = loadProfiles();
     return profiles[name.trim().toLowerCase()] || null;
@@ -1143,6 +1182,11 @@ const STORAGE_ITEMS = 'stockmanager_items';
     if(!phone){ setLoginStatus('Veuillez indiquer votre numéro de téléphone.'); return; }
 
     function finishLogin(logoDataUrl){
+      try{ finishLoginInner(logoDataUrl); }
+      catch(err){ setLoginStatus('Erreur inattendue : ' + (err && err.message ? err.message : err)); }
+    }
+
+    function finishLoginInner(logoDataUrl){
       const logo = logoDataUrl || (existingProfile ? existingProfile.logo : null);
       const company = existingProfile ? (existingProfile.company || '') : '';
       const nif = existingProfile ? (existingProfile.nif || '') : '';
@@ -1215,7 +1259,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
 
     if(logoFile){
       const reader = new FileReader();
-      reader.onload = function(ev){ finishLogin(ev.target.result); };
+      reader.onload = function(ev){
+        shrinkImage(ev.target.result, 320, function(small){ finishLogin(small); });
+      };
       reader.onerror = function(){ finishLogin(null); };
       reader.readAsDataURL(logoFile);
     } else {
@@ -1281,7 +1327,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
 
     if(logoFile){
       const reader = new FileReader();
-      reader.onload = function(ev){ finishSave(ev.target.result); };
+      reader.onload = function(ev){
+        shrinkImage(ev.target.result, 320, function(small){ finishSave(small); });
+      };
       reader.onerror = function(){ finishSave(null); };
       reader.readAsDataURL(logoFile);
     } else {
