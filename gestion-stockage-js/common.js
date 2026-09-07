@@ -1037,15 +1037,22 @@ const STORAGE_ITEMS = 'stockmanager_items';
       auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + window.location.pathname })
         .then(function(res){
           if(res && res.error){ if(status) status.textContent = authErrorText(res.error); return; }
-          if(status) status.textContent = 'Lien envoyé à ' + email + '. Ouvrez-le puis choisissez un nouveau code.';
+          if(status) status.textContent = 'Lien envoyé à ' + email + '. Ouvrez le plus récent de vos emails : ' +
+            'le lien ne vaut qu\'une heure et ne sert qu\'une fois. Regardez aussi dans les indésirables.';
         }, function(){
           if(status) status.textContent = 'Envoi impossible : vérifiez votre réseau.';
         });
     });
   }
 
+  // Vrai dès qu'un lien reçu par email prend la main sur l'écran : plus rien
+  // d'autre ne doit venir se poser dessus.
+  let authLinkTookOver = false;
+
   // Retour depuis le lien reçu : on demande le nouveau code puis on entre.
   function showRecoveryBox(){
+    authLinkTookOver = true;
+    closeWelcome(false);
     loginScreen.style.display = 'flex';
     appScreen.style.display = 'none';
     paywallScreen.style.display = 'none';
@@ -1088,6 +1095,69 @@ const STORAGE_ITEMS = 'stockmanager_items';
     sbAuth().onAuthStateChange(function(event){
       if(event === 'PASSWORD_RECOVERY') showRecoveryBox();
     });
+  }
+
+  // ---- Retour d'un lien reçu par email ----
+  // On ne s'en remet pas au seul événement PASSWORD_RECOVERY : la bibliothèque
+  // lit l'adresse dès sa création, bien avant que ce fichier ne s'exécute, et
+  // l'événement peut être passé entre-temps. L'adresse, elle, est toujours là.
+  //
+  // Et surtout : un lien périmé ou déjà utilisé revient avec une erreur dans
+  // l'adresse. Sans ce qui suit, la personne arrivait sur l'écran de connexion
+  // ordinaire, sans un mot d'explication — le lien avait l'air de ne rien faire.
+  function authLinkParams(){
+    const out = {};
+    [window.location.hash.replace(/^#/, ''), window.location.search.replace(/^\?/, '')]
+      .forEach(function(part){
+        if(!part) return;
+        new URLSearchParams(part).forEach(function(value, key){ if(!out[key]) out[key] = value; });
+      });
+    return out;
+  }
+
+  function authLinkErrorText(params){
+    const code = params.error_code || params.error || '';
+    if(code === 'otp_expired' || code === 'expired_token'){
+      return 'Ce lien a expiré ou a déjà servi : il ne vaut qu\'une heure et une seule fois. ' +
+        'Redemandez-en un ci-dessous, puis ouvrez le plus récent de vos emails.';
+    }
+    if(code === 'access_denied'){
+      return 'Ce lien n\'est plus valable. Redemandez-en un ci-dessous.';
+    }
+    return (params.error_description || 'Ce lien n\'a pas pu être utilisé.').replace(/\+/g, ' ') +
+      ' Redemandez-en un ci-dessous.';
+  }
+
+  function handleAuthLink(){
+    const params = authLinkParams();
+
+    if(params.error || params.error_code){
+      authLinkTookOver = true;
+      closeWelcome(false);
+      loginScreen.style.display = 'flex';
+      appScreen.style.display = 'none';
+      // L'avis d'abonnement recouvrait l'explication : ici, ce que la personne
+      // doit lire c'est pourquoi son lien n'a pas marché.
+      const notice = document.getElementById('autoNoticeModal');
+      if(notice) notice.style.display = 'none';
+      showLoginMode('quick');
+      // La personne est déjà venue chercher un lien : on lui rouvre l'endroit
+      // exact où en redemander un, plutôt que de la laisser le retrouver seule.
+      const resetBox = document.getElementById('resetBox');
+      if(resetBox){
+        closeHelpBoxes('resetBox');
+        resetBox.style.display = 'block';
+      }
+      const known = loadLastEmail();
+      const field = document.getElementById('resetEmail');
+      if(field && !field.value && known) field.value = known;
+      const status = document.getElementById('resetStatus');
+      if(status) status.textContent = authLinkErrorText(params);
+      history.replaceState(null, '', window.location.pathname);
+      return;
+    }
+
+    if(params.type === 'recovery') showRecoveryBox();
   }
 
   // Ouvre l'application à partir d'un profil déjà enregistré.
@@ -1900,6 +1970,10 @@ const STORAGE_ITEMS = 'stockmanager_items';
 
   function showAutoNotice(){
     if(welcomeOpen){ noticeWaitsForWelcome = true; return; }
+    // Arrivée par un lien reçu par email : la vérification de session se
+    // terminait après coup et faisait remonter cet avis par-dessus le message
+    // qui compte — celui qui explique quoi faire du lien.
+    if(authLinkTookOver) return;
     const st = getSubscriptionStatus();
     const modal = document.getElementById('autoNoticeModal');
     const closeBtn = document.getElementById('autoNoticeClose');
@@ -2015,6 +2089,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
       showAutoNotice();
     }
   }
+  // Un lien de réinitialisation l'emporte sur tout le reste : la personne
+  // arrive ici pour changer son mot de passe, pas pour voir l'écran habituel.
+  handleAuthLink();
   // raha nampiasa lien fizarana (?ref=...) ilay mpampiasa vaovao, dia raiketina izany
   recordReferralIfNeeded();
   initWalletAuth();
