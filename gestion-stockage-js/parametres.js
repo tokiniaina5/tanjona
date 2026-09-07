@@ -308,13 +308,92 @@
     if(nom || select) (existant ? qty : nom || qty).focus();
   }
 
+  // Les commentaires ne sont chargés qu'à l'ouverture : une trentaine de
+  // publications qui iraient toutes chercher leur fil à l'affichage feraient
+  // trente requêtes pour un fil que personne n'a demandé à lire.
+  function openComments(newsId, box){
+    if(!newsId || !window.__sb){
+      box.innerHTML = '<div class="fb-comment-empty">Tsy misy fifandraisana amin\'ny serveur.</div>';
+      return;
+    }
+    box.innerHTML = '<div class="fb-comment-empty">Mamaky…</div>';
+
+    const liste = document.createElement('div');
+    const saisie = document.createElement('div');
+    saisie.className = 'fb-comment-form';
+    saisie.innerHTML =
+      '<input type="text" class="fb-comment-input" placeholder="Soraty ny hevitrao…">' +
+      '<button type="button" class="btn btn-sm fb-comment-send" style="width:auto;">Alefa</button>';
+
+    function charger(){
+      window.__sb.from('client_news_comments')
+        .select('author_name,message,created_at')
+        .eq('news_id', newsId)
+        .order('created_at', { ascending: true })
+        .limit(100)
+        .then(function(res){
+          const rows = (res && res.data) || [];
+          liste.innerHTML = '';
+          if(!rows.length){
+            liste.innerHTML = '<div class="fb-comment-empty">Tsy mbola misy hevitra. Ianao no voalohany.</div>';
+            return;
+          }
+          rows.forEach(function(c){
+            const ligne = document.createElement('div');
+            ligne.className = 'fb-comment';
+            ligne.innerHTML =
+              '<strong>' + escapeHtml(c.author_name || 'Client') + '</strong> ' +
+              escapeHtml(c.message || '') +
+              '<span class="fb-comment-date">' +
+                (c.created_at ? new Date(c.created_at).toLocaleString('fr-FR') : '') +
+              '</span>';
+            liste.appendChild(ligne);
+          });
+        }, function(){
+          liste.innerHTML = '<div class="fb-comment-empty">Tsy azo novakiana ny hevitra.</div>';
+        });
+    }
+
+    box.innerHTML = '';
+    box.appendChild(liste);
+    box.appendChild(saisie);
+    charger();
+
+    const champ = saisie.querySelector('.fb-comment-input');
+    const bouton = saisie.querySelector('.fb-comment-send');
+
+    function envoyer(){
+      const texte = champ.value.trim();
+      if(!texte) return;
+      bouton.disabled = true;
+      window.__sb.from('client_news_comments').insert({
+        news_id: newsId,
+        author_name: (currentUser && currentUser.name) || 'Client',
+        author_email: (currentUser && currentUser.email) || null,
+        message: texte
+      }).then(function(res){
+        bouton.disabled = false;
+        if(res && res.error){ alert('Tsy voaray ny hevitrao : ' + (res.error.message || '')); return; }
+        champ.value = '';
+        charger();
+      }, function(){
+        bouton.disabled = false;
+        alert('Tsy voaray ny hevitrao : jereo ny fifandraisanao.');
+      });
+    }
+
+    bouton.addEventListener('click', envoyer);
+    champ.addEventListener('keydown', function(e){ if(e.key === 'Enter') envoyer(); });
+    champ.focus();
+  }
+
   function renderCommunityNews(){
     const list = document.getElementById('communityNewsList');
     const emptyHint = document.getElementById('communityNewsEmpty');
     if(!list) return;
     if(!window.__sb){ list.innerHTML=''; emptyHint.style.display = 'block'; return; }
     const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    window.__sb.from('client_news').select('client_name,network,message,link,type,price,image,created_at')
+    window.__sb.from('client_news').select('id,client_name,network,message,link,type,price,image,created_at')
       .gte('created_at', oneWeekAgo)
       .order('created_at', { ascending: false }).limit(30)
       .then(function(res){
@@ -353,14 +432,16 @@
             imagesHtml +
             (n.price ? '<div class="fb-post-price">' + formatAr(n.price) + '</div>' : '') +
             (n.link ? '<a href="' + escapeHtml(n.link) + '" target="_blank" rel="noopener" class="fb-post-link">🔗 ' + escapeHtml(n.link) + '</a>' : '') +
-            '<div class="fb-post-actions"><span>👍 J\'aime</span><span>💬 Commenter</span>' +
+            '<div class="fb-post-actions"><span>👍 J\'aime</span>' +
+            '<span class="fb-comment-action" data-comment style="cursor:pointer;">💬 Commenter</span>' +
             // L'achat part de l'annonce elle-même : c'est là qu'on voit la
             // marchandise et son prix, pas dans un onglet qu'il faut aller
             // chercher ensuite en retapant tout de tête.
             (type === 'entana'
               ? '<span class="fb-buy-action" data-buy style="cursor:pointer; color:var(--cyan);">🛒 Acheter</span>'
               : '') +
-            '<span class="fb-share-action" data-share style="cursor:pointer;">↗️ Partager</span></div>';
+            '<span class="fb-share-action" data-share style="cursor:pointer;">↗️ Partager</span></div>' +
+            '<div class="fb-comments" data-comments style="display:none;"></div>';
           const shareEl = div.querySelector('[data-share]');
           if(shareEl){
             shareEl.addEventListener('click', function(){ sharePost(n); });
@@ -368,6 +449,15 @@
           const buyEl = div.querySelector('[data-buy]');
           if(buyEl){
             buyEl.addEventListener('click', function(){ buyFromPost(n); });
+          }
+          const commentEl = div.querySelector('[data-comment]');
+          const commentsBox = div.querySelector('[data-comments]');
+          if(commentEl && commentsBox){
+            commentEl.addEventListener('click', function(){
+              const ouvert = commentsBox.style.display === 'block';
+              commentsBox.style.display = ouvert ? 'none' : 'block';
+              if(!ouvert) openComments(n.id, commentsBox);
+            });
           }
           list.appendChild(div);
         });
