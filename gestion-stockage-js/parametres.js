@@ -501,7 +501,8 @@
       // que d'annoncer un argent qui n'est jamais arrivé.
       if(r.payment_method === 'wallet'){
         pushNotification('parrainage', '💰 ' + (r.name || r.email) + ' s\'est débloqué avec ' +
-          (Number(r.amount) || 0) + ' crédits de son portefeuille — ils sont passés au vôtre.');
+          ((Number(r.amount) || 0) * AR_PER_CREDIT).toLocaleString('fr-FR') +
+          ' Ar de son portefeuille — ils sont passés au vôtre.');
         return;
       }
       const recu = r.paid_amount
@@ -565,7 +566,7 @@
               'Message : ' + escapeAdminHtml(row.message || '—') + '<br>' +
               'Montant : <strong style="color:var(--text);">' +
                 (row.payment_method === 'wallet'
-                  ? (Number(row.amount) || 0) + ' crédits'
+                  ? ((Number(row.amount) || 0) * AR_PER_CREDIT).toLocaleString('fr-FR') + ' Ar (portefeuille)'
                   : (row.amount || 20000).toLocaleString('fr-FR') + ' Ar') + '</strong><br>' +
               'Payé par : <strong style="color:var(--text);">' + escapeAdminHtml(paymentMethodLabel(row.payment_method)) + '</strong><br>' +
               'Référence : ' + escapeAdminHtml(row.paypal_reference || '—') + '<br>' +

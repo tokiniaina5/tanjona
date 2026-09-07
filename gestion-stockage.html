@@ -70,7 +70,7 @@
       <div id="forgotBox" style="display:none; margin-top:0.9rem; border-top:1px solid var(--line); padding-top:0.9rem;">
         <p style="font-size:0.76rem; color:var(--muted); line-height:1.5; margin-bottom:0.9rem;">
           Votre accès est fermé (abonnement à régler ou compte suspendu). Le déblocage se règle
-          <strong style="color:var(--text);">avec les crédits de votre portefeuille</strong> : rien à
+          <strong style="color:var(--text);">avec le solde de votre portefeuille</strong> : rien à
           envoyer, rien à attendre — votre accès se rouvre tout de suite.
         </p>
         <div class="field">
@@ -91,11 +91,11 @@
             <span style="font-size:0.76rem; color:var(--muted);">Coût du déblocage</span>
             <strong id="unlockWalletCost" style="font-family:var(--font-mono); font-size:0.95rem; color:var(--text);">0</strong>
           </div>
-          <button type="button" class="btn btn-primary btn-sm" id="payFromWalletBtn" style="width:100%; margin-top:0.8rem;">💰 Payer avec mes crédits et débloquer</button>
+          <button type="button" class="btn btn-primary btn-sm" id="payFromWalletBtn" style="width:100%; margin-top:0.8rem;">💰 Payer avec mon solde et débloquer</button>
         </div>
 
         <p style="font-size:0.74rem; color:var(--muted); line-height:1.5;">
-          Vos crédits viennent du <strong style="color:var(--text);">parrainage</strong> : chaque personne
+          Votre solde vient du <strong style="color:var(--text);">parrainage</strong> : chaque personne
           qui ouvre l'application avec votre lien d'invitation vous en rapporte un.
         </p>
         <p id="forgotStatus" style="font-size:0.75rem; color:var(--muted); margin-top:0.7rem; line-height:1.5;"></p>
@@ -845,11 +845,11 @@
               <div class="plan-price" id="referralCount" style="font-size:1.4rem;">0</div>
             </div>
             <div>
-              <div class="plan-note">Crédits disponibles</div>
+              <div class="plan-note">Solde disponible</div>
               <div class="plan-price" id="referralBonusDays" style="font-size:1.4rem; color:var(--cyan);">0</div>
             </div>
             <div>
-              <div class="plan-note">Crédits déjà dépensés</div>
+              <div class="plan-note">Déjà dépensé</div>
               <div class="plan-price" id="referralNextIn" style="font-size:1.4rem;">0</div>
             </div>
           </div>
@@ -1091,7 +1091,7 @@
         <div class="section-head">
           <div>
             <h2>Portefeuille électronique</h2>
-            <p>Vos crédits de parrainage, à dépenser comme vous voulez.</p>
+            <p>Votre solde en ariary, à dépenser ou à retirer vers votre compte.</p>
           </div>
         </div>
 
@@ -1150,36 +1150,115 @@
                 <div class="plan-price" id="walletVerifiedEmail" style="font-size:1rem;">—</div>
               </div>
               <div>
-                <div class="plan-note">Crédits disponibles</div>
-                <div class="plan-price" id="walletBalance" style="font-size:1.4rem; color:var(--cyan);">0</div>
+                <div class="plan-note">Solde disponible</div>
+                <div class="plan-price" id="walletBalance" style="font-size:1.4rem; color:var(--cyan);">0 Ar</div>
+                <div class="plan-note" id="walletBalanceCredits" style="margin-top:0.2rem;">—</div>
               </div>
               <div>
                 <div class="plan-note">PayPal</div>
                 <div class="plan-price" id="walletPaypalStatus" style="font-size:1rem;">Non relié</div>
               </div>
             </div>
+
+            <!-- Le même solde, dans la devise du pays où l'argent doit arriver. -->
+            <div style="margin-top:1rem; border-top:1px solid var(--line); padding-top:0.9rem;">
+              <div class="plan-note" style="margin-bottom:0.5rem;">Voir dans une autre devise</div>
+              <div style="display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center;">
+                <select id="walletCurrency" style="width:auto; min-width:150px; padding:0.5rem 0.7rem; border-radius:8px; border:1px solid var(--line); background:var(--bg); color:var(--text); font-size:0.9rem;">
+                  <option value="MGA">Ariary (MGA)</option>
+                  <option value="EUR">Euro (EUR)</option>
+                  <option value="USD">Dollar (USD)</option>
+                  <option value="ZAR">Rand sud-africain (ZAR)</option>
+                  <option value="MUR">Roupie mauricienne (MUR)</option>
+                  <option value="GBP">Livre sterling (GBP)</option>
+                  <option value="CAD">Dollar canadien (CAD)</option>
+                </select>
+                <strong id="walletConverted" style="font-family:var(--font-mono); font-size:1.1rem; color:var(--text);">—</strong>
+              </div>
+              <p id="walletRateNote" style="font-size:0.74rem; color:var(--muted); margin-top:0.5rem; line-height:1.5;"></p>
+            </div>
+
             <button type="button" class="btn btn-sm" id="walletSignOutBtn" style="margin-top:1rem;">Se déconnecter du portefeuille</button>
           </div>
 
+          <!-- ---- RETRAIT VERS UN COMPTE EXTÉRIEUR ---- -->
+          <div class="panel" id="walletPayoutPanel">
+            <h3>💸 Retirer vers mon compte</h3>
+            <p style="font-size:0.82rem; color:var(--muted); line-height:1.6; margin-bottom:1rem;">
+              Indiquez où envoyer l'argent : votre compte PayPal, votre compte bancaire, ou votre
+              Mobile Money. La somme quitte votre solde dès la demande, et le propriétaire l'envoie
+              vers ce compte. Vous êtes prévenu tous les deux dès que c'est parti.
+            </p>
+            <div class="form-grid">
+              <div class="field" style="margin-bottom:0;">
+                <label for="payoutAmount">Montant à retirer (Ar)</label>
+                <input id="payoutAmount" type="number" min="0" step="1000" placeholder="20000">
+              </div>
+              <div class="field" style="margin-bottom:0;">
+                <label for="payoutMethod">Où l'envoyer</label>
+                <select id="payoutMethod">
+                  <option value="paypal">PayPal</option>
+                  <option value="card">Compte bancaire / carte</option>
+                  <option value="mobile">Mobile Money</option>
+                </select>
+              </div>
+              <div class="field" style="margin-bottom:0;">
+                <label for="payoutCurrency">Devise à l'arrivée</label>
+                <select id="payoutCurrency">
+                  <option value="MGA">Ariary (MGA)</option>
+                  <option value="EUR">Euro (EUR)</option>
+                  <option value="USD">Dollar (USD)</option>
+                  <option value="ZAR">Rand sud-africain (ZAR)</option>
+                  <option value="MUR">Roupie mauricienne (MUR)</option>
+                  <option value="GBP">Livre sterling (GBP)</option>
+                  <option value="CAD">Dollar canadien (CAD)</option>
+                </select>
+              </div>
+            </div>
+            <div class="field" style="margin-top:1rem;">
+              <label for="payoutDestination" id="payoutDestinationLabel">Votre email PayPal</label>
+              <input id="payoutDestination" type="text" placeholder="vous@paypal.com">
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" id="payoutRequestBtn" style="width:auto;">Demander le retrait</button>
+            <p id="payoutStatus" style="font-size:0.8rem; color:var(--cyan); margin-top:0.8rem; line-height:1.5;"></p>
+
+            <div style="margin-top:1.2rem; padding-top:1rem; border-top:1px solid var(--line);">
+              <h3 style="font-size:0.95rem;">Mes retraits</h3>
+              <div id="payoutList" style="margin-top:0.7rem;"></div>
+              <p class="empty-hint" id="payoutEmpty" style="display:none;">Aucun retrait demandé.</p>
+            </div>
+          </div>
+
+          <!-- ---- FILE DES RETRAITS À ENVOYER (propriétaire uniquement) ---- -->
+          <div class="panel" id="walletQueuePanel" style="display:none;">
+            <h3>📤 Retraits à envoyer</h3>
+            <p style="font-size:0.82rem; color:var(--muted); line-height:1.6; margin-bottom:1rem;">
+              Envoyez la somme vers le compte indiqué, puis marquez la demande comme envoyée : le
+              client en est prévenu aussitôt. Un refus lui rend son solde.
+            </p>
+            <div id="walletQueueList"></div>
+            <p class="empty-hint" id="walletQueueEmpty" style="display:none;">Aucun retrait en attente.</p>
+          </div>
+
           <div class="panel">
-            <h3>Dépenser vos crédits</h3>
+            <h3>Dépenser votre solde</h3>
             <div class="line-grid">
               <div class="plan-card" style="cursor:default;">
                 <div class="plan-name">Essai gratuit</div>
                 <div class="plan-price">+1 jour</div>
-                <div class="plan-note">10 crédits</div>
+                <div class="plan-note">10 000 Ar</div>
                 <button type="button" class="btn btn-sm" id="redeemTrialBtn" style="width:100%; margin-top:0.7rem;">Utiliser</button>
               </div>
               <div class="plan-card" style="cursor:default;">
                 <div class="plan-name">Booster</div>
                 <div class="plan-price">Live 24h</div>
-                <div class="plan-note">5 crédits</div>
+                <div class="plan-note">5 000 Ar</div>
                 <button type="button" class="btn btn-sm" id="redeemBoosterBtn" style="width:100%; margin-top:0.7rem;">Utiliser</button>
               </div>
               <div class="plan-card" style="cursor:default;">
                 <div class="plan-name">Abonnement</div>
                 <div class="plan-price">+7 jours</div>
-                <div class="plan-note">20 crédits</div>
+                <div class="plan-note">20 000 Ar</div>
                 <button type="button" class="btn btn-sm" id="redeemSubBtn" style="width:100%; margin-top:0.7rem;">Utiliser</button>
               </div>
             </div>

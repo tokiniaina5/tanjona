@@ -650,6 +650,304 @@ const STORAGE_ITEMS = 'stockmanager_items';
     renderWallet();
   });
 
+  // ---------------- PORTEFEUILLE EN ARIARY : SOLDE ET RETRAITS ----------------
+  // Le solde, le taux de change et les retraits sont l'affaire du serveur.
+  // Une page peut être modifiée par celui qui la regarde : un solde qu'elle
+  // calculerait elle-même serait un solde qu'elle pourrait s'inventer.
+  let walletState = null;
+  const PAYOUT_DESTINATION_LABELS = {
+    paypal: { label: 'Votre email PayPal', placeholder: 'vous@paypal.com' },
+    card: { label: 'Votre compte bancaire (IBAN ou banque / agence / compte / clé)', placeholder: '00008 03016 05001514368 86' },
+    mobile: { label: 'Votre numéro Mobile Money', placeholder: '034 00 000 00' }
+  };
+
+  function formatWalletAr(amount){
+    return (Number(amount) || 0).toLocaleString('fr-FR') + ' Ar';
+  }
+
+  function callWallet(payload){
+    if(!window.__sb || !window.__sb.functions || !window.__sb.functions.invoke){
+      return Promise.reject(new Error('Fonction « wallet » indisponible : déployez-la.'));
+    }
+    return window.__sb.functions.invoke('wallet', { body: payload }).then(function(res){
+      if(res && res.error){
+        // Le refus du serveur porte sa raison dans le corps de la réponse.
+        const ctx = res.error.context;
+        if(ctx && typeof ctx.json === 'function'){
+          return ctx.json().then(function(body){
+            throw new Error((body && body.error) || res.error.message || 'erreur serveur');
+          }, function(){ throw new Error(res.error.message || 'erreur serveur'); });
+        }
+        throw new Error(res.error.message || 'erreur serveur');
+      }
+      return (res && res.data) || {};
+    });
+  }
+
+  function refreshWalletFromServer(){
+    const balanceEl = document.getElementById('walletBalance');
+    if(!balanceEl) return;
+    const sub = ensureInstallDate();
+    callWallet({ action: 'state', installId: sub.id }).then(function(state){
+      walletState = state;
+      renderWalletBalance();
+      renderPayoutList();
+      renderPayoutQueue();
+      notifySettledPayouts(state.payouts);
+    }, function(err){
+      balanceEl.textContent = '—';
+      const note = document.getElementById('walletRateNote');
+      if(note) note.textContent = 'Solde indisponible : ' + err.message;
+    });
+  }
+
+  function renderWalletBalance(){
+    if(!walletState) return;
+    const balanceEl = document.getElementById('walletBalance');
+    if(balanceEl) balanceEl.textContent = formatWalletAr(walletState.balanceAr);
+    const creditsEl = document.getElementById('walletBalanceCredits');
+    if(creditsEl){
+      const par = walletState.arPerReferral || 0;
+      creditsEl.textContent = par
+        ? 'soit ' + Math.floor((walletState.balanceAr || 0) / par) + ' parrainage(s) à ' + formatWalletAr(par)
+        : '';
+    }
+    updateWalletConversion();
+  }
+
+  // Le même solde, dans la devise du pays où l'argent doit arriver.
+  function updateWalletConversion(){
+    const select = document.getElementById('walletCurrency');
+    const out = document.getElementById('walletConverted');
+    const note = document.getElementById('walletRateNote');
+    if(!select || !out || !walletState) return;
+    const currency = select.value;
+    if(currency === 'MGA'){
+      out.textContent = formatWalletAr(walletState.balanceAr);
+      if(note) note.textContent = '';
+      return;
+    }
+    out.textContent = '…';
+    callWallet({ action: 'rate', currency: currency }).then(function(res){
+      if(!res.rate){
+        out.textContent = '—';
+        if(note) note.textContent = 'Taux du jour indisponible pour ' + currency + '.';
+        return;
+      }
+      const converted = (walletState.balanceAr || 0) * res.rate;
+      out.textContent = converted.toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' ' + currency;
+      if(note){
+        note.textContent = 'Taux du jour : 1 ' + currency + ' ≈ ' +
+          (1 / res.rate).toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' Ar. ' +
+          'Il bouge d\'un jour à l\'autre — c\'est celui du moment du retrait qui compte.';
+      }
+    }, function(err){
+      out.textContent = '—';
+      if(note) note.textContent = err.message;
+    });
+  }
+
+  const walletCurrencySelect = document.getElementById('walletCurrency');
+  if(walletCurrencySelect) walletCurrencySelect.addEventListener('change', updateWalletConversion);
+
+  // Le champ « où envoyer » change de sens selon le moyen choisi : un email
+  // PayPal, un compte bancaire et un numéro Mobile Money ne se ressemblent pas.
+  const payoutMethodSelect = document.getElementById('payoutMethod');
+  function updatePayoutDestinationField(){
+    if(!payoutMethodSelect) return;
+    const conf = PAYOUT_DESTINATION_LABELS[payoutMethodSelect.value] || PAYOUT_DESTINATION_LABELS.paypal;
+    const label = document.getElementById('payoutDestinationLabel');
+    const input = document.getElementById('payoutDestination');
+    if(label) label.textContent = conf.label;
+    if(input) input.placeholder = conf.placeholder;
+  }
+  if(payoutMethodSelect){
+    payoutMethodSelect.addEventListener('change', updatePayoutDestinationField);
+    updatePayoutDestinationField();
+  }
+
+  function payoutStatusLabel(status){
+    if(status === 'sent') return '<span style="color:var(--cyan);">Envoyé</span>';
+    if(status === 'refused') return '<span style="color:var(--red, #e66);">Refusé — solde rendu</span>';
+    return '<span style="color:var(--amber);">En attente d\'envoi</span>';
+  }
+
+  function renderPayoutList(){
+    const list = document.getElementById('payoutList');
+    const empty = document.getElementById('payoutEmpty');
+    if(!list || !walletState) return;
+    const rows = walletState.payouts || [];
+    list.innerHTML = '';
+    if(empty) empty.style.display = rows.length ? 'none' : 'block';
+    rows.forEach(function(r){
+      const div = document.createElement('div');
+      div.style.cssText = 'border:1px solid var(--line); border-radius:8px; padding:0.7rem 0.9rem; margin-bottom:0.6rem; font-size:0.8rem; color:var(--muted); line-height:1.7;';
+      const arrivee = r.amount_out && r.currency && r.currency !== 'MGA'
+        ? ' → ' + Number(r.amount_out).toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' ' + r.currency
+        : '';
+      div.innerHTML =
+        '<strong style="color:var(--text);">' + formatWalletAr(r.amount_ar) + '</strong>' + escapeHtml(arrivee) +
+        ' · ' + escapeHtml(paymentMethodLabel(r.method === 'card' ? 'bank' : r.method)) + '<br>' +
+        'Vers : ' + escapeHtml(r.destination || '—') + '<br>' +
+        new Date(r.created_at).toLocaleString('fr-FR') + ' · ' + payoutStatusLabel(r.status) +
+        (r.note ? '<br>Note : ' + escapeHtml(r.note) : '');
+      list.appendChild(div);
+    });
+  }
+
+  const payoutRequestBtn = document.getElementById('payoutRequestBtn');
+  if(payoutRequestBtn){
+    payoutRequestBtn.addEventListener('click', function(){
+      const statusEl = document.getElementById('payoutStatus');
+      const amount = Number(document.getElementById('payoutAmount').value) || 0;
+      const method = document.getElementById('payoutMethod').value;
+      const currency = document.getElementById('payoutCurrency').value;
+      const destination = document.getElementById('payoutDestination').value.trim();
+      if(!destination){ statusEl.textContent = 'Indiquez où envoyer l\'argent.'; return; }
+      if(!(amount > 0)){ statusEl.textContent = 'Indiquez le montant à retirer.'; return; }
+
+      payoutRequestBtn.disabled = true;
+      statusEl.textContent = 'Envoi de la demande…';
+      callWallet({
+        action: 'payout', amountAr: amount, method: method, currency: currency,
+        destination: destination, name: (currentUser && currentUser.name) || ''
+      }).then(function(res){
+        payoutRequestBtn.disabled = false;
+        document.getElementById('payoutAmount').value = '';
+        const p = res.payout || {};
+        const arrivee = p.amount_out && p.currency && p.currency !== 'MGA'
+          ? ' (environ ' + Number(p.amount_out).toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' ' + p.currency + ')'
+          : '';
+        statusEl.textContent = 'Demande enregistrée : ' + formatWalletAr(amount) + arrivee +
+          '. Le propriétaire est prévenu ; vous le serez dès que l\'argent est parti.';
+        pushNotification('parrainage', 'Retrait demandé : ' + formatWalletAr(amount) + ' vers votre ' +
+          paymentMethodLabel(method === 'card' ? 'bank' : method) + '.');
+        refreshWalletFromServer();
+      }, function(err){
+        payoutRequestBtn.disabled = false;
+        statusEl.textContent = err.message;
+      });
+    });
+  }
+
+  // ---- Côté propriétaire : la file des retraits à envoyer ----
+  function renderPayoutQueue(){
+    const panel = document.getElementById('walletQueuePanel');
+    const list = document.getElementById('walletQueueList');
+    const empty = document.getElementById('walletQueueEmpty');
+    if(!panel || !list || !walletState) return;
+    if(!walletState.isOwner){ panel.style.display = 'none'; return; }
+    panel.style.display = 'block';
+
+    const rows = walletState.queue || [];
+    list.innerHTML = '';
+    if(empty) empty.style.display = rows.length ? 'none' : 'block';
+    notifyNewPayoutRequests(rows);
+    rows.forEach(function(r){
+      const card = document.createElement('div');
+      card.style.cssText = 'border:1px solid var(--line); border-radius:8px; padding:0.8rem 0.9rem; margin-bottom:0.7rem; background:var(--panel-2);';
+      const arrivee = r.amount_out && r.currency && r.currency !== 'MGA'
+        ? Number(r.amount_out).toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' ' + r.currency
+        : formatWalletAr(r.amount_ar);
+      card.innerHTML =
+        '<div style="font-size:0.86rem; color:var(--text);"><strong>' + escapeHtml(r.name || r.email) + '</strong></div>' +
+        '<div style="font-size:0.78rem; color:var(--muted); line-height:1.7; margin-top:0.3rem;">' +
+          'Email : ' + escapeHtml(r.email) + '<br>' +
+          'Retrait : <strong style="color:var(--text);">' + formatWalletAr(r.amount_ar) + '</strong>' +
+          ' → à envoyer : <strong style="color:var(--cyan);">' + escapeHtml(arrivee) + '</strong><br>' +
+          'Par : ' + escapeHtml(paymentMethodLabel(r.method === 'card' ? 'bank' : r.method)) + '<br>' +
+          'Vers : <strong style="color:var(--text);">' + escapeHtml(r.destination) + '</strong><br>' +
+          'Demandé le : ' + new Date(r.created_at).toLocaleString('fr-FR') +
+        '</div>';
+
+      const actions = document.createElement('div');
+      actions.style.cssText = 'display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.7rem;';
+
+      const sentBtn = document.createElement('button');
+      sentBtn.type = 'button';
+      sentBtn.className = 'btn btn-primary btn-sm';
+      sentBtn.style.width = 'auto';
+      sentBtn.textContent = '✅ Argent envoyé';
+      sentBtn.addEventListener('click', function(){
+        if(!confirm('Avez-vous bien envoyé ' + arrivee + ' vers ' + r.destination + ' ?')) return;
+        settlePayout(r.id, 'sent', '', sentBtn);
+      });
+
+      const refuseBtn = document.createElement('button');
+      refuseBtn.type = 'button';
+      refuseBtn.className = 'btn btn-red btn-sm';
+      refuseBtn.style.width = 'auto';
+      refuseBtn.textContent = '✖ Refuser';
+      refuseBtn.addEventListener('click', function(){
+        const note = prompt('Pourquoi refusez-vous ce retrait ? (le client le verra)');
+        if(note === null) return;
+        settlePayout(r.id, 'refused', note, refuseBtn);
+      });
+
+      actions.appendChild(sentBtn);
+      actions.appendChild(refuseBtn);
+      card.appendChild(actions);
+      list.appendChild(card);
+    });
+  }
+
+  function settlePayout(id, decision, note, btn){
+    btn.disabled = true;
+    callWallet({ action: 'settle', id: id, decision: decision, note: note }).then(function(){
+      pushNotification('parrainage', decision === 'sent'
+        ? 'Retrait marqué comme envoyé — le client en est prévenu.'
+        : 'Retrait refusé — son solde lui a été rendu.');
+      refreshWalletFromServer();
+    }, function(err){
+      btn.disabled = false;
+      alert(err.message);
+    });
+  }
+
+  // Une demande de retrait qui dort sans que le propriétaire le sache, c'est
+  // quelqu'un qui attend son argent pour rien.
+  const PAYOUT_QUEUE_SEEN_KEY = 'stockmanager_payout_queue_seen';
+  function notifyNewPayoutRequests(rows){
+    let seen = [];
+    try { seen = JSON.parse(localStorage.getItem(PAYOUT_QUEUE_SEEN_KEY)) || []; } catch(e){}
+    const fresh = (rows || []).filter(function(r){ return seen.indexOf(r.id) < 0; });
+    if(!fresh.length) return;
+    fresh.forEach(function(r){
+      pushNotification('parrainage', '💸 ' + (r.name || r.email) + ' demande un retrait de ' +
+        formatWalletAr(r.amount_ar) + ' vers son ' +
+        paymentMethodLabel(r.method === 'card' ? 'bank' : r.method) + '.');
+    });
+    try {
+      localStorage.setItem(PAYOUT_QUEUE_SEEN_KEY,
+        JSON.stringify(fresh.map(function(r){ return r.id; }).concat(seen).slice(0, 200)));
+    } catch(e){}
+  }
+
+  // Le client peut avoir fermé la page entre la demande et l'envoi : à la
+  // réouverture, on lui dit ce qui s'est passé pendant son absence.
+  const PAYOUT_SEEN_KEY = 'stockmanager_payouts_seen';
+  function notifySettledPayouts(rows){
+    let seen = [];
+    try { seen = JSON.parse(localStorage.getItem(PAYOUT_SEEN_KEY)) || []; } catch(e){}
+    const fresh = (rows || []).filter(function(r){
+      return r.status !== 'pending' && seen.indexOf(r.id) < 0;
+    });
+    if(!fresh.length) return;
+    // Au tout premier passage on ne remonte pas l'historique entier.
+    if(seen.length){
+      fresh.forEach(function(r){
+        pushNotification('parrainage', r.status === 'sent'
+          ? '💸 Votre retrait de ' + formatWalletAr(r.amount_ar) + ' a été envoyé vers ' + r.destination + '.'
+          : 'Votre retrait de ' + formatWalletAr(r.amount_ar) + ' a été refusé' +
+            (r.note ? ' : ' + r.note : '') + '. Le solde vous a été rendu.');
+      });
+    }
+    try {
+      localStorage.setItem(PAYOUT_SEEN_KEY,
+        JSON.stringify(fresh.map(function(r){ return r.id; }).concat(seen).slice(0, 200)));
+    } catch(e){}
+  }
+
   function walletSignOut(){
     walletSession = null;
     saveWalletSession(null);
@@ -671,7 +969,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
 
     const sub = ensureInstallDate();
     document.getElementById('walletVerifiedEmail').textContent = walletSession.user.email || '—';
-    document.getElementById('walletBalance').textContent = getAvailableCredits(sub);
+    // Le solde en ariary vient du serveur : c'est lui qui fait foi. En
+    // attendant sa réponse, l'estimation locale évite un écran vide.
+    refreshWalletFromServer();
 
     const paypal = loadWalletPaypal();
     const paypalStatusEl = document.getElementById('walletPaypalStatus');
@@ -1274,6 +1574,11 @@ const STORAGE_ITEMS = 'stockmanager_items';
   // à envoyer au dehors, plus de référence à recopier, plus d'attente qu'un
   // humain constate l'arrivée de l'argent.
   const UNLOCK_COST_CREDITS = 20;
+  // Valeur d'un parrainage en ariary. Le serveur a la sienne (AR_PER_REFERRAL) :
+  // c'est celle-là qui fait foi pour le portefeuille. Ici, elle ne sert qu'à
+  // écrire des sommes lisibles sur l'écran de connexion, où l'on ne peut pas
+  // interroger le serveur — la personne n'est pas encore connectée.
+  const AR_PER_CREDIT = 1000;
 
   // Les demandes d'avant ce changement portent encore leur ancien moyen de
   // paiement : le propriétaire doit pouvoir relire son historique.
@@ -1299,9 +1604,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
   function renderUnlockWallet(){
     const balanceEl = document.getElementById('unlockWalletBalance');
     const costEl = document.getElementById('unlockWalletCost');
-    if(costEl) costEl.textContent = UNLOCK_COST_CREDITS + ' crédits';
+    if(costEl) costEl.textContent = (UNLOCK_COST_CREDITS * AR_PER_CREDIT).toLocaleString('fr-FR') + ' Ar';
     if(!balanceEl) return;
-    balanceEl.textContent = getAvailableCredits(ensureInstallDate());
+    balanceEl.textContent = (getAvailableCredits(ensureInstallDate()) * AR_PER_CREDIT).toLocaleString('fr-FR') + ' Ar';
   }
 
   // Trace laissée au propriétaire : il voit qui s'est débloqué et avec combien,
@@ -1362,9 +1667,11 @@ const STORAGE_ITEMS = 'stockmanager_items';
       const available = getAvailableCredits(sub);
       if(available < UNLOCK_COST_CREDITS){
         const manque = UNLOCK_COST_CREDITS - available;
-        statusEl.textContent = 'Il vous manque ' + manque + ' crédit' + (manque > 1 ? 's' : '') +
-          ' : vous en avez ' + available + ' sur les ' + UNLOCK_COST_CREDITS + ' demandés. ' +
-          'Chaque personne qui ouvre l\'application avec votre lien d\'invitation vous en rapporte un.';
+        statusEl.textContent = 'Il vous manque ' + (manque * AR_PER_CREDIT).toLocaleString('fr-FR') +
+          ' Ar : vous avez ' + (available * AR_PER_CREDIT).toLocaleString('fr-FR') + ' Ar sur les ' +
+          (UNLOCK_COST_CREDITS * AR_PER_CREDIT).toLocaleString('fr-FR') + ' Ar demandés. ' +
+          'Chaque personne qui ouvre l\'application avec votre lien d\'invitation vous rapporte ' +
+          AR_PER_CREDIT.toLocaleString('fr-FR') + ' Ar.';
         renderUnlockWallet();
         return;
       }
@@ -1374,9 +1681,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
       renderUnlockWallet();
       recordWalletUnlock(name, email);
 
-      statusEl.textContent = UNLOCK_COST_CREDITS + ' crédits retirés de votre portefeuille ✓ Accès rétabli.';
-      pushNotification('parrainage', 'Déblocage payé avec ' + UNLOCK_COST_CREDITS +
-        ' crédits de votre portefeuille — accès rétabli.');
+      const paye = (UNLOCK_COST_CREDITS * AR_PER_CREDIT).toLocaleString('fr-FR') + ' Ar';
+      statusEl.textContent = paye + ' retirés de votre portefeuille ✓ Accès rétabli.';
+      pushNotification('parrainage', 'Déblocage payé avec ' + paye + ' de votre portefeuille — accès rétabli.');
       loginFromProfile(profile);
     });
   }

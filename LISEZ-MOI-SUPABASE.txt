@@ -106,6 +106,53 @@ RÉGLAGE À FAIRE UNE FOIS dans Supabase :
   sur l'ancien code d'accès local pour ne pas bloquer l'utilisateur.
 
 
+PORTEFEUILLE EN ARIARY — RETRAIT VERS UN COMPTE
+------------------------------
+Le portefeuille tient un solde EN ARIARY, consultable dans la devise
+de son choix au taux du jour, et retirable vers un compte extérieur :
+PayPal, compte bancaire, ou Mobile Money.
+
+À exécuter dans Supabase (SQL Editor) : le fichier
+"supabase-portefeuille.sql". Puis, dans le Terminal :
+  supabase functions deploy wallet
+(AVEC vérification du jeton, donc SANS --no-verify-jwt : c'est ce qui
+garantit que celui qui retire est bien celui qu'il prétend être.)
+
+Réglages facultatifs (Terminal) :
+  supabase secrets set AR_PER_REFERRAL=1000   (ce que rapporte un parrainage)
+  supabase secrets set MIN_PAYOUT_AR=10000    (retrait minimum)
+  supabase secrets set RATE_EUR_MGA=5000      (votre taux, sinon celui du jour)
+
+LE SOLDE N'EST PAS STOCKÉ : il se déduit de ce qui est déjà en base —
+parrainages gagnés, moins les retraits, moins les déblocages payés.
+Un solde écrit quelque part se désynchronise, et un solde calculé par
+la page serait un solde que la page peut s'inventer. Ici, il n'y a
+aucun chiffre à falsifier.
+
+Comment ça se passe :
+1. Le client ouvre Portefeuille, voit son solde en ariary et peut le
+   lire en euros, dollars, rands, roupies…
+2. Il demande un retrait : montant, moyen (PayPal / banque / Mobile
+   Money), où l'envoyer, et la devise voulue à l'arrivée. La somme
+   quitte son solde AUSSITÔT — sinon la même somme pourrait être
+   demandée deux fois.
+3. Vous êtes prévenu, et la demande apparaît dans votre propre
+   Portefeuille, sous "Retraits à envoyer", avec la somme déjà
+   convertie et le compte de destination.
+4. VOUS ENVOYEZ L'ARGENT depuis votre PayPal, votre banque ou votre
+   Mobile Money, puis vous cliquez sur "Argent envoyé".
+5. Les deux côtés sont prévenus : vous tout de suite, le client à sa
+   prochaine ouverture même s'il avait fermé la page. Un refus lui
+   rend son solde et lui dit pourquoi.
+
+L'ÉTAPE 4 EST MANUELLE, et ne peut pas ne pas l'être aujourd'hui :
+envoyer de l'argent automatiquement vers le compte de quelqu'un
+demande un compte marchand habilité aux versements (PayPal Payouts,
+Stripe Connect…), avec vérification d'identité et contrat. Aucun
+Mobile Money malgache n'ouvre son API pour cela non plus. Tout le
+reste — solde, conversion, demande, notifications — est automatique.
+
+
 DÉBLOCAGE PAYÉ AVEC LE PORTEFEUILLE
 ------------------------------
 Deux dépannages SÉPARÉS sur l'écran de connexion « Bon retour » :
