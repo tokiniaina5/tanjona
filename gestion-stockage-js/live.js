@@ -846,7 +846,10 @@
     if(action.email === me.email) return; // tsy miantso ny tenany
     linkActionDone = true;
 
-    const nav = document.querySelector('.nav-item[data-section="live"]');
+    // Les deux ont maintenant leur propre page : un lien d'appel n'a plus de
+    // raison d'ouvrir le Live, ni l'inverse.
+    const nav = document.querySelector('.nav-item[data-section="' +
+      (action.kind === 'call' ? 'appels' : 'live') + '"]');
     if(nav && !nav.classList.contains('active')) nav.click();
 
     if(action.kind === 'call'){
@@ -920,8 +923,9 @@
       refreshVideoCallTabLink();
       const me = myIdentity();
       if(me.isAdmin){
-        const navLive = document.querySelector('.nav-item[data-section="live"]');
-        if(navLive) navLive.click();
+        // L'onglet « Appel vidéo » mène aux appels, pas au Live.
+        const navAppels = document.querySelector('.nav-item[data-section="appels"]');
+        if(navAppels) navAppels.click();
         return;
       }
       const presence = (typeof presenceState === 'object')

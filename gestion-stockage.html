@@ -409,7 +409,8 @@
         <div class="nav-item" data-section="factures">🧾 Factures</div>
         <div class="nav-item" data-section="inviter">✉️ Inviter des amis</div>
         <div class="nav-item" data-section="contact">📞 Nous contacter</div>
-        <div class="nav-item" data-section="live">🎥 Live &amp; Appels</div>
+        <div class="nav-item" data-section="live">🔴 Live direct</div>
+        <div class="nav-item" data-section="appels">📞 Antso mivantana</div>
         <div class="nav-item" data-section="wallet">💰 Portefeuille</div>
         <div class="nav-item" data-section="connexions" id="navParametres">⚙️ Paramètres</div>
         <!-- Espace du propriétaire : masqué pour tous les clients -->
@@ -1011,12 +1012,15 @@
         </div>
       </section>
 
-      <!-- ---- LIVE & APPELS ---- -->
+      <!-- ---- LIVE DIRECT ---- -->
+      <!-- Séparé des appels : montrer sa marchandise à tout le monde et
+           appeler une personne sont deux gestes différents, qui n'arrivent
+           pas au même moment. -->
       <section class="section" id="section-live">
         <div class="section-head">
           <div>
-            <h2>Live &amp; Appels</h2>
-            <p>Antso feo/video mivantana amin'ny mpanjifa, ary "Live direct" hampisehoana entana amin'ny olona maro miaraka.</p>
+            <h2>🔴 Live direct</h2>
+            <p>Mampiseho ny entanao mivantana amin'ny olona rehetra mijery ankehitriny.</p>
           </div>
         </div>
 
@@ -1024,11 +1028,7 @@
           <div id="liveActiveList"></div>
         </div>
 
-        <div class="community-grid">
-          <div class="fb-main">
             <div class="panel" style="margin-top:0;">
-              <h3>🔴 Live direct</h3>
-              <p class="community-sub">Manombohy live mivantana hampisehoana ny entanao amin'ny olona rehetra mijery ankehitriny.</p>
 
               <div class="notif-optin" id="notifOptIn" style="display:none;">
                 <span id="notifOptInText">🔔 Avelao ny fampandrenesana mba hahafantaranao ny Live na dia tsy eo amin'ity pejy ity aza ianao.</span>
@@ -1075,12 +1075,19 @@
                 </div>
               </div>
             </div>
-          </div>
+      </section>
 
-          <div class="fb-sidebar">
+      <!-- ---- ANTSO MIVANTANA ---- -->
+      <section class="section" id="section-appels">
+        <div class="section-head">
+          <div>
+            <h2>📞 Antso mivantana</h2>
+            <p>Antso feo na video amin'ny mpanjifa iray, ao anaty appli.</p>
+          </div>
+        </div>
+
             <div class="panel" style="margin-top:0;">
-              <h3>📞 Antso mivantana</h3>
-              <p class="community-sub">Ireo olona miditra ao amin'ny app ankehitriny. Tsindrio hiantso azy.</p>
+              <p class="community-sub" style="margin-top:0;">Ireo olona miditra ao amin'ny app ankehitriny. Tsindrio hiantso azy.</p>
               <div id="onlineUsersList"></div>
               <p class="empty-hint" id="onlineUsersEmpty" style="display:none;">Tsy misy olona miditra ankehitriny.</p>
 
@@ -1095,8 +1102,6 @@
                 </div>
               </div>
             </div>
-          </div>
-        </div>
       </section>
 
       <!-- ---- PORTEFEUILLE ---- -->
