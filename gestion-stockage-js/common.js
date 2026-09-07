@@ -2357,11 +2357,11 @@ const STORAGE_ITEMS = 'stockmanager_items';
       if(nav.dataset.section === 'admin'){
         if(typeof renderAdminSpace === 'function') renderAdminSpace();
       }
-      if(nav.dataset.section === 'live'){
-        renderOnlineClientsForCall();
-        renderLiveList();
-        if(typeof renderNotifOptIn === 'function') renderNotifOptIn();
-      }
+      // Chaque page rafraîchit ce qui lui appartient, depuis qu'elles sont
+      // séparées : la liste des lives d'un côté, celle des personnes à
+      // appeler de l'autre.
+      if(nav.dataset.section === 'live') renderLiveList();
+      if(nav.dataset.section === 'appels') renderOnlineClientsForCall();
       // ferme le menu mobile après avoir choisi une section
       if(navList && navList.classList.contains('open')){
         navList.classList.remove('open');

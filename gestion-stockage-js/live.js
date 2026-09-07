@@ -24,36 +24,6 @@
     try { Notification.requestPermission(); } catch(e){}
   }
 
-  // Bandeau ao amin'ny "Live & Appels" : hita raha mbola tsy nomena alalana, mba
-  // tsy hangina mangingina ny fampandrenesana.
-  function renderNotifOptIn(){
-    const box = document.getElementById('notifOptIn');
-    if(!box) return;
-    const text = document.getElementById('notifOptInText');
-    const btn = document.getElementById('notifOptInBtn');
-    if(!('Notification' in window)){ box.style.display = 'none'; return; }
-    if(Notification.permission === 'granted'){ box.style.display = 'none'; return; }
-    box.style.display = 'flex';
-    if(Notification.permission === 'denied'){
-      text.textContent = '🔕 Voasakana ny fampandrenesana amin\'ity navigateur ity. Sokafy ny paramètres ny site mba hamela azy — raha tsy izany dia ao anaty appli ihany no hahitanao ny Live.';
-      btn.style.display = 'none';
-      return;
-    }
-    text.textContent = '🔔 Avelao ny fampandrenesana mba hahafantaranao ny Live na dia tsy eo amin\'ity pejy ity aza ianao.';
-    btn.style.display = 'inline-flex';
-  }
-
-  const notifOptInBtn = document.getElementById('notifOptInBtn');
-  if(notifOptInBtn){
-    notifOptInBtn.addEventListener('click', function(){
-      if(!('Notification' in window)) return;
-      try {
-        const res = Notification.requestPermission(function(){ renderNotifOptIn(); });
-        if(res && typeof res.then === 'function') res.then(renderNotifOptIn, renderNotifOptIn);
-      } catch(e){ renderNotifOptIn(); }
-    });
-  }
-
   function askNotificationPermissionOnFirstClick(){
     if(!('Notification' in window) || Notification.permission !== 'default') return;
     document.addEventListener('click', function once(){
@@ -864,17 +834,36 @@
       return;
     }
 
-    // Live : andrasana kely ny presence mba hahafantarana raha mbola mandeha.
-    setTimeout(function(){
-      const p = presenceState[action.email];
-      if(p && p.live){ joinLive(action.email, p.name || action.name); return; }
-      showLinkActionPrompt(
-        '🔴 Live an\'i ' + action.name,
-        'Tsy mandeha intsony ny Live, na mbola tsy tafiditra ny fifandraisana. ' +
-        'Andramo indray rehefa mahita ny bokotra « Mijery » ianao.',
-        null, null
-      );
-    }, 2500);
+    // Live : on ne renonce pas. Ou bien le direct est déjà là, ou bien on
+    // attend qu'il commence — et l'entrée se fait toute seule à ce moment.
+    waitAndJoinLive(action.email, action.name);
+  }
+
+  // Surveille la présence jusqu'à ce que l'hôte passe en direct, puis fait
+  // entrer. Le message reste affiché entre-temps, pour que la personne sache
+  // qu'elle attend et non qu'elle s'est trompée.
+  let liveWaitTimer = null;
+  function waitAndJoinLive(email, name){
+    const already = presenceState[email];
+    if(already && already.live){ joinLive(email, already.name || name); return; }
+
+    const box = showLinkActionPrompt(
+      '🔴 Live an\'i ' + name,
+      'Miandry ny fanombohan\'ny Live… Tafiditra ho azy ianao raha vao manomboka izy. ' +
+      'Azonao atao ny mijanona eto.',
+      null, null
+    );
+
+    if(liveWaitTimer) clearInterval(liveWaitTimer);
+    liveWaitTimer = setInterval(function(){
+      const p = presenceState[email];
+      if(p && p.live){
+        clearInterval(liveWaitTimer);
+        liveWaitTimer = null;
+        if(box) box.remove();
+        joinLive(email, p.name || name);
+      }
+    }, 1500);
   }
 
   // Bandeau kely eo ambonin'ny "Live & Appels" ho an'ny rohy nozaraina.
@@ -895,6 +884,7 @@
       box.appendChild(btn);
     }
     host.insertBefore(box, host.firstChild);
+    return box;
   }
 
   // Rohy antso : ny mpanjifa manokatra azy dia tonga dia manomboka antso aminao.
@@ -970,6 +960,25 @@
     });
   }
 
+  // Les mêmes gestes, mais disponibles AVANT le direct : on prévient ses
+  // clients d'abord, on ouvre la caméra ensuite.
+  const shareLiveBeforeBtn = document.getElementById('shareLiveBeforeBtn');
+  if(shareLiveBeforeBtn){
+    shareLiveBeforeBtn.addEventListener('click', function(){
+      announceLiveOnNetworks(myIdentity().name);
+    });
+  }
+
+  const copyLiveLinkBeforeBtn = document.getElementById('copyLiveLinkBeforeBtn');
+  if(copyLiveLinkBeforeBtn){
+    copyLiveLinkBeforeBtn.addEventListener('click', function(){
+      if(typeof copyToClipboardSilently === 'function') copyToClipboardSilently(liveJoinLink());
+      const original = copyLiveLinkBeforeBtn.textContent;
+      copyLiveLinkBeforeBtn.textContent = 'Voadika ✓';
+      setTimeout(function(){ copyLiveLinkBeforeBtn.textContent = original; }, 1800);
+    });
+  }
+
   const copyLiveLinkBtn = document.getElementById('copyLiveLinkBtn');
   if(copyLiveLinkBtn){
     copyLiveLinkBtn.addEventListener('click', function(){
@@ -1007,6 +1016,9 @@
     if(presenceChannel){ try{ presenceChannel.unsubscribe(); }catch(e){} presenceChannel = null; }
     if(callSignalChannel){ try{ callSignalChannel.unsubscribe(); }catch(e){} callSignalChannel = null; }
     if(liveSignalChannel){ try{ liveSignalChannel.unsubscribe(); }catch(e){} liveSignalChannel = null; }
+    // Une attente de Live qui survit à la déconnexion continuerait d'interroger
+    // une présence qui n'est plus tenue à jour.
+    if(liveWaitTimer){ clearInterval(liveWaitTimer); liveWaitTimer = null; }
     presenceState = {};
   }
 
