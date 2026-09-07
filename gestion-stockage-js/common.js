@@ -858,11 +858,22 @@ const STORAGE_ITEMS = 'stockmanager_items';
       name: meta.name || local.name || email.split('@')[0],
       email: email,
       phone: meta.phone || local.phone || '',
-      logo: local.logo || null,
+      // Le logo suit le compte : sans la copie du serveur, une facture éditée
+      // depuis un autre téléphone ou après un vidage du navigateur sortait
+      // sans logo, alors qu'il s'affichait toujours dans le profil d'origine.
+      logo: local.logo || meta.logo || null,
       company: meta.company || local.company || '',
       nif: meta.nif || local.nif || '',
       stat: meta.stat || local.stat || ''
     };
+  }
+
+  // Le logo voyage dans les informations du compte : quelques kilo-octets une
+  // fois réduit. Au-delà, on s'abstient plutôt que de faire échouer tout
+  // l'enregistrement du profil — la copie locale, elle, reste en place.
+  const LOGO_MAX_SERVER_CHARS = 200000;
+  function logoForServer(logo){
+    return (logo && logo.length <= LOGO_MAX_SERVER_CHARS) ? logo : null;
   }
 
   // Ouvre l'application pour un utilisateur authentifié par Supabase.
@@ -914,6 +925,14 @@ const STORAGE_ITEMS = 'stockmanager_items';
   function openAppForAuthUserNow(user, opts){
     currentUser = profileFromAuthUser(user);
     saveLastEmail(currentUser.email);
+    // Compte créé avant que le logo ne suive le compte : cet appareil est le
+    // seul à l'avoir, on en dépose la copie pour les suivants.
+    const serverLogo = ((user && user.user_metadata) || {}).logo;
+    if(currentUser.logo && !serverLogo){
+      const auth = sbAuth();
+      const copy = logoForServer(currentUser.logo);
+      if(auth && copy) auth.updateUser({ data: { logo: copy } }).then(function(){}, function(){});
+    }
     if(isOwnerEmail(currentUser.email)) markOwnerDevice();
     // cache local (le logo reste sur l'appareil, il n'est pas envoyé au serveur)
     upsertProfile(currentUser.name, {
@@ -1722,7 +1741,8 @@ const STORAGE_ITEMS = 'stockmanager_items';
       }
 
       cacheLocalProfile('');
-      const meta = { name: name, phone: phone, company: company, nif: nif, stat: stat };
+      const meta = { name: name, phone: phone, company: company, nif: nif, stat: stat,
+        logo: logoForServer(logo) };
       auth.signUp({ email: email, password: password, options: { data: meta } }).then(function(res){
         if(res && res.error){
           // l'email existe peut-être déjà : on tente une connexion normale
@@ -1802,7 +1822,8 @@ const STORAGE_ITEMS = 'stockmanager_items';
       status.textContent = 'Profil enregistré.';
 
       if(auth){
-        const update = { data: { name: name, phone: phone, company: company, nif: nif, stat: stat } };
+        const update = { data: { name: name, phone: phone, company: company, nif: nif, stat: stat,
+          logo: logoForServer(logo) } };
         if(newPassword){
           if(newPassword.length < 6){
             status.textContent = 'Profil enregistré, mais le mot de passe doit faire 6 caractères minimum.';
