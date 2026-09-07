@@ -1025,6 +1025,47 @@ const STORAGE_ITEMS = 'stockmanager_items';
     });
   }
 
+  // La fonction « owner-reset » fabrique le lien avec la clé de service et le
+  // poste par Resend. En cas de pépin on retombe sur l'envoi de Supabase :
+  // mieux vaut un message qui arrive peut-être qu'aucun message du tout.
+  function sendOwnerResetLink(email, status){
+    const auth = sbAuth();
+    function fallback(reason){
+      if(status) status.textContent = 'Envoi direct indisponible (' + reason + ') — nouvelle tentative…';
+      auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + window.location.pathname })
+        .then(function(res){
+          if(!status) return;
+          status.textContent = (res && res.error)
+            ? authErrorText(res.error)
+            : 'Lien envoyé à ' + email + '. Regardez aussi dans les indésirables.';
+        }, function(){
+          if(status) status.textContent = 'Envoi impossible : vérifiez votre réseau.';
+        });
+    }
+
+    if(!window.__sb || !window.__sb.functions || !window.__sb.functions.invoke){
+      fallback('fonction non déployée');
+      return;
+    }
+    window.__sb.functions.invoke('owner-reset', { body: { email: email } })
+      .then(function(res){
+        const data = (res && res.data) || {};
+        if(res && res.error && !data.sent){ fallback((res.error.message || 'erreur serveur')); return; }
+        if(data.sent === false){
+          // Le détail vient du service d'envoi : c'est lui qui dit pourquoi il
+          // a refusé (adresse d'expéditeur non vérifiée, quota…). Le cacher
+          // laisserait le propriétaire devant un « ça ne marche pas » muet.
+          if(status) status.textContent = (data.error || 'Envoi refusé par le serveur.') +
+            (data.detail ? ' — ' + String(data.detail).slice(0, 300) : '');
+          return;
+        }
+        if(status) status.textContent = 'Lien envoyé à ' + email + '. Ouvrez le plus récent de vos emails : ' +
+          'il ne vaut qu\'une heure et ne sert qu\'une fois. Regardez aussi dans les indésirables.';
+      }, function(err){
+        fallback((err && err.message) || 'réseau');
+      });
+  }
+
   const sendResetLinkBtn = document.getElementById('sendResetLinkBtn');
   if(sendResetLinkBtn){
     sendResetLinkBtn.addEventListener('click', function(){
@@ -1034,6 +1075,15 @@ const STORAGE_ITEMS = 'stockmanager_items';
       if(!email){ if(status) status.textContent = 'Indiquez d\'abord votre email.'; return; }
       if(!auth){ if(status) status.textContent = 'Serveur injoignable : réessayez une fois connecté à Internet.'; return; }
       if(status) status.textContent = 'Envoi du lien…';
+
+      // Le propriétaire passe par son propre service d'envoi : l'envoi intégré
+      // de Supabase est trop limité pour être sûr, et lui, il ne peut pas se
+      // permettre d'attendre un message qui n'arrive pas.
+      if(isOwnerEmail(email)){
+        sendOwnerResetLink(email, status);
+        return;
+      }
+
       auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + window.location.pathname })
         .then(function(res){
           if(res && res.error){ if(status) status.textContent = authErrorText(res.error); return; }
