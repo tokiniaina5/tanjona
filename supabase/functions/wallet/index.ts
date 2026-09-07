@@ -41,6 +41,14 @@ const METHODS = new Set(["paypal", "card", "mobile", "cash", "wallet", "merchant
 // seule la destination change, la somme sort du solde de la même façon.
 const PURCHASE_METHODS = new Set(["merchant"]);
 
+// Ce qui s'achète à l'intérieur de l'application, et à quel prix. Les prix
+// vivent ici et nulle part ailleurs : dans la page, chacun pourrait décider
+// de payer son abonnement un ariary.
+const SITE_ITEMS: Record<string, { label: string; priceAr: number; days?: number }> = {
+  sub_month: { label: "Abonnement mensuel", priceAr: 15000, days: 30 },
+  sub_year: { label: "Abonnement annuel", priceAr: 150000, days: 365 },
+};
+
 function norm(value: unknown): string {
   return String(value ?? "").trim().toLowerCase();
 }
@@ -151,7 +159,38 @@ Deno.serve(async (req: Request) => {
 
     return json({
       balanceAr: balance, arPerReferral: AR_PER_REFERRAL, minPayoutAr: MIN_PAYOUT_AR,
-      payouts: mine ?? [], queue, isOwner,
+      payouts: mine ?? [], queue, isOwner, items: SITE_ITEMS,
+    });
+  }
+
+  // ---- Acheter à l'intérieur de l'application ----
+  // Rien ne part au dehors : la somme quitte le solde et le droit est acquis
+  // sur-le-champ. La demande est enregistrée comme déjà réglée, pour que le
+  // solde en tienne compte et que l'achat laisse une trace.
+  if (action === "spend") {
+    const itemId = String(body.item ?? "");
+    const item = SITE_ITEMS[itemId];
+    if (!item) return json({ error: "article inconnu" }, 400);
+
+    const balance = await balanceFor(admin, email);
+    if (item.priceAr > balance) {
+      return json({
+        error: `Votre solde est de ${balance.toLocaleString("fr-FR")} Ar, il en faut ` +
+          `${item.priceAr.toLocaleString("fr-FR")} Ar.`,
+      }, 400);
+    }
+
+    const { data, error } = await admin.from("wallet_payouts").insert({
+      email: email, name: String(body.name ?? "").trim(),
+      amount_ar: item.priceAr, method: "site", kind: "insite",
+      destination: item.label, currency: "MGA", amount_out: item.priceAr, rate: 1,
+      status: "sent", settled_at: new Date().toISOString(),
+    }).select("id").single();
+
+    if (error) return json({ error: error.message }, 500);
+    return json({
+      bought: itemId, label: item.label, priceAr: item.priceAr, days: item.days ?? 0,
+      balanceAr: balance - item.priceAr, receipt: data.id,
     });
   }
 

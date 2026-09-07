@@ -548,6 +548,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
     document.getElementById('paywallCodeInput').value = '';
     document.getElementById('codeStatus').textContent = '';
     document.getElementById('confirmPaymentBtn').disabled = true;
+    if(typeof refreshPaywallWallet === 'function') refreshPaywallWallet();
   }
 
   function updateTrialBanner(){
@@ -945,6 +946,74 @@ const STORAGE_ITEMS = 'stockmanager_items';
     }, function(err){
       btn.disabled = false;
       alert(err.message);
+    });
+  }
+
+  // ---- Acheter dans l'application avec le portefeuille ----
+  // L'abonnement se règle depuis le solde : rien ne sort, rien à demander à
+  // personne, et le droit est acquis sur-le-champ. C'est le serveur qui tient
+  // les prix : dans la page, chacun pourrait s'abonner pour un ariary.
+  function refreshPaywallWallet(){
+    const soldeEl = document.getElementById('paywallWalletBalance');
+    if(!soldeEl) return;
+    soldeEl.textContent = '…';
+    const sub = ensureInstallDate();
+    callWallet({ action: 'state', installId: sub.id }).then(function(state){
+      walletState = state;
+      soldeEl.textContent = 'Solde : ' + formatWalletAr(state.balanceAr);
+    }, function(err){
+      soldeEl.textContent = '—';
+      const st = document.getElementById('paywallWalletStatus');
+      if(st) st.textContent = 'Solde indisponible : ' + err.message;
+    });
+  }
+
+  // Le même achat, depuis la page Portefeuille. Une seule voie côté serveur :
+  // deux endroits pour la déclencher, un seul endroit qui décide du prix.
+  function buySiteItem(item, statusEl, btn){
+    if(btn) btn.disabled = true;
+    if(statusEl) statusEl.textContent = 'Paiement en cours…';
+    return callWallet({ action: 'spend', item: item, name: (currentUser && currentUser.name) || '' })
+      .then(function(res){
+        if(btn) btn.disabled = false;
+        const sub = ensureInstallDate();
+        const bankedDays = sub.subscriptionCreditDays || 0;
+        const days = (res.days || 0) + bankedDays;
+        if(days > 0){
+          sub.plan = item === 'sub_year' ? 'annuel' : 'mensuel';
+          sub.paidUntil = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+          sub.subscriptionCreditDays = 0;
+          saveSubscription(sub);
+          updateTrialBanner();
+        }
+        if(statusEl){
+          statusEl.textContent = res.label + ' réglé : ' + formatWalletAr(res.priceAr) +
+            ' retirés de votre portefeuille' + (days > 0 ? ', actif pour ' + days + ' jours.' : '.');
+        }
+        pushNotification('parrainage', res.label + ' payé avec votre portefeuille (' +
+          formatWalletAr(res.priceAr) + ').');
+        return res;
+      }, function(err){
+        if(btn) btn.disabled = false;
+        if(statusEl) statusEl.textContent = err.message;
+        throw err;
+      });
+  }
+
+  document.querySelectorAll('.buy-site-item').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      const statusEl = document.getElementById('walletBuyStatus');
+      buySiteItem(btn.getAttribute('data-item'), statusEl, btn)
+        .then(function(){ refreshWalletFromServer(); }, function(){});
+    });
+  });
+
+  const paywallWalletBtn = document.getElementById('paywallWalletBtn');
+  if(paywallWalletBtn){
+    paywallWalletBtn.addEventListener('click', function(){
+      const statusEl = document.getElementById('paywallWalletStatus');
+      const item = selectedPlan === 'annuel' ? 'sub_year' : 'sub_month';
+      buySiteItem(item, statusEl, paywallWalletBtn).then(function(){ openApp(); }, function(){});
     });
   }
 

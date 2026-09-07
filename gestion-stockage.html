@@ -273,8 +273,22 @@
       </div>
     </div>
 
+    <!-- Payer avec le portefeuille : rien ne sort de l'application, l'abonnement
+         est actif dans la seconde. C'est la voie la plus courte, donc la première. -->
+    <div style="border:1px solid var(--cyan); border-radius:10px; padding:0.9rem 1rem; margin-bottom:1rem; background:var(--panel-2);">
+      <div style="display:flex; justify-content:space-between; align-items:baseline; gap:0.8rem;">
+        <strong style="font-size:0.9rem;">💰 Payer avec mon portefeuille</strong>
+        <span id="paywallWalletBalance" style="font-family:var(--font-mono); font-size:0.9rem; color:var(--cyan);">—</span>
+      </div>
+      <p style="font-size:0.78rem; color:var(--muted); line-height:1.6; margin:0.5rem 0 0.8rem;">
+        Immédiat, sans code à demander : la somme quitte votre solde et votre abonnement démarre.
+      </p>
+      <button type="button" class="btn btn-primary btn-sm" id="paywallWalletBtn" style="width:100%;">Payer avec mon solde</button>
+      <p id="paywallWalletStatus" style="font-size:0.78rem; color:var(--cyan); margin-top:0.6rem; line-height:1.5;"></p>
+    </div>
+
     <div class="paywall-pay">
-      <strong>Comment payer :</strong><br>
+      <strong>Ou payer directement :</strong><br>
       Envoyez le montant de la formule choisie via MVola, Orange Money ou Airtel Money au
       <strong data-owner="phone"></strong>, au nom de <strong data-owner="name"></strong>.
       Ensuite, cliquez sur « Signaler mon paiement » : un mail sera envoyé au vendeur avec votre nom et vos
@@ -1178,6 +1192,30 @@
             </div>
 
             <button type="button" class="btn btn-sm" id="walletSignOutBtn" style="margin-top:1rem;">Se déconnecter du portefeuille</button>
+          </div>
+
+          <!-- ---- ACHETER DANS L'APPLICATION ---- -->
+          <div class="panel" id="walletBuyPanel">
+            <h3>🛒 Acheter dans l'application</h3>
+            <p style="font-size:0.82rem; color:var(--muted); line-height:1.6; margin-bottom:1rem;">
+              Réglé depuis votre solde, sans code à demander ni argent à envoyer : le droit est
+              acquis dans la seconde.
+            </p>
+            <div class="line-grid">
+              <div class="plan-card" style="cursor:default;">
+                <div class="plan-name">Abonnement mensuel</div>
+                <div class="plan-price">15 000 Ar</div>
+                <div class="plan-note">30 jours</div>
+                <button type="button" class="btn btn-sm buy-site-item" data-item="sub_month" style="width:100%; margin-top:0.7rem;">Payer</button>
+              </div>
+              <div class="plan-card" style="cursor:default;">
+                <div class="plan-name">Abonnement annuel</div>
+                <div class="plan-price">150 000 Ar</div>
+                <div class="plan-note">365 jours — 2 mois offerts</div>
+                <button type="button" class="btn btn-sm buy-site-item" data-item="sub_year" style="width:100%; margin-top:0.7rem;">Payer</button>
+              </div>
+            </div>
+            <p id="walletBuyStatus" style="font-size:0.8rem; color:var(--cyan); margin-top:0.9rem; line-height:1.5;"></p>
           </div>
 
           <!-- ---- RETRAIT VERS UN COMPTE EXTÉRIEUR ---- -->

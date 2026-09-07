@@ -145,6 +145,21 @@ Comment ça se passe :
    prochaine ouverture même s'il avait fermé la page. Un refus lui
    rend son solde et lui dit pourquoi.
 
+ACHETER DANS L'APPLICATION AVEC LE PORTEFEUILLE
+L'abonnement se règle depuis le solde, sans code à demander ni
+argent à envoyer : la somme quitte le portefeuille et le droit est
+acquis dans la seconde. Deux endroits pour le faire :
+- l'écran "Abonnement requis", bouton "Payer avec mon solde" ;
+- Portefeuille > "Acheter dans l'application".
+
+LES PRIX SONT DANS LA FONCTION, PAS DANS LA PAGE : le navigateur
+n'envoie que le nom de l'article. Sinon chacun pourrait s'abonner
+pour un ariary. Pour les changer, modifiez SITE_ITEMS dans
+"supabase/functions/wallet/index.ts" et redéployez.
+
+Les jours mis de côté par le parrainage ("jours bancarisés")
+s'ajoutent à l'achat, comme avec un paiement par code.
+
 PAR QUEL CANAL L'ARGENT SORT
 Six choix, et la liste n'a pas besoin d'être fermée :
   PayPal · compte bancaire / carte · Mobile Money
