@@ -233,6 +233,32 @@
   }
   .nav-item:hover{ color: var(--text); background: var(--panel-2); }
   .nav-item.active{ color: var(--cyan); background: rgba(79,216,224,0.08); border-color: rgba(79,216,224,0.3); }
+
+  /* Les notifications sont une action, pas une section : elles n'ouvrent
+     aucune page et ne portent donc pas la classe .nav-item, a laquelle est
+     accrochee toute la navigation. Elles en reprennent seulement l'aspect. */
+  .nav-action{
+    display:flex; align-items:center; justify-content:space-between; gap:0.5rem;
+    width:100%;
+    padding: 0.6rem 0.8rem;
+    margin-bottom: 0.3rem;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: none;
+    color: var(--muted);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .nav-action:hover{ color: var(--text); background: var(--panel-2); }
+  .nav-action #notifBadge{
+    display:none;
+    background:#ff6b6b; color:#fff;
+    font-size:0.62rem; font-weight:700;
+    border-radius:999px;
+    min-width:16px; height:16px; line-height:16px;
+    text-align:center; padding:0 4px;
+  }
   .nav-spacer{ flex-grow:1; }
 
   /* ---------- hamburger (foana, tsy mobile ihany) ---------- */
@@ -268,6 +294,20 @@
     touch-action: none;
     box-shadow: 0 4px 14px rgba(0,0,0,0.35);
   }
+  /* La cloche etant rangee dans le menu, son compteur remonte sur le bouton :
+     sinon un message non lu n'annoncerait plus rien tant que le menu reste
+     ferme — c'est-a-dire presque toujours. */
+  .menu-badge{
+    display:none;
+    position:absolute; top:-5px; right:-5px;
+    background:#ff6b6b; color:#fff;
+    font-size:0.62rem; font-weight:700;
+    border-radius:999px;
+    min-width:16px; height:16px; line-height:16px;
+    text-align:center; padding:0 3px;
+  }
+  .menu-toggle{ position:relative; }
+
   .menu-toggle.floating.dragging{
     cursor: grabbing;
     opacity: 0.85;
