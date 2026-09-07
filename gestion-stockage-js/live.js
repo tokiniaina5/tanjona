@@ -430,52 +430,60 @@
   }
   function sendLiveSignal(payload){ if(liveSignalChannel) liveSignalChannel.send({ type: 'broadcast', event: 'signal', payload: payload }); }
 
+  // La liste de ce qui se diffuse en ce moment. Elle reste affichée même
+  // quand elle est vide : sans cela, personne ne sait où les directs
+  // apparaîtront, ni qu'il y a un endroit pour les regarder.
   function renderLiveList(){
     const panel = document.getElementById('liveNoticePanel');
     const box = document.getElementById('liveActiveList');
+    const empty = document.getElementById('liveActiveEmpty');
     if(!panel || !box) return;
+
+    // On ne se propose pas à soi-même le direct qu'on est en train de faire.
     const excluded = myLive ? myLive.broadcaster : null;
-    const lives = Object.keys(presenceState).filter(function(email){ return presenceState[email].live && email !== excluded; });
+    const lives = Object.keys(presenceState).filter(function(email){
+      return presenceState[email].live && email !== excluded;
+    });
+
     box.innerHTML = '';
-    panel.style.display = lives.length ? 'block' : 'none';
+    if(empty) empty.style.display = lives.length ? 'none' : 'block';
+
     lives.forEach(function(email){
       const p = presenceState[email];
-      const row = document.createElement('div');
-      row.style.cssText = 'display:flex; align-items:center; justify-content:space-between; padding:0.4rem 0;';
-      const alreadyWatching = watchingLive && watchingLive.broadcasterEmail === email;
-      row.innerHTML = '<span>🔴 <strong>' + escapeHtml(p.name || email) + '</strong> dia mandeha Live ankehitriny</span>' +
-        (alreadyWatching ? '<span class="btn btn-sm" style="opacity:0.6;">Mijery izao</span>' :
-          '<button type="button" class="btn btn-red btn-sm join-live-btn" data-email="' + escapeHtml(email) + '" data-name="' + escapeHtml(p.name || email) + '">Mijery</button>');
-      box.appendChild(row);
-    });
-    box.querySelectorAll('.join-live-btn').forEach(function(btn){
-      btn.addEventListener('click', function(){ joinLive(btn.getAttribute('data-email'), btn.getAttribute('data-name')); });
-    });
-    renderLiveJoinChoices(lives);
-  }
-
-  // Ny bokotra "Mijery" dia apetraka koa EO AMBONIN'NY "Manomboka Live", satria
-  // io no voalohany hitan'ny olona : maro no nanindry "Manomboka Live" nefa ny
-  // tiany dia mijery — ka ny kamerany manokana no nisokatra.
-  function renderLiveJoinChoices(lives){
-    const box = document.getElementById('liveJoinChoices');
-    if(!box) return;
-    box.innerHTML = '';
-    if(!lives || !lives.length || myLive || watchingLive){
-      box.style.display = 'none';
-      return;
-    }
-    box.style.display = 'block';
-    lives.forEach(function(email){
-      const p = presenceState[email] || {};
       const name = p.name || email;
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'btn btn-red';
-      btn.style.cssText = 'width:auto; margin-bottom:0.6rem;';
-      btn.textContent = '👁️ Mijery ny live an\'i ' + name;
-      btn.addEventListener('click', function(){ joinLive(email, name); });
-      box.appendChild(btn);
+      const alreadyWatching = watchingLive && watchingLive.broadcasterEmail === email;
+
+      const card = document.createElement('div');
+      card.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:0.8rem; ' +
+        'flex-wrap:wrap; border:1px solid var(--line); border-radius:10px; padding:0.7rem 0.9rem; ' +
+        'margin-bottom:0.6rem; background:var(--panel-2);';
+
+      const infos = document.createElement('div');
+      infos.innerHTML =
+        '<div style="font-size:0.9rem; color:var(--text);">' +
+          '<span class="live-onair-badge" style="position:static; display:inline-block; margin-right:0.5rem;">🔴 MIVANTANA</span>' +
+          '<strong>' + escapeHtml(name) + '</strong>' +
+        '</div>' +
+        (p.isAdmin ? '<div style="font-size:0.72rem; color:var(--cyan); margin-top:0.25rem;">Tompon\'ny appli</div>' : '');
+      card.appendChild(infos);
+
+      if(alreadyWatching){
+        const en = document.createElement('span');
+        en.className = 'btn btn-sm';
+        en.style.cssText = 'width:auto; opacity:0.6;';
+        en.textContent = 'Mijery izao';
+        card.appendChild(en);
+      } else {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn btn-red btn-sm';
+        btn.style.width = 'auto';
+        btn.textContent = '👁️ Mijery';
+        btn.addEventListener('click', function(){ joinLive(email, name); });
+        card.appendChild(btn);
+      }
+
+      box.appendChild(card);
     });
   }
 

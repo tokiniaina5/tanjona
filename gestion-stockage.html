@@ -1024,8 +1024,13 @@
           </div>
         </div>
 
-        <div class="panel" id="liveNoticePanel" style="display:none; border-left:4px solid var(--red); margin-bottom:1rem;">
-          <div id="liveActiveList"></div>
+        <!-- Ce que les autres diffusent, en premier : c'est ce qu'on vient
+             voir le plus souvent. Le bouton pour diffuser soi-même vient après. -->
+        <div class="panel" id="liveNoticePanel" style="border-left:4px solid var(--red); margin-bottom:1rem;">
+          <h3>👁️ Live mandeha izao</h3>
+          <p class="community-sub" style="margin-top:0.2rem;">Tsindrio « Mijery » amin'izay tianao harahina.</p>
+          <div id="liveActiveList" style="margin-top:0.8rem;"></div>
+          <p class="empty-hint" id="liveActiveEmpty" style="display:none;">Tsy misy live mandeha ankehitriny. Hiseho eto ho azy izy raha vao misy manomboka.</p>
         </div>
 
             <div class="panel" style="margin-top:0;">
