@@ -1058,10 +1058,13 @@ const STORAGE_ITEMS = 'stockmanager_items';
     // problème, qui envoyait chercher la panne au mauvais endroit.
     function detailFromError(error){
       const ctx = error && error.context;
-      if(!ctx || typeof ctx.json !== 'function') return Promise.resolve('');
+      if(!ctx || typeof ctx.json !== 'function') return Promise.resolve(null);
       return ctx.json().then(function(body){
-        return [body && body.error, body && body.detail].filter(Boolean).join(' — ');
-      }, function(){ return ''; });
+        const text = [body && body.error, body && body.detail].filter(Boolean).join(' — ');
+        // 429 : ce n'est pas un refus, c'est « attendez un peu ». Le dire tel
+        // quel, sans en faire une panne.
+        return text ? { text: text, wait: ctx.status === 429 } : null;
+      }, function(){ return null; });
     }
 
     window.__sb.functions.invoke('owner-reset', { body: { email: email } })
@@ -1070,7 +1073,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
         if(res && res.error && !data.sent){
           detailFromError(res.error).then(function(detail){
             if(detail){
-              if(status) status.textContent = 'Envoi refusé : ' + String(detail).slice(0, 300);
+              if(status) status.textContent = detail.wait
+                ? detail.text
+                : 'Envoi refusé : ' + String(detail.text).slice(0, 300);
               return;
             }
             fallback(res.error.message || 'erreur serveur');

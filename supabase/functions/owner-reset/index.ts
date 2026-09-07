@@ -31,10 +31,36 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-// Deux minutes entre deux envois : de quoi réessayer si le premier message
-// tarde, sans laisser personne remplir la boîte du propriétaire.
-const SEND_COOLDOWN_MS = 2 * 60 * 1000;
-let lastSent = 0;
+// Le propriétaire peut redemander un lien autant de fois qu'il en a besoin :
+// il oublie le précédent, le message se perd, il change d'appareil. Un seul
+// envoi autorisé le laisserait dehors à la première hésitation.
+//
+// Ce qui reste tenu, c'est la cadence : vingt secondes entre deux envois, et
+// dix par heure. De quoi réessayer plusieurs fois de suite sans permettre à
+// quelqu'un d'autre — la fonction est ouverte, elle doit l'être — de remplir
+// sa boîte.
+//
+// Ce compte vit en mémoire : un redémarrage de la fonction le remet à zéro.
+// C'est un garde-fou contre l'acharnement, pas un verrou.
+const MIN_GAP_MS = 20 * 1000;
+const MAX_PER_HOUR = 10;
+const HOUR_MS = 60 * 60 * 1000;
+let sendTimes: number[] = [];
+
+function sendAllowed(): { ok: true } | { ok: false; message: string } {
+  const now = Date.now();
+  sendTimes = sendTimes.filter((t) => now - t < HOUR_MS);
+  const last = sendTimes.length ? sendTimes[sendTimes.length - 1] : 0;
+  if (last && now - last < MIN_GAP_MS) {
+    const wait = Math.ceil((MIN_GAP_MS - (now - last)) / 1000);
+    return { ok: false, message: `Un lien vient de partir. Regardez vos emails, puis réessayez dans ${wait} secondes.` };
+  }
+  if (sendTimes.length >= MAX_PER_HOUR) {
+    const wait = Math.ceil((HOUR_MS - (now - sendTimes[0])) / 60000);
+    return { ok: false, message: `Beaucoup de liens ont déjà été envoyés cette heure-ci. Réessayez dans ${wait} minutes, ou ouvrez le dernier email reçu.` };
+  }
+  return { ok: true };
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
@@ -67,9 +93,8 @@ Deno.serve(async (req: Request) => {
   // pour deviner quelle adresse est celle du propriétaire.
   if (asked !== ownerEmail) return json({ sent: true });
 
-  if (Date.now() - lastSent < SEND_COOLDOWN_MS) {
-    return json({ sent: false, error: "Un lien vient d'être envoyé. Regardez vos emails, puis réessayez dans deux minutes." }, 429);
-  }
+  const allowed = sendAllowed();
+  if (allowed.ok === false) return json({ sent: false, error: allowed.message }, 429);
 
   const admin = createClient(supabaseUrl, serviceKey);
   const { data, error } = await admin.auth.admin.generateLink({
@@ -118,6 +143,6 @@ Deno.serve(async (req: Request) => {
     return json({ sent: false, error: "envoi refusé", detail }, 502);
   }
 
-  lastSent = Date.now();
-  return json({ sent: true });
+  sendTimes.push(Date.now());
+  return json({ sent: true, remaining: MAX_PER_HOUR - sendTimes.length });
 });
