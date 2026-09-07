@@ -44,9 +44,12 @@ const PURCHASE_METHODS = new Set(["merchant"]);
 // Ce qui s'achète à l'intérieur de l'application, et à quel prix. Les prix
 // vivent ici et nulle part ailleurs : dans la page, chacun pourrait décider
 // de payer son abonnement un ariary.
-const SITE_ITEMS: Record<string, { label: string; priceAr: number; days?: number }> = {
+const SITE_ITEMS: Record<string, { label: string; priceAr: number; days?: number; grant?: string }> = {
   sub_month: { label: "Abonnement mensuel", priceAr: 15000, days: 30 },
   sub_year: { label: "Abonnement annuel", priceAr: 150000, days: 365 },
+  trial_day: { label: "Un jour d'essai en plus", priceAr: 10000, grant: "trial_day" },
+  booster: { label: "Booster — direct Facebook 24 h", priceAr: 5000, grant: "booster" },
+  sub_days: { label: "7 jours mis de côté pour l'abonnement", priceAr: 20000, grant: "sub_days" },
 };
 
 function norm(value: unknown): string {
@@ -190,6 +193,7 @@ Deno.serve(async (req: Request) => {
     if (error) return json({ error: error.message }, 500);
     return json({
       bought: itemId, label: item.label, priceAr: item.priceAr, days: item.days ?? 0,
+      grant: item.grant ?? null,
       balanceAr: balance - item.priceAr, receipt: data.id,
     });
   }

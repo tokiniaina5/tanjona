@@ -1194,30 +1194,6 @@
             <button type="button" class="btn btn-sm" id="walletSignOutBtn" style="margin-top:1rem;">Se déconnecter du portefeuille</button>
           </div>
 
-          <!-- ---- ACHETER DANS L'APPLICATION ---- -->
-          <div class="panel" id="walletBuyPanel">
-            <h3>🛒 Acheter dans l'application</h3>
-            <p style="font-size:0.82rem; color:var(--muted); line-height:1.6; margin-bottom:1rem;">
-              Réglé depuis votre solde, sans code à demander ni argent à envoyer : le droit est
-              acquis dans la seconde.
-            </p>
-            <div class="line-grid">
-              <div class="plan-card" style="cursor:default;">
-                <div class="plan-name">Abonnement mensuel</div>
-                <div class="plan-price">15 000 Ar</div>
-                <div class="plan-note">30 jours</div>
-                <button type="button" class="btn btn-sm buy-site-item" data-item="sub_month" style="width:100%; margin-top:0.7rem;">Payer</button>
-              </div>
-              <div class="plan-card" style="cursor:default;">
-                <div class="plan-name">Abonnement annuel</div>
-                <div class="plan-price">150 000 Ar</div>
-                <div class="plan-note">365 jours — 2 mois offerts</div>
-                <button type="button" class="btn btn-sm buy-site-item" data-item="sub_year" style="width:100%; margin-top:0.7rem;">Payer</button>
-              </div>
-            </div>
-            <p id="walletBuyStatus" style="font-size:0.8rem; color:var(--cyan); margin-top:0.9rem; line-height:1.5;"></p>
-          </div>
-
           <!-- ---- RETRAIT VERS UN COMPTE EXTÉRIEUR ---- -->
           <div class="panel" id="walletPayoutPanel">
             <h3>💸 Retirer vers mon compte</h3>
@@ -1296,29 +1272,64 @@
             <p class="empty-hint" id="walletQueueEmpty" style="display:none;">Aucun retrait en attente.</p>
           </div>
 
-          <div class="panel">
-            <h3>Dépenser votre solde</h3>
-            <div class="line-grid">
+          <!-- ---- DÉPENSER LE SOLDE ---- -->
+          <!-- Trois usages, dans l'ordre où ils se posent : l'abonnement qui
+               fait tourner l'application, ce qui s'achète dedans, et ce qui
+               s'achète dehors. -->
+          <div class="panel" id="walletBuyPanel">
+            <h3>💳 Dépenser votre solde</h3>
+            <p style="font-size:0.82rem; color:var(--muted); line-height:1.6; margin-bottom:1.2rem;">
+              Réglé depuis votre portefeuille, sans code à demander ni argent à envoyer.
+            </p>
+
+            <h3 style="font-size:0.95rem;">Abonnement</h3>
+            <div class="line-grid" style="margin-top:0.7rem;">
+              <div class="plan-card" style="cursor:default;">
+                <div class="plan-name">Mensuel</div>
+                <div class="plan-price">15 000 Ar</div>
+                <div class="plan-note">30 jours</div>
+                <button type="button" class="btn btn-sm buy-site-item" data-item="sub_month" style="width:100%; margin-top:0.7rem;">Payer</button>
+              </div>
+              <div class="plan-card" style="cursor:default;">
+                <div class="plan-name">Annuel</div>
+                <div class="plan-price">150 000 Ar</div>
+                <div class="plan-note">365 jours — 2 mois offerts</div>
+                <button type="button" class="btn btn-sm buy-site-item" data-item="sub_year" style="width:100%; margin-top:0.7rem;">Payer</button>
+              </div>
+              <div class="plan-card" style="cursor:default;">
+                <div class="plan-name">Jours de réserve</div>
+                <div class="plan-price">+7 jours</div>
+                <div class="plan-note">20 000 Ar — ajoutés au prochain paiement</div>
+                <button type="button" class="btn btn-sm buy-site-item" data-item="sub_days" style="width:100%; margin-top:0.7rem;">Payer</button>
+              </div>
+            </div>
+
+            <h3 style="font-size:0.95rem; margin-top:1.4rem;">Achat dans le site</h3>
+            <div class="line-grid" style="margin-top:0.7rem;">
               <div class="plan-card" style="cursor:default;">
                 <div class="plan-name">Essai gratuit</div>
                 <div class="plan-price">+1 jour</div>
                 <div class="plan-note">10 000 Ar</div>
-                <button type="button" class="btn btn-sm" id="redeemTrialBtn" style="width:100%; margin-top:0.7rem;">Utiliser</button>
+                <button type="button" class="btn btn-sm buy-site-item" data-item="trial_day" style="width:100%; margin-top:0.7rem;">Payer</button>
               </div>
               <div class="plan-card" style="cursor:default;">
                 <div class="plan-name">Booster</div>
-                <div class="plan-price">Live 24h</div>
+                <div class="plan-price">Live 24 h</div>
                 <div class="plan-note">5 000 Ar</div>
-                <button type="button" class="btn btn-sm" id="redeemBoosterBtn" style="width:100%; margin-top:0.7rem;">Utiliser</button>
-              </div>
-              <div class="plan-card" style="cursor:default;">
-                <div class="plan-name">Abonnement</div>
-                <div class="plan-price">+7 jours</div>
-                <div class="plan-note">20 000 Ar</div>
-                <button type="button" class="btn btn-sm" id="redeemSubBtn" style="width:100%; margin-top:0.7rem;">Utiliser</button>
+                <button type="button" class="btn btn-sm buy-site-item" data-item="booster" style="width:100%; margin-top:0.7rem;">Payer</button>
               </div>
             </div>
-            <p id="walletRedeemStatus" style="font-size:0.8rem; color:var(--muted); margin-top:0.9rem;"></p>
+
+            <h3 style="font-size:0.95rem; margin-top:1.4rem;">Achat hors du site</h3>
+            <p style="font-size:0.82rem; color:var(--muted); line-height:1.6; margin:0.5rem 0 0.8rem;">
+              Payer un marchand à l'étranger, ou faire passer la somme par un autre portefeuille
+              international — Wise, Payoneer, Skrill, PayPal, un point cash. Vous donnez le lien et
+              la marche à suivre ; le propriétaire exécute et vous êtes prévenus tous les deux.
+            </p>
+            <button type="button" class="btn btn-sm" id="goToPayoutBtn" style="width:auto;">Choisir où envoyer l'argent</button>
+
+            <p id="walletBuyStatus" style="font-size:0.8rem; color:var(--cyan); margin-top:1rem; line-height:1.5;"></p>
+            <p id="walletRedeemStatus" style="display:none;"></p>
           </div>
 
           <div class="panel" id="walletBoosterPanel" style="display:none;">

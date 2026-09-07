@@ -256,9 +256,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
   }
 
   // Mandeha mitady any amin'ny Supabase hoe firy ny olona nampiasa ny lien
-  // navoakan'ilay appareil ity. 1 parrainage = 1 crédit ao amin'ny portefeuille ;
-  // ny mpampiasa mihitsy no misafidy hoe ampiasaina amin'inona ireo crédit ireo
-  // (jereo redeemCredits plus bas), tsy mifanova ho andro automatique intsony.
+  // navoakan'ilay appareil ity. Ny fonction « wallet » no mamadika izany ho
+  // ariary ao amin'ny portefeuille : eto dia isa fotsiny, aseho eo amin'ny
+  // pejy parrainage.
   function syncReferralBonus(callback){
     const sub = ensureInstallDate();
     if(!window.__sb || !sub.id){ if(callback) callback(sub); return; }
@@ -276,47 +276,11 @@ const STORAGE_ITEMS = 'stockmanager_items';
     return Math.max(0, (sub.referralCount || 0) - (sub.creditsSpent || 0));
   }
 
-  // ---------------- PORTEFEUILLE : dépense des crédits ----------------
-  const WALLET_COST_TRIAL = 10;    // 10 crédits = +1 jour d'essai gratuit
-  const WALLET_COST_BOOSTER = 5;   // 5 crédits = Live Facebook débloqué 24h
-  const WALLET_COST_SUB = 20;      // 20 crédits = +7 jours bancarisés pour l'abonnement
+  // ---------------- CE QUE DONNE UN ACHAT ----------------
+  // Les prix, eux, sont dans la fonction « wallet » : ici on ne garde que la
+  // durée de ce qui est acheté, pour l'appliquer une fois le paiement passé.
   const WALLET_SUB_DAYS = 7;
   const WALLET_BOOSTER_HOURS = 24;
-
-  function redeemCredits(type){
-    const sub = ensureInstallDate();
-    const available = getAvailableCredits(sub);
-    const statusEl = document.getElementById('walletRedeemStatus');
-    let cost = 0;
-
-    if(type === 'trial'){
-      cost = WALLET_COST_TRIAL;
-      if(available < cost){ if(statusEl) statusEl.textContent = 'Crédits insuffisants (' + cost + ' requis).'; return; }
-      sub.bonusDays = (sub.bonusDays || 0) + 1;
-      sub.creditsSpent = (sub.creditsSpent || 0) + cost;
-      saveSubscription(sub);
-      updateTrialBanner();
-      pushNotification('parrainage', '1 jour d\'essai gratuit ajouté grâce à vos crédits de parrainage.');
-      if(statusEl) statusEl.textContent = '+1 jour ajouté à votre essai gratuit ✓';
-    } else if(type === 'booster'){
-      cost = WALLET_COST_BOOSTER;
-      if(available < cost){ if(statusEl) statusEl.textContent = 'Crédits insuffisants (' + cost + ' requis).'; return; }
-      sub.boosterActiveUntil = new Date(Date.now() + WALLET_BOOSTER_HOURS * 60 * 60 * 1000).toISOString();
-      sub.creditsSpent = (sub.creditsSpent || 0) + cost;
-      saveSubscription(sub);
-      pushNotification('parrainage', 'Booster activé : vous pouvez passer en direct sur Facebook pendant 24h.');
-      if(statusEl) statusEl.textContent = 'Booster activé pour 24h ✓';
-    } else if(type === 'sub'){
-      cost = WALLET_COST_SUB;
-      if(available < cost){ if(statusEl) statusEl.textContent = 'Crédits insuffisants (' + cost + ' requis).'; return; }
-      sub.subscriptionCreditDays = (sub.subscriptionCreditDays || 0) + WALLET_SUB_DAYS;
-      sub.creditsSpent = (sub.creditsSpent || 0) + cost;
-      saveSubscription(sub);
-      pushNotification('parrainage', WALLET_SUB_DAYS + ' jours bancarisés pour votre prochain abonnement.');
-      if(statusEl) statusEl.textContent = '+' + WALLET_SUB_DAYS + ' jours bancarisés pour l\'abonnement ✓';
-    }
-    renderWallet();
-  }
 
   function loadItems(){
     try { return JSON.parse(localStorage.getItem(STORAGE_ITEMS)) || []; }
@@ -976,19 +940,33 @@ const STORAGE_ITEMS = 'stockmanager_items';
     return callWallet({ action: 'spend', item: item, name: (currentUser && currentUser.name) || '' })
       .then(function(res){
         if(btn) btn.disabled = false;
+        // Le serveur dit ce qui a été acheté ; c'est ici qu'on l'applique.
         const sub = ensureInstallDate();
-        const bankedDays = sub.subscriptionCreditDays || 0;
-        const days = (res.days || 0) + bankedDays;
-        if(days > 0){
+        let detail = '';
+        if(res.days > 0){
+          // Les jours mis de côté par le parrainage s'ajoutent à l'abonnement.
+          const bankedDays = sub.subscriptionCreditDays || 0;
+          const days = res.days + bankedDays;
           sub.plan = item === 'sub_year' ? 'annuel' : 'mensuel';
           sub.paidUntil = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
           sub.subscriptionCreditDays = 0;
-          saveSubscription(sub);
-          updateTrialBanner();
+          detail = ', actif pour ' + days + ' jours';
+        } else if(res.grant === 'trial_day'){
+          sub.bonusDays = (sub.bonusDays || 0) + 1;
+          detail = ' : un jour de plus sur votre essai';
+        } else if(res.grant === 'booster'){
+          sub.boosterActiveUntil = new Date(Date.now() + WALLET_BOOSTER_HOURS * 60 * 60 * 1000).toISOString();
+          detail = ' : direct Facebook ouvert pour ' + WALLET_BOOSTER_HOURS + ' h';
+        } else if(res.grant === 'sub_days'){
+          sub.subscriptionCreditDays = (sub.subscriptionCreditDays || 0) + WALLET_SUB_DAYS;
+          detail = ' : ' + WALLET_SUB_DAYS + ' jours mis de côté pour votre prochain abonnement';
         }
+        saveSubscription(sub);
+        updateTrialBanner();
+        if(typeof renderWallet === 'function') renderWallet();
         if(statusEl){
           statusEl.textContent = res.label + ' réglé : ' + formatWalletAr(res.priceAr) +
-            ' retirés de votre portefeuille' + (days > 0 ? ', actif pour ' + days + ' jours.' : '.');
+            ' retirés de votre portefeuille' + detail + '.';
         }
         pushNotification('parrainage', res.label + ' payé avec votre portefeuille (' +
           formatWalletAr(res.priceAr) + ').');
@@ -1007,6 +985,23 @@ const STORAGE_ITEMS = 'stockmanager_items';
         .then(function(){ refreshWalletFromServer(); }, function(){});
     });
   });
+
+  // « Acheter hors du site » mène au formulaire de retrait, déjà réglé sur le
+  // paiement d'un marchand : c'est la même sortie d'argent, pas une autre.
+  const goToPayoutBtn = document.getElementById('goToPayoutBtn');
+  if(goToPayoutBtn){
+    goToPayoutBtn.addEventListener('click', function(){
+      const method = document.getElementById('payoutMethod');
+      if(method){
+        method.value = 'merchant';
+        method.dispatchEvent(new Event('change'));
+      }
+      const panel = document.getElementById('walletPayoutPanel');
+      if(panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const dest = document.getElementById('payoutDestination');
+      if(dest) dest.focus();
+    });
+  }
 
   const paywallWalletBtn = document.getElementById('paywallWalletBtn');
   if(paywallWalletBtn){
@@ -2218,9 +2213,6 @@ const STORAGE_ITEMS = 'stockmanager_items';
   initWalletAuth();
 
   document.getElementById('walletSignOutBtn').addEventListener('click', walletSignOut);
-  document.getElementById('redeemTrialBtn').addEventListener('click', function(){ redeemCredits('trial'); });
-  document.getElementById('redeemBoosterBtn').addEventListener('click', function(){ redeemCredits('booster'); });
-  document.getElementById('redeemSubBtn').addEventListener('click', function(){ redeemCredits('sub'); });
   document.getElementById('goLiveFacebookBtn').addEventListener('click', function(){
     window.open('https://www.facebook.com/live/producer', '_blank');
   });
