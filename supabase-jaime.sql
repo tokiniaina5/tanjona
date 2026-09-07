@@ -9,7 +9,7 @@
 -- « j'aime ». C'est la base qui l'impose, pas la page — un compteur gonflé
 -- par des clics répétés ne veut plus rien dire.
 create table if not exists public.client_news_likes (
-  news_id uuid not null references public.client_news(id) on delete cascade,
+  news_id bigint not null references public.client_news(id) on delete cascade,
   author_email text not null,
   author_name text,
   created_at timestamptz default now(),

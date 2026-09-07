@@ -233,6 +233,9 @@ create policy "anyone can add marketplace links"
 
 
 -- Fil d'actualité de l'accueil (annonces publiées par les clients)
+-- ATTENTION : la table en service a été créée avec un id BIGINT, pas un uuid.
+-- Ce bloc ne s'exécute plus (if not exists) et ne décrit donc pas ce qui
+-- tourne. Toute table qui référence client_news(id) doit déclarer BIGINT.
 create table if not exists public.client_news (
   id uuid primary key default gen_random_uuid(),
   client_name text,

@@ -7,7 +7,7 @@
 
 create table if not exists public.client_news_comments (
   id uuid primary key default gen_random_uuid(),
-  news_id uuid not null references public.client_news(id) on delete cascade,
+  news_id bigint not null references public.client_news(id) on delete cascade,
   author_name text,
   author_email text,
   message text not null,
