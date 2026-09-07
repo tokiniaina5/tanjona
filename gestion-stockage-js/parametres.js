@@ -308,6 +308,20 @@
     if(nom || select) (existant ? qty : nom || qty).focus();
   }
 
+  // Une table absente et un réseau coupé ne se réparent pas de la même façon :
+  // dire lequel des deux, c'est éviter de chercher au mauvais endroit.
+  function feedErrorText(error){
+    const brut = (error && (error.message || error.hint)) || '';
+    if(/does not exist|schema cache|PGRST205|404/i.test(brut)){
+      return 'Tsy mbola voaforona ao amin\'ny serveur ny latabatra ilaina. ' +
+        'Alefaso ao amin\'ny Supabase > SQL Editor ny « supabase-commentaires.sql » sy « supabase-jaime.sql ».';
+    }
+    if(/JWT|not authenticated|permission|policy|row-level/i.test(brut)){
+      return 'Midira aloha vao afaka mandefa.';
+    }
+    return brut || 'Tsy nety : jereo ny fifandraisanao.';
+  }
+
   // ---------------- « J'AIME » ----------------
   // Ce que le serveur dit des « j'aime » du fil affiché : combien, et si
   // celui qui regarde en fait partie.
@@ -319,8 +333,20 @@
 
   function paintLike(el, newsId){
     const info = likeState[newsId] || { count: 0, mine: false };
-    el.textContent = '👍 J\'aime' + (info.count ? ' (' + info.count + ')' : '');
+    // Le bouton dit ce qu'il fait ; le nombre vit au-dessus, sur sa propre
+    // ligne, et disparaît quand il n'y a rien à compter.
+    el.textContent = '👍 J\'aime';
     el.classList.toggle('liked', !!info.mine);
+
+    const post = el.closest('.fb-post');
+    const compte = post && post.querySelector('[data-like-count]');
+    if(compte){
+      compte.style.display = info.count ? 'flex' : 'none';
+      const qui = info.mine
+        ? (info.count === 1 ? 'Ianao' : 'Ianao sy ' + (info.count - 1) + ' hafa')
+        : info.count;
+      compte.innerHTML = '<span class="fb-like-bubble">👍</span><span>' + escapeHtml(String(qui)) + '</span>';
+    }
   }
 
   function setupLike(el, newsId){
@@ -403,6 +429,10 @@
         .order('created_at', { ascending: true })
         .limit(100)
         .then(function(res){
+          if(res && res.error){
+            liste.innerHTML = '<div class="fb-comment-empty">' + escapeHtml(feedErrorText(res.error)) + '</div>';
+            return;
+          }
           const rows = (res && res.data) || [];
           liste.innerHTML = '';
           if(!rows.length){
@@ -420,8 +450,8 @@
               '</span>';
             liste.appendChild(ligne);
           });
-        }, function(){
-          liste.innerHTML = '<div class="fb-comment-empty">Tsy azo novakiana ny hevitra.</div>';
+        }, function(err){
+          liste.innerHTML = '<div class="fb-comment-empty">' + escapeHtml(feedErrorText(err)) + '</div>';
         });
     }
 
@@ -444,13 +474,25 @@
         message: texte
       }).then(function(res){
         bouton.disabled = false;
-        if(res && res.error){ alert('Tsy voaray ny hevitrao : ' + (res.error.message || '')); return; }
+        if(res && res.error){ montrerErreur(res.error); return; }
         champ.value = '';
         charger();
-      }, function(){
+      }, function(err){
         bouton.disabled = false;
-        alert('Tsy voaray ny hevitrao : jereo ny fifandraisanao.');
+        montrerErreur(err);
       });
+    }
+
+    // L'erreur se pose sous le champ, là où le regard est déjà : une fenêtre
+    // d'alerte se ferme d'un réflexe, sans être lue.
+    function montrerErreur(err){
+      let ligne = saisie.nextElementSibling;
+      if(!ligne || !ligne.classList.contains('fb-comment-error')){
+        ligne = document.createElement('div');
+        ligne.className = 'fb-comment-error';
+        saisie.parentNode.appendChild(ligne);
+      }
+      ligne.textContent = feedErrorText(err);
     }
 
     bouton.addEventListener('click', envoyer);
@@ -517,6 +559,13 @@
               : '') +
             '<span class="fb-share-action" data-share style="cursor:pointer;">↗️ Partager</span></div>' +
             '<div class="fb-comments" data-comments style="display:none;"></div>';
+          // La ligne du compte se glisse juste avant la rangée des actions.
+          const actionsRow = div.querySelector('.fb-post-actions');
+          const compteLigne = document.createElement('div');
+          compteLigne.className = 'fb-like-count';
+          compteLigne.setAttribute('data-like-count', '');
+          compteLigne.style.display = 'none';
+          if(actionsRow) div.insertBefore(compteLigne, actionsRow);
           const shareEl = div.querySelector('[data-share]');
           if(shareEl){
             shareEl.addEventListener('click', function(){ sharePost(n); });
