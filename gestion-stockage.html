@@ -1463,12 +1463,24 @@
               <input id="profileName" type="text">
             </div>
             <div class="field" style="margin-bottom:0;">
+              <label for="profileCompany">Nom de la société</label>
+              <input id="profileCompany" type="text" placeholder="Ex: Ma Société SARL">
+            </div>
+            <div class="field" style="margin-bottom:0;">
               <label for="profileEmail">Email</label>
               <input id="profileEmail" type="email">
             </div>
             <div class="field" style="margin-bottom:0;">
               <label for="profilePhone">Téléphone</label>
               <input id="profilePhone" type="tel">
+            </div>
+            <div class="field" style="margin-bottom:0;">
+              <label for="profileNif">NIF</label>
+              <input id="profileNif" type="text" placeholder="Ex: 1234567890">
+            </div>
+            <div class="field" style="margin-bottom:0;">
+              <label for="profileStat">STAT</label>
+              <input id="profileStat" type="text" placeholder="Ex: 12345 11 2020 0 12345">
             </div>
             <div class="field" style="margin-bottom:0;">
               <label for="profileAccessCode">Nouveau mot de passe</label>
@@ -1478,32 +1490,6 @@
             <div class="field" style="margin-bottom:0;">
               <label for="profileLogo">Logo (image)</label>
               <input id="profileLogo" type="file" accept="image/*">
-            </div>
-          </div>
-
-          <div style="margin-top:1rem;">
-            <button type="button" class="btn btn-sm" id="profileCompanyToggle" style="width:auto; display:none;">
-              🏢 J'ai une société — ajouter NIF et STAT
-            </button>
-            <div id="profileCompanyBlock" style="display:none; margin-top:0.9rem; border-top:1px solid var(--line); padding-top:0.9rem;">
-              <p style="font-size:0.76rem; color:var(--muted); line-height:1.5; margin-bottom:0.9rem;">
-                Ces trois lignes vont sur vos factures. À Madagascar, le NIF et le STAT
-                doivent y figurer dès lors que l'entreprise est enregistrée.
-              </p>
-              <div class="form-grid">
-                <div class="field" style="margin-bottom:0;">
-                  <label for="profileCompany">Nom de la société</label>
-                  <input id="profileCompany" type="text" placeholder="Ex: Ma Société SARL">
-                </div>
-                <div class="field" style="margin-bottom:0;">
-                  <label for="profileNif">NIF</label>
-                  <input id="profileNif" type="text" placeholder="Ex: 1234567890">
-                </div>
-                <div class="field" style="margin-bottom:0;">
-                  <label for="profileStat">STAT</label>
-                  <input id="profileStat" type="text" placeholder="Ex: 12345 11 2020 0 12345">
-                </div>
-              </div>
             </div>
           </div>
           <button type="button" class="btn btn-primary btn-sm" id="saveProfileBtn" style="width:auto; margin-top:0.8rem;">Enregistrer</button>
