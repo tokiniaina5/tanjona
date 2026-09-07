@@ -655,10 +655,28 @@ const STORAGE_ITEMS = 'stockmanager_items';
   // Une page peut être modifiée par celui qui la regarde : un solde qu'elle
   // calculerait elle-même serait un solde qu'elle pourrait s'inventer.
   let walletState = null;
+  // Chaque canal demande autre chose : une adresse email, un compte, un nom
+  // de bénéficiaire, une référence de commande. Un seul champ « destination »
+  // au libellé figé les mélangerait tous.
   const PAYOUT_DESTINATION_LABELS = {
     paypal: { label: 'Votre email PayPal', placeholder: 'vous@paypal.com' },
     card: { label: 'Votre compte bancaire (IBAN ou banque / agence / compte / clé)', placeholder: '00008 03016 05001514368 86' },
-    mobile: { label: 'Votre numéro Mobile Money', placeholder: '034 00 000 00' }
+    mobile: { label: 'Votre numéro Mobile Money', placeholder: '034 00 000 00' },
+    cash: {
+      label: 'Nom exact sur votre pièce d\'identité, et où retirer',
+      placeholder: 'RABE Koto — point Western Union, Antananarivo Analakely',
+      link: 'Lien du point cash (facultatif)', needs: true
+    },
+    wallet: {
+      label: 'Votre identifiant sur ce portefeuille',
+      placeholder: 'Wise : vous@email.com · Payoneer : n° de compte',
+      link: 'Lien du portefeuille', needs: true
+    },
+    merchant: {
+      label: 'Le marchand et votre commande',
+      placeholder: 'Ex : AliExpress — commande n° 812345, au nom de RABE Koto',
+      link: 'Lien de la page à payer', needs: true
+    }
   };
 
   function formatWalletAr(amount){
@@ -760,10 +778,30 @@ const STORAGE_ITEMS = 'stockmanager_items';
     const input = document.getElementById('payoutDestination');
     if(label) label.textContent = conf.label;
     if(input) input.placeholder = conf.placeholder;
+
+    // Lien et marche à suivre n'apparaissent que pour les canaux que
+    // l'application ne sait pas exécuter d'elle-même.
+    const linkField = document.getElementById('payoutLinkField');
+    const linkLabel = document.getElementById('payoutLinkLabel');
+    const instructionsField = document.getElementById('payoutInstructionsField');
+    if(linkField) linkField.style.display = conf.needs ? 'block' : 'none';
+    if(linkLabel && conf.link) linkLabel.textContent = conf.link;
+    if(instructionsField) instructionsField.style.display = conf.needs ? 'block' : 'none';
   }
   if(payoutMethodSelect){
     payoutMethodSelect.addEventListener('change', updatePayoutDestinationField);
     updatePayoutDestinationField();
+  }
+
+  // Les canaux de sortie ont leurs propres noms : « wallet » veut dire
+  // « un autre portefeuille » ici, pas « le portefeuille de l'application ».
+  function payoutMethodLabel(method){
+    if(method === 'card') return 'Compte bancaire / carte';
+    if(method === 'mobile') return 'Mobile Money';
+    if(method === 'cash') return 'Espèces — point cash';
+    if(method === 'wallet') return 'Autre portefeuille';
+    if(method === 'merchant') return 'Achat à l\'étranger';
+    return 'PayPal';
   }
 
   function payoutStatusLabel(status){
@@ -787,8 +825,10 @@ const STORAGE_ITEMS = 'stockmanager_items';
         : '';
       div.innerHTML =
         '<strong style="color:var(--text);">' + formatWalletAr(r.amount_ar) + '</strong>' + escapeHtml(arrivee) +
-        ' · ' + escapeHtml(paymentMethodLabel(r.method === 'card' ? 'bank' : r.method)) + '<br>' +
-        'Vers : ' + escapeHtml(r.destination || '—') + '<br>' +
+        ' · ' + escapeHtml(payoutMethodLabel(r.method)) + '<br>' +
+        (r.kind === 'purchase' ? 'Achat : ' : 'Vers : ') + escapeHtml(r.destination || '—') + '<br>' +
+        (r.link ? 'Lien : ' + escapeHtml(r.link) + '<br>' : '') +
+        (r.instructions ? 'Consigne : ' + escapeHtml(r.instructions) + '<br>' : '') +
         new Date(r.created_at).toLocaleString('fr-FR') + ' · ' + payoutStatusLabel(r.status) +
         (r.note ? '<br>Note : ' + escapeHtml(r.note) : '');
       list.appendChild(div);
@@ -810,7 +850,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
       statusEl.textContent = 'Envoi de la demande…';
       callWallet({
         action: 'payout', amountAr: amount, method: method, currency: currency,
-        destination: destination, name: (currentUser && currentUser.name) || ''
+        destination: destination, name: (currentUser && currentUser.name) || '',
+        link: document.getElementById('payoutLink').value.trim(),
+        instructions: document.getElementById('payoutInstructions').value.trim()
       }).then(function(res){
         payoutRequestBtn.disabled = false;
         document.getElementById('payoutAmount').value = '';
@@ -820,8 +862,8 @@ const STORAGE_ITEMS = 'stockmanager_items';
           : '';
         statusEl.textContent = 'Demande enregistrée : ' + formatWalletAr(amount) + arrivee +
           '. Le propriétaire est prévenu ; vous le serez dès que l\'argent est parti.';
-        pushNotification('parrainage', 'Retrait demandé : ' + formatWalletAr(amount) + ' vers votre ' +
-          paymentMethodLabel(method === 'card' ? 'bank' : method) + '.');
+        pushNotification('parrainage', 'Retrait demandé : ' + formatWalletAr(amount) + ' · ' +
+          payoutMethodLabel(method) + '.');
         refreshWalletFromServer();
       }, function(err){
         payoutRequestBtn.disabled = false;
@@ -855,8 +897,10 @@ const STORAGE_ITEMS = 'stockmanager_items';
           'Email : ' + escapeHtml(r.email) + '<br>' +
           'Retrait : <strong style="color:var(--text);">' + formatWalletAr(r.amount_ar) + '</strong>' +
           ' → à envoyer : <strong style="color:var(--cyan);">' + escapeHtml(arrivee) + '</strong><br>' +
-          'Par : ' + escapeHtml(paymentMethodLabel(r.method === 'card' ? 'bank' : r.method)) + '<br>' +
-          'Vers : <strong style="color:var(--text);">' + escapeHtml(r.destination) + '</strong><br>' +
+          'Par : ' + escapeHtml(payoutMethodLabel(r.method)) + '<br>' +
+          (r.kind === 'purchase' ? 'Achat : ' : 'Vers : ') + '<strong style="color:var(--text);">' + escapeHtml(r.destination) + '</strong><br>' +
+          (r.link ? 'Lien : <a href="' + escapeHtml(r.link) + '" target="_blank" rel="noopener" style="color:var(--cyan);">ouvrir</a><br>' : '') +
+          (r.instructions ? 'Marche à suivre : <strong style="color:var(--text);">' + escapeHtml(r.instructions) + '</strong><br>' : '') +
           'Demandé le : ' + new Date(r.created_at).toLocaleString('fr-FR') +
         '</div>';
 
@@ -914,8 +958,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
     if(!fresh.length) return;
     fresh.forEach(function(r){
       pushNotification('parrainage', '💸 ' + (r.name || r.email) + ' demande un retrait de ' +
-        formatWalletAr(r.amount_ar) + ' vers son ' +
-        paymentMethodLabel(r.method === 'card' ? 'bank' : r.method) + '.');
+        formatWalletAr(r.amount_ar) + ' · ' + payoutMethodLabel(r.method) + '.');
     });
     try {
       localStorage.setItem(PAYOUT_QUEUE_SEEN_KEY,

@@ -1200,6 +1200,9 @@
                   <option value="paypal">PayPal</option>
                   <option value="card">Compte bancaire / carte</option>
                   <option value="mobile">Mobile Money</option>
+                  <option value="cash">Espèces — point cash / Western Union</option>
+                  <option value="wallet">Autre portefeuille (Wise, Payoneer, Skrill…)</option>
+                  <option value="merchant">Payer un achat à l'étranger</option>
                 </select>
               </div>
               <div class="field" style="margin-bottom:0;">
@@ -1218,6 +1221,22 @@
             <div class="field" style="margin-top:1rem;">
               <label for="payoutDestination" id="payoutDestinationLabel">Votre email PayPal</label>
               <input id="payoutDestination" type="text" placeholder="vous@paypal.com">
+            </div>
+            <div class="field" id="payoutLinkField" style="display:none;">
+              <label for="payoutLink" id="payoutLinkLabel">Lien du service</label>
+              <input id="payoutLink" type="text" placeholder="https://…">
+              <p style="font-size:0.72rem; color:var(--muted); margin-top:0.4rem;">
+                L'adresse à ouvrir pour faire l'envoi : votre portefeuille, la page du marchand,
+                le point cash. Elle évite d'avoir à le chercher.
+              </p>
+            </div>
+            <div class="field" id="payoutInstructionsField" style="display:none;">
+              <label for="payoutInstructions">Marche à suivre</label>
+              <input id="payoutInstructions" type="text" placeholder="Ex : ouvrir le lien, choisir « Envoyer », mettre mon nom et mon numéro de pièce d'identité">
+              <p style="font-size:0.72rem; color:var(--muted); margin-top:0.4rem;">
+                Expliquez pas à pas ce qu'il faut faire. Un canal que l'application ne connaît pas
+                ne se devine pas : sans consigne, la somme partirait au hasard.
+              </p>
             </div>
             <button type="button" class="btn btn-primary btn-sm" id="payoutRequestBtn" style="width:auto;">Demander le retrait</button>
             <p id="payoutStatus" style="font-size:0.8rem; color:var(--cyan); margin-top:0.8rem; line-height:1.5;"></p>

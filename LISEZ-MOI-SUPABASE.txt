@@ -145,12 +145,44 @@ Comment ça se passe :
    prochaine ouverture même s'il avait fermé la page. Un refus lui
    rend son solde et lui dit pourquoi.
 
-L'ÉTAPE 4 EST MANUELLE, et ne peut pas ne pas l'être aujourd'hui :
-envoyer de l'argent automatiquement vers le compte de quelqu'un
-demande un compte marchand habilité aux versements (PayPal Payouts,
-Stripe Connect…), avec vérification d'identité et contrat. Aucun
-Mobile Money malgache n'ouvre son API pour cela non plus. Tout le
-reste — solde, conversion, demande, notifications — est automatique.
+PAR QUEL CANAL L'ARGENT SORT
+Six choix, et la liste n'a pas besoin d'être fermée :
+  PayPal · compte bancaire / carte · Mobile Money
+  Espèces (point cash, Western Union...)
+  Autre portefeuille (Wise, Payoneer, Skrill...)
+  Payer un achat à l'étranger (chez un marchand)
+
+Pour les trois derniers, le client donne EN PLUS :
+- le LIEN du service ou de la page à payer, pour aller droit au but ;
+- la MARCHE À SUIVRE, mot pour mot. Elle est obligatoire : un canal
+  que l'application ne connaît pas ne se devine pas, et sans consigne
+  la somme partirait au hasard. Le serveur refuse la demande sans elle.
+
+Vous retrouvez les deux dans « Retraits à envoyer », le lien étant
+cliquable.
+
+CE QUI EST MANUEL, ET POURQUOI ÇA LE RESTE
+C'est vous qui envoyez l'argent, puis qui cliquez sur « Argent
+envoyé ». Aucune application ne peut faire autrement sans devenir un
+établissement de paiement :
+- verser automatiquement sur le compte de quelqu'un demande un compte
+  marchand habilité aux versements (PayPal Payouts, Stripe Connect),
+  avec vérification d'identité et contrat ;
+- payer un achat depuis un solde demande d'ÉMETTRE UNE CARTE
+  (Stripe Issuing, Marqeta) : c'est un métier réglementé ;
+- retirer à un point cash demande un réseau d'agents, ou une carte
+  acceptée aux distributeurs ;
+- aucun Mobile Money malgache n'ouvre son API pour cela.
+
+À Madagascar, tout cela suppose un agrément d'établissement de
+monnaie électronique auprès de la Banque centrale, avec les
+obligations qui vont avec (connaissance du client, lutte contre le
+blanchiment, fonds cantonnés).
+
+Tout le reste — solde, conversion au taux du jour, demande, lien,
+consignes, notifications des deux côtés — est automatique. Le seul
+geste qui vous revient est celui qu'aucun code ne peut faire à votre
+place : envoyer réellement l'argent.
 
 
 DÉBLOCAGE PAYÉ AVEC LE PORTEFEUILLE

@@ -33,7 +33,13 @@ function json(body: unknown, status = 200): Response {
 const AR_PER_REFERRAL = Number(Deno.env.get("AR_PER_REFERRAL") ?? "1000");
 const MIN_PAYOUT_AR = Number(Deno.env.get("MIN_PAYOUT_AR") ?? "10000");
 
-const METHODS = new Set(["paypal", "card", "mobile"]);
+// L'argent sort par le canal que la personne indique. La liste n'a pas à être
+// fermée : elle le serait pour rien, puisque c'est un humain qui exécute
+// l'envoi et qu'un canal inconnu s'accompagne de ses consignes.
+const METHODS = new Set(["paypal", "card", "mobile", "cash", "wallet", "merchant"]);
+// Payer un achat, c'est envoyer chez un marchand plutôt que chez le client :
+// seule la destination change, la somme sort du solde de la même façon.
+const PURCHASE_METHODS = new Set(["merchant"]);
 
 function norm(value: unknown): string {
   return String(value ?? "").trim().toLowerCase();
@@ -132,13 +138,13 @@ Deno.serve(async (req: Request) => {
 
     const balance = await balanceFor(admin, email);
     const { data: mine } = await admin.from("wallet_payouts")
-      .select("id,amount_ar,method,destination,currency,amount_out,status,note,created_at,settled_at")
+      .select("id,amount_ar,method,kind,destination,link,instructions,currency,amount_out,status,note,created_at,settled_at")
       .eq("email", email).order("created_at", { ascending: false }).limit(20);
 
     let queue = null;
     if (isOwner) {
       const { data: pending } = await admin.from("wallet_payouts")
-        .select("id,email,name,amount_ar,method,destination,currency,amount_out,rate,status,created_at")
+        .select("id,email,name,amount_ar,method,kind,destination,link,instructions,currency,amount_out,rate,status,created_at")
         .eq("status", "pending").order("created_at", { ascending: true }).limit(50);
       queue = pending ?? [];
     }
@@ -163,9 +169,17 @@ Deno.serve(async (req: Request) => {
     const destination = String(body.destination ?? "").trim();
     const currency = String(body.currency ?? "MGA").toUpperCase();
     const name = String(body.name ?? "").trim();
+    const link = String(body.link ?? "").trim().slice(0, 500);
+    const instructions = String(body.instructions ?? "").trim().slice(0, 2000);
+    const kind = PURCHASE_METHODS.has(method) ? "purchase" : "payout";
 
     if (!METHODS.has(method)) return json({ error: "moyen de retrait inconnu" }, 400);
     if (!destination) return json({ error: "indiquez où envoyer l'argent" }, 400);
+    // Un canal que l'application ne connaît pas ne se devine pas : sans la
+    // marche à suivre, la somme partirait au hasard.
+    if ((method === "wallet" || method === "merchant" || method === "cash") && !instructions) {
+      return json({ error: "expliquez comment procéder : sans consigne, l'envoi ne peut pas se faire." }, 400);
+    }
     if (!(amount > 0)) return json({ error: "montant invalide" }, 400);
     if (amount < MIN_PAYOUT_AR) {
       return json({ error: `Le retrait minimum est de ${MIN_PAYOUT_AR.toLocaleString("fr-FR")} Ar.` }, 400);
@@ -180,8 +194,9 @@ Deno.serve(async (req: Request) => {
     const amountOut = rate > 0 ? Number((amount * rate).toFixed(2)) : null;
 
     const { data, error } = await admin.from("wallet_payouts").insert({
-      email: email, name: name, amount_ar: amount, method: method,
-      destination: destination, currency: currency, amount_out: amountOut, rate: rate || null,
+      email: email, name: name, amount_ar: amount, method: method, kind: kind,
+      destination: destination, link: link || null, instructions: instructions || null,
+      currency: currency, amount_out: amountOut, rate: rate || null,
       status: "pending",
     }).select("id,amount_ar,currency,amount_out").single();
 
