@@ -63,7 +63,9 @@
     color: var(--muted);
     margin-bottom: 0.4rem;
   }
-  .field input{
+  /* les listes déroulantes suivent la même mise en forme que les champs texte,
+     sinon le navigateur les dessine en clair au milieu du fond sombre */
+  .field input, .field select{
     width:100%;
     padding: 0.7rem 0.85rem;
     border-radius: 8px;
@@ -72,7 +74,7 @@
     color: var(--text);
     font-size: 0.95rem;
   }
-  .field input:focus{ outline:none; border-color: var(--cyan); }
+  .field input:focus, .field select:focus{ outline:none; border-color: var(--cyan); }
 
   /* ---------- abonnement / paywall ---------- */
   .paywall-plans{ display:flex; gap:0.8rem; margin-bottom:1.2rem; }

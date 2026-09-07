@@ -268,7 +268,7 @@
 
     // 2) argent déclaré + 3) déblocages
     window.__sb.from('unlock_requests')
-      .select('id,name,email,phone,amount,paypal_reference,status,created_at')
+      .select('id,name,email,phone,amount,paypal_reference,payment_method,status,created_at')
       .order('created_at', { ascending: false }).limit(100)
       .then(function(res){
         const rows = (res && res.data) ? res.data : [];
@@ -304,7 +304,7 @@
             div.innerHTML = '<strong style="color:var(--text);">' + adminEscape(r.name) + '</strong> — ' +
               adminEscape(r.email) + '<br>' + adminDate(r.created_at) + ' · ' +
               (Number(r.amount) || 0).toLocaleString('fr-FR') + ' Ar · réf. ' +
-              adminEscape(r.paypal_reference || '—') + ' · ' + adminEscape(r.status);
+              adminEscape(r.paypal_reference || '—') + ' · ' + paymentMethodLabel(r.payment_method) + ' · ' + adminEscape(r.status);
             list.appendChild(div);
           });
         }

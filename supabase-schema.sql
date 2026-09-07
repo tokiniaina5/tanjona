@@ -141,6 +141,16 @@ create table if not exists public.contact_channels (
   id integer primary key default 1,
   site_url text,
   paypal text,
+  card_link text,                     -- lien de paiement par carte internationale
+                                      -- (Stripe, PayPal…) pour un client sans PayPal
+  bank_label text,                    -- nom de la banque du propriétaire
+  bank_code text,                     -- code banque   (ex. 00008)
+  bank_agency text,                   -- code agence   (ex. 03016)
+  bank_account text,                  -- n° de compte  (ex. 05001514368)
+  bank_key text,                      -- clé RIB       (ex. 86)
+  mvola text,                         -- numéro MVola        (Telma)
+  orange_money text,                  -- numéro Orange Money
+  airtel_money text,                  -- numéro Airtel Money
   whatsapp text,
   facebook text,
   instagram text,
@@ -150,6 +160,17 @@ create table if not exists public.contact_channels (
   wechat text,
   updated_at timestamptz default now()
 );
+
+-- si la table existe déjà depuis une version précédente
+alter table public.contact_channels add column if not exists card_link text;
+alter table public.contact_channels add column if not exists bank_label text;
+alter table public.contact_channels add column if not exists bank_code text;
+alter table public.contact_channels add column if not exists bank_agency text;
+alter table public.contact_channels add column if not exists bank_account text;
+alter table public.contact_channels add column if not exists bank_key text;
+alter table public.contact_channels add column if not exists mvola text;
+alter table public.contact_channels add column if not exists orange_money text;
+alter table public.contact_channels add column if not exists airtel_money text;
 
 alter table public.contact_channels enable row level security;
 
@@ -285,6 +306,22 @@ create table if not exists public.unlock_requests (
 
 -- si la table existe déjà depuis une version précédente
 alter table public.unlock_requests add column if not exists device_hash text;
+-- 'paypal', 'card' ou 'bank' : dit au propriétaire sur quel compte vérifier
+-- l'arrivée de l'argent avant de confirmer.
+alter table public.unlock_requests add column if not exists payment_method text default 'paypal';
+-- Renseignées par la fonction "paypal-webhook" quand PayPal annonce que
+-- l'argent est réellement arrivé sur le compte du propriétaire. Tant que le
+-- solde ne bouge pas, elles restent vides et rien ne se déclenche.
+alter table public.unlock_requests add column if not exists paid_amount numeric;
+alter table public.unlock_requests add column if not exists paid_currency text;
+-- La somme reçue convertie en ariary, pour la comparer aux 20 000 Ar.
+alter table public.unlock_requests add column if not exists paid_amount_ar numeric;
+alter table public.unlock_requests add column if not exists auto_confirmed boolean default false;
+alter table public.unlock_requests add column if not exists paypal_capture_id text;
+-- Un même encaissement PayPal ne peut débloquer qu'une seule demande.
+create unique index if not exists unlock_requests_capture_uniq
+  on public.unlock_requests (paypal_capture_id)
+  where paypal_capture_id is not null;
 
 alter table public.unlock_requests enable row level security;
 

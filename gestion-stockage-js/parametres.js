@@ -462,6 +462,64 @@
     try { localStorage.setItem(UNLOCK_SEEN_KEY, JSON.stringify(ids.slice(0, 200))); } catch(e){}
   }
 
+  // Une demande en attente veut dire : « ce client dit avoir envoyé l'argent ».
+  // Le propriétaire est prévenu nommément, avec le compte à aller vérifier.
+  function notifyNewUnlockRequests(rows){
+    const seen = loadSeenUnlockIds();
+    const fresh = rows.filter(function(r){ return r.status === 'pending' && seen.indexOf(r.id) < 0; });
+    if(!fresh.length) return;
+    fresh.forEach(function(r){
+      pushNotification('info', (r.name || r.email) + ' a payé ' +
+        (Number(r.amount) || 20000).toLocaleString('fr-FR') + ' Ar par ' + paymentMethodLabel(r.payment_method) +
+        ' (réf. ' + (r.paypal_reference || '—') + ') pour être débloqué. Vérifiez l\'arrivée de l\'argent sur votre compte, ' +
+        'puis Paramètres > Demandes de déblocage.');
+    });
+    saveSeenUnlockIds(fresh.map(function(r){ return r.id; }).concat(seen));
+  }
+
+  // Encaissements que PayPal a confirmés tout seuls : le solde du propriétaire
+  // a réellement monté. Il l'apprend sans avoir rien à vérifier.
+  const UNLOCK_PAID_SEEN_KEY = 'stockmanager_unlock_paid_seen';
+
+  function loadSeenPaidIds(){
+    try { return JSON.parse(localStorage.getItem(UNLOCK_PAID_SEEN_KEY)) || []; }
+    catch(e){ return []; }
+  }
+  function saveSeenPaidIds(ids){
+    try { localStorage.setItem(UNLOCK_PAID_SEEN_KEY, JSON.stringify(ids.slice(0, 200))); } catch(e){}
+  }
+
+  function notifyAutoConfirmedUnlocks(rows){
+    const seen = loadSeenPaidIds();
+    const fresh = rows.filter(function(r){
+      return r.auto_confirmed && r.status !== 'pending' && seen.indexOf(r.id) < 0;
+    });
+    if(!fresh.length) return;
+    fresh.forEach(function(r){
+      const recu = r.paid_amount
+        ? Number(r.paid_amount).toLocaleString('fr-FR') + ' ' + (r.paid_currency || '')
+        : (Number(r.amount) || 20000).toLocaleString('fr-FR') + ' Ar';
+      pushNotification('info', '💰 Argent reçu sur votre PayPal : ' + recu.trim() + ' de ' +
+        (r.name || r.email) + '. Son accès a été rétabli automatiquement, il est prévenu de son côté.');
+    });
+    saveSeenPaidIds(fresh.map(function(r){ return r.id; }).concat(seen));
+  }
+
+  // Prévenu dès l'ouverture de l'application, sans passer par Paramètres.
+  function checkPendingUnlockRequests(){
+    if(!window.__sb) return;
+    if(!(typeof isOwnerEmail === 'function' && currentUser && isOwnerEmail(currentUser.email))) return;
+    window.__sb.from('unlock_requests')
+      .select('id,name,email,amount,paypal_reference,payment_method,status,paid_amount,paid_currency,paid_amount_ar,auto_confirmed')
+      .order('created_at', { ascending: false })
+      .limit(30)
+      .then(function(res){
+        const rows = (res && res.data) || [];
+        notifyNewUnlockRequests(rows);
+        notifyAutoConfirmedUnlocks(rows);
+      }, function(){});
+  }
+
   function unlockStatusLabel(status){
     if(status === 'confirmed') return '<span style="color:var(--cyan);">Confirmé — accès rétabli</span>';
     if(status === 'used') return '<span style="color:var(--muted);">Accès repris par le client</span>';
@@ -478,7 +536,7 @@
       return;
     }
     window.__sb.from('unlock_requests')
-      .select('id,name,email,phone,message,amount,paypal_reference,status,created_at')
+      .select('id,name,email,phone,message,amount,paypal_reference,payment_method,status,created_at,paid_amount,paid_currency,paid_amount_ar,auto_confirmed')
       .order('created_at', { ascending: false })
       .limit(30)
       .then(function(res){
@@ -486,13 +544,7 @@
         list.innerHTML = '';
         if(empty) empty.style.display = rows.length ? 'none' : 'block';
 
-        // notification pour les nouvelles demandes en attente
-        const seen = loadSeenUnlockIds();
-        const fresh = rows.filter(function(r){ return r.status === 'pending' && seen.indexOf(r.id) < 0; });
-        if(fresh.length){
-          pushNotification('info', fresh.length + ' nouvelle(s) demande(s) de déblocage à confirmer.');
-          saveSeenUnlockIds(fresh.map(function(r){ return r.id; }).concat(seen));
-        }
+        notifyNewUnlockRequests(rows);
 
         rows.forEach(function(row){
           const card = document.createElement('div');
@@ -503,9 +555,19 @@
               'Email : ' + escapeAdminHtml(row.email || '—') + '<br>' +
               'Téléphone : ' + escapeAdminHtml(row.phone || '—') + '<br>' +
               'Message : ' + escapeAdminHtml(row.message || '—') + '<br>' +
-              'Montant : <strong style="color:var(--text);">' + (row.amount || 20000).toLocaleString('fr-FR') + ' Ar</strong> (PayPal)<br>' +
+              'Montant : <strong style="color:var(--text);">' + (row.amount || 20000).toLocaleString('fr-FR') + ' Ar</strong><br>' +
+              'Payé par : <strong style="color:var(--text);">' + escapeAdminHtml(paymentMethodLabel(row.payment_method)) + '</strong><br>' +
               'Référence : ' + escapeAdminHtml(row.paypal_reference || '—') + '<br>' +
               'Reçue le : ' + new Date(row.created_at).toLocaleString('fr-FR') + '<br>' +
+              // Ce que PayPal a réellement fait entrer, quand il l'a annoncé.
+              (row.paid_amount
+                ? 'Encaissé sur PayPal : <strong style="color:var(--cyan);">' +
+                  Number(row.paid_amount).toLocaleString('fr-FR') + ' ' + escapeAdminHtml(row.paid_currency || '') +
+                  '</strong>' +
+                  // Converti en ariary, seule façon de le comparer aux 20 000 Ar.
+                  (row.paid_amount_ar ? ' ≈ ' + Number(row.paid_amount_ar).toLocaleString('fr-FR') + ' Ar' : '') +
+                  (row.auto_confirmed ? ' — déblocage automatique' : ' — somme insuffisante, à vérifier') + '<br>'
+                : '') +
               'État : ' + unlockStatusLabel(row.status) +
             '</div>';
 
@@ -516,8 +578,15 @@
             confirmBtn.type = 'button';
             confirmBtn.className = 'btn btn-primary btn-sm';
             confirmBtn.style.width = 'auto';
-            confirmBtn.textContent = '✅ Confirmer le paiement';
+            // Rien ne part avant que l'argent soit sur le compte : c'est cette
+            // vérification-là, faite par le propriétaire, qui déclenche tout.
+            confirmBtn.textContent = '💰 Argent reçu sur mon compte — débloquer';
             confirmBtn.addEventListener('click', function(){
+              const comptes = { card: 'votre compte bancaire', bank: 'votre compte bancaire',
+                mobile: 'votre compte Mobile Money' };
+              const ou = comptes[row.payment_method] || 'votre compte PayPal';
+              if(!confirm('Avez-vous bien vu les ' + (row.amount || 20000).toLocaleString('fr-FR') +
+                ' Ar arriver sur ' + ou + ' ?\n\nLe déblocage et les notifications partent immédiatement.')) return;
               confirmBtn.disabled = true;
               confirmUnlockRequest(row, card, confirmBtn);
             });
@@ -555,10 +624,12 @@
       }
       const box = document.createElement('div');
       box.style.cssText = 'margin-top:0.7rem; border-top:1px solid var(--line); padding-top:0.7rem; font-size:0.78rem; color:var(--cyan); line-height:1.5;';
-      box.textContent = 'Paiement confirmé ✓ Le client retrouve son accès directement sur son appareil, sans code à transmettre.';
+      box.textContent = 'Argent reçu et déblocage envoyé ✓ Le client retrouve son accès directement sur son appareil, ' +
+        'sans code à transmettre, et il est prévenu à sa prochaine ouverture même s\'il a fermé la page.';
       card.appendChild(box);
       btn.remove();
-      pushNotification('info', 'Paiement confirmé pour ' + (row.name || row.email) + ' — accès rétabli.');
+      pushNotification('info', 'Argent reçu (' + paymentMethodLabel(row.payment_method) + ') pour ' +
+        (row.name || row.email) + ' — accès rétabli, le client est prévenu.');
     }, function(){
       btn.disabled = false;
       alert('Confirmation impossible : vérifiez votre réseau.');

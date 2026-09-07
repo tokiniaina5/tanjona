@@ -30,7 +30,6 @@
       <p id="quickLoginStatus" style="font-size:0.75rem; color:var(--muted); margin:-0.4rem 0 0.8rem; min-height:1.1em;"></p>
       <button type="submit" class="btn btn-primary">Se connecter</button>
       <button type="button" class="btn btn-sm" id="showFullLoginBtn" style="width:100%; margin-top:0.7rem;">Première connexion / autre compte</button>
-      <button type="button" class="btn btn-sm" id="sendResetLinkBtn" style="width:100%; margin-top:0.7rem;">✉️ Recevoir un lien par email</button>
     </form>
 
     <!-- Retour depuis le lien de réinitialisation reçu par email -->
@@ -44,13 +43,33 @@
       <button type="button" class="btn btn-primary" id="recoverySaveBtn" style="width:100%;">Enregistrer et entrer</button>
     </div>
 
-    <!-- Oubli : lettre de demande de validation envoyée au propriétaire -->
+    <!-- Deux dépannages séparés : le mot de passe oublié (lien par email, le compte
+         reste ouvert) et la demande de déblocage (compte fermé, paiement à confirmer). -->
     <div id="forgotWrap" style="display:none;">
-      <button type="button" class="btn btn-sm" id="forgotToggleBtn" style="width:100%; margin-top:0.7rem;">Mot de passe oublié ?</button>
+
+      <!-- 1) MOT DE PASSE OUBLIÉ : le lien n'arrive que dans la boîte mail du titulaire -->
+      <button type="button" class="btn btn-sm" id="resetToggleBtn" style="width:100%; margin-top:0.7rem;">🔑 Mot de passe oublié ?</button>
+
+      <div id="resetBox" style="display:none; margin-top:0.9rem; border-top:1px solid var(--line); padding-top:0.9rem;">
+        <p style="font-size:0.76rem; color:var(--muted); line-height:1.5; margin-bottom:0.9rem;">
+          Votre compte reste ouvert : nous envoyons un lien à votre email pour choisir un
+          <strong style="color:var(--text);">nouveau mot de passe</strong>. Rien à payer, et
+          personne d'autre ne peut s'en servir : le lien n'arrive que dans votre boîte mail.
+        </p>
+        <div class="field">
+          <label for="resetEmail">Email</label>
+          <input id="resetEmail" type="email" placeholder="vous@exemple.com" autocomplete="email">
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" id="sendResetLinkBtn" style="width:100%;">✉️ Recevoir un lien par email</button>
+        <p id="resetStatus" style="font-size:0.75rem; color:var(--muted); margin-top:0.7rem; line-height:1.5;"></p>
+      </div>
+
+      <!-- 2) DEMANDE DE DÉBLOCAGE : lettre de demande de validation envoyée au propriétaire -->
+      <button type="button" class="btn btn-sm" id="forgotToggleBtn" style="width:100%; margin-top:0.7rem;">🔓 Mon compte est bloqué — demander un déblocage</button>
 
       <div id="forgotBox" style="display:none; margin-top:0.9rem; border-top:1px solid var(--line); padding-top:0.9rem;">
         <p style="font-size:0.76rem; color:var(--muted); line-height:1.5; margin-bottom:0.9rem;">
-          Si vous ne vous souvenez plus des informations ci-dessus, envoyez une
+          Votre accès est fermé (abonnement à régler ou compte suspendu) : envoyez une
           <strong style="color:var(--text);">demande de déblocage</strong> au propriétaire de l'application.
           Une fois votre paiement confirmé, votre accès se rouvre tout seul sur cet appareil.
         </p>
@@ -68,30 +87,51 @@
         </div>
         <div class="field">
           <label for="forgotMessage">Message (facultatif)</label>
-          <input id="forgotMessage" type="text" placeholder="Ex : j'ai oublié mon mot de passe">
+          <input id="forgotMessage" type="text" placeholder="Ex : mon accès est bloqué depuis hier">
         </div>
         <div style="border:1px solid var(--line); border-radius:8px; padding:0.7rem 0.8rem; margin-bottom:0.9rem; background:var(--panel-2);">
           <div style="font-size:0.76rem; color:var(--muted); line-height:1.5;">
-            Frais de déblocage : <strong style="color:var(--cyan);">20 000 Ar</strong>, à régler sur le PayPal du propriétaire.
+            Frais de déblocage : <strong style="color:var(--cyan);">20 000 Ar</strong>. Touchez la façon
+            de payer qui vous arrange — <strong style="color:var(--text);">aucun compte PayPal n'est obligatoire</strong>.
           </div>
           <button type="button" class="btn btn-sm" id="payUnlockBtn" style="width:100%; margin-top:0.6rem;">💳 Payer 20 000 Ar sur PayPal</button>
-          <div id="payUnlockTarget" style="font-size:0.72rem; color:var(--muted); margin-top:0.5rem;"></div>
-          <div style="font-size:0.72rem; color:var(--muted); margin-top:0.5rem; line-height:1.6; border-top:1px solid var(--line); padding-top:0.5rem;">
-            Propriétaire : <strong style="color:var(--text);" data-owner="name"></strong><br>
-            <span data-owner="email"></span>
+          <button type="button" class="btn btn-sm" id="payCardBtn" style="width:100%; margin-top:0.5rem;">🌍 Payer par carte Visa / Mastercard</button>
+
+          <!-- Les coordonnées bancaires ne s'affichent qu'à la demande : on ne
+               met pas des lignes de chiffres devant quelqu'un qui veut juste
+               payer en deux gestes par PayPal ou par carte. -->
+          <div id="mobileMoneyBlock" style="display:none;">
+            <button type="button" class="btn btn-sm" id="copyMobileMoneyBtn" style="width:100%; margin-top:0.5rem;">📱 Payer par Mobile Money — MVola, Orange, Airtel</button>
+            <div id="mobileMoneyDetails" style="display:none; font-family:var(--font-mono); font-size:0.76rem; color:var(--text); line-height:1.8; margin-top:0.5rem; border-top:1px solid var(--line); padding-top:0.5rem;"></div>
           </div>
+
+          <div id="bankTransferBlock" style="display:none;">
+            <button type="button" class="btn btn-sm" id="copyBankBtn" style="width:100%; margin-top:0.5rem;">🏦 Payer par virement bancaire</button>
+            <div id="bankTransferDetails" style="display:none; font-family:var(--font-mono); font-size:0.76rem; color:var(--text); line-height:1.8; margin-top:0.5rem; border-top:1px solid var(--line); padding-top:0.5rem;"></div>
+          </div>
+
+          <div id="payUnlockTarget" style="font-size:0.72rem; color:var(--muted); margin-top:0.5rem;"></div>
         </div>
         <div class="field">
-          <label for="forgotReference">Référence du paiement PayPal</label>
-          <input id="forgotReference" type="text" placeholder="Ex : n° de transaction ou email PayPal utilisé">
+          <label for="forgotPaymentMethod">Moyen utilisé pour payer</label>
+          <select id="forgotPaymentMethod">
+            <option value="paypal">PayPal</option>
+            <option value="card">Carte Visa / Mastercard</option>
+            <option value="mobile">Mobile Money (MVola / Orange / Airtel)</option>
+            <option value="bank">Virement bancaire</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="forgotReference">Référence du paiement</label>
+          <input id="forgotReference" type="text" placeholder="Ex : n° de transaction, référence du virement, 4 derniers chiffres">
         </div>
         <button type="button" class="btn btn-amber btn-sm" id="sendForgotBtn" style="width:100%;">✅ J'ai payé — envoyer ma demande</button>
 
         <div style="margin-top:1rem; border-top:1px solid var(--line); padding-top:0.9rem;">
           <p style="font-size:0.76rem; color:var(--muted); line-height:1.5; margin-bottom:0.7rem;">
-            Aucun code à recevoir : dès que le propriétaire confirme votre paiement, votre accès se rouvre
-            <strong style="color:var(--text);">directement ici, sur cet appareil</strong>. Personne d'autre
-            ne peut s'en servir à votre place.
+            Aucun code à recevoir. Dès que l'argent est arrivé sur le compte du propriétaire et qu'il
+            le confirme, votre accès se rouvre <strong style="color:var(--text);">directement ici, sur cet
+            appareil</strong>, et vous recevez la notification. Personne d'autre ne peut s'en servir à votre place.
           </p>
           <button type="button" class="btn btn-primary btn-sm" id="checkUnlockBtn" style="width:100%;">🔄 Vérifier si mon paiement est confirmé</button>
         </div>
@@ -931,7 +971,71 @@
           <div class="field">
             <label for="contactPaypalInput">PayPal du propriétaire (email ou lien paypal.me)</label>
             <input id="contactPaypalInput" type="text" placeholder="https://paypal.me/votrecompte">
-            <p style="font-size:0.72rem; color:var(--muted); margin-top:0.4rem;">Sert aux frais de déblocage (20 000 Ar) réglés par un client qui a oublié son mot de passe.</p>
+            <p style="font-size:0.72rem; color:var(--muted); margin-top:0.4rem;">Sert aux frais de déblocage (20 000 Ar) réglés par un client dont le compte est bloqué.</p>
+          </div>
+
+          <div class="field">
+            <label for="contactCardLinkInput">Lien de paiement par carte internationale (client sans PayPal)</label>
+            <input id="contactCardLinkInput" type="text" placeholder="https://buy.stripe.com/... ou https://paypal.me/votrecompte/20000">
+            <p style="font-size:0.72rem; color:var(--muted); margin-top:0.4rem;">
+              Page de paiement Visa / Mastercard vers <strong style="color:var(--text);">votre compte bancaire</strong>
+              (lien de paiement Stripe, SumUp, PayPal…). Si vous laissez vide, le client est envoyé sur votre
+              PayPal, où le paiement par carte sans compte reste possible.
+            </p>
+          </div>
+
+          <div style="border:1px solid var(--line); border-radius:8px; padding:0.8rem 0.9rem; margin-bottom:1rem; background:var(--panel-2);">
+            <h3 style="font-size:0.9rem; margin-bottom:0.3rem;">📱 Mobile Money</h3>
+            <p style="font-size:0.72rem; color:var(--muted); line-height:1.5; margin-bottom:0.8rem;">
+              Le moyen de paiement de la plupart des clients à Madagascar, qui n'ont ni PayPal, ni
+              carte, ni compte bancaire. Laissez vide un opérateur que vous n'avez pas : il n'apparaîtra
+              pas chez le client.
+            </p>
+            <div class="form-grid">
+              <div class="field" style="margin-bottom:0;">
+                <label for="contactMvolaInput">Numéro MVola (Telma)</label>
+                <input id="contactMvolaInput" type="tel" placeholder="034 00 000 00">
+              </div>
+              <div class="field" style="margin-bottom:0;">
+                <label for="contactOrangeMoneyInput">Numéro Orange Money</label>
+                <input id="contactOrangeMoneyInput" type="tel" placeholder="032 00 000 00">
+              </div>
+              <div class="field" style="margin-bottom:0;">
+                <label for="contactAirtelMoneyInput">Numéro Airtel Money</label>
+                <input id="contactAirtelMoneyInput" type="tel" placeholder="033 00 000 00">
+              </div>
+            </div>
+          </div>
+
+          <div style="border:1px solid var(--line); border-radius:8px; padding:0.8rem 0.9rem; margin-bottom:1rem; background:var(--panel-2);">
+            <h3 style="font-size:0.9rem; margin-bottom:0.3rem;">🏦 Virement sur votre compte bancaire</h3>
+            <p style="font-size:0.72rem; color:var(--muted); line-height:1.5; margin-bottom:0.8rem;">
+              Coordonnées montrées au client qui demande un déblocage et qui préfère virer l'argent
+              directement. Elles sont <strong style="color:var(--text);">visibles par tous vos clients</strong>
+              dans cet écran : n'y mettez que ce qui sert à recevoir un virement, jamais un code d'accès bancaire.
+            </p>
+            <div class="field">
+              <label for="contactBankLabelInput">Nom de la banque</label>
+              <input id="contactBankLabelInput" type="text" placeholder="Ex : BNI Madagascar">
+            </div>
+            <div class="form-grid">
+              <div class="field" style="margin-bottom:0;">
+                <label for="contactBankCodeInput">Code banque</label>
+                <input id="contactBankCodeInput" type="text" placeholder="00008">
+              </div>
+              <div class="field" style="margin-bottom:0;">
+                <label for="contactBankAgencyInput">Code agence</label>
+                <input id="contactBankAgencyInput" type="text" placeholder="03016">
+              </div>
+              <div class="field" style="margin-bottom:0;">
+                <label for="contactBankAccountInput">Numéro de compte</label>
+                <input id="contactBankAccountInput" type="text" placeholder="05001514368">
+              </div>
+              <div class="field" style="margin-bottom:0;">
+                <label for="contactBankKeyInput">Clé RIB</label>
+                <input id="contactBankKeyInput" type="text" placeholder="86">
+              </div>
+            </div>
           </div>
 
           <div class="form-grid">

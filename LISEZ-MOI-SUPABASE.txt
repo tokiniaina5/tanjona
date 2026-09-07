@@ -106,26 +106,125 @@ RÉGLAGE À FAIRE UNE FOIS dans Supabase :
   sur l'ancien code d'accès local pour ne pas bloquer l'utilisateur.
 
 
-DÉBLOCAGE PAYANT (mot de passe oublié) — 20 000 Ar
+DÉBLOCAGE PAYANT (compte bloqué) — 20 000 Ar
 ------------------------------
-Sur l'écran de connexion, "Mot de passe oublié ?" ouvre une demande
-de déblocage :
-1. Le client voit les frais (20 000 Ar) et le bouton "Payer sur
-   PayPal" (votre compte, renseigné dans "Nous contacter" >
-   panneau admin > "PayPal du propriétaire").
-2. Il saisit la référence du paiement puis envoie sa demande. Elle
-   est enregistrée dans la table "unlock_requests" ; une
-   notification apparaît chez lui ("en attente de confirmation").
-3. Vous la voyez dans Paramètres > "Demandes de déblocage" (visible
-   par vous seul) et vous recevez une notification à l'ouverture.
-4. Après vérification du paiement sur PayPal, cliquez sur
-   "Confirmer le paiement". C'est tout : AUCUN CODE À TRANSMETTRE.
-5. L'accès du client se rouvre tout seul, sur SON appareil : sa page
-   vérifie toutes les 20 secondes, et il peut aussi cliquer sur
-   "Vérifier si mon paiement est confirmé".
+Deux dépannages SÉPARÉS sur l'écran de connexion "Bon retour" :
+- "Mot de passe oublié ?" : le compte reste ouvert, un lien part par
+  email pour choisir un nouveau mot de passe. Rien à payer.
+- "Mon compte est bloqué — demander un déblocage" : la procédure
+  payante décrite ci-dessous.
 
-À exécuter dans Supabase (SQL Editor) : la fin du fichier
-"supabase-schema.sql" (colonne "paypal" + table "unlock_requests").
+1. Le client voit les frais (20 000 Ar) et QUATRE façons de payer, en
+   boutons : rien ne s'affiche tant qu'il n'a pas choisi, pour qu'il
+   paie en deux gestes sans lire des lignes de chiffres.
+   - "Payer sur PayPal" : votre compte PayPal, renseigné dans
+     "Nous contacter" > panneau admin > "PayPal du propriétaire".
+   - "Payer par carte Visa / Mastercard" : pour un client qui n'a PAS
+     de compte PayPal. Il ouvre le "Lien de paiement par carte
+     internationale" du même panneau admin — mettez-y votre page de
+     paiement (Stripe, SumUp, PayPal…) qui verse sur votre COMPTE
+     BANCAIRE. Si vous le laissez vide, le bouton renvoie sur votre
+     PayPal, où la carte est acceptée sans créer de compte.
+   - "Mobile Money" : MVola, Orange Money, Airtel Money — ce par quoi
+     paient la plupart des clients à Madagascar, qui n'ont ni PayPal,
+     ni carte, ni compte bancaire. Vos numéros viennent du panneau
+     admin > "Mobile Money" ; un opérateur laissé vide n'apparaît pas
+     chez le client. Tant que rien n'est enregistré, le numéro de
+     départ est celui de la constante OWNER_PHONE (MVola).
+   - "Virement bancaire" : vos coordonnées s'affichent (code banque,
+     code agence, n° de compte, clé RIB, titulaire, montant) avec un
+     bouton "Copier". Elles viennent du panneau admin > "Virement sur
+     votre compte bancaire" ; tant qu'il n'est pas enregistré, les
+     valeurs de départ inscrites dans "gestion-stockage-js/common.js"
+     (constante OWNER_BANK) servent. Videz le n° de compte dans le
+     panneau admin pour retirer complètement cette option.
+2. Il choisit le moyen utilisé, saisit la référence puis envoie sa
+   demande. Elle est enregistrée dans la table "unlock_requests" ;
+   une notification apparaît chez lui ("en attente").
+3. Vous recevez une notification nominative DÈS L'OUVERTURE de
+   l'application : « <client> a payé 20 000 Ar par <moyen>
+   (réf. …) pour être débloqué. Vérifiez l'arrivée de l'argent sur
+   votre compte. » Le détail est dans Paramètres > "Demandes de
+   déblocage" (visible par vous seul).
+4. VÉRIFIEZ D'ABORD QUE L'ARGENT EST ARRIVÉ sur le compte concerné
+   (PayPal ou compte bancaire), puis cliquez sur "Argent reçu sur mon
+   compte — débloquer". Rien ne part avant ce clic : c'est vous qui
+   constatez l'arrivée des fonds. AUCUN CODE À TRANSMETTRE.
+5. Les deux côtés sont alors prévenus : vous, dans vos notifications ;
+   le client, sur SON appareil, où l'accès se rouvre tout seul. Sa
+   page vérifie toutes les 20 secondes, il peut cliquer sur "Vérifier
+   si mon paiement est confirmé", et s'il avait fermé la page il est
+   prévenu et débloqué à sa prochaine ouverture.
+
+L'application ne peut pas lire votre compte bancaire toute seule :
+pour un VIREMENT ou une CARTE, l'étape 4 (votre constat) reste
+obligatoire. Pour PAYPAL en revanche, le déblocage peut se faire tout
+seul — voir la section suivante.
+
+
+DÉBLOCAGE AUTOMATIQUE PAYPAL (facultatif)
+------------------------------
+Avec cette fonction, plus rien à vérifier pour les paiements PayPal :
+dès que votre solde monte réellement de la somme attendue, la demande
+passe en "confirmé", le client retrouve son accès et vous recevez la
+notification "💰 Argent reçu sur votre PayPal". Si le solde ne bouge
+pas, il ne se passe RIEN : pas de déblocage, aucune notification.
+
+Pourquoi ça ne peut pas se faire dans le navigateur : lire un solde
+PayPal demande la clé secrète de votre application PayPal. Mise dans
+la page, elle serait lisible par tous vos clients. Elle ne vit donc
+que dans les secrets Supabase, et c'est PayPal qui appelle le serveur.
+
+Mise en place (une seule fois) :
+1. https://developer.paypal.com > Apps & Credentials > créez une app
+   "Live". Notez le Client ID et le Secret. NE LES METTEZ NULLE PART
+   dans le code ni dans un fichier versionné.
+2. Déposez-les dans les secrets Supabase (dans le Terminal, pas dans
+   le SQL Editor) :
+     supabase secrets set PAYPAL_CLIENT_ID=...
+     supabase secrets set PAYPAL_CLIENT_SECRET=...
+   Rien d'autre n'est obligatoire : PayPal n'encaisse pas en ariary,
+   mais la somme reçue est CONVERTIE automatiquement (taux du jour) et
+   comparée aux 20 000 Ar, avec 5 % de marge pour les variations de
+   taux. En dessous, rien n'est débloqué.
+   Deux réglages facultatifs :
+     supabase secrets set UNLOCK_FEE_AR=20000   (autre montant de frais)
+     supabase secrets set RATE_EUR_MGA=5000     (votre propre taux, qui
+        l'emporte sur le taux du jour ; idem RATE_USD_MGA, etc.)
+   Si le taux du jour est introuvable et qu'aucun taux n'est fixé, la
+   demande reste "en attente" : on ne débloque pas sur une conversion
+   inventée, c'est vous qui tranchez.
+3. Déployez la fonction :
+     supabase functions deploy paypal-webhook --no-verify-jwt
+   (--no-verify-jwt : c'est PayPal qui appelle, pas un utilisateur
+   connecté. La sécurité vient de la signature vérifiée à l'étape 5.)
+4. Dans PayPal > Webhooks, ajoutez l'URL affichée par le déploiement
+   (https://<projet>.supabase.co/functions/v1/paypal-webhook) et
+   cochez l'événement PAYMENT.CAPTURE.COMPLETED.
+5. Copiez l'ID du webhook créé par PayPal :
+     supabase secrets set PAYPAL_WEBHOOK_ID=...
+   Sans lui, tout événement est REFUSÉ — c'est ce qui empêche
+   quelqu'un d'annoncer un faux paiement pour se débloquer gratis.
+
+Comment la demande est reconnue : par la référence (custom_id /
+invoice_id) si votre lien de paiement en porte une, sinon par l'email
+du compte PayPal qui a payé, comparé à l'email de la demande. Un
+encaissement qui ne correspond à personne est simplement ignoré : il
+reste sur votre PayPal et vous pouvez confirmer à la main.
+
+À exécuter dans Supabase (SQL Editor > New query > Run) : le fichier
+"supabase-paiements.sql". Il ajoute les colonnes des moyens de
+paiement et se relance sans risque.
+
+TANT QUE CE N'EST PAS FAIT, le panneau admin « Nous contacter » ne
+peut plus rien enregistrer : il écrit toutes les colonnes d'un coup
+et répond « Could not find the 'airtel_money' column ».
+
+ATTENTION : les coordonnées bancaires sont affichées à TOUT client
+qui ouvre la demande de déblocage — c'est le but, on ne peut pas
+recevoir un virement sans les donner. N'y mettez donc jamais un code
+d'accès à la banque, un mot de passe ou un code de carte : uniquement
+ce qui figure sur un RIB.
 
 SÉCURITÉ : au moment de l'envoi de la demande, l'appareil du client
 crée un jeton aléatoire qu'il garde pour lui ; seule son empreinte
