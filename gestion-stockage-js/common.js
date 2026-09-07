@@ -1645,11 +1645,15 @@ const STORAGE_ITEMS = 'stockmanager_items';
   }
 
   function renderUnlockWallet(){
+    // Cet élément n'existe plus sur l'écran de connexion ; la ligne reste au
+    // cas où un thème le remettrait, et ne coûte rien s'il est absent.
     const balanceEl = document.getElementById('unlockWalletBalance');
     const costEl = document.getElementById('unlockWalletCost');
     if(costEl) costEl.textContent = (UNLOCK_COST_CREDITS * AR_PER_CREDIT).toLocaleString('fr-FR') + ' Ar';
-    if(!balanceEl) return;
-    balanceEl.textContent = (getAvailableCredits(ensureInstallDate()) * AR_PER_CREDIT).toLocaleString('fr-FR') + ' Ar';
+    // Le solde n'est plus affiché ici : il se lit dans Portefeuille. Il n'est
+    // dit qu'en réponse à un clic, s'il ne suffit pas — c'est alors une
+    // explication, pas un étalage.
+    if(balanceEl) balanceEl.textContent = '';
   }
 
   // Trace laissée au propriétaire : il voit qui s'est débloqué et avec combien,

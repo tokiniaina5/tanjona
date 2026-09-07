@@ -82,21 +82,20 @@
           <input id="forgotEmail" type="email" placeholder="vous@exemple.com">
         </div>
 
+        <!-- Aucun chiffre du portefeuille ici : le solde est l'affaire de la
+             page Portefeuille, pas d'un écran de connexion. Seul le prix est
+             annoncé, parce qu'on ne fait pas payer sans dire combien. -->
         <div style="border:1px solid var(--line); border-radius:8px; padding:0.8rem 0.9rem; margin-bottom:0.9rem; background:var(--panel-2);">
           <div style="display:flex; justify-content:space-between; align-items:baseline; gap:0.8rem;">
-            <span style="font-size:0.76rem; color:var(--muted);">Votre portefeuille</span>
-            <strong id="unlockWalletBalance" style="font-family:var(--font-mono); font-size:1.3rem; color:var(--cyan);">0</strong>
-          </div>
-          <div style="display:flex; justify-content:space-between; align-items:baseline; gap:0.8rem; margin-top:0.4rem; border-top:1px solid var(--line); padding-top:0.4rem;">
             <span style="font-size:0.76rem; color:var(--muted);">Coût du déblocage</span>
-            <strong id="unlockWalletCost" style="font-family:var(--font-mono); font-size:0.95rem; color:var(--text);">0</strong>
+            <strong id="unlockWalletCost" style="font-family:var(--font-mono); font-size:1.1rem; color:var(--cyan);">0</strong>
           </div>
           <button type="button" class="btn btn-primary btn-sm" id="payFromWalletBtn" style="width:100%; margin-top:0.8rem;">💰 Payer avec mon solde et débloquer</button>
         </div>
 
         <p style="font-size:0.74rem; color:var(--muted); line-height:1.5;">
-          Votre solde vient du <strong style="color:var(--text);">parrainage</strong> : chaque personne
-          qui ouvre l'application avec votre lien d'invitation vous en rapporte un.
+          Votre solde et vos retraits se consultent dans <strong style="color:var(--text);">Portefeuille</strong>,
+          une fois entré dans l'application.
         </p>
         <p id="forgotStatus" style="font-size:0.75rem; color:var(--muted); margin-top:0.7rem; line-height:1.5;"></p>
       </div>
