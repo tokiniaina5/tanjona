@@ -745,6 +745,11 @@ const STORAGE_ITEMS = 'stockmanager_items';
     if(low.indexOf('rate limit') >= 0 || low.indexOf('too many') >= 0){
       return 'Trop de tentatives : patientez quelques minutes.';
     }
+    // Message du serveur, en anglais, quand deux demandes se suivent de trop près.
+    const wait = raw.match(/after (\d+) seconds?/i);
+    if(wait){
+      return 'Une demande vient de partir : attendez ' + wait[1] + ' secondes avant de réessayer.';
+    }
     return raw;
   }
 
@@ -1047,10 +1052,31 @@ const STORAGE_ITEMS = 'stockmanager_items';
       fallback('fonction non déployée');
       return;
     }
+    // Un refus de la fonction revient dans error.context, dont le corps porte
+    // la vraie raison. Sans la lire, on se rabattait sur l'envoi de Supabase
+    // qui répondait « attendez 59 secondes » — un message sans rapport avec le
+    // problème, qui envoyait chercher la panne au mauvais endroit.
+    function detailFromError(error){
+      const ctx = error && error.context;
+      if(!ctx || typeof ctx.json !== 'function') return Promise.resolve('');
+      return ctx.json().then(function(body){
+        return [body && body.error, body && body.detail].filter(Boolean).join(' — ');
+      }, function(){ return ''; });
+    }
+
     window.__sb.functions.invoke('owner-reset', { body: { email: email } })
       .then(function(res){
         const data = (res && res.data) || {};
-        if(res && res.error && !data.sent){ fallback((res.error.message || 'erreur serveur')); return; }
+        if(res && res.error && !data.sent){
+          detailFromError(res.error).then(function(detail){
+            if(detail){
+              if(status) status.textContent = 'Envoi refusé : ' + String(detail).slice(0, 300);
+              return;
+            }
+            fallback(res.error.message || 'erreur serveur');
+          });
+          return;
+        }
         if(data.sent === false){
           // Le détail vient du service d'envoi : c'est lui qui dit pourquoi il
           // a refusé (adresse d'expéditeur non vérifiée, quota…). Le cacher
