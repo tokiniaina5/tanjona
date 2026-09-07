@@ -259,6 +259,36 @@
   }
   .nav-list.open{ display:flex; }
 
+  /* ---------- menu déplaçable ---------- */
+  /* touch-action:none : sans cela le doigt fait défiler la page au lieu de
+     déplacer le bouton, et rien ne bouge sur téléphone. */
+  .menu-toggle.floating{
+    position: fixed;
+    z-index: 120;
+    touch-action: none;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+  }
+  .menu-toggle.floating.dragging{
+    cursor: grabbing;
+    opacity: 0.85;
+    transform: scale(1.06);
+  }
+  /* Le panneau suit le bouton : ouvert en bas de l'écran, il doit s'ouvrir
+     vers le haut, sinon il sort par le bas et devient inatteignable. */
+  .nav-list.floating{
+    position: fixed;
+    z-index: 119;
+    width: 230px;
+    max-height: 70vh;
+    overflow-y: auto;
+    margin-top: 0;
+    padding: 0.6rem;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+  }
+
   .user-chip{
     font-family: var(--font-mono);
     font-size: 0.75rem;

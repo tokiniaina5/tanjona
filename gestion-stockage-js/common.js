@@ -2281,11 +2281,138 @@ const STORAGE_ITEMS = 'stockmanager_items';
   var menuToggle = document.getElementById('menuToggle');
   var navList = document.getElementById('navList');
   if(menuToggle && navList){
-    menuToggle.addEventListener('click', function(){
-      var isOpen = navList.classList.toggle('open');
+    // Le bouton quitte la barre pour flotter : c'est ce qui lui permet d'aller
+    // où l'on veut. Le panneau le suit, sinon on ouvrirait en bas un menu qui
+    // s'affiche en haut.
+    const MENU_POS_KEY = 'stockmanager_menu_pos';
+    const MARGE = 8;
+    document.body.appendChild(menuToggle);
+    document.body.appendChild(navList);
+    menuToggle.classList.add('floating');
+    navList.classList.add('floating');
+
+    // Détaché de l'application, le bouton flottant s'afficherait aussi par
+    // dessus l'écran de connexion — où il n'a rien à faire. On surveille donc
+    // l'affichage de l'application plutôt que d'aller modifier chacun des
+    // endroits qui l'ouvrent ou la ferment.
+    const appScreenEl = document.getElementById('appScreen');
+    function syncMenuVisibility(){
+      const visible = appScreenEl && getComputedStyle(appScreenEl).display !== 'none';
+      menuToggle.style.display = visible ? 'flex' : 'none';
+      if(!visible){
+        navList.classList.remove('open');
+        menuToggle.textContent = '☰';
+        menuToggle.setAttribute('aria-expanded', 'false');
+      }
+    }
+    if(appScreenEl){
+      new MutationObserver(syncMenuVisibility)
+        .observe(appScreenEl, { attributes: true, attributeFilter: ['style', 'class'] });
+    }
+    syncMenuVisibility();
+
+    function tailleBouton(){
+      const r = menuToggle.getBoundingClientRect();
+      return { w: r.width || 38, h: r.height || 38 };
+    }
+
+    // Toujours dans l'écran : une position enregistrée sur grand écran, puis
+    // rouverte sur un téléphone, tomberait hors de portée.
+    function poserBouton(x, y){
+      const t = tailleBouton();
+      const maxX = Math.max(MARGE, window.innerWidth - t.w - MARGE);
+      const maxY = Math.max(MARGE, window.innerHeight - t.h - MARGE);
+      const px = Math.min(Math.max(MARGE, x), maxX);
+      const py = Math.min(Math.max(MARGE, y), maxY);
+      menuToggle.style.left = px + 'px';
+      menuToggle.style.top = py + 'px';
+      return { x: px, y: py };
+    }
+
+    function positionParDefaut(){
+      const t = tailleBouton();
+      return { x: window.innerWidth - t.w - 16, y: 16 };
+    }
+
+    function chargerPosition(){
+      try{
+        const brut = JSON.parse(localStorage.getItem(MENU_POS_KEY));
+        if(brut && typeof brut.x === 'number' && typeof brut.y === 'number') return brut;
+      }catch(e){}
+      return positionParDefaut();
+    }
+
+    function enregistrerPosition(pos){
+      try{ localStorage.setItem(MENU_POS_KEY, JSON.stringify(pos)); }catch(e){}
+    }
+
+    // Le panneau se place sous le bouton, et bascule au-dessus ou de l'autre
+    // côté quand il n'y a plus la place.
+    function placerPanneau(){
+      if(!navList.classList.contains('open')) return;
+      const b = menuToggle.getBoundingClientRect();
+      const n = navList.getBoundingClientRect();
+      let left = b.left;
+      if(left + n.width > window.innerWidth - MARGE) left = b.right - n.width;
+      left = Math.max(MARGE, Math.min(left, window.innerWidth - n.width - MARGE));
+
+      let top = b.bottom + 6;
+      if(top + n.height > window.innerHeight - MARGE) top = b.top - n.height - 6;
+      top = Math.max(MARGE, top);
+
+      navList.style.left = left + 'px';
+      navList.style.top = top + 'px';
+    }
+
+    const depart = chargerPosition();
+    let position = poserBouton(depart.x, depart.y);
+
+    // ---- Déplacement au doigt comme à la souris ----
+    // Les événements « pointer » couvrent les deux : un seul chemin, donc un
+    // seul comportement à vérifier.
+    let glisse = null;
+    menuToggle.addEventListener('pointerdown', function(e){
+      glisse = { dx: e.clientX - menuToggle.getBoundingClientRect().left,
+                 dy: e.clientY - menuToggle.getBoundingClientRect().top,
+                 x0: e.clientX, y0: e.clientY, bouge: false };
+      // Sans capture, le doigt qui sort du bouton cesse d'être suivi et le
+      // déplacement s'arrête net ; un navigateur qui la refuse ne doit pas pour
+      // autant faire échouer tout le reste.
+      try{ menuToggle.setPointerCapture(e.pointerId); }catch(err){}
+    });
+
+    menuToggle.addEventListener('pointermove', function(e){
+      if(!glisse) return;
+      // Trois pixels de tolérance : un doigt ne se pose jamais parfaitement
+      // immobile, et sans ce seuil chaque appui deviendrait un déplacement,
+      // donc plus aucune ouverture du menu.
+      if(!glisse.bouge && Math.abs(e.clientX - glisse.x0) + Math.abs(e.clientY - glisse.y0) < 3) return;
+      glisse.bouge = true;
+      menuToggle.classList.add('dragging');
+      position = poserBouton(e.clientX - glisse.dx, e.clientY - glisse.dy);
+      placerPanneau();
+    });
+
+    function finGlisse(e){
+      if(!glisse) return;
+      const bouge = glisse.bouge;
+      glisse = null;
+      menuToggle.classList.remove('dragging');
+      try{ menuToggle.releasePointerCapture(e.pointerId); }catch(err){}
+      if(bouge){ enregistrerPosition(position); return; }
+      // Simple appui : on ouvre ou on ferme.
+      const isOpen = navList.classList.toggle('open');
       menuToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
       menuToggle.textContent = isOpen ? '✕' : '☰';
+      if(isOpen) requestAnimationFrame(placerPanneau);
       updateTopbarHeight();
+    }
+    menuToggle.addEventListener('pointerup', finGlisse);
+    menuToggle.addEventListener('pointercancel', finGlisse);
+
+    window.addEventListener('resize', function(){
+      position = poserBouton(position.x, position.y);
+      placerPanneau();
     });
   }
 
