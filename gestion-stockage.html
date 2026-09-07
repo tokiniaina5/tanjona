@@ -204,6 +204,23 @@
   </div>
 </div>
 
+<!-- ============ ACCUEIL : MOT DE BIENVENUE ============ -->
+<!-- Première chose vue en arrivant sur le site, avant l'écran de connexion. -->
+<div id="welcomeOverlay" style="display:none; position:fixed; inset:0; background:rgba(6,10,18,0.94); align-items:center; justify-content:center; z-index:300; padding:1.2rem;">
+  <div class="login-card" style="max-width:520px; position:relative; text-align:center; padding:3rem 2.2rem;">
+    <button type="button" id="welcomeClose" aria-label="Fermer" style="position:absolute; top:0.8rem; right:1rem; background:none; border:none; color:var(--muted); font-size:1.6rem; cursor:pointer; line-height:1;">✕</button>
+    <div class="eyebrow" style="font-size:0.8rem;">Tongasoa · Bienvenue</div>
+    <h1 style="font-size:2rem; line-height:1.25; margin-bottom:0.9rem;">
+      Tongasoa eto amin'ny tranonkala<br>
+      <span style="color:var(--cyan);">Relation &amp; Gestion International</span>
+    </h1>
+    <p class="sub" style="font-size:1rem; margin-bottom:1.8rem;">
+      Bienvenue sur le site de <strong style="color:var(--text);">Relation et Gestion International</strong>.
+    </p>
+    <button type="button" class="btn btn-primary" id="welcomeEnterBtn" style="width:100%;">Hiditra · Entrer</button>
+  </div>
+</div>
+
 <div id="autoNoticeModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); align-items:center; justify-content:center; z-index:200; padding:1rem;">
   <div class="login-card" style="max-width:380px; position:relative;">
     <button type="button" id="autoNoticeClose" aria-label="Fermer" style="position:absolute; top:0.7rem; right:0.9rem; background:none; border:none; color:var(--muted); font-size:1.2rem; cursor:pointer; line-height:1;">✕</button>

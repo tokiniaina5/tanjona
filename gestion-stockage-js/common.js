@@ -531,6 +531,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
   let selectedPlan = 'mensuel';
 
   function openApp(){
+    closeWelcome(false);
     loginScreen.style.display = 'none';
     paywallScreen.style.display = 'none';
     appScreen.style.display = 'block';
@@ -564,6 +565,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
   }
 
   function openPaywall(){
+    closeWelcome(false);
     loginScreen.style.display = 'none';
     appScreen.style.display = 'none';
     paywallScreen.style.display = 'flex';
@@ -1861,7 +1863,43 @@ const STORAGE_ITEMS = 'stockmanager_items';
     }
   });
 
+  // ---------------- MOT DE BIENVENUE ----------------
+  // Première chose vue en arrivant sur le site. Tant qu'il est là, l'avis
+  // d'abonnement attend son tour : deux fenêtres l'une sur l'autre, personne
+  // ne lit ni l'une ni l'autre.
+  let welcomeOpen = false;
+  let noticeWaitsForWelcome = false;
+
+  function showWelcome(){
+    const box = document.getElementById('welcomeOverlay');
+    if(!box) return;
+    box.style.display = 'flex';
+    welcomeOpen = true;
+  }
+
+  // showPending : le visiteur a fermé le mot de bienvenue et reste sur la page
+  // de connexion, l'avis d'abonnement peut donc s'afficher. Quand c'est une
+  // session déjà ouverte qui l'écarte, il n'y a plus lieu de le montrer.
+  function closeWelcome(showPending){
+    const box = document.getElementById('welcomeOverlay');
+    if(box) box.style.display = 'none';
+    if(!welcomeOpen) return;
+    welcomeOpen = false;
+    const pending = noticeWaitsForWelcome;
+    noticeWaitsForWelcome = false;
+    if(pending && showPending) showAutoNotice();
+  }
+
+  ['welcomeClose', 'welcomeEnterBtn'].forEach(function(id){
+    const btn = document.getElementById(id);
+    if(btn) btn.addEventListener('click', function(){ closeWelcome(true); });
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && welcomeOpen) closeWelcome(true);
+  });
+
   function showAutoNotice(){
+    if(welcomeOpen){ noticeWaitsForWelcome = true; return; }
     const st = getSubscriptionStatus();
     const modal = document.getElementById('autoNoticeModal');
     const closeBtn = document.getElementById('autoNoticeClose');
@@ -1955,6 +1993,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
       setTimeout(resumeSession, 0);
     }
   } else {
+    showWelcome();
     refreshLoginMode();
     resumeUnlockWatch();
     const bootAuth = sbAuth();
