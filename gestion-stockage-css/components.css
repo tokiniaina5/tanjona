@@ -106,6 +106,10 @@
   .fb-buy-action{ font-weight:600; }
   .fb-buy-action:hover{ text-decoration:underline; }
   .fb-comment-action:hover{ color:var(--cyan); }
+  .fb-like-action:hover{ color:var(--cyan); }
+  /* Aimé : la couleur seule ne suffit pas à distinguer les deux états pour
+     qui distingue mal les teintes — le trait épais s'en charge aussi. */
+  .fb-like-action.liked{ color:var(--cyan); font-weight:700; }
 
   /* ---------- Commentaires sous une publication ---------- */
   .fb-comments{ margin-top:0.7rem; padding-top:0.7rem; border-top:1px solid var(--line); }

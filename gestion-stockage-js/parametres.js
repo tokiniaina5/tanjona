@@ -308,6 +308,77 @@
     if(nom || select) (existant ? qty : nom || qty).focus();
   }
 
+  // ---------------- « J'AIME » ----------------
+  // Ce que le serveur dit des « j'aime » du fil affiché : combien, et si
+  // celui qui regarde en fait partie.
+  let likeState = {};
+
+  function myLikeEmail(){
+    return (currentUser && currentUser.email) ? currentUser.email.trim().toLowerCase() : '';
+  }
+
+  function paintLike(el, newsId){
+    const info = likeState[newsId] || { count: 0, mine: false };
+    el.textContent = '👍 J\'aime' + (info.count ? ' (' + info.count + ')' : '');
+    el.classList.toggle('liked', !!info.mine);
+  }
+
+  function setupLike(el, newsId){
+    paintLike(el, newsId);
+    el.addEventListener('click', function(){ toggleLike(el, newsId); });
+  }
+
+  function loadLikes(ids){
+    if(!ids.length || !window.__sb) return;
+    window.__sb.from('client_news_likes')
+      .select('news_id,author_email')
+      .in('news_id', ids)
+      .then(function(res){
+        const rows = (res && res.data) || [];
+        const moi = myLikeEmail();
+        likeState = {};
+        rows.forEach(function(r){
+          const info = likeState[r.news_id] || (likeState[r.news_id] = { count: 0, mine: false });
+          info.count++;
+          if(moi && (r.author_email || '').toLowerCase() === moi) info.mine = true;
+        });
+        document.querySelectorAll('#communityNewsList [data-like]').forEach(function(el){
+          const post = el.closest('.fb-post');
+          if(post && post.dataset.newsId) paintLike(el, post.dataset.newsId);
+        });
+      }, function(){});
+  }
+
+  function toggleLike(el, newsId){
+    const moi = myLikeEmail();
+    if(!moi || !window.__sb){ alert('Midira aloha vao afaka mankasitraka.'); return; }
+
+    const info = likeState[newsId] || (likeState[newsId] = { count: 0, mine: false });
+    // On peint tout de suite, puis on corrige si le serveur refuse : un clic
+    // qui n'a l'air de rien faire pendant une seconde donne envie de cliquer
+    // encore, et de compter deux fois.
+    const avant = { count: info.count, mine: info.mine };
+    info.mine = !avant.mine;
+    info.count = Math.max(0, avant.count + (info.mine ? 1 : -1));
+    paintLike(el, newsId);
+
+    const table = window.__sb.from('client_news_likes');
+    const action = avant.mine
+      ? table.delete().eq('news_id', newsId).eq('author_email', moi)
+      : table.insert({ news_id: newsId, author_email: moi,
+          author_name: (currentUser && currentUser.name) || 'Client' });
+
+    action.then(function(res){
+      if(res && res.error){
+        likeState[newsId] = avant;
+        paintLike(el, newsId);
+      }
+    }, function(){
+      likeState[newsId] = avant;
+      paintLike(el, newsId);
+    });
+  }
+
   // Les commentaires ne sont chargés qu'à l'ouverture : une trentaine de
   // publications qui iraient toutes chercher leur fil à l'affichage feraient
   // trente requêtes pour un fil que personne n'a demandé à lire.
@@ -404,6 +475,9 @@
           const div = document.createElement('div');
           const type = n.type || 'vaovao';
           div.className = 'fb-post' + (type === 'live' ? ' fb-post-live' : type === 'entana' ? ' fb-post-entana' : '');
+          // Le décompte des « j'aime » arrive après le fil : c'est par cet
+          // identifiant qu'il retrouve la publication à laquelle il appartient.
+          if(n.id) div.dataset.newsId = n.id;
           const d = n.created_at ? new Date(n.created_at).toLocaleString('fr-FR') : '';
           const typeBadge = type === 'live'
             ? '<span class="fb-type-badge live">🔴 LIVE DIRECT</span>'
@@ -432,7 +506,8 @@
             imagesHtml +
             (n.price ? '<div class="fb-post-price">' + formatAr(n.price) + '</div>' : '') +
             (n.link ? '<a href="' + escapeHtml(n.link) + '" target="_blank" rel="noopener" class="fb-post-link">🔗 ' + escapeHtml(n.link) + '</a>' : '') +
-            '<div class="fb-post-actions"><span>👍 J\'aime</span>' +
+            '<div class="fb-post-actions">' +
+            '<span class="fb-like-action" data-like style="cursor:pointer;">👍 J\'aime</span>' +
             '<span class="fb-comment-action" data-comment style="cursor:pointer;">💬 Commenter</span>' +
             // L'achat part de l'annonce elle-même : c'est là qu'on voit la
             // marchandise et son prix, pas dans un onglet qu'il faut aller
@@ -450,6 +525,8 @@
           if(buyEl){
             buyEl.addEventListener('click', function(){ buyFromPost(n); });
           }
+          const likeEl = div.querySelector('[data-like]');
+          if(likeEl) setupLike(likeEl, n.id);
           const commentEl = div.querySelector('[data-comment]');
           const commentsBox = div.querySelector('[data-comments]');
           if(commentEl && commentsBox){
@@ -461,6 +538,9 @@
           }
           list.appendChild(div);
         });
+        // Un seul appel pour tout le fil : trente publications qui iraient
+        // chacune compter ses « j'aime » feraient trente requêtes.
+        loadLikes(rows.map(function(n){ return n.id; }).filter(Boolean));
       }, function(){ list.innerHTML=''; emptyHint.style.display = 'block'; });
   }
 
