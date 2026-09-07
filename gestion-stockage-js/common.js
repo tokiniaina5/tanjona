@@ -1181,13 +1181,17 @@ const STORAGE_ITEMS = 'stockmanager_items';
   // Et surtout : un lien périmé ou déjà utilisé revient avec une erreur dans
   // l'adresse. Sans ce qui suit, la personne arrivait sur l'écran de connexion
   // ordinaire, sans un mot d'explication — le lien avait l'air de ne rien faire.
+  // La copie prise dans supabase-init.js passe en premier : l'adresse en cours
+  // a déjà pu être nettoyée par la bibliothèque.
   function authLinkParams(){
     const out = {};
-    [window.location.hash.replace(/^#/, ''), window.location.search.replace(/^\?/, '')]
-      .forEach(function(part){
-        if(!part) return;
-        new URLSearchParams(part).forEach(function(value, key){ if(!out[key]) out[key] = value; });
-      });
+    [
+      (window.__authLinkHash || window.location.hash).replace(/^#/, ''),
+      (window.__authLinkSearch || window.location.search).replace(/^\?/, '')
+    ].forEach(function(part){
+      if(!part) return;
+      new URLSearchParams(part).forEach(function(value, key){ if(!out[key]) out[key] = value; });
+    });
     return out;
   }
 
@@ -1233,7 +1237,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
       return;
     }
 
-    if(params.type === 'recovery') showRecoveryBox();
+    if(params.type === 'recovery' || window.__passwordRecovery) showRecoveryBox();
   }
 
   // Ouvre l'application à partir d'un profil déjà enregistré.
