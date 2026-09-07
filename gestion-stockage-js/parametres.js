@@ -26,6 +26,26 @@
     renderProfileForm();
   }
 
+  // Société, NIF et STAT ne concernent qu'une entreprise enregistrée : ils
+  // encombraient le profil de qui travaille en son nom propre. Ils sont
+  // repliés tant qu'ils sont vides, et jamais supprimés — à Madagascar, le
+  // NIF et le STAT doivent figurer sur la facture d'une entreprise.
+  function showCompanyBlock(ouvert){
+    const bloc = document.getElementById('profileCompanyBlock');
+    const bouton = document.getElementById('profileCompanyToggle');
+    if(bloc) bloc.style.display = ouvert ? 'block' : 'none';
+    if(bouton) bouton.style.display = ouvert ? 'none' : 'inline-block';
+  }
+
+  const profileCompanyToggle = document.getElementById('profileCompanyToggle');
+  if(profileCompanyToggle){
+    profileCompanyToggle.addEventListener('click', function(){
+      showCompanyBlock(true);
+      const champ = document.getElementById('profileCompany');
+      if(champ) champ.focus();
+    });
+  }
+
   function renderProfileForm(){
     if(!currentUser) return;
     document.getElementById('profileName').value = currentUser.name || '';
@@ -34,6 +54,7 @@
     document.getElementById('profilePhone').value = currentUser.phone || '';
     document.getElementById('profileNif').value = currentUser.nif || '';
     document.getElementById('profileStat').value = currentUser.stat || '';
+    showCompanyBlock(!!(currentUser.company || currentUser.nif || currentUser.stat));
     const savedProfile = (typeof findProfile === 'function') ? findProfile(currentUser.name || '') : null;
     const codeInput = document.getElementById('profileAccessCode');
     // avec Supabase le mot de passe n’est pas conservé ici : le champ reste vide
