@@ -47,6 +47,7 @@
     const marginX = 14;
     const rightX = pageW - marginX;
     const emissEmail = currentUser && currentUser.email ? currentUser.email : '—';
+    const emissName = currentUser && currentUser.name ? currentUser.name : '';
     const emissCompany = currentUser && currentUser.company ? currentUser.company : '';
     const emissPhone = currentUser && currentUser.phone ? currentUser.phone : '';
     const emissNif = currentUser && currentUser.nif ? currentUser.nif : '';
@@ -83,7 +84,18 @@
     if(emissNif) nifStatParts.push('NIF : ' + emissNif);
     if(emissStat) nifStatParts.push('STAT : ' + emissStat);
     const headerLines = [];
-    if(emissCompany) headerLines.push({ text: emissCompany, bold: true, size: 11 });
+    // Le nom manquait : seule la société ouvrait l'en-tête, et une facture
+    // établie sans société sortait sans dire de qui elle venait. La société
+    // reste en tête quand elle existe, le nom la suit ; sinon le nom prend
+    // sa place.
+    if(emissCompany){
+      headerLines.push({ text: emissCompany, bold: true, size: 11 });
+      if(emissName && emissName !== emissCompany){
+        headerLines.push({ text: emissName, bold: false, size: 9.5 });
+      }
+    } else if(emissName){
+      headerLines.push({ text: emissName, bold: true, size: 11 });
+    }
     headerLines.push({ text: emissEmail, bold: false, size: 9.5 });
     if(emissPhone) headerLines.push({ text: emissPhone, bold: false, size: 9 });
     if(nifStatParts.length) headerLines.push({ text: nifStatParts.join('   '), bold: false, size: 8.5 });
@@ -202,7 +214,10 @@
       '\nTotal : ' + formatAr(total) + '\n' +
       'Date : ' + new Date().toLocaleDateString('fr-FR') + '\n\n' +
       'Merci de votre confiance.\n\n' +
+      // Même signature que sur le PDF : le nom y manquait aussi.
       (currentUser && currentUser.company ? currentUser.company + '\n' : '') +
+      (currentUser && currentUser.name && currentUser.name !== (currentUser.company || '')
+        ? currentUser.name + '\n' : '') +
       (currentUser && currentUser.email ? currentUser.email : '') +
       (currentUser && currentUser.phone ? '\n' + currentUser.phone : '') +
       (currentUser && currentUser.nif ? '\nNIF : ' + currentUser.nif : '') +
