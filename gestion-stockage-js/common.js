@@ -350,17 +350,11 @@ const STORAGE_ITEMS = 'stockmanager_items';
     const badge = document.getElementById('notifBadge');
     if(!listEl || !badge) return;
     const unread = list.filter(function(n){ return !n.read; }).length;
-    // Deux endroits pour un meme chiffre : dans le menu ouvert, et sur le
-    // bouton lui-meme — c'est le seul visible tant que le menu est ferme.
-    const pastille = document.getElementById('menuBadge');
-    const texte = unread > 9 ? '9+' : String(unread);
     if(unread > 0){
       badge.style.display = 'block';
-      badge.textContent = texte;
-      if(pastille){ pastille.style.display = 'block'; pastille.textContent = texte; }
+      badge.textContent = unread > 9 ? '9+' : String(unread);
     } else {
       badge.style.display = 'none';
-      if(pastille) pastille.style.display = 'none';
     }
     if(!list.length){
       listEl.innerHTML = '<div class="notif-empty">Aucune notification.</div>';
@@ -2285,9 +2279,8 @@ const STORAGE_ITEMS = 'stockmanager_items';
 
   // ---------------- NAVIGATION ----------------
   var menuToggle = document.getElementById('menuToggle');
-  var menuIcon = document.getElementById('menuIcon') || menuToggle;
-  // Le panneau des notifications s'ouvre lui aussi a cote du bouton flottant,
-  // ou qu'on l'ait pose ; la fonction est fournie par le bloc ci-dessous.
+  // Le panneau des achats s'ouvre lui aussi a cote du bouton flottant, ou
+  // qu'on l'ait pose ; la fonction est fournie par le bloc ci-dessous.
   var placerPresDuMenu = function(){};
   var navList = document.getElementById('navList');
   if(menuToggle && navList){
@@ -2311,7 +2304,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
       menuToggle.style.display = visible ? 'flex' : 'none';
       if(!visible){
         navList.classList.remove('open');
-        menuIcon.textContent = '☰';
+        menuToggle.textContent = '☰';
         menuToggle.setAttribute('aria-expanded', 'false');
       }
     }
@@ -2416,7 +2409,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
       // Simple appui : on ouvre ou on ferme.
       const isOpen = navList.classList.toggle('open');
       menuToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-      menuIcon.textContent = isOpen ? '✕' : '☰';
+      menuToggle.textContent = isOpen ? '✕' : '☰';
       if(isOpen) requestAnimationFrame(placerPanneau);
       updateTopbarHeight();
     }
@@ -2433,26 +2426,12 @@ const STORAGE_ITEMS = 'stockmanager_items';
   var notifToggle = document.getElementById('notifToggle');
   var notifPanel = document.getElementById('notifPanel');
   if(notifToggle && notifPanel){
-    // Range dans le menu, le panneau serait rogne par la liste qui defile :
-    // il flotte donc lui aussi, a cote du bouton.
-    document.body.appendChild(notifPanel);
-    notifPanel.style.position = 'fixed';
-    notifPanel.style.right = 'auto';
-    notifPanel.style.zIndex = '130';
-
     notifToggle.addEventListener('click', function(e){
       e.stopPropagation();
       var isOpen = notifPanel.style.display === 'block';
       notifPanel.style.display = isOpen ? 'none' : 'block';
       notifToggle.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
       if(!isOpen){
-        // Le menu s'efface : les deux listes se recouvriraient sinon.
-        if(navList){
-          navList.classList.remove('open');
-          menuIcon.textContent = '☰';
-          menuToggle.setAttribute('aria-expanded', 'false');
-        }
-        placerPresDuMenu(notifPanel);
         var mp = document.getElementById('marketPanel');
         if(mp){
           mp.style.display = 'none';
@@ -2467,9 +2446,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
       }
     });
     document.addEventListener('click', function(e){
-      // .contains et non !== : le bouton porte maintenant du texte et une
-      // pastille, et c'est l'un d'eux que le clic designe.
-      if(notifPanel.style.display === 'block' && !notifPanel.contains(e.target) && !notifToggle.contains(e.target)){
+      if(notifPanel.style.display === 'block' && !notifPanel.contains(e.target) && e.target !== notifToggle){
         notifPanel.style.display = 'none';
         notifToggle.setAttribute('aria-expanded', 'false');
       }
@@ -2480,12 +2457,26 @@ const STORAGE_ITEMS = 'stockmanager_items';
   var marketToggle = document.getElementById('marketToggle');
   var marketPanel = document.getElementById('marketPanel');
   if(marketToggle && marketPanel){
+    // Range dans le menu, le panneau serait rogne par la liste qui defile :
+    // il flotte donc lui aussi, a cote du bouton.
+    document.body.appendChild(marketPanel);
+    marketPanel.style.position = 'fixed';
+    marketPanel.style.right = 'auto';
+    marketPanel.style.zIndex = '130';
+
     marketToggle.addEventListener('click', function(e){
       e.stopPropagation();
       var isOpen = marketPanel.style.display === 'block';
       marketPanel.style.display = isOpen ? 'none' : 'block';
       marketToggle.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
       if(!isOpen){
+        // Le menu s'efface : les deux listes se recouvriraient sinon.
+        if(navList){
+          navList.classList.remove('open');
+          menuToggle.textContent = '☰';
+          menuToggle.setAttribute('aria-expanded', 'false');
+        }
+        placerPresDuMenu(marketPanel);
         // une seule liste ouverte à la fois
         if(notifPanel){
           notifPanel.style.display = 'none';
@@ -2495,7 +2486,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
       }
     });
     document.addEventListener('click', function(e){
-      if(marketPanel.style.display === 'block' && !marketPanel.contains(e.target) && e.target !== marketToggle){
+      // .contains et non !== : le bouton porte maintenant un libelle, et
+      // c'est lui que le clic designe.
+      if(marketPanel.style.display === 'block' && !marketPanel.contains(e.target) && !marketToggle.contains(e.target)){
         marketPanel.style.display = 'none';
         marketToggle.setAttribute('aria-expanded', 'false');
       }
@@ -2530,7 +2523,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
       // ferme le menu mobile après avoir choisi une section
       if(navList && navList.classList.contains('open')){
         navList.classList.remove('open');
-        if(menuToggle){ menuIcon.textContent = '☰'; menuToggle.setAttribute('aria-expanded','false'); }
+        if(menuToggle){ menuToggle.textContent = '☰'; menuToggle.setAttribute('aria-expanded','false'); }
       }
       saveLastView();
     });
