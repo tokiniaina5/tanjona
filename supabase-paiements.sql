@@ -28,9 +28,8 @@ alter table public.contact_channels add column if not exists airtel_money text; 
 -- l'arrivée de l'argent avant de débloquer.
 alter table public.unlock_requests add column if not exists payment_method text default 'paypal';
 
--- Renseignées par la fonction "paypal-webhook" quand PayPal annonce que
--- l'argent est réellement arrivé. Tant que le solde ne bouge pas, elles
--- restent vides et rien ne se déclenche.
+-- Historique des déblocages d'avant le paiement par crédits, quand
+-- l'argent venait encore du dehors.
 alter table public.unlock_requests add column if not exists paid_amount numeric;
 alter table public.unlock_requests add column if not exists paid_currency text;
 alter table public.unlock_requests add column if not exists paid_amount_ar numeric;

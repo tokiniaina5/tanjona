@@ -306,15 +306,14 @@ create table if not exists public.unlock_requests (
 
 -- si la table existe déjà depuis une version précédente
 alter table public.unlock_requests add column if not exists device_hash text;
--- 'paypal', 'card' ou 'bank' : dit au propriétaire sur quel compte vérifier
--- l'arrivée de l'argent avant de confirmer.
+-- 'wallet' depuis que le déblocage se paie avec les crédits du portefeuille.
+-- Les anciennes valeurs ('paypal', 'card', 'mobile', 'bank') restent lisibles
+-- dans l'historique.
 alter table public.unlock_requests add column if not exists payment_method text default 'paypal';
--- Renseignées par la fonction "paypal-webhook" quand PayPal annonce que
--- l'argent est réellement arrivé sur le compte du propriétaire. Tant que le
--- solde ne bouge pas, elles restent vides et rien ne se déclenche.
+-- Colonnes de l'époque où l'argent venait du dehors : conservées pour que
+-- l'historique déjà enregistré se relise tel quel.
 alter table public.unlock_requests add column if not exists paid_amount numeric;
 alter table public.unlock_requests add column if not exists paid_currency text;
--- La somme reçue convertie en ariary, pour la comparer aux 20 000 Ar.
 alter table public.unlock_requests add column if not exists paid_amount_ar numeric;
 alter table public.unlock_requests add column if not exists auto_confirmed boolean default false;
 alter table public.unlock_requests add column if not exists paypal_capture_id text;
