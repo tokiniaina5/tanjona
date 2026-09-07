@@ -331,6 +331,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
     renderNotifications();
   }
   function notifIcon(type){
+    if(type === 'sortie') return '📤';
+    // 'vente' n'est plus produit, mais les anciennes notifications le portent
+    // encore : sans cette ligne elles perdraient leur icône.
     if(type === 'vente') return '🛒';
     if(type === 'achat') return '📥';
     if(type === 'facture') return '🧾';
@@ -2402,7 +2405,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
   // les images du fil d'actualité changent la hauteur en arrivant
   document.addEventListener('load', queueTopbarMeasure, true);
 
-  // Les onglets secondaires (Tableau de bord, Historique, Ajouter, Vente...)
+  // Les onglets secondaires (Tableau de bord, Historique, Ajouter, Acheter...)
   // ne sont utiles qu'une fois dans « Articles » : on les masque sur l'Accueil.
   function updateSubTabsVisibility(){
     const subTabs = document.getElementById('stockSubTabs');
@@ -2426,7 +2429,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
       view.classList.add('active');
       if(tab.dataset.dash === 'dashboard'){ renderFilters(); renderDashboard(); }
       if(tab.dataset.dash === 'accueil'){ renderCommunityPanel(); }
-      // Historique / Ajouter : averina soratana mba ho mifanaraka amin'ny vente
+      // Historique / Ajouter : averina soratana mba ho mifanaraka amin'ny stock
       // sy ny achat vao vita (état du stock sy mouvements tsy ho tara).
       if(tab.dataset.dash === 'historique'){
         if(typeof renderMovementsHistory === 'function') renderMovementsHistory();
@@ -2436,11 +2439,6 @@ const STORAGE_ITEMS = 'stockmanager_items';
       }
       if(tab.dataset.dash === 'articles'){
         if(typeof renderStock === 'function') renderStock();
-      }
-      if(tab.dataset.dash === 'vente'){
-        if(typeof populateVenteItemSelect === 'function') populateVenteItemSelect();
-        if(typeof populateVenteClientSelect === 'function') populateVenteClientSelect();
-        if(typeof updateVenteInfo === 'function') updateVenteInfo();
       }
       if(tab.dataset.dash === 'acheter'){
         if(typeof populateAcheterItemSelect === 'function') populateAcheterItemSelect();

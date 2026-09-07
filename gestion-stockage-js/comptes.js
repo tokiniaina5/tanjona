@@ -37,7 +37,6 @@
           document.getElementById('clientDetailPanel').style.display = 'none';
         }
         renderClientsList();
-        if(typeof populateVenteClientSelect === 'function') populateVenteClientSelect();
       });
     });
   }
@@ -54,7 +53,6 @@
       document.getElementById('clientName').value = '';
       document.getElementById('clientPhone').value = '';
       renderClientsList();
-      if(typeof populateVenteClientSelect === 'function') populateVenteClientSelect();
     });
   }
 

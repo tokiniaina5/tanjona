@@ -461,7 +461,6 @@
           <div class="dash-tab" data-dash="dashboard">📊 Tableau de bord</div>
           <div class="dash-tab" data-dash="historique">📜 Historique des mouvements</div>
           <div class="dash-tab" data-dash="ajouter">➕ Ajouter</div>
-          <div class="dash-tab" data-dash="vente">💵 Vente</div>
           <div class="dash-tab" data-dash="acheter">🛒 Acheter</div>
           <div class="dash-tab" data-dash="comptes">👥 Gestion de compte</div>
         </div>
@@ -654,49 +653,6 @@
             </div>
 
         </div>
-
-          <!-- ===== VENTE ===== -->
-          <div class="dash-view" id="dash-vente">
-            <div class="panel">
-              <h3>💵 Vente</h3>
-              <p style="font-size:0.8rem; color:var(--muted); margin-bottom:0.8rem;">Misafidiana entana : ny stock dia hihena avy hatrany rehefa mivarotra.</p>
-              <div class="form-grid">
-                <div class="field" style="margin-bottom:0;">
-                  <label>Article</label>
-                  <select id="venteItemSelect"><option value="">— Choisir —</option></select>
-                </div>
-                <div class="field" style="margin-bottom:0;">
-                  <label>Quantité</label>
-                  <input id="venteQty" type="number" min="1" value="1">
-                </div>
-                <div class="field" style="margin-bottom:0;">
-                  <label>Stock disponible</label>
-                  <input id="venteStockAvail" type="text" readonly>
-                </div>
-                <div class="field" style="margin-bottom:0;">
-                  <label>Prix unitaire</label>
-                  <input id="venteUnitPrice" type="text" readonly>
-                </div>
-                <div class="field" style="margin-bottom:0;">
-                  <label>Total</label>
-                  <input id="venteTotal" type="text" readonly>
-                </div>
-                <div class="field" style="margin-bottom:0;">
-                  <label>Type de vente</label>
-                  <select id="venteType">
-                    <option value="comptant">Comptant (payé)</option>
-                    <option value="credit">Crédit (an-tsipiriany)</option>
-                  </select>
-                </div>
-                <div class="field" id="venteClientField" style="display:none; margin-bottom:0;">
-                  <label>Client</label>
-                  <select id="venteClientSelect"><option value="">— Choisir un client —</option></select>
-                </div>
-                <button class="btn btn-primary" id="venteConfirmBtn" style="width:auto;">Vendre</button>
-              </div>
-              <p id="venteStatus" style="font-size:0.8rem; color:var(--muted); margin-top:0.8rem;"></p>
-            </div>
-          </div>
 
           <!-- ===== ACHETER ===== -->
           <div class="dash-view" id="dash-acheter">

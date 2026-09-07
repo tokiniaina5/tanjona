@@ -145,7 +145,9 @@
       date: new Date().toISOString(), day: dayKey(new Date())
     });
     saveMovements(movements);
-    pushNotification('vente', 'Entana « ' + item.name + ' » efa lafo : ' + qty + ' unité(s).');
+    // Sans la vente, une sortie n'est plus qu'un mouvement de stock : le dire
+    // « vendu » laisserait croire à une recette qui n'a pas été enregistrée.
+    pushNotification('sortie', 'Entana « ' + item.name + ' » nesorina tao amin\'ny stock : ' + qty + ' unité(s).');
 
     if(item.qty <= 0){
       items.splice(idx, 1);
@@ -175,7 +177,7 @@
   }
   purgeExpiredOrphanMovements();
 
-  // Note : Ajouter / Vente / Acheter / Gestion de compte dia lasa dash-tab
+  // Note : Ajouter / Acheter / Gestion de compte dia lasa dash-tab
   // lehibe mitovy amin'ny Accueil/Tableau de bord, mipetraka aorian'ny
   // "Articles" — ny fifandimbiasany dia votoatin'ilay listener ".dash-tab"
   // ao amin'ny common.js ankehitriny.
