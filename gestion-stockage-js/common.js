@@ -432,7 +432,13 @@ const STORAGE_ITEMS = 'stockmanager_items';
     }
     if(view.dash){
       const tab = document.querySelector('.dash-tab[data-dash="' + view.dash + '"]');
-      if(tab && !tab.classList.contains('active')) tab.click();
+      if(tab){
+        if(!tab.classList.contains('active')) tab.click();
+      } else if(typeof showDashView === 'function'){
+        // « Acheter » n'a plus d'onglet : sans ce recours, la vue quittée à la
+        // fermeture ne revenait plus à l'ouverture suivante.
+        showDashView(view.dash);
+      }
     }
     if(typeof updateSubTabsVisibility === 'function') updateSubTabsVisibility();
   }
@@ -2415,6 +2421,28 @@ const STORAGE_ITEMS = 'stockmanager_items';
     subTabs.style.display = dash === 'accueil' ? 'none' : '';
   }
   updateSubTabsVisibility();
+
+  // « Acheter » n'a plus d'onglet : on y entre depuis une annonce de l'Accueil.
+  // Il faut donc pouvoir montrer une vue sans qu'un onglet la porte.
+  function showDashView(nom){
+    const view = document.getElementById('dash-' + nom);
+    if(!view) return false;
+    document.querySelectorAll('.dash-tab').forEach(function(t){ t.classList.remove('active'); });
+    document.querySelectorAll('.dash-view').forEach(function(v){ v.classList.remove('active'); });
+    view.classList.add('active');
+    const tab = document.querySelector('.dash-tab[data-dash="' + nom + '"]');
+    if(tab) tab.classList.add('active');
+    if(typeof updateSubTabsVisibility === 'function') updateSubTabsVisibility();
+    return true;
+  }
+
+  const backToAccueilBtn = document.getElementById('backToAccueilBtn');
+  if(backToAccueilBtn){
+    backToAccueilBtn.addEventListener('click', function(){
+      const tab = document.querySelector('.dash-tab[data-dash="accueil"]');
+      if(tab) tab.click();
+    });
+  }
 
   document.querySelectorAll('.dash-tab').forEach(function(tab){
     tab.addEventListener('click', function(){

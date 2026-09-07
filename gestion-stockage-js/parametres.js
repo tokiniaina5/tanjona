@@ -275,8 +275,8 @@
   // vendeur. Il ne reste qu'à confirmer la quantité — recopier ces trois
   // choses de mémoire est le meilleur moyen de se tromper de prix.
   function buyFromPost(post){
-    const nav = document.querySelector('.dash-tab[data-dash="acheter"]');
-    if(nav) nav.click();
+    if(typeof showDashView === 'function') showDashView('acheter');
+    if(typeof populateAcheterItemSelect === 'function') populateAcheterItemSelect();
 
     const select = document.getElementById('acheterItemSelect');
     const nom = document.getElementById('acheterItemName');
