@@ -102,6 +102,9 @@
   .fb-post-actions{ display:flex; gap:1.2rem; margin-top:0.9rem; padding-top:0.7rem; border-top:1px solid var(--line); }
   .fb-post-actions span{ font-size:0.78rem; color:var(--muted); }
   .fb-share-action:hover{ color:var(--cyan); }
+  /* L'achat est la seule action de la rangée qui engage : elle se voit. */
+  .fb-buy-action{ font-weight:600; }
+  .fb-buy-action:hover{ text-decoration:underline; }
 
   /* ---------- Fampitandremana rohy an-toerana (localhost / file://) ---------- */
   .local-link-warning{

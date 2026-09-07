@@ -271,6 +271,43 @@
     }, shareTextOnly);
   }
 
+  // Ouvre « Acheter » avec ce que l'annonce dit déjà : le nom, le prix, le
+  // vendeur. Il ne reste qu'à confirmer la quantité — recopier ces trois
+  // choses de mémoire est le meilleur moyen de se tromper de prix.
+  function buyFromPost(post){
+    const nav = document.querySelector('.dash-tab[data-dash="acheter"]');
+    if(nav) nav.click();
+
+    const select = document.getElementById('acheterItemSelect');
+    const nom = document.getElementById('acheterItemName');
+    const prix = document.getElementById('acheterPrice');
+    const fournisseur = document.getElementById('acheterSupplier');
+    const qty = document.getElementById('acheterQty');
+    const statut = document.getElementById('acheterStatus');
+
+    // Le libellé de l'annonce sert de nom d'article, sur sa première ligne.
+    const titre = (post.message || '').split('\n')[0].trim().slice(0, 60);
+
+    // Si l'article existe déjà en stock, on le complète plutôt que d'en créer
+    // un jumeau qui compterait à part.
+    const existant = items.find(function(it){
+      return titre && it.name.trim().toLowerCase() === titre.toLowerCase();
+    });
+
+    if(select) select.value = existant ? existant.id : '';
+    if(select) select.dispatchEvent(new Event('change'));
+    if(!existant && nom) nom.value = titre;
+    if(prix && post.price) prix.value = post.price;
+    if(fournisseur) fournisseur.value = post.client_name || '';
+    if(qty) qty.value = 1;
+    if(statut){
+      statut.textContent = existant
+        ? 'Entana efa ao amin\'ny stock : ampio ny isa, dia tsindrio « Acheter ».'
+        : 'Feno ho anao avy amin\'ny fanambarana. Jereo ny isa, dia tsindrio « Acheter ».';
+    }
+    if(nom || select) (existant ? qty : nom || qty).focus();
+  }
+
   function renderCommunityNews(){
     const list = document.getElementById('communityNewsList');
     const emptyHint = document.getElementById('communityNewsEmpty');
@@ -317,10 +354,20 @@
             (n.price ? '<div class="fb-post-price">' + formatAr(n.price) + '</div>' : '') +
             (n.link ? '<a href="' + escapeHtml(n.link) + '" target="_blank" rel="noopener" class="fb-post-link">🔗 ' + escapeHtml(n.link) + '</a>' : '') +
             '<div class="fb-post-actions"><span>👍 J\'aime</span><span>💬 Commenter</span>' +
+            // L'achat part de l'annonce elle-même : c'est là qu'on voit la
+            // marchandise et son prix, pas dans un onglet qu'il faut aller
+            // chercher ensuite en retapant tout de tête.
+            (type === 'entana'
+              ? '<span class="fb-buy-action" data-buy style="cursor:pointer; color:var(--cyan);">🛒 Acheter</span>'
+              : '') +
             '<span class="fb-share-action" data-share style="cursor:pointer;">↗️ Partager</span></div>';
           const shareEl = div.querySelector('[data-share]');
           if(shareEl){
             shareEl.addEventListener('click', function(){ sharePost(n); });
+          }
+          const buyEl = div.querySelector('[data-buy]');
+          if(buyEl){
+            buyEl.addEventListener('click', function(){ buyFromPost(n); });
           }
           list.appendChild(div);
         });
@@ -406,6 +453,17 @@
     });
   }
 
+  // Le champ du prix n'apparaît que si l'on annonce une marchandise : il n'a
+  // rien à faire devant quelqu'un qui écrit une nouvelle ordinaire.
+  const newsIsGoods = document.getElementById('newsIsGoods');
+  const newsPrice = document.getElementById('newsPrice');
+  if(newsIsGoods && newsPrice){
+    newsIsGoods.addEventListener('change', function(){
+      newsPrice.style.display = newsIsGoods.checked ? 'inline-block' : 'none';
+      if(newsIsGoods.checked) newsPrice.focus();
+    });
+  }
+
   const postNewsBtn = document.getElementById('postNewsBtn');
   if(postNewsBtn){
     postNewsBtn.addEventListener('click', function(){
@@ -415,10 +473,15 @@
       const clientName = (currentUser && currentUser.name) || 'Client';
       window.__sb.from('client_news').insert({
         client_name: clientName, network: 'Autre', message: message, link: '',
-        type: 'vaovao', price: null,
+        // Une annonce marquée « entana amidy » porte son prix, et c'est elle
+        // qui fera apparaître le bouton Acheter chez les autres.
+        type: (newsIsGoods && newsIsGoods.checked) ? 'entana' : 'vaovao',
+        price: (newsIsGoods && newsIsGoods.checked && newsPrice && newsPrice.value) ? Number(newsPrice.value) : null,
         image: pendingNewsImages.length ? JSON.stringify(pendingNewsImages) : null
       }).then(function(){
         document.getElementById('newsMessage').value = '';
+        if(newsIsGoods){ newsIsGoods.checked = false; }
+        if(newsPrice){ newsPrice.value = ''; newsPrice.style.display = 'none'; }
         clearNewsImages();
         renderCommunityNews();
       }, function(){ alert("Tsy voaray ny fanambarana."); });
