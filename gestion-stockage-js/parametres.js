@@ -496,6 +496,14 @@
     });
     if(!fresh.length) return;
     fresh.forEach(function(r){
+      // Un déblocage payé avec le portefeuille ne fait entrer aucune somme :
+      // ce sont des crédits qui changent de main. Le dire comme tel, plutôt
+      // que d'annoncer un argent qui n'est jamais arrivé.
+      if(r.payment_method === 'wallet'){
+        pushNotification('parrainage', '💰 ' + (r.name || r.email) + ' s\'est débloqué avec ' +
+          (Number(r.amount) || 0) + ' crédits de son portefeuille — ils sont passés au vôtre.');
+        return;
+      }
       const recu = r.paid_amount
         ? Number(r.paid_amount).toLocaleString('fr-FR') + ' ' + (r.paid_currency || '')
         : (Number(r.amount) || 20000).toLocaleString('fr-FR') + ' Ar';
@@ -555,7 +563,10 @@
               'Email : ' + escapeAdminHtml(row.email || '—') + '<br>' +
               'Téléphone : ' + escapeAdminHtml(row.phone || '—') + '<br>' +
               'Message : ' + escapeAdminHtml(row.message || '—') + '<br>' +
-              'Montant : <strong style="color:var(--text);">' + (row.amount || 20000).toLocaleString('fr-FR') + ' Ar</strong><br>' +
+              'Montant : <strong style="color:var(--text);">' +
+                (row.payment_method === 'wallet'
+                  ? (Number(row.amount) || 0) + ' crédits'
+                  : (row.amount || 20000).toLocaleString('fr-FR') + ' Ar') + '</strong><br>' +
               'Payé par : <strong style="color:var(--text);">' + escapeAdminHtml(paymentMethodLabel(row.payment_method)) + '</strong><br>' +
               'Référence : ' + escapeAdminHtml(row.paypal_reference || '—') + '<br>' +
               'Reçue le : ' + new Date(row.created_at).toLocaleString('fr-FR') + '<br>' +

@@ -8,23 +8,10 @@
     // (invitation, fanambarana Live…). Raha tsy voafeno dia ny adiresy an'ity
     // pejy ity no alaina — izay tsy misokatra amin'ny olon-kafa raha localhost.
     { key: 'site_url', inputId: 'contactSiteUrlInput' },
-    // PayPal du propriétaire : frais de déblocage d'un compte fermé
-    { key: 'paypal', inputId: 'contactPaypalInput' },
-    // Page de paiement par carte internationale, pour un client sans PayPal :
-    // l'argent arrive sur le compte bancaire du propriétaire.
-    { key: 'card_link', inputId: 'contactCardLinkInput' },
-    // Virement direct sur le compte bancaire du propriétaire : coordonnées
-    // affichées au client qui demande un déblocage.
-    { key: 'bank_label', inputId: 'contactBankLabelInput' },
-    { key: 'bank_code', inputId: 'contactBankCodeInput' },
-    { key: 'bank_agency', inputId: 'contactBankAgencyInput' },
-    { key: 'bank_account', inputId: 'contactBankAccountInput' },
-    { key: 'bank_key', inputId: 'contactBankKeyInput' },
-    // Mobile Money : le moyen de paiement de la plupart des clients à
-    // Madagascar, qui n'ont ni PayPal, ni carte, ni compte bancaire.
-    { key: 'mvola', inputId: 'contactMvolaInput' },
-    { key: 'orange_money', inputId: 'contactOrangeMoneyInput' },
-    { key: 'airtel_money', inputId: 'contactAirtelMoneyInput' },
+    // Les coordonnées de paiement (PayPal, carte, virement, Mobile Money) ne
+    // sont plus demandées : le déblocage se règle avec les crédits du
+    // portefeuille, sans que rien ne sorte de l'application. Les colonnes
+    // restent en base pour l'historique déjà enregistré.
     { key: 'whatsapp', inputId: 'contactWhatsappInput' },
     { key: 'facebook', inputId: 'contactFacebookInput' },
     { key: 'instagram', inputId: 'contactInstagramInput' },
@@ -318,17 +305,6 @@
         channels[field.key] = input ? input.value.trim() : '';
       });
       const status = document.getElementById('contactChannelsStatus');
-      // Une adresse du tableau de bord PayPal ne fait payer personne : mieux
-      // vaut refuser ici que laisser un client tourner en rond. Rien n'est
-      // enregistré, ni en local ni sur le serveur, tant que c'est celle-là.
-      const mauvaisLien = ['paypal', 'card_link'].filter(function(key){
-        return typeof isPaypalDashboardUrl === 'function' && isPaypalDashboardUrl(channels[key] || '');
-      });
-      if(mauvaisLien.length){
-        status.textContent = 'Non enregistré : cette adresse est votre tableau de bord PayPal, pas un lien de paiement. ' +
-          'Mettez votre lien PayPal.Me (https://paypal.me/votrenom), un lien de paiement PayPal, ou simplement votre email PayPal.';
-        return;
-      }
       saveContactChannelsLocal(channels);
       if(!window.__sb){
         renderContactButtons();

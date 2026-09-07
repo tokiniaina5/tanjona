@@ -11,30 +11,6 @@ const STORAGE_ITEMS = 'stockmanager_items';
   const OWNER_EMAIL = 'rasolofonirainytokiniaina@gmail.com';
   const OWNER_NAME = 'Rasolofonirainy Tokiniaina Tanjona';
   const OWNER_PHONE = '034 37 058 34';
-  // Compte bancaire où arrivent les frais de déblocage virés par un client.
-  // Ce sont des coordonnées de RÉCEPTION : elles sont faites pour être montrées.
-  // Valeurs de départ seulement — le panneau admin « Nous contacter » les
-  // remplace pour tous les clients sans toucher au code.
-  const OWNER_BANK = {
-    bank_label: '',
-    bank_code: '00008',
-    bank_agency: '03016',
-    bank_account: '05001514368',
-    bank_key: '86'
-  };
-  // Mobile Money : c'est par là que paient la plupart des clients à
-  // Madagascar. Mêmes règles que ci-dessus — le panneau admin les remplace.
-  const OWNER_MOBILE_MONEY = {
-    mvola: OWNER_PHONE,
-    orange_money: '',
-    airtel_money: ''
-  };
-  const MOBILE_MONEY_LABELS = {
-    mvola: 'MVola',
-    orange_money: 'Orange Money',
-    airtel_money: 'Airtel Money'
-  };
-
   // Remplit tous les éléments marqués data-owner="name|phone|email".
   function renderOwnerIdentity(){
     const values = { name: OWNER_NAME, phone: OWNER_PHONE, email: OWNER_EMAIL };
@@ -1288,259 +1264,25 @@ const STORAGE_ITEMS = 'stockmanager_items';
     return true;
   }
 
-  // ---------------- DEMANDE DE DÉBLOCAGE ----------------
+  // ---------------- DÉBLOCAGE PAYÉ AVEC LE PORTEFEUILLE ----------------
   // Pour un compte fermé (abonnement à régler ou compte suspendu), pas pour un
   // mot de passe perdu : celui-ci se règle seul avec le lien envoyé par email.
-  // Le client envoie une lettre de demande au propriétaire de l'application ;
-  // celui-ci lui renvoie le code de validation généré ici, qui rouvre l'accès
-  // sur cet appareil (les données de l'application y sont déjà enregistrées).
-  const forgotToggleBtn = document.getElementById('forgotToggleBtn');
-  if(forgotToggleBtn){
-    forgotToggleBtn.addEventListener('click', function(){
-      const box = document.getElementById('forgotBox');
-      const open = box.style.display === 'block';
-      closeHelpBoxes();
-      box.style.display = open ? 'none' : 'block';
-      if(!open){
-        const quickEmail = document.getElementById('quickEmail').value.trim();
-        if(quickEmail && !document.getElementById('forgotEmail').value){
-          document.getElementById('forgotEmail').value = quickEmail;
-        }
-        if(typeof showPaypalTarget === 'function') showPaypalTarget();
-        const known = findProfileByEmail(document.getElementById('forgotEmail').value);
-        if(known){
-          if(!document.getElementById('forgotName').value) document.getElementById('forgotName').value = known.name || '';
-          if(!document.getElementById('forgotPhone').value) document.getElementById('forgotPhone').value = known.phone || '';
-        }
-      }
-    });
-  }
+  //
+  // Le déblocage se paie avec les crédits de parrainage du portefeuille. Rien
+  // ne sort de l'application : les crédits passent du portefeuille du client à
+  // celui du propriétaire, et l'accès se rouvre dans la foulée. Plus de somme
+  // à envoyer au dehors, plus de référence à recopier, plus d'attente qu'un
+  // humain constate l'arrivée de l'argent.
+  const UNLOCK_COST_CREDITS = 20;
 
-  function forgotRequestLetter(name, email, phone, message, reference, method){
-    return [
-      'Bonjour,',
-      '',
-      'Un utilisateur de Gestion de Stockage a son accès bloqué et demande ' +
-      'le déblocage de son compte :',
-      '',
-      'Nom : ' + name,
-      'Email : ' + email,
-      'Téléphone : ' + (phone || '—'),
-      'Message : ' + (message || '—'),
-      '',
-      'Frais de déblocage : 20 000 Ar',
-      'Moyen de paiement : ' + paymentMethodLabel(method),
-      'Référence du paiement : ' + (reference || '—'),
-      '',
-      'La demande apparaît aussi dans Paramètres > « Demandes de déblocage ».',
-      'Vérifiez d\'abord que l\'argent est bien arrivé sur votre compte, puis',
-      'cliquez sur « Argent reçu — débloquer » : son accès se rouvre tout seul',
-      'sur son appareil et la notification part des deux côtés, aucun code à transmettre.',
-      '',
-      'Destinataire : ' + OWNER_NAME + ' — ' + OWNER_EMAIL
-    ].join('\n');
-  }
-
-  // ---- Frais de déblocage : PayPal ou carte internationale ----
-  const UNLOCK_FEE_AR = 20000;
-
-  // Dit au propriétaire où regarder l'arrivée de l'argent avant de confirmer.
+  // Les demandes d'avant ce changement portent encore leur ancien moyen de
+  // paiement : le propriétaire doit pouvoir relire son historique.
   function paymentMethodLabel(method){
-    if(method === 'card') return 'Carte Visa / Mastercard (compte bancaire)';
+    if(method === 'wallet') return 'Crédits du portefeuille';
+    if(method === 'card') return 'Carte Visa / Mastercard';
     if(method === 'bank') return 'Virement bancaire';
-    if(method === 'mobile') return 'Mobile Money (MVola / Orange / Airtel)';
+    if(method === 'mobile') return 'Mobile Money';
     return 'PayPal';
-  }
-
-  function ownerPaypal(){
-    try{
-      if(typeof loadContactChannelsLocal === 'function'){
-        return (loadContactChannelsLocal().paypal || '').trim();
-      }
-    }catch(e){}
-    return '';
-  }
-
-  // Page de paiement par carte internationale : l'argent va sur le compte
-  // bancaire du propriétaire sans que le client ait besoin d'un compte PayPal.
-  function ownerCardLink(){
-    try{
-      if(typeof loadContactChannelsLocal === 'function'){
-        return (loadContactChannelsLocal().card_link || '').trim();
-      }
-    }catch(e){}
-    return '';
-  }
-
-  // Coordonnées de virement : celles du panneau admin si elles sont remplies,
-  // sinon celles fournies à l'installation.
-  function ownerBank(){
-    let saved = {};
-    try{
-      if(typeof loadContactChannelsLocal === 'function') saved = loadContactChannelsLocal() || {};
-    }catch(e){}
-    // Dès que le panneau admin a été enregistré une fois, il fait autorité —
-    // y compris pour retirer le virement en vidant le numéro de compte. Une
-    // colonne jamais remplie vaut null : là, les valeurs de départ servent.
-    const source = (saved.bank_account === null || saved.bank_account === undefined)
-      ? OWNER_BANK : saved;
-    const bank = {};
-    Object.keys(OWNER_BANK).forEach(function(key){
-      bank[key] = (source[key] || '').trim();
-    });
-    return bank;
-  }
-
-  // Un virement n'est possible que si le compte lui-même est connu.
-  function bankTransferText(){
-    const bank = ownerBank();
-    if(!bank.bank_account) return '';
-    return [
-      bank.bank_label ? 'Banque : ' + bank.bank_label : '',
-      'Code banque : ' + (bank.bank_code || '—'),
-      'Code agence : ' + (bank.bank_agency || '—'),
-      'Numéro de compte : ' + bank.bank_account,
-      'Clé RIB : ' + (bank.bank_key || '—'),
-      'Titulaire : ' + OWNER_NAME,
-      'Montant : ' + UNLOCK_FEE_AR.toLocaleString('fr-FR') + ' Ar'
-    ].filter(Boolean).join('\n');
-  }
-
-  // À l'ouverture, seuls les boutons sont là. Les chiffres n'arrivent qu'une
-  // fois le moyen choisi : celui qui paie par PayPal ou par carte n'a pas à
-  // les lire, et l'écran reste court.
-  function showOfflinePayments(){
-    preparePaymentDetails('bankTransferBlock', 'bankTransferDetails', bankTransferText());
-    preparePaymentDetails('mobileMoneyBlock', 'mobileMoneyDetails', mobileMoneyText());
-    // Un bouton qui n'ouvre rien vaut moins que pas de bouton du tout : on ne
-    // propose que les façons de payer réellement en place.
-    const cardBtn = document.getElementById('payCardBtn');
-    if(cardBtn) cardBtn.style.display = cardPayUrl() ? 'block' : 'none';
-    const paypalBtn = document.getElementById('payUnlockBtn');
-    if(paypalBtn) paypalBtn.style.display = ownerPaypal() ? 'block' : 'none';
-  }
-
-  // ---- Mobile Money : MVola, Orange Money, Airtel Money ----
-  function ownerMobileMoney(){
-    let saved = {};
-    try{
-      if(typeof loadContactChannelsLocal === 'function') saved = loadContactChannelsLocal() || {};
-    }catch(e){}
-    const source = (saved.mvola === null || saved.mvola === undefined)
-      ? OWNER_MOBILE_MONEY : saved;
-    const numbers = {};
-    Object.keys(OWNER_MOBILE_MONEY).forEach(function(key){
-      numbers[key] = (source[key] || '').trim();
-    });
-    return numbers;
-  }
-
-  // Seuls les opérateurs réellement renseignés sont proposés : un numéro
-  // absent ne doit pas apparaître comme une façon de payer qui n'existe pas.
-  function mobileMoneyText(){
-    const numbers = ownerMobileMoney();
-    const lines = Object.keys(MOBILE_MONEY_LABELS)
-      .filter(function(key){ return numbers[key]; })
-      .map(function(key){ return MOBILE_MONEY_LABELS[key] + ' : ' + numbers[key]; });
-    if(!lines.length) return '';
-    lines.push('Au nom de : ' + OWNER_NAME);
-    lines.push('Montant : ' + UNLOCK_FEE_AR.toLocaleString('fr-FR') + ' Ar');
-    return lines.join('\n');
-  }
-
-  // Les deux moyens qui demandent de recopier des chiffres se comportent
-  // pareil : un bouton, et les chiffres seulement pour qui les a demandés.
-  function preparePaymentDetails(blockId, detailsId, text){
-    const block = document.getElementById(blockId);
-    const details = document.getElementById(detailsId);
-    if(!block || !details) return;
-    block.style.display = text ? 'block' : 'none';
-    details.style.display = 'none';
-    details.textContent = '';
-  }
-
-  function revealPaymentDetails(detailsId, text, method, statusText){
-    const details = document.getElementById(detailsId);
-    const statusEl = document.getElementById('forgotStatus');
-    if(!text || !details) return;
-    details.textContent = '';
-    text.split('\n').forEach(function(line){
-      const div = document.createElement('div');
-      div.textContent = line;
-      details.appendChild(div);
-    });
-    details.style.display = 'block';
-    if(typeof copyToClipboardSilently === 'function') copyToClipboardSilently(text);
-    const methodEl = document.getElementById('forgotPaymentMethod');
-    if(methodEl) methodEl.value = method;
-    if(statusEl) statusEl.textContent = statusText;
-  }
-
-  const copyBankBtn = document.getElementById('copyBankBtn');
-  if(copyBankBtn){
-    copyBankBtn.addEventListener('click', function(){
-      revealPaymentDetails('bankTransferDetails', bankTransferText(), 'bank',
-        'Coordonnées affichées et copiées. Virez les ' + UNLOCK_FEE_AR.toLocaleString('fr-FR') +
-        ' Ar depuis votre banque, puis revenez ici indiquer la référence du virement et envoyer votre demande.');
-    });
-  }
-
-  const copyMobileMoneyBtn = document.getElementById('copyMobileMoneyBtn');
-  if(copyMobileMoneyBtn){
-    copyMobileMoneyBtn.addEventListener('click', function(){
-      revealPaymentDetails('mobileMoneyDetails', mobileMoneyText(), 'mobile',
-        'Numéros affichés et copiés. Envoyez les ' + UNLOCK_FEE_AR.toLocaleString('fr-FR') +
-        ' Ar depuis votre opérateur, puis revenez ici indiquer la référence de la transaction et envoyer votre demande.');
-    });
-  }
-
-  // Sans lien carte configuré, on renvoie sur le PayPal du propriétaire :
-  // sa page de paiement accepte la carte sans ouvrir de compte PayPal.
-  function cardPayUrl(){
-    const direct = ownerCardLink();
-    if(direct) return /^https?:\/\//i.test(direct) ? direct : 'https://' + direct;
-    const paypal = ownerPaypal();
-    if(paypal && (/^https?:\/\//i.test(paypal) || paypal.indexOf('@') < 0)) return paypalPayUrl(paypal);
-    return '';
-  }
-
-  // Une adresse du tableau de bord PayPal (/myaccount, /signin, /activity…)
-  // n'encaisse rien : le client y arriverait sur SON propre compte. Seuls un
-  // lien PayPal.Me ou un vrai lien de paiement font payer le propriétaire.
-  function isPaypalDashboardUrl(value){
-    return /^https?:\/\/[^/]*paypal\.com\/(myaccount|signin|activity|wallet|businessprofile|c2\/)/i.test(value);
-  }
-
-  function paypalPayUrl(value){
-    const v = (value || '').trim();
-    if(!v) return '';
-    if(isPaypalDashboardUrl(v)) return '';
-    if(/^https?:\/\//i.test(v)) return v;
-    if(v.indexOf('@') >= 0) return 'https://www.paypal.com/paypalme/';   // pas de lien direct pour un email
-    return 'https://www.paypal.com/paypalme/' + v.replace(/^@/, '');
-  }
-
-  function showPaypalTarget(){
-    showOfflinePayments();
-    const target = document.getElementById('payUnlockTarget');
-    if(!target) return;
-    const value = ownerPaypal();
-    const card = ownerCardLink();
-    // Ce qui aide à choisir, pas les adresses du propriétaire : le bouton
-    // emmène déjà au bon endroit, les recopier ici n'apporte rien.
-    if(!value && !card){
-      const horsLigne = [mobileMoneyText() ? 'Mobile Money' : '', bankTransferText() ? 'virement bancaire' : '']
-        .filter(Boolean).join(' ou ');
-      target.textContent = horsLigne
-        ? 'Ni PayPal ni page carte pour le moment : passez par ' + horsLigne + '.'
-        : 'Le propriétaire n\'a pas encore renseigné son moyen de paiement — envoyez quand même votre demande, il vous indiquera comment payer.';
-      return;
-    }
-    // Le raccourci « la carte passe par PayPal » ne vaut que si le bouton
-    // carte est là, c'est-à-dire si le PayPal enregistré est un lien.
-    target.textContent = (!card && cardPayUrl())
-      ? 'Pas de compte PayPal ? Le bouton carte ouvre la même page : PayPal y accepte Visa / Mastercard sans créer de compte.'
-      : '';
   }
 
   // Le hash (jamais le code en clair) est ce qui transite et ce qui est stocké.
@@ -1554,219 +1296,91 @@ const STORAGE_ITEMS = 'stockmanager_items';
     });
   }
 
-  const payUnlockBtn = document.getElementById('payUnlockBtn');
-  if(payUnlockBtn){
-    payUnlockBtn.addEventListener('click', function(){
-      const value = ownerPaypal();
-      const statusEl = document.getElementById('forgotStatus');
-      const method = document.getElementById('forgotPaymentMethod');
-      if(method) method.value = 'paypal';
-      if(!value){
-        statusEl.textContent = 'Aucun compte PayPal n\'est configuré pour le moment. Envoyez votre demande : le propriétaire vous indiquera comment régler les ' + UNLOCK_FEE_AR.toLocaleString('fr-FR') + ' Ar.';
-        return;
-      }
-      if(value.indexOf('@') >= 0 && !/^https?:\/\//i.test(value)){
-        if(typeof copyToClipboardSilently === 'function') copyToClipboardSilently(value);
-        statusEl.textContent = 'Adresse PayPal copiée : ' + value + '. Envoyez-y ' + UNLOCK_FEE_AR.toLocaleString('fr-FR') + ' Ar, puis indiquez la référence ci-dessous.';
-        return;
-      }
-      const url = paypalPayUrl(value);
-      if(!url){
-        statusEl.textContent = 'Le lien PayPal enregistré ne permet pas de payer : choisissez une autre façon de payer ci-dessus, ou envoyez votre demande — le propriétaire vous indiquera comment régler les ' + UNLOCK_FEE_AR.toLocaleString('fr-FR') + ' Ar.';
-        return;
-      }
-      window.open(url, '_blank');
+  function renderUnlockWallet(){
+    const balanceEl = document.getElementById('unlockWalletBalance');
+    const costEl = document.getElementById('unlockWalletCost');
+    if(costEl) costEl.textContent = UNLOCK_COST_CREDITS + ' crédits';
+    if(!balanceEl) return;
+    balanceEl.textContent = getAvailableCredits(ensureInstallDate());
+  }
+
+  // Trace laissée au propriétaire : il voit qui s'est débloqué et avec combien,
+  // et ses propres crédits s'en trouvent augmentés d'autant. L'écriture est
+  // faite au mieux — hors ligne, le déblocage a tout de même lieu, car les
+  // crédits, eux, ont bien été retirés.
+  function recordWalletUnlock(name, email){
+    if(!window.__sb) return;
+    window.__sb.from('unlock_requests').insert({
+      name: name, email: normEmail(email), phone: '', message: 'Payé avec les crédits du portefeuille',
+      amount: UNLOCK_COST_CREDITS, paypal_reference: '', payment_method: 'wallet',
+      status: 'confirmed', auto_confirmed: true,
+      confirmed_at: new Date().toISOString()
+    }).then(function(){}, function(){});
+  }
+
+  const forgotToggleBtn = document.getElementById('forgotToggleBtn');
+  if(forgotToggleBtn){
+    forgotToggleBtn.addEventListener('click', function(){
+      const box = document.getElementById('forgotBox');
+      const open = box.style.display === 'block';
+      closeHelpBoxes();
+      box.style.display = open ? 'none' : 'block';
+      if(open) return;
+      // Ce que la personne vient de taper pour se connecter sert déjà : on ne
+      // lui redemande pas son email deux fois de suite.
+      const quickEmail = document.getElementById('quickEmail').value.trim();
+      const emailField = document.getElementById('forgotEmail');
+      if(quickEmail && !emailField.value) emailField.value = quickEmail;
+      const known = findProfileByEmail(emailField.value);
+      const nameField = document.getElementById('forgotName');
+      if(known && !nameField.value) nameField.value = known.name || '';
+      renderUnlockWallet();
     });
   }
 
-  // Carte Visa / Mastercard : pour le client qui n'a pas de compte PayPal.
-  // La page ouverte encaisse la carte ; l'argent arrive ensuite sur le compte
-  // bancaire du propriétaire, qui confirme lui-même l'arrivée des fonds.
-  const payCardBtn = document.getElementById('payCardBtn');
-  if(payCardBtn){
-    payCardBtn.addEventListener('click', function(){
-      const statusEl = document.getElementById('forgotStatus');
-      const url = cardPayUrl();
-      if(!url){
-        statusEl.textContent = 'Aucune page de paiement par carte n\'est configurée pour le moment. Envoyez votre demande : le propriétaire vous indiquera comment régler les ' + UNLOCK_FEE_AR.toLocaleString('fr-FR') + ' Ar.';
-        return;
-      }
-      const method = document.getElementById('forgotPaymentMethod');
-      if(method) method.value = 'card';
-      window.open(url, '_blank');
-      statusEl.textContent = 'Page de paiement ouverte. Payez les ' + UNLOCK_FEE_AR.toLocaleString('fr-FR') +
-        ' Ar par carte, puis revenez ici indiquer la référence et envoyer votre demande.';
-    });
-  }
-
-  // Jeton d'appareil : seul l'appareil qui a envoyé la demande peut rouvrir
-  // l'accès. Il n'est jamais affiché, jamais transmis à personne — seule son
-  // empreinte SHA-256 part sur le serveur. Aucun code ne circule donc entre le
-  // propriétaire et le client, rien ne peut être intercepté ni réutilisé.
-  const UNLOCK_TOKEN_KEY = 'stockmanager_unlock_token';
-
-  function loadUnlockTokens(){
-    try { return JSON.parse(localStorage.getItem(UNLOCK_TOKEN_KEY)) || {}; }
-    catch(e){ return {}; }
-  }
-  function unlockTokenFor(email, create){
-    const map = loadUnlockTokens();
-    const key = normEmail(email);
-    if(!map[key] && create){
-      map[key] = (window.crypto && crypto.randomUUID)
-        ? crypto.randomUUID()
-        : 'tok-' + Date.now() + '-' + Math.random().toString(36).slice(2, 12);
-      try { localStorage.setItem(UNLOCK_TOKEN_KEY, JSON.stringify(map)); } catch(e){}
-    }
-    return map[key] || null;
-  }
-
-  const sendForgotBtn = document.getElementById('sendForgotBtn');
-  if(sendForgotBtn){
-    sendForgotBtn.addEventListener('click', function(){
+  const payFromWalletBtn = document.getElementById('payFromWalletBtn');
+  if(payFromWalletBtn){
+    payFromWalletBtn.addEventListener('click', function(){
       const statusEl = document.getElementById('forgotStatus');
       const name = document.getElementById('forgotName').value.trim();
       const email = document.getElementById('forgotEmail').value.trim();
-      const phone = document.getElementById('forgotPhone').value.trim();
-      const message = document.getElementById('forgotMessage').value.trim();
-      const reference = document.getElementById('forgotReference').value.trim();
-      const methodEl = document.getElementById('forgotPaymentMethod');
-      const method = methodEl ? methodEl.value : 'paypal';
       if(!name || !email){
         statusEl.textContent = 'Votre nom et votre email sont obligatoires.';
         return;
       }
-      if(!reference){
-        const exemples = {
-          card: 'n° de transaction ou 4 derniers chiffres de la carte',
-          bank: 'référence du virement',
-          mobile: 'n° de la transaction reçu par SMS et le numéro qui a envoyé',
-          paypal: 'n° de transaction ou email utilisé'
-        };
-        statusEl.textContent = 'Indiquez la référence de votre paiement (' +
-          (exemples[method] || exemples.paypal) + ').';
-        return;
-      }
-      if(!window.__sb){
-        statusEl.textContent = 'Serveur injoignable : réessayez une fois connecté à Internet.';
-        return;
-      }
-      const letter = forgotRequestLetter(name, email, phone, message, reference, method);
-      const mailLink = 'mailto:' + OWNER_EMAIL +
-        '?subject=' + encodeURIComponent('Demande de déblocage — ' + name) +
-        '&body=' + encodeURIComponent(letter);
 
-      statusEl.textContent = 'Envoi…';
-      const token = unlockTokenFor(email, true);
-      sha256Hex(token).then(function(deviceHash){
-        window.__sb.from('unlock_requests').insert({
-          name: name, email: normEmail(email), phone: phone, message: message,
-          amount: UNLOCK_FEE_AR, paypal_reference: reference, payment_method: method,
-          status: 'pending', device_hash: deviceHash
-        }).then(function(res){
-          if(res && res.error){
-            statusEl.textContent = 'Envoi impossible : ' + (res.error.message || 'erreur serveur');
-            return;
-          }
-          pushNotification('info', 'Demande de déblocage envoyée (' + UNLOCK_FEE_AR.toLocaleString('fr-FR') +
-            ' Ar, ' + paymentMethodLabel(method) + '). Le déblocage part dès que l\'argent est arrivé sur le compte du propriétaire.');
-          statusEl.innerHTML = 'Demande envoyée au propriétaire ✓ ' + (method === 'paypal'
-            ? 'Dès que PayPal annonce que votre paiement est arrivé sur son compte, votre accès se rouvre tout seul, sans intervention.'
-            : 'Dès que l\'argent est arrivé sur son compte et qu\'il le confirme, votre accès se rouvre tout seul.') +
-            ' Vous pouvez fermer cette page et revenir plus tard, sur cet appareil.<br>' +
-            '<a href="' + mailLink + '" style="color:var(--cyan);">✉️ Prévenir aussi par email</a>';
-          startUnlockWatch(email);
-        }, function(){
-          statusEl.textContent = 'Envoi impossible : vérifiez votre réseau.';
-        });
-      });
+      // Sans le compte enregistré ici, il n'y a rien à rouvrir : le déblocage
+      // vaut pour cet appareil, où les données de l'application se trouvent.
+      const profile = findProfileByEmail(email);
+      if(!profile){
+        statusEl.textContent = 'Aucun compte n\'est enregistré sur cet appareil pour cet email. ' +
+          'Utilisez « Première connexion / autre compte ».';
+        return;
+      }
+
+      const sub = ensureInstallDate();
+      const available = getAvailableCredits(sub);
+      if(available < UNLOCK_COST_CREDITS){
+        const manque = UNLOCK_COST_CREDITS - available;
+        statusEl.textContent = 'Il vous manque ' + manque + ' crédit' + (manque > 1 ? 's' : '') +
+          ' : vous en avez ' + available + ' sur les ' + UNLOCK_COST_CREDITS + ' demandés. ' +
+          'Chaque personne qui ouvre l\'application avec votre lien d\'invitation vous en rapporte un.';
+        renderUnlockWallet();
+        return;
+      }
+
+      sub.creditsSpent = (sub.creditsSpent || 0) + UNLOCK_COST_CREDITS;
+      saveSubscription(sub);
+      renderUnlockWallet();
+      recordWalletUnlock(name, email);
+
+      statusEl.textContent = UNLOCK_COST_CREDITS + ' crédits retirés de votre portefeuille ✓ Accès rétabli.';
+      pushNotification('parrainage', 'Déblocage payé avec ' + UNLOCK_COST_CREDITS +
+        ' crédits de votre portefeuille — accès rétabli.');
+      loginFromProfile(profile);
     });
   }
 
-  // Vérifie si le propriétaire a confirmé le paiement de cet appareil.
-  function checkUnlockConfirmed(email, silent){
-    const statusEl = document.getElementById('forgotStatus');
-    const token = unlockTokenFor(email, false);
-    if(!window.__sb){
-      if(!silent) statusEl.textContent = 'Serveur injoignable : réessayez une fois connecté à Internet.';
-      return;
-    }
-    if(!token){
-      if(!silent) statusEl.textContent = 'Aucune demande n\'a été envoyée depuis cet appareil pour cet email.';
-      return;
-    }
-    if(!silent) statusEl.textContent = 'Vérification…';
-    sha256Hex(token).then(function(deviceHash){
-      window.__sb.from('unlock_requests')
-        .select('id,status,expires_at,device_hash')
-        .eq('email', normEmail(email))
-        .eq('device_hash', deviceHash)
-        .eq('status', 'confirmed')
-        .order('confirmed_at', { ascending: false })
-        .limit(1)
-        .then(function(res){
-          const row = res && res.data && res.data[0];
-          if(!row){
-            if(!silent) statusEl.textContent = 'Votre paiement n\'a pas encore été confirmé par le propriétaire.';
-            return;
-          }
-          if(row.expires_at && new Date(row.expires_at) < new Date()){
-            if(!silent) statusEl.textContent = 'La confirmation a expiré. Contactez le propriétaire.';
-            return;
-          }
-          const profile = findProfileByEmail(email);
-          if(!profile){
-            statusEl.textContent = 'Paiement confirmé, mais aucun compte n\'est enregistré sur cet appareil pour cet email. Utilisez « Première connexion / autre compte ».';
-            return;
-          }
-          stopUnlockWatch();
-          window.__sb.from('unlock_requests')
-            .update({ status: 'used', used_at: new Date().toISOString() })
-            .eq('id', row.id).then(function(){}, function(){});
-          statusEl.textContent = 'Argent reçu par le propriétaire ✓ Accès rétabli.';
-          pushNotification('info', 'Votre paiement est arrivé sur le compte du propriétaire — accès rétabli.');
-          loginFromProfile(profile);
-        }, function(){
-          if(!silent) statusEl.textContent = 'Vérification impossible : vérifiez votre réseau.';
-        });
-    });
-  }
-
-  // Surveillance discrète pendant que le client attend la confirmation.
-  let unlockWatchTimer = null;
-  function startUnlockWatch(emails){
-    stopUnlockWatch();
-    const list = Array.isArray(emails) ? emails : [emails];
-    unlockWatchTimer = setInterval(function(){
-      list.forEach(function(email){ checkUnlockConfirmed(email, true); });
-    }, 20000);
-  }
-  function stopUnlockWatch(){
-    if(unlockWatchTimer){ clearInterval(unlockWatchTimer); unlockWatchTimer = null; }
-  }
-
-  // L'argent met parfois des jours à arriver sur le compte du propriétaire :
-  // le client n'a pas à laisser la page ouverte. À chaque réouverture on
-  // revérifie les demandes envoyées depuis cet appareil, pour que la
-  // notification et le déblocage arrivent même longtemps après.
-  function resumeUnlockWatch(){
-    const emails = Object.keys(loadUnlockTokens());
-    if(!emails.length) return;
-    emails.forEach(function(email){ checkUnlockConfirmed(email, true); });
-    startUnlockWatch(emails);
-  }
-
-  const checkUnlockBtn = document.getElementById('checkUnlockBtn');
-  if(checkUnlockBtn){
-    checkUnlockBtn.addEventListener('click', function(){
-      const email = document.getElementById('forgotEmail').value.trim();
-      if(!email){
-        document.getElementById('forgotStatus').textContent = 'Indiquez votre email.';
-        return;
-      }
-      checkUnlockConfirmed(email, false);
-    });
-  }
 
   let quickLoginBusy = false;
   let quickAutoTimer = null;
@@ -2154,7 +1768,6 @@ const STORAGE_ITEMS = 'stockmanager_items';
   } else {
     showWelcome();
     refreshLoginMode();
-    resumeUnlockWatch();
     const bootAuth = sbAuth();
     if(bootAuth){
       // une session Supabase valide (autre onglet, autre appareil déjà connecté
