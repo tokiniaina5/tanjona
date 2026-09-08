@@ -94,6 +94,15 @@
     width: min(340px, calc(100vw - 1.6rem));
   }
 
+  /* L'en-tête de l'Accueil ne partage plus sa ligne avec des boutons : le
+     titre tient le milieu, les deux exports passent dessous. Un titre poussé
+     à gauche par ce qui l'accompagne ne nomme plus la page — il la borde. */
+  .tete-accueil{
+    display: block;
+    text-align: center;
+  }
+  .tete-accueil .actions-row{ justify-content: center; }
+
   /* Les fenêtres du menu se tirent par les quatre coins : au doigt sur
      téléphone, à la souris sur ordinateur. Les poignées vivent dans un calque
      posé par-dessus, et non dans la fenêtre : à l'intérieur, elles

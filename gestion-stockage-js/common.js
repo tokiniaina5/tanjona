@@ -2640,19 +2640,35 @@ const STORAGE_ITEMS = 'stockmanager_items';
     function appliquerTaille(el){
       const t = lire()[el.id];
       if(!t || !visible(el)) return;
-      el.style.width = t.l + 'px';
-      el.style.height = t.h + 'px';
+      const z = ecran();
+      const page = el.classList.contains('fenetre-page');
+      const bande = page ? bandeUtile() : { haut: z.y, bas: z.y + z.h };
+      // Une taille choisie sur un grand écran ne tient pas sur un téléphone.
+      // On garde ce qui a été demandé, sans le laisser déborder : la fenêtre
+      // sortait de l'écran par la droite, et le bouton du bout devenait
+      // introuvable.
+      const largeur = Math.max(MIN_L, Math.min(t.l, z.w - 2 * MARGE));
+      const hauteur = Math.max(MIN_H, Math.min(t.h, bande.bas - bande.haut - 2 * MARGE));
+      el.style.width = Math.round(largeur) + 'px';
+      el.style.height = Math.round(hauteur) + 'px';
       el.style.maxHeight = 'none';
       el.style.overflowY = 'auto';
-      // La fenêtre vient peut-être d'être posée par le bas : une hauteur fixe
-      // se raisonne depuis le haut, et il faut la rentrer dans l'écran.
-      const r = el.getBoundingClientRect();
-      const z = ecran();
-      const left = Math.min(r.left, z.x + z.w - r.width - MARGE);
-      const top = Math.min(r.top, z.y + z.h - r.height - MARGE);
       el.style.transform = 'none';
       el.style.right = 'auto';
       el.style.bottom = 'auto';
+      if(page){
+        // Une page ne se déplace pas : elle reprend le milieu et le haut de sa
+        // bande, quelle que soit la taille qu'on lui a donnée.
+        el.style.left = Math.round(z.x + (z.w - largeur) / 2) + 'px';
+        el.style.top = Math.round(bande.haut + MARGE) + 'px';
+        return;
+      }
+      // Un panneau est accroché au menu : il garde sa place, on le rentre
+      // seulement dans l'écran. La fenêtre vient peut-être d'être posée par le
+      // bas, et une hauteur fixe se raisonne depuis le haut.
+      const r = el.getBoundingClientRect();
+      const left = Math.min(r.left, z.x + z.w - r.width - MARGE);
+      const top = Math.min(r.top, z.y + z.h - r.height - MARGE);
       el.style.left = Math.max(z.x + MARGE, left) + 'px';
       el.style.top = Math.max(z.y + MARGE, top) + 'px';
     }
@@ -2686,15 +2702,22 @@ const STORAGE_ITEMS = 'stockmanager_items';
       return r.height > 0 ? r.bottom : null;
     }
     // La taille d'ouverture, tant que personne n'en a choisi une autre.
-    function poserFenetre(el){
+    // La bande où une fenêtre de page a le droit de vivre : sous le nom et la
+    // bannière, au-dessus de la rangée du bas. Toutes s'ouvrent sous la
+    // bannière, et non seulement l'Accueil : ce qu'on garde dehors doit le
+    // rester quelle que soit la page posée dessus.
+    function bandeUtile(){
       const z = ecran();
       let haut = Math.max(z.y, bandeHaute() === null ? z.y : bandeHaute());
-      // Toutes les fenêtres s'ouvrent sous la bannière, et non seulement
-      // l'Accueil : ce qu'on a voulu garder dehors doit le rester quelle que
-      // soit la page posée dessus.
       const sous = sousLaBanniere();
       if(sous !== null) haut = Math.max(haut, sous);
       const bas = Math.min(z.y + z.h, bandeBasse() === null ? z.y + z.h : bandeBasse());
+      return { haut: haut, bas: bas };
+    }
+    function poserFenetre(el){
+      const z = ecran();
+      const bande = bandeUtile();
+      const haut = bande.haut, bas = bande.bas;
       // Trop tôt : la mise en page n'a pas encore de hauteur, et se caler
       // maintenant donnerait une fenêtre haute comme un trait, posée sur le
       // nom de l'application. On laisse le prochain passage s'en charger.
