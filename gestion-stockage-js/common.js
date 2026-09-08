@@ -2591,8 +2591,8 @@ const STORAGE_ITEMS = 'stockmanager_items';
     const PAGES = [
       'dash-accueil',
       'dash-articles', 'section-factures', 'section-inviter', 'section-contact',
-      'section-live', 'section-appels', 'section-wallet', 'section-connexions',
-      'section-admin'
+      'section-live', 'section-appels', 'section-wallet', 'section-fond',
+      'section-connexions', 'section-admin'
     ];
     // L'Accueil ne se ferme pas : c'est le fond de l'application, et une croix
     // ne laisserait qu'un écran vide derrière elle.
@@ -3206,6 +3206,18 @@ const STORAGE_ITEMS = 'stockmanager_items';
       const bouton = rangee.querySelector('[data-epingle="' + cle + '"]');
       if(bouton) bouton.remove();
       fermerLesFenetres();
+      // La page que cette icône ouvrait ne doit pas rester derrière elle.
+      // fermerLesFenetres ne connaît que les panneaux ; depuis que les pages
+      // s'ouvrent en fenêtre, la leur restait ouverte alors que ce qui y menait
+      // venait de disparaître.
+      const cible = cle.indexOf('section:') === 0
+        ? document.getElementById('section-' + cle.slice(8))
+        : (cle === 'id:menuArticles' ? document.getElementById('dash-articles') : null);
+      if(cible && cible.classList.contains('active')){
+        const navStock = document.querySelector('.nav-item[data-section="stock"]');
+        if(navStock) navStock.click();
+        if(typeof showDashView === 'function') showDashView('accueil');
+      }
       mesurer();
     }
 

@@ -110,6 +110,23 @@
   .tete-accueil h2{ line-height: 1.4; }
   .tete-accueil .actions-row{ justify-content: center; gap: 0.8rem; }
 
+  /* L'aperçu du fond : on voit ce qu'on a choisi sans refermer la fenêtre.
+     Cadré comme le vrai fond — « cover » — pour montrer le même recadrage. */
+  .fond-apercu{
+    margin-top: 0.9rem;
+    height: 160px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+  .fond-apercu.vide{ background: var(--bg); }
+  /* .btn-primary prend toute la largeur partout ailleurs — c'est voulu pour
+     un bouton seul, au bas d'un formulaire. Ces deux-là vont par paire : le
+     premier chassait le second sur la ligne suivante. */
+  #section-fond .actions-row .btn{ width: auto; }
+
   /* Les fenêtres du menu se tirent par les quatre coins : au doigt sur
      téléphone, à la souris sur ordinateur. Les poignées vivent dans un calque
      posé par-dessus, et non dans la fenêtre : à l'intérieur, elles

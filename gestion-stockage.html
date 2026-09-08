@@ -16,7 +16,7 @@
 <link rel="apple-touch-icon" href="/icone-192.png">
 <link rel="icon" href="/icone-192.png" type="image/png">
 <link rel="stylesheet" href="gestion-stockage-css/base.css?v=ca07e7d0">
-<link rel="stylesheet" href="gestion-stockage-css/components.css?v=82b92cad">
+<link rel="stylesheet" href="gestion-stockage-css/components.css?v=a0072c91">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -444,6 +444,7 @@
         <div class="nav-item" data-section="live">🔴 Live direct</div>
         <div class="nav-item" data-section="appels">📞 Antso mivantana</div>
         <div class="nav-item" data-section="wallet">💰 Portefeuille</div>
+        <div class="nav-item" data-section="fond">🖼️ Fond d'écran</div>
         <div class="nav-item" data-section="connexions" id="navParametres">⚙️ Paramètres</div>
         <!-- Espace du propriétaire : masqué pour tous les clients -->
         <div class="nav-item" data-section="admin" id="navAdmin" style="display:none;">🛡️ Espace admin</div>
@@ -1480,6 +1481,25 @@
       </section>
 
       <!-- ---- PARAMÈTRES ---- -->
+      <section class="section" id="section-fond">
+        <div class="section-head">
+          <div>
+            <h2>Fond d'écran</h2>
+            <p>Une image de votre appareil habille le fond de l'application. Elle remplit l'écran quelle qu'en soit la taille, et ne quitte jamais l'appareil.</p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <input type="file" id="fondFichier" accept="image/*" style="display:none;">
+          <div class="actions-row">
+            <button type="button" class="btn btn-primary btn-sm" id="fondChoisirBtn">Choisir une image</button>
+            <button type="button" class="btn btn-sm" id="fondRetirerBtn">Retirer le fond</button>
+          </div>
+          <p id="fondEtat" style="color:var(--muted); font-size:0.85rem; margin-top:0.8rem;">—</p>
+          <div id="fondApercu" class="fond-apercu vide"></div>
+        </div>
+      </section>
+
       <section class="section" id="section-connexions">
         <div class="section-head">
           <div>
@@ -1666,7 +1686,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<script src="gestion-stockage-js/common.js?v=f287a76b"></script>
+<script src="gestion-stockage-js/common.js?v=9ba8c8e3"></script>
 <script src="gestion-stockage-js/stock.js?v=275a327a"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=7204c861"></script>
@@ -1677,6 +1697,7 @@
 <script src="gestion-stockage-js/traduction.js?v=8f5605bc"></script>
 <script src="gestion-stockage-js/parametres.js?v=ccebdd78"></script>
 <script src="gestion-stockage-js/identite.js?v=32177fac"></script>
+<script src="gestion-stockage-js/fond.js?v=9130e24f"></script>
 <script src="gestion-stockage-js/securite.js?v=9b276532"></script>
 
 
