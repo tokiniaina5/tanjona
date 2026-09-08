@@ -94,6 +94,27 @@
     width: min(340px, calc(100vw - 1.6rem));
   }
 
+  /* Les fenêtres du menu se tirent par les quatre coins : au doigt sur
+     téléphone, à la souris sur ordinateur. Les poignées vivent dans un calque
+     posé par-dessus, et non dans la fenêtre : à l'intérieur, elles
+     défileraient avec la liste et les deux coins du haut disparaîtraient au
+     premier mouvement. */
+  .poignees{ position:fixed; pointer-events:none; }
+  .poignees[hidden]{ display:none; }
+  .poignee{
+    position:absolute; width:16px; height:16px;
+    pointer-events:auto; touch-action:none;
+    border:2px solid var(--cyan); opacity:0.5;
+    transition: opacity 0.15s ease;
+  }
+  .poignee:hover, .poignee.tire{ opacity:1; }
+  /* Seize pixels se voient ; ils ne se touchent pas. La cible fait le double. */
+  .poignee::after{ content:''; position:absolute; inset:-8px; }
+  .poignee.hg{ left:-1px; top:-1px; border-right:none; border-bottom:none; border-radius:10px 0 0 0; cursor:nwse-resize; }
+  .poignee.hd{ right:-1px; top:-1px; border-left:none; border-bottom:none; border-radius:0 10px 0 0; cursor:nesw-resize; }
+  .poignee.bg{ left:-1px; bottom:-1px; border-right:none; border-top:none; border-radius:0 0 0 10px; cursor:nesw-resize; }
+  .poignee.bd{ right:-1px; bottom:-1px; border-left:none; border-top:none; border-radius:0 0 10px 0; cursor:nwse-resize; }
+
   /* Les panneaux qui n'héritent d'aucun habillage prennent celui-ci. */
   .panneau-boite{
     background: var(--panel);

@@ -2564,6 +2564,201 @@ const STORAGE_ITEMS = 'stockmanager_items';
     window.addEventListener('orientationchange', placerPanneau);
   }
 
+  // ---------------- LES QUATRE COINS ----------------
+  // Les fenêtres du menu avaient une taille imposée : 230 pixels de large, et
+  // pas un de plus, quelle que soit la longueur de ce qu'on y lit. On les tire
+  // maintenant par les quatre coins. Le doigt et la souris font le même geste
+  // et suivent le même code : les événements « pointer » ne les distinguent
+  // pas, et il n'y a donc rien à écrire deux fois.
+  //
+  // La taille choisie est retenue par fenêtre : on ne la redonne pas à chaque
+  // ouverture.
+  (function(){
+    const CLE = 'stockmanager_tailles';
+    // En dessous, la fenêtre ne montre plus rien d'utile ; on refuse d'y aller
+    // plutôt que de laisser un geste maladroit la réduire à un trait.
+    const MIN_L = 170, MIN_H = 110;
+    const MARGE = 8;
+    // Le menu, et les fenêtres qu'il ouvre.
+    const IDS = ['navList', 'notifPanel', 'marketPanel', 'barReglages', 'fbComposer'];
+    const COINS = [
+      { nom: 'hg', x: -1, y: -1 }, { nom: 'hd', x: 1, y: -1 },
+      { nom: 'bg', x: -1, y: 1 },  { nom: 'bd', x: 1, y: 1 }
+    ];
+
+    function lire(){
+      try{ return JSON.parse(localStorage.getItem(CLE)) || {}; }catch(e){ return {}; }
+    }
+    function ecrire(o){
+      try{ localStorage.setItem(CLE, JSON.stringify(o)); }catch(e){}
+    }
+    function visible(el){
+      return !!el && getComputedStyle(el).display !== 'none';
+    }
+    // L'écran réellement utile, zoom au doigt compris.
+    function ecran(){
+      const vv = window.visualViewport;
+      return vv
+        ? { x: vv.offsetLeft, y: vv.offsetTop, w: vv.width, h: vv.height }
+        : { x: 0, y: 0, w: window.innerWidth, h: window.innerHeight };
+    }
+
+    const suivis = [];
+
+    // Une fenêtre est posée tantôt par le haut, tantôt par le bas, tantôt
+    // centrée par une transformation. Pour la redimensionner il n'y a qu'un
+    // ancrage possible : coin haut-gauche, plus une largeur et une hauteur.
+    // On l'y ramène avant de commencer, sinon deux ancrages se battent.
+    function figer(el, r){
+      el.style.transform = 'none';
+      el.style.right = 'auto';
+      el.style.bottom = 'auto';
+      el.style.maxHeight = 'none';
+      el.style.left = r.left + 'px';
+      el.style.top = r.top + 'px';
+      el.style.width = r.width + 'px';
+      el.style.height = r.height + 'px';
+      el.style.overflowY = 'auto';
+    }
+
+    function appliquerTaille(el){
+      const t = lire()[el.id];
+      if(!t || !visible(el)) return;
+      el.style.width = t.l + 'px';
+      el.style.height = t.h + 'px';
+      el.style.maxHeight = 'none';
+      el.style.overflowY = 'auto';
+      // La fenêtre vient peut-être d'être posée par le bas : une hauteur fixe
+      // se raisonne depuis le haut, et il faut la rentrer dans l'écran.
+      const r = el.getBoundingClientRect();
+      const z = ecran();
+      const left = Math.min(r.left, z.x + z.w - r.width - MARGE);
+      const top = Math.min(r.top, z.y + z.h - r.height - MARGE);
+      el.style.transform = 'none';
+      el.style.right = 'auto';
+      el.style.bottom = 'auto';
+      el.style.left = Math.max(z.x + MARGE, left) + 'px';
+      el.style.top = Math.max(z.y + MARGE, top) + 'px';
+    }
+
+    function synchroniser(){
+      suivis.forEach(function(s){
+        const vu = visible(s.el);
+        if(vu && !s.vu) appliquerTaille(s.el);
+        s.vu = vu;
+        s.calque.hidden = !vu;
+        if(!vu) return;
+        const r = s.el.getBoundingClientRect();
+        s.calque.style.left = r.left + 'px';
+        s.calque.style.top = r.top + 'px';
+        s.calque.style.width = r.width + 'px';
+        s.calque.style.height = r.height + 'px';
+        // Juste au-dessus de sa fenêtre : les panneaux ne sont pas tous au même
+        // étage, et une poignée sous sa fenêtre ne se saisit pas.
+        const z = parseInt(getComputedStyle(s.el).zIndex, 10);
+        s.calque.style.zIndex = (isFinite(z) ? z : 120) + 1;
+      });
+    }
+
+    function armer(s, coin, poignee){
+      let g = null;
+      // Le document referme le menu dès qu'on presse ailleurs. Les poignées
+      // sont ailleurs — dans leur calque —, et sans cela le premier appui sur
+      // un coin fermerait la fenêtre qu'on voulait agrandir.
+      ['pointerdown', 'mousedown', 'touchstart', 'click'].forEach(function(t){
+        poignee.addEventListener(t, function(e){ e.stopPropagation(); });
+      });
+      poignee.addEventListener('pointerdown', function(e){
+        // Une fenêtre fermée n'a ni largeur ni hauteur : la saisir écrirait des
+        // zéros dans sa taille, et elle rouvrirait réduite à ses bordures.
+        const r = s.el.getBoundingClientRect();
+        if(!visible(s.el) || r.width < 1 || r.height < 1) return;
+        e.preventDefault();
+        figer(s.el, r);
+        g = { x: e.clientX, y: e.clientY, l: r.left, t: r.top, w: r.width, h: r.height };
+        poignee.classList.add('tire');
+        try{ poignee.setPointerCapture(e.pointerId); }catch(err){}
+      });
+      poignee.addEventListener('pointermove', function(e){
+        if(!g) return;
+        const z = ecran();
+        const dx = e.clientX - g.x, dy = e.clientY - g.y;
+        let l = g.l, t = g.t, w = g.w, h = g.h;
+        // Un coin gauche déplace le bord gauche : la largeur change en sens
+        // inverse du doigt, et le coin opposé ne bouge pas.
+        if(coin.x < 0){ l = g.l + dx; w = g.w - dx; } else { w = g.w + dx; }
+        if(coin.y < 0){ t = g.t + dy; h = g.h - dy; } else { h = g.h + dy; }
+        if(w < MIN_L){ if(coin.x < 0) l = g.l + g.w - MIN_L; w = MIN_L; }
+        if(h < MIN_H){ if(coin.y < 0) t = g.t + g.h - MIN_H; h = MIN_H; }
+        // Rien ne sort de l'écran : ce qui déborde est repris sur la taille.
+        if(l < z.x + MARGE){ w -= (z.x + MARGE - l); l = z.x + MARGE; }
+        if(t < z.y + MARGE){ h -= (z.y + MARGE - t); t = z.y + MARGE; }
+        if(l + w > z.x + z.w - MARGE) w = z.x + z.w - MARGE - l;
+        if(t + h > z.y + z.h - MARGE) h = z.y + z.h - MARGE - t;
+        s.el.style.left = Math.round(l) + 'px';
+        s.el.style.top = Math.round(t) + 'px';
+        s.el.style.width = Math.round(Math.max(MIN_L, w)) + 'px';
+        s.el.style.height = Math.round(Math.max(MIN_H, h)) + 'px';
+        synchroniser();
+      });
+      function fin(e){
+        if(!g) return;
+        g = null;
+        poignee.classList.remove('tire');
+        try{ poignee.releasePointerCapture(e.pointerId); }catch(err){}
+        const r = s.el.getBoundingClientRect();
+        // On ne retient qu'une taille tenable : mieux vaut ne rien retenir que
+        // rouvrir sur une fenêtre illisible.
+        if(r.width < MIN_L || r.height < MIN_H) return;
+        const o = lire();
+        o[s.el.id] = { l: Math.round(r.width), h: Math.round(r.height) };
+        ecrire(o);
+      }
+      poignee.addEventListener('pointerup', fin);
+      poignee.addEventListener('pointercancel', fin);
+    }
+
+    IDS.forEach(function(id){
+      const el = document.getElementById(id);
+      if(!el) return;
+      const calque = document.createElement('div');
+      calque.className = 'poignees';
+      calque.hidden = true;
+      const s = { el: el, calque: calque, vu: false };
+      COINS.forEach(function(coin){
+        const poignee = document.createElement('span');
+        poignee.className = 'poignee ' + coin.nom;
+        poignee.title = 'Agrandir ou réduire la fenêtre';
+        poignee.setAttribute('aria-hidden', 'true');
+        calque.appendChild(poignee);
+        armer(s, coin, poignee);
+      });
+      document.body.appendChild(calque);
+      suivis.push(s);
+      // La fenêtre s'ouvre, se ferme et se déplace sans prévenir personne :
+      // on regarde ce qui change sur elle plutôt que de deviner qui l'a bougée.
+      new MutationObserver(synchroniser)
+        .observe(el, { attributes: true, attributeFilter: ['style', 'class'] });
+    });
+
+    // Ce qui place les fenêtres leur impose une hauteur maximale ; la taille
+    // choisie doit reprendre la main juste après.
+    const placerAvant = placerPresDuMenu;
+    placerPresDuMenu = function(el){
+      placerAvant(el);
+      appliquerTaille(el);
+      synchroniser();
+    };
+
+    window.addEventListener('resize', synchroniser);
+    window.addEventListener('orientationchange', synchroniser);
+    window.addEventListener('scroll', synchroniser, { passive: true });
+    if(window.visualViewport){
+      window.visualViewport.addEventListener('resize', synchroniser);
+      window.visualViewport.addEventListener('scroll', synchroniser);
+    }
+  })();
+
   // ---------------- ÉCRIRE ----------------
   // La boîte d'écriture occupait le haut du fil en permanence, alors qu'on
   // vient surtout y lire. Elle s'ouvre maintenant depuis la rangée du bas.
