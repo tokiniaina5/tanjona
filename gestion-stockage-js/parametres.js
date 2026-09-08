@@ -713,7 +713,20 @@
 
   function renderCommunityPanel(){
     const avatar = document.getElementById('composerAvatar');
-    if(avatar){ avatar.textContent = initials(currentUser && currentUser.name); }
+    if(avatar){
+      // La photo du profil quand elle existe ; les initiales sinon, pour ne
+      // pas laisser un rond vide à qui n’en a pas déposé.
+      const photo = currentUser && currentUser.logo;
+      if(photo){
+        avatar.innerHTML = '';
+        const img = document.createElement('img');
+        img.src = photo;
+        img.alt = currentUser.name || '';
+        avatar.appendChild(img);
+      } else {
+        avatar.textContent = initials(currentUser && currentUser.name);
+      }
+    }
     renderCommunityNews();
     renderMarketplaceLinks();
     const marketAdmin = document.getElementById('marketplaceAdminForm');

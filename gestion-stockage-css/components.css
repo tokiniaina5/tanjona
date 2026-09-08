@@ -107,10 +107,14 @@
   .fb-main{ display:flex; flex-direction:column; gap:0.9rem; }
   .fb-avatar{
     width:42px; height:42px; min-width:42px; border-radius:50%;
+    overflow:hidden;
     background:linear-gradient(135deg, var(--cyan), var(--violet));
     color:#04191b; font-family:var(--font-display); font-weight:700; font-size:1rem;
     display:flex; align-items:center; justify-content:center; text-transform:uppercase;
   }
+  /* La photo remplit le rond sans se déformer : recadrée au centre plutôt
+     qu’étirée, un portrait reste un portrait. */
+  .fb-avatar img{ width:100%; height:100%; object-fit:cover; display:block; }
   .fb-composer-row{ display:flex; align-items:center; gap:0.7rem; }
   .fb-composer-input{
     flex-grow:1; padding:0.75rem 1rem; border-radius:999px;
