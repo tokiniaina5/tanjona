@@ -130,8 +130,10 @@
     background:#ff6b6b; color:#fff;
     font-size:0.6rem; text-align:center;
   }
-  #stockMainTabs.mode-manuel .bar-icone[data-epingle] .epingle-retirer{ display:block; }
-  #stockMainTabs .bar-icone[data-epingle]{ position:relative; }
+  #stockMainTabs .dash-tab[data-epingle],
+  #stockMainTabs .dash-tab[data-retirable]{ position:relative; }
+  #stockMainTabs.mode-manuel .dash-tab[data-epingle] .epingle-retirer,
+  #stockMainTabs.mode-manuel .dash-tab[data-retirable] .epingle-retirer{ display:block; }
 
   #fbComposer.composer-flottant{
     position: fixed;

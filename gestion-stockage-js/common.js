@@ -424,25 +424,32 @@ const STORAGE_ITEMS = 'stockmanager_items';
       }));
     }catch(e){}
   }
+  // Vrai le temps de rouvrir la vue quittée : ce n'est pas la personne qui
+  // ouvre la page, et son icône ne doit pas revenir dans la rangée après qu'on
+  // l'en a retirée.
+  var restaurationEnCours = false;
   function restoreLastView(){
     let view = null;
     try{ view = JSON.parse(localStorage.getItem(STORAGE_LAST_VIEW)) || null; }catch(e){}
     if(!view) return;
-    if(view.section){
-      const nav = document.querySelector('.nav-item[data-section="' + view.section + '"]');
-      if(nav && !nav.classList.contains('active')) nav.click();
-    }
-    if(view.dash){
-      const tab = document.querySelector('.dash-tab[data-dash="' + view.dash + '"]');
-      if(tab){
-        if(!tab.classList.contains('active')) tab.click();
-      } else if(typeof showDashView === 'function'){
-        // « Acheter » n'a plus d'onglet : sans ce recours, la vue quittée à la
-        // fermeture ne revenait plus à l'ouverture suivante.
-        showDashView(view.dash);
+    restaurationEnCours = true;
+    try{
+      if(view.section){
+        const nav = document.querySelector('.nav-item[data-section="' + view.section + '"]');
+        if(nav && !nav.classList.contains('active')) nav.click();
       }
-    }
-    if(typeof updateSubTabsVisibility === 'function') updateSubTabsVisibility();
+      if(view.dash){
+        const tab = document.querySelector('.dash-tab[data-dash="' + view.dash + '"]');
+        if(tab){
+          if(!tab.classList.contains('active')) tab.click();
+        } else if(typeof showDashView === 'function'){
+          // « Acheter » n'a plus d'onglet : sans ce recours, la vue quittée à la
+          // fermeture ne revenait plus à l'ouverture suivante.
+          showDashView(view.dash);
+        }
+      }
+      if(typeof updateSubTabsVisibility === 'function') updateSubTabsVisibility();
+    } finally { restaurationEnCours = false; }
   }
 
   // ---------------- FILTRES DU TABLEAU DE BORD ----------------
@@ -2695,10 +2702,66 @@ const STORAGE_ITEMS = 'stockmanager_items';
         : document.getElementById(cle.slice(3));
     }
 
+    // Retirer une icône, c'est en avoir fini avec elle : ce qu'elle avait
+    // ouvert se referme du même geste.
+    function fermerLesFenetres(){
+      const nav = document.getElementById('navList');
+      if(nav) nav.classList.remove('open');
+      ['notifPanel', 'marketPanel', 'fbComposer', 'barReglages'].forEach(function(id){
+        const el = document.getElementById(id);
+        if(el) el.style.display = 'none';
+      });
+      ['menuToggle', 'menuFlottant', 'notifToggle', 'marketToggle',
+       'composerToggle', 'barComposer', 'barReglagesBtn'].forEach(function(id){
+        const el = document.getElementById(id);
+        if(el) el.setAttribute('aria-expanded', 'false');
+      });
+    }
+
+    // ---- Les entrées fixes de la rangée ----
+    // Écrire et l'Accueil s'y trouvent d'origine. Elles s'enlèvent comme les
+    // autres — on les retrouve dans le menu, qui les garde toutes.
+    const CLE_RETIREES = 'stockmanager_barre_retirees';
+    function lireRetirees(){
+      try{ const l = JSON.parse(localStorage.getItem(CLE_RETIREES)); return Array.isArray(l) ? l : []; }
+      catch(e){ return []; }
+    }
+    function ecrireRetirees(l){ try{ localStorage.setItem(CLE_RETIREES, JSON.stringify(l)); }catch(e){} }
+
+    // La loupe et les réglages n'en reçoivent pas : ce sont les deux portes par
+    // lesquelles on revient. Les enlever fermerait la pièce de l'intérieur.
+    ['barComposer', 'barAccueil'].forEach(function(id){
+      const bouton = document.getElementById(id);
+      if(!bouton) return;
+      bouton.dataset.retirable = id;
+      const croix = document.createElement('span');
+      croix.className = 'epingle-retirer';
+      croix.textContent = '✕';
+      const nom = bouton.title || id;
+      croix.title = 'Esorina : ' + nom;
+      croix.setAttribute('aria-label', 'Esorina : ' + nom);
+      // stopPropagation : sans cela, retirer l'icône déclencherait ce qu'elle
+      // sert à ouvrir.
+      croix.addEventListener('click', function(e){
+        e.stopPropagation();
+        bouton.style.display = 'none';
+        const l = lireRetirees();
+        if(l.indexOf(id) < 0){ l.push(id); ecrireRetirees(l); }
+        fermerLesFenetres();
+        mesurer();
+      });
+      bouton.appendChild(croix);
+    });
+    lireRetirees().forEach(function(id){
+      const bouton = document.getElementById(id);
+      if(bouton) bouton.style.display = 'none';
+    });
+
     function retirer(cle){
       ecrireEpingles(lireEpingles().filter(function(e){ return e.cle !== cle; }));
       const bouton = rangee.querySelector('[data-epingle="' + cle + '"]');
       if(bouton) bouton.remove();
+      fermerLesFenetres();
       mesurer();
     }
 
@@ -2787,7 +2850,10 @@ const STORAGE_ITEMS = 'stockmanager_items';
       );
     }
     entreesEpinglables().forEach(function(entree){
-      entree.addEventListener('click', function(){ epingler(entree); });
+      entree.addEventListener('click', function(){
+        if(restaurationEnCours) return;
+        epingler(entree);
+      });
     });
 
     // ---- Le petit panneau des réglages ----
