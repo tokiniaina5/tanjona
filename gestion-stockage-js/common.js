@@ -2351,10 +2351,14 @@ const STORAGE_ITEMS = 'stockmanager_items';
       // Encoche et barre d'accueil : visibles, mais le doigt n'y atteint rien.
       const haut = bordSur('--sur-haut'), bas = bordSur('--sur-bas');
       const gauche = bordSur('--sur-gauche'), droite = bordSur('--sur-droite');
+      // La rangée du bas est fixée par-dessus tout : un bouton posé dessus
+      // serait caché, et le doigt toucherait la rangée à sa place.
+      const rangee = document.querySelector('.dash-tabs-main');
+      const hauteurRangee = rangee ? rangee.getBoundingClientRect().height : 0;
       return {
         x: base.x + gauche, y: base.y + haut,
         w: Math.max(0, base.w - gauche - droite),
-        h: Math.max(0, base.h - haut - bas)
+        h: Math.max(0, base.h - haut - bas - hauteurRangee)
       };
     }
 
@@ -2376,14 +2380,11 @@ const STORAGE_ITEMS = 'stockmanager_items';
     function positionParDefaut(){
       const t = tailleBouton();
       const z = zoneVisible();
-      // Deux bandes restent collées en haut : la barre, et la rangée
-      // Actualiser / Appel vidéo / Stock. Le bouton doit passer sous les deux,
-      // sinon il vient sur l'une d'elles.
-      let bas = 0;
-      document.querySelectorAll('.sidebar, .dash-tabs-main').forEach(function(el){
-        const r = el.getBoundingClientRect();
-        if(r.height > 0) bas = Math.max(bas, r.bottom);
-      });
+      // Sous la barre du haut : posé au coin, le bouton flottant viendrait
+      // exactement sur la cloche. La rangée, elle, est passée en bas — et
+      // zoneVisible en tient déjà compte.
+      const barre = document.querySelector('.sidebar');
+      const bas = barre ? barre.getBoundingClientRect().bottom : 0;
       const y = bas > 0 ? bas + 12 : z.y + 16;
       return { x: z.x + z.w - t.w - 16, y: Math.min(Math.max(z.y + 16, y), z.y + z.h - t.h - 16) };
     }

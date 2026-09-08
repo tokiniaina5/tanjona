@@ -334,15 +334,31 @@
 
   /* overflow-x:clip (et non auto) : protège du débordement horizontal sans
      créer de conteneur de défilement, ce qui casserait position:sticky. */
-  .content{ padding: 2.4rem 3vw; overflow-x:clip; }
+  /* Le bas de la page se réserve la hauteur de la rangée : posée par-dessus,
+     elle cacherait sinon les dernières lignes, hors d'atteinte du défilement. */
+  .content{
+    padding: 2.4rem 3vw;
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+    overflow-x:clip;
+  }
 
-  /* onglets principaux (Accueil / Articles) collés sous la barre */
-  .dash-tabs-main{
-    position: sticky;
-    top: var(--topbar-h, 60px);
-    z-index: 80;
-    background: var(--bg);
-    padding-top: 0.6rem;
+  /* Actualiser / Appel vidéo / Stock : une rangée fixée en bas de l'écran,
+     là où le pouce arrive sans que la main se déplace. */
+  /* Sélecteur porté par l’identifiant : .dash-tabs, dans components.css,
+     est chargée après base.css et l’emporterait à égalité de poids — sa marge
+     basse de 1.4rem décollait la rangée du bord de l’écran. */
+  #stockMainTabs.dash-tabs-main{
+    position: fixed;
+    left: 0; right: 0; bottom: 0; top: auto;
+    z-index: 100;
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+    border-bottom: none;
+    margin-bottom: 0;
+    padding: 0.3rem 3vw;
+    /* La barre d'accueil du téléphone mange le bas de l'écran : sans cette
+       réserve, la rangée se retrouve dessous et ne répond plus au doigt. */
+    padding-bottom: calc(0.3rem + env(safe-area-inset-bottom, 0px));
   }
   .section{ display:none; }
   .section.active{ display:block; }
