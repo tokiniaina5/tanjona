@@ -512,17 +512,6 @@
           <button type="button" class="btn btn-primary btn-sm" id="subscribeNowBtn">S'abonner maintenant</button>
         </div>
 
-        <div class="section-head">
-          <div>
-            <h2>Stock</h2>
-            <p>Tableau de bord de votre stock : entrées, sorties et valeur en temps réel.</p>
-          </div>
-          <div class="actions-row">
-            <button class="btn btn-amber btn-sm" id="exportExcelBtn">Exporter en Excel</button>
-            <button class="btn btn-violet btn-sm" id="downloadJsonBtn">Télécharger les données</button>
-          </div>
-        </div>
-
         <div class="dash-tabs" id="stockSubTabs">
           <div class="dash-tab" data-dash="dashboard">📊 Tableau de bord</div>
           <div class="dash-tab" data-dash="historique">📜 Historique des mouvements</div>
@@ -537,6 +526,20 @@
 
         <!-- ===== ACCUEIL ===== -->
         <div class="dash-view active" id="dash-accueil">
+          <!-- « Stock » vivait derrière la fenêtre de l'Accueil, hors de
+               portée : depuis que l'Accueil s'ouvre par-dessus, ce titre et
+               ses deux boutons ne se voyaient plus. Ils sont dedans. -->
+          <div class="section-head">
+            <div>
+              <h2>Stock</h2>
+              <p>Tableau de bord de votre stock : entrées, sorties et valeur en temps réel.</p>
+            </div>
+            <div class="actions-row">
+              <button class="btn btn-amber btn-sm" id="exportExcelBtn">Exporter en Excel</button>
+              <button class="btn btn-violet btn-sm" id="downloadJsonBtn">Télécharger les données</button>
+            </div>
+          </div>
+
           <div class="community-grid">
             <div class="fb-main">
               <div class="panel fb-composer" id="fbComposer" style="margin-top:0; display:none;">
