@@ -251,6 +251,8 @@
     cursor: pointer;
   }
   .nav-action:hover{ color: var(--text); background: var(--panel-2); }
+  /* Une entree qui porte un compteur le pousse a l autre bout de la ligne. */
+  .nav-action:has(#notifBadge){ display:flex; align-items:center; justify-content:space-between; gap:0.5rem; }
   .nav-spacer{ flex-grow:1; }
 
   /* ---------- hamburger (foana, tsy mobile ihany) ---------- */
@@ -266,11 +268,6 @@
     cursor:pointer;
     flex-shrink:0;
   }
-  /* L'icône tourne le temps que la page reparte : sans ce signe, un appui sur
-     un réseau lent ne répond rien et l'on appuie une deuxième fois. */
-  @keyframes tourne{ to{ transform: rotate(360deg); } }
-  #refreshBtn.tourne{ animation: tourne 0.8s linear infinite; }
-
   .sidebar-top{ display:flex; align-items:center; justify-content:space-between; }
   .brand-sub{ display:none; }
   .nav-spacer{ display:none; }

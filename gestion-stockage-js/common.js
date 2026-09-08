@@ -2500,23 +2500,6 @@ const STORAGE_ITEMS = 'stockmanager_items';
     }
   }
 
-  // ---------------- ACTUALISER ----------------
-  // Le site s'utilise comme une application, souvent laissée ouverte des
-  // heures sur un téléphone : la barre d'adresse du navigateur, elle, est
-  // rangée. Ce bouton rend le geste accessible sans en sortir.
-  var refreshBtn = document.getElementById('refreshBtn');
-  if(refreshBtn){
-    refreshBtn.addEventListener('click', function(){
-      refreshBtn.classList.add('tourne');
-      // Les listes ouvertes n'ont plus de sens sur une page qui repart.
-      var np = document.getElementById('notifPanel');
-      if(np) np.style.display = 'none';
-      var mp = document.getElementById('marketPanel');
-      if(mp) mp.style.display = 'none';
-      location.reload();
-    });
-  }
-
   // ---------------- ÉCRIRE ----------------
   // La boîte d'écriture occupait le haut du fil en permanence, alors qu'on
   // vient surtout y lire. Elle s'ouvre maintenant depuis la rangée du bas.
@@ -2635,19 +2618,11 @@ const STORAGE_ITEMS = 'stockmanager_items';
     notifPanel.style.right = 'auto';
     notifPanel.style.top = 'auto';
 
+    // La cloche est remontée dans le menu : sa liste s'ouvre à côté du bouton
+    // flottant, comme celle des achats internationaux.
     function placerNotif(){
-      const rangee = document.querySelector('.dash-tabs-main');
-      // Une rangée escamotée ne prend plus de place : la liste peut descendre.
-      const haute = (rangee && !rangee.classList.contains('barre-cachee'))
-        ? rangee.getBoundingClientRect().height : 0;
-      notifPanel.style.bottom = (haute + 10) + 'px';
-      // Centrée sur la cloche, puis ramenée dans l'écran : près du bord, une
-      // liste de 340 pixels déborderait.
-      const b = notifToggle.getBoundingClientRect();
-      const l = notifPanel.getBoundingClientRect().width;
-      let gauche = b.left + b.width / 2 - l / 2;
-      gauche = Math.max(8, Math.min(gauche, window.innerWidth - l - 8));
-      notifPanel.style.left = gauche + 'px';
+      notifPanel.style.bottom = 'auto';
+      placerPresDuMenu(notifPanel);
     }
 
     window.addEventListener('scroll', function(){
@@ -2663,6 +2638,12 @@ const STORAGE_ITEMS = 'stockmanager_items';
       notifPanel.style.display = isOpen ? 'none' : 'block';
       notifToggle.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
       if(!isOpen){
+        // Le menu s'efface : la liste s'ouvre juste à côté du bouton, les deux se
+        // recouvriraient sinon.
+        if(navList && navList.classList.contains('open')){
+          navList.classList.remove('open');
+          if(menuToggle){ menuToggle.textContent = '☰'; menuToggle.setAttribute('aria-expanded','false'); }
+        }
         placerNotif();
         var mp = document.getElementById('marketPanel');
         if(mp){
