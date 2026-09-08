@@ -266,6 +266,11 @@
     cursor:pointer;
     flex-shrink:0;
   }
+  /* L'icône tourne le temps que la page reparte : sans ce signe, un appui sur
+     un réseau lent ne répond rien et l'on appuie une deuxième fois. */
+  @keyframes tourne{ to{ transform: rotate(360deg); } }
+  #refreshBtn.tourne{ animation: tourne 0.8s linear infinite; }
+
   .sidebar-top{ display:flex; align-items:center; justify-content:space-between; }
   .brand-sub{ display:none; }
   .nav-spacer{ display:none; }

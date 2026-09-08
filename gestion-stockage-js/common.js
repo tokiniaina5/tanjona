@@ -2468,6 +2468,23 @@ const STORAGE_ITEMS = 'stockmanager_items';
     }
   }
 
+  // ---------------- ACTUALISER ----------------
+  // Le site s'utilise comme une application, souvent laissée ouverte des
+  // heures sur un téléphone : la barre d'adresse du navigateur, elle, est
+  // rangée. Ce bouton rend le geste accessible sans en sortir.
+  var refreshBtn = document.getElementById('refreshBtn');
+  if(refreshBtn){
+    refreshBtn.addEventListener('click', function(){
+      refreshBtn.classList.add('tourne');
+      // Les listes ouvertes n'ont plus de sens sur une page qui repart.
+      var np = document.getElementById('notifPanel');
+      if(np) np.style.display = 'none';
+      var mp = document.getElementById('marketPanel');
+      if(mp) mp.style.display = 'none';
+      location.reload();
+    });
+  }
+
   // ---------------- NOTIFICATIONS ----------------
   var notifToggle = document.getElementById('notifToggle');
   var notifPanel = document.getElementById('notifPanel');
