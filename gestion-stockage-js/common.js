@@ -2577,25 +2577,6 @@ const STORAGE_ITEMS = 'stockmanager_items';
     }
   }
 
-  // ---------------- RANGÉE QUI DÉFILE ----------------
-  // À treize icônes, la rangée déborde de la largeur d'un téléphone. Rien ne
-  // dit qu'elle se tire sur le côté : un fondu au bord droit annonce ce qui
-  // attend plus loin, et s'efface une fois le bout atteint.
-  (function(){
-    const rangee = document.getElementById('stockMainTabs');
-    if(!rangee) return;
-    function marquerLeReste(){
-      const reste = rangee.scrollWidth - rangee.clientWidth - rangee.scrollLeft;
-      rangee.classList.toggle('reste-a-droite', reste > 4);
-    }
-    rangee.addEventListener('scroll', marquerLeReste, { passive: true });
-    window.addEventListener('resize', marquerLeReste);
-    // La rangée n'a de largeur qu'une fois l'application affichée — pas au
-    // chargement, où elle est encore cachée derrière l'écran de connexion.
-    if(window.ResizeObserver) new ResizeObserver(marquerLeReste).observe(rangee);
-    requestAnimationFrame(marquerLeReste);
-  })();
-
   // ---------------- BARRES ESCAMOTABLES ----------------
   // On descend dans la page : les deux bandes s'effacent, l'écran est rendu à
   // la lecture. On remonte : elles reviennent aussitôt, sans qu'il faille
@@ -2863,8 +2844,12 @@ const STORAGE_ITEMS = 'stockmanager_items';
     saveLastView();
   }
 
-  const menuAccueil = document.getElementById('menuAccueil');
-  if(menuAccueil) menuAccueil.addEventListener('click', function(){ ouvrirDepuisLeMenu('accueil'); });
+  // L'Accueil se trouve à deux endroits — la rangée du bas et le menu — et
+  // les deux mènent au même écran.
+  ['menuAccueil', 'barAccueil'].forEach(function(id){
+    const el = document.getElementById(id);
+    if(el) el.addEventListener('click', function(){ ouvrirDepuisLeMenu('accueil'); });
+  });
   const menuArticles = document.getElementById('menuArticles');
   if(menuArticles) menuArticles.addEventListener('click', function(){ ouvrirDepuisLeMenu('articles'); });
 
