@@ -412,7 +412,13 @@
           <span id="notifBadge" style="display:none; background:#ff6b6b; color:#fff; font-size:0.62rem; font-weight:700; border-radius:999px; min-width:16px; height:16px; line-height:16px; text-align:center; padding:0 4px;">0</span>
         </button>
         <button type="button" class="nav-action" id="marketToggle" aria-label="Achats internationaux" aria-expanded="false">🌍 Achats internationaux</button>
-        <div class="nav-item active" id="navStock" data-section="stock">📦 Stock</div>
+        <!-- « Stock » ne se montre plus : on y entre par Accueil ou Articles,
+             qui sont ses deux vues. L'entrée reste pourtant là, masquée : c'est
+             par elle que le code ouvre la section — l'Accueil et les Articles
+             appelés depuis une autre page, comme la recherche globale, passent
+             tous par ce point. La retirer les laisserait afficher une vue que
+             personne ne regarde. -->
+        <div class="nav-item active" id="navStock" data-section="stock" style="display:none;">📦 Stock</div>
         <div class="nav-item" data-section="factures">🧾 Factures</div>
         <div class="nav-item" data-section="inviter">✉️ Inviter des amis</div>
         <div class="nav-item" data-section="contact">☎️ Nous contacter</div>
