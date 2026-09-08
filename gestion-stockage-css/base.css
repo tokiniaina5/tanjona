@@ -280,6 +280,16 @@
   /* ---------- menu déplaçable ---------- */
   /* touch-action:none : sans cela le doigt fait défiler la page au lieu de
      déplacer le bouton, et rien ne bouge sur téléphone. */
+  /* Les bords sûrs du téléphone : encoche en haut, barre d'accueil en bas.
+     Le JS les relit pour ne jamais y poser le bouton, qui y serait visible
+     mais intouchable. */
+  :root{
+    --sur-haut: env(safe-area-inset-top, 0px);
+    --sur-bas: env(safe-area-inset-bottom, 0px);
+    --sur-gauche: env(safe-area-inset-left, 0px);
+    --sur-droite: env(safe-area-inset-right, 0px);
+  }
+
   .menu-toggle.floating{
     position: fixed;
     z-index: 120;

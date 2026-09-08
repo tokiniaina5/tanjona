@@ -2299,9 +2299,15 @@ const STORAGE_ITEMS = 'stockmanager_items';
     // l'affichage de l'application plutôt que d'aller modifier chacun des
     // endroits qui l'ouvrent ou la ferment.
     const appScreenEl = document.getElementById('appScreen');
+    // Vrai une fois la position connue : ce garde-fou tourne aussi a
+    // l'initialisation, avant qu'elle existe.
+    let pret = false;
     function syncMenuVisibility(){
       const visible = appScreenEl && getComputedStyle(appScreenEl).display !== 'none';
       menuToggle.style.display = visible ? 'flex' : 'none';
+      // A chaque ouverture de l'application on verifie que le bouton est bien
+      // a portee : c'est le moment ou l'ecran a sa taille definitive.
+      if(visible && pret) replacer();
       if(!visible){
         navList.classList.remove('open');
         menuToggle.textContent = '☰';
@@ -2319,14 +2325,40 @@ const STORAGE_ITEMS = 'stockmanager_items';
       return { w: r.width || 38, h: r.height || 38 };
     }
 
-    // Toujours dans l'écran : une position enregistrée sur grand écran, puis
-    // rouverte sur un téléphone, tomberait hors de portée.
+    function bordSur(nom){
+      const v = getComputedStyle(document.documentElement).getPropertyValue(nom);
+      const n = parseFloat(v);
+      return isFinite(n) ? n : 0;
+    }
+
+    // Ce que l'oeil voit, et non ce que la page mesure. Sur un téléphone les
+    // deux diffèrent : window.innerHeight compte la bande cachée derrière la
+    // barre d'adresse, et le zoom au doigt ne la change pas du tout. Un bouton
+    // posé d'après ces mesures-là se retrouve hors de l'écran, visible nulle
+    // part et intouchable — c'est ce qui vient d'arriver.
+    function zoneVisible(){
+      const vv = window.visualViewport;
+      const base = vv
+        ? { x: vv.offsetLeft, y: vv.offsetTop, w: vv.width, h: vv.height }
+        : { x: 0, y: 0, w: window.innerWidth, h: window.innerHeight };
+      // Encoche et barre d'accueil : visibles, mais le doigt n'y atteint rien.
+      const haut = bordSur('--sur-haut'), bas = bordSur('--sur-bas');
+      const gauche = bordSur('--sur-gauche'), droite = bordSur('--sur-droite');
+      return {
+        x: base.x + gauche, y: base.y + haut,
+        w: Math.max(0, base.w - gauche - droite),
+        h: Math.max(0, base.h - haut - bas)
+      };
+    }
+
     function poserBouton(x, y){
       const t = tailleBouton();
-      const maxX = Math.max(MARGE, window.innerWidth - t.w - MARGE);
-      const maxY = Math.max(MARGE, window.innerHeight - t.h - MARGE);
-      const px = Math.min(Math.max(MARGE, x), maxX);
-      const py = Math.min(Math.max(MARGE, y), maxY);
+      const z = zoneVisible();
+      const minX = z.x + MARGE, minY = z.y + MARGE;
+      const maxX = Math.max(minX, z.x + z.w - t.w - MARGE);
+      const maxY = Math.max(minY, z.y + z.h - t.h - MARGE);
+      const px = Math.min(Math.max(minX, x), maxX);
+      const py = Math.min(Math.max(minY, y), maxY);
       menuToggle.style.left = px + 'px';
       menuToggle.style.top = py + 'px';
       return { x: px, y: py };
@@ -2334,7 +2366,8 @@ const STORAGE_ITEMS = 'stockmanager_items';
 
     function positionParDefaut(){
       const t = tailleBouton();
-      return { x: window.innerWidth - t.w - 16, y: 16 };
+      const z = zoneVisible();
+      return { x: z.x + z.w - t.w - 16, y: z.y + 16 };
     }
 
     function chargerPosition(){
@@ -2354,13 +2387,14 @@ const STORAGE_ITEMS = 'stockmanager_items';
     placerPresDuMenu = function(el){
       const b = menuToggle.getBoundingClientRect();
       const n = el.getBoundingClientRect();
+      const z = zoneVisible();
       let left = b.left;
-      if(left + n.width > window.innerWidth - MARGE) left = b.right - n.width;
-      left = Math.max(MARGE, Math.min(left, window.innerWidth - n.width - MARGE));
+      if(left + n.width > z.x + z.w - MARGE) left = b.right - n.width;
+      left = Math.max(z.x + MARGE, Math.min(left, z.x + z.w - n.width - MARGE));
 
       let top = b.bottom + 6;
-      if(top + n.height > window.innerHeight - MARGE) top = b.top - n.height - 6;
-      top = Math.max(MARGE, top);
+      if(top + n.height > z.y + z.h - MARGE) top = b.top - n.height - 6;
+      top = Math.max(z.y + MARGE, top);
 
       el.style.left = left + 'px';
       el.style.top = top + 'px';
@@ -2372,6 +2406,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
 
     const depart = chargerPosition();
     let position = poserBouton(depart.x, depart.y);
+    pret = true;
 
     // ---- Déplacement au doigt comme à la souris ----
     // Les événements « pointer » couvrent les deux : un seul chemin, donc un
@@ -2416,10 +2451,21 @@ const STORAGE_ITEMS = 'stockmanager_items';
     menuToggle.addEventListener('pointerup', finGlisse);
     menuToggle.addEventListener('pointercancel', finGlisse);
 
-    window.addEventListener('resize', function(){
-      position = poserBouton(position.x, position.y);
+    // On replace sans toucher a `position` : elle garde l'endroit voulu par
+    // l'utilisateur. Le bouton y revient de lui-même quand l'écran redevient
+    // grand, au lieu de rester coincé là où un zoom l'avait rabattu.
+    function replacer(){
+      poserBouton(position.x, position.y);
       placerPanneau();
-    });
+    }
+    window.addEventListener('resize', replacer);
+    window.addEventListener('orientationchange', replacer);
+    if(window.visualViewport){
+      // Le zoom au doigt et la barre d'adresse qui glisse ne déclenchent aucun
+      // `resize` : sans ces deux-là, le bouton reste hors de l'écran.
+      window.visualViewport.addEventListener('resize', replacer);
+      window.visualViewport.addEventListener('scroll', replacer);
+    }
   }
 
   // ---------------- NOTIFICATIONS ----------------
