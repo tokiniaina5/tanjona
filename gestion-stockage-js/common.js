@@ -2523,25 +2523,50 @@ const STORAGE_ITEMS = 'stockmanager_items';
   var composerToggle = document.getElementById('composerToggle');
   var fbComposer = document.getElementById('fbComposer');
   if(composerToggle && fbComposer){
-    composerToggle.addEventListener('click', function(){
-      const ouvert = fbComposer.style.display !== 'none';
-      if(ouvert){
-        fbComposer.style.display = 'none';
-        composerToggle.setAttribute('aria-expanded', 'false');
-        return;
-      }
-      // Elle vit en tête du fil d'actualité : depuis Articles ou Factures, il
-      // faut d'abord y revenir, sinon on ouvrirait une boîte que personne ne
-      // voit.
-      if(typeof ouvrirDepuisLeMenu === 'function') ouvrirDepuisLeMenu('accueil');
+    // Elle quitte le fil pour flotter : le fil n'est plus qu'un fil, et la
+    // boîte s'ouvre là où on l'appelle, quelle que soit la page.
+    document.body.appendChild(fbComposer);
+    fbComposer.classList.add('composer-flottant');
+
+    function placerComposer(){
+      const rangee = document.querySelector('.dash-tabs-main');
+      // Une rangée escamotée ne prend plus de place : la boîte peut descendre.
+      const haute = (rangee && !rangee.classList.contains('barre-cachee'))
+        ? rangee.getBoundingClientRect().height : 0;
+      fbComposer.style.bottom = (haute + 10) + 'px';
+    }
+
+    function fermerComposer(){
+      fbComposer.style.display = 'none';
+      composerToggle.setAttribute('aria-expanded', 'false');
+    }
+
+    composerToggle.addEventListener('click', function(e){
+      e.stopPropagation();
+      if(fbComposer.style.display !== 'none'){ fermerComposer(); return; }
       fbComposer.style.display = '';
       composerToggle.setAttribute('aria-expanded', 'true');
-      fbComposer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      placerComposer();
       const champ = document.getElementById('newsMessage');
       if(champ) champ.focus({ preventScroll: true });
     });
 
-    // Une fois le message parti, la boîte n'a plus lieu d'être ouverte.
+    // La rangée s'efface au défilement : la boîte suit, sinon elle laisserait
+    // un vide sous elle.
+    window.addEventListener('scroll', function(){
+      if(fbComposer.style.display !== 'none') placerComposer();
+    }, { passive: true });
+    window.addEventListener('resize', function(){
+      if(fbComposer.style.display !== 'none') placerComposer();
+    });
+
+    // Un clic à côté referme, comme pour les autres panneaux.
+    document.addEventListener('click', function(e){
+      if(fbComposer.style.display === 'none') return;
+      if(fbComposer.contains(e.target) || composerToggle.contains(e.target)) return;
+      fermerComposer();
+    });
+
     const publier = document.getElementById('postNewsBtn');
     if(publier){
       publier.addEventListener('click', function(){
@@ -2550,8 +2575,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
           // Le champ vidé est le signe que l'envoi a réussi ; en cas d'échec le
           // message est encore là, et la boîte doit le rester aussi.
           if(champ && !champ.value.trim()){
-            fbComposer.style.display = 'none';
-            composerToggle.setAttribute('aria-expanded', 'false');
+            fermerComposer();
+            // On montre le fil : sans cela, rien ne dit que le message est parti.
+            if(typeof ouvrirDepuisLeMenu === 'function') ouvrirDepuisLeMenu('accueil');
           }
         }, 600);
       });

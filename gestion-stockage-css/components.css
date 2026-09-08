@@ -32,6 +32,19 @@
   @media (max-width: 760px){
     #stockMainTabs .tab-text{ display:none; }
   }
+  /* La boîte d'écriture ne vit plus dans le fil : elle s'ouvre au-dessus de la
+     rangée du bas, d'où le crayon l'appelle. Le fil n'est plus qu'un fil. */
+  #fbComposer.composer-flottant{
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(560px, calc(100vw - 1.6rem));
+    z-index: 110;
+    max-height: 70vh;
+    overflow-y: auto;
+    box-shadow: 0 -10px 34px rgba(0,0,0,0.5);
+  }
+
   .dash-view{ display:none; }
   .dash-view.active{ display:block; }
 
