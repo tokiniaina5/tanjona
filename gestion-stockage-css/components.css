@@ -127,6 +127,47 @@
      premier chassait le second sur la ligne suivante. */
   #section-fond .actions-row .btn{ width: auto; }
 
+  /* Les icônes posées sur le fond. Elles vivent sous les fenêtres, comme les
+     icônes d'un bureau : c'est l'image de fond qu'elles habitent, pas le
+     travail en cours. */
+  .icone-bureau{
+    position: fixed;
+    z-index: 92;
+    width: 68px;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 0.25rem;
+    padding: 0.4rem 0.2rem;
+    border: 0; background: transparent; color: #fff;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+  }
+  .icone-bureau .emoji{ font-size: 1.7rem; line-height: 1; }
+  /* Une ombre portée, et non un fond : l'image du dessous peut être claire
+     comme sombre, et un cadre opaque cacherait ce qu'on a choisi de voir. */
+  .icone-bureau .emoji, .icone-bureau .nom{ text-shadow: 0 1px 5px rgba(0,0,0,0.9); }
+  .icone-bureau .nom{
+    font-family: var(--font-mono);
+    font-size: 0.62rem; line-height: 1.2; text-align: center;
+    overflow-wrap: anywhere;
+  }
+  .icone-bureau.tire{ opacity: 0.8; cursor: grabbing; z-index: 141; }
+  .icone-bureau .epingle-retirer{ top: 0; right: 6px; }
+  /* Comme dans la rangée : la croix ne paraît qu'en mode manuel. */
+  .icone-bureau .epingle-retirer{ display: none; }
+  body.retrait-manuel .icone-bureau .epingle-retirer{ display: block; }
+  /* Ce qui suit le doigt pendant le geste. */
+  .icone-fantome{
+    position: fixed; z-index: 142;
+    transform: translate(-50%, -50%);
+    font-size: 1.9rem; line-height: 1;
+    pointer-events: none;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+  }
+  /* La rangée garde son défilement latéral : seul le glissement vers le haut
+     nous revient. */
+  #stockMainTabs .dash-tab{ touch-action: pan-x; }
+
   /* Les fenêtres du menu se tirent par les quatre coins : au doigt sur
      téléphone, à la souris sur ordinateur. Les poignées vivent dans un calque
      posé par-dessus, et non dans la fenêtre : à l'intérieur, elles

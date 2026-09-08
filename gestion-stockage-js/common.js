@@ -3233,7 +3233,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
       mesurer();
     }
 
-    function poser(cle){
+    var poser = function(cle){
       const entree = entreeDe(cle);
       if(!entree || rangee.querySelector('[data-epingle="' + cle + '"]')) return;
       // « 📋 Articles » : l'emoji jusqu'à la première espace, le nom après.
@@ -3279,7 +3279,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
       const reglages = document.getElementById('barReglagesBtn');
       if(reglages && reglages.parentElement === rangee) rangee.insertBefore(bouton, reglages);
       else rangee.appendChild(bouton);
-    }
+    };
 
     function mesurer(){
       const deborde = rangee.scrollWidth > rangee.clientWidth;
@@ -3311,6 +3311,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
     function epingler(entree){
       const jumeau = JUMEAUX[entree.id];
       if(jumeau){
+        // Déjà posée sur le fond : la rappeler du menu la remettrait aussi
+        // dans la rangée, et on l'aurait aux deux endroits.
+        if(surLeFond('fixe:' + jumeau)) return;
         const bouton = document.getElementById(jumeau);
         if(bouton) bouton.style.display = '';
         ecrireRetirees(lireRetirees().filter(function(id){ return id !== jumeau; }));
@@ -3318,6 +3321,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
         return;
       }
       const cle = cleDe(entree);
+      if(surLeFond(cle)) return;
       const liste = lireEpingles();
       const connue = liste.filter(function(e){ return e.cle === cle; })[0];
       if(connue) connue.vu = Date.now();
@@ -3361,6 +3365,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
     function direLeMode(){
       const mode = lireMode();
       rangee.classList.toggle('mode-manuel', mode === 'manuel');
+      // Les icônes posées sur le fond obéissent au même réglage, et sont hors
+      // de la rangée : c'est le corps de la page qui porte la consigne.
+      document.body.classList.toggle('retrait-manuel', mode === 'manuel');
       if(panneau){
         panneau.querySelectorAll('.reglage-mode').forEach(function(b){
           b.classList.toggle('actif', b.dataset.mode === mode);
@@ -3421,6 +3428,302 @@ const STORAGE_ITEMS = 'stockmanager_items';
         if(panneau.style.display === 'block') placerReglages();
       });
     }
+
+    // ---- Les icônes posées sur le fond ----
+    // On tire une icône de la rangée vers le haut et on la lâche où l'on veut :
+    // elle reste là, sur l'image de fond, comme sur un bureau. On la ramène en
+    // la relâchant sur la rangée — sans quoi, une fois sortie, elle n'aurait
+    // plus de chemin de retour.
+    //
+    // Vers le haut, et seulement vers le haut : la rangée se tire sur le côté
+    // quand elle déborde, et un glissement horizontal doit rester le sien.
+    const CLE_BUREAU = 'stockmanager_icones_bureau';
+    // Une icône est retenue en fractions de l'écran, et non en pixels : un
+    // téléphone qu'on tourne, une fenêtre qu'on redimensionne, et des pixels
+    // désigneraient un endroit qui n'existe plus.
+    function lireBureau(){
+      try{ const l = JSON.parse(localStorage.getItem(CLE_BUREAU)); return Array.isArray(l) ? l : []; }
+      catch(e){ return []; }
+    }
+    function ecrireBureau(l){
+      try{ localStorage.setItem(CLE_BUREAU, JSON.stringify(l)); }catch(e){}
+    }
+    function surLeFond(cle){
+      return lireBureau().some(function(i){ return i.cle === cle; });
+    }
+
+    // Les entrées fixes de la rangée n'ont pas d'épingle : on leur donne une
+    // clé à part, pour que le fond les désigne comme les autres.
+    function figureDe(cle){
+      if(cle.indexOf('fixe:') === 0){
+        const b = document.getElementById(cle.slice(5));
+        if(!b) return null;
+        const e = b.querySelector('span[aria-hidden]');
+        return { icone: e ? e.textContent.trim() : '•', nom: b.title || '' };
+      }
+      const entree = entreeDe(cle);
+      if(!entree) return null;
+      const porteur = entree.querySelector('span') || entree;
+      const texte = porteur.textContent.trim();
+      const espace = texte.indexOf(' ');
+      return {
+        icone: espace > 0 ? texte.slice(0, espace) : texte,
+        nom: espace > 0 ? texte.slice(espace + 1).trim() : texte
+      };
+    }
+    function ouvrirDepuisLaCle(cle){
+      if(cle.indexOf('fixe:') === 0){
+        const b = document.getElementById(cle.slice(5));
+        if(b) b.click();
+        return;
+      }
+      const entree = entreeDe(cle);
+      if(entree) entree.click();
+    }
+
+    // La bande où une icône a le droit de se poser : ni sous le nom, ni sous
+    // la rangée. On la lâche où l'on veut, mais pas là où on ne la verrait pas.
+    function cadreDuFond(){
+      const haut = document.querySelector('.sidebar-top');
+      const bas = document.querySelector('.dash-tabs-main');
+      const hb = (haut && haut.getBoundingClientRect().height > 0) ? haut.getBoundingClientRect().bottom + 8 : 8;
+      const bb = (bas && getComputedStyle(bas).display !== 'none')
+        ? bas.getBoundingClientRect().top - 8 : window.innerHeight - 8;
+      // Mesuré avant que la page ait sa hauteur, le cadre se réduit à un trait
+      // et toutes les icônes se retrouvent collées en haut. On préfère ne rien
+      // dire et laisser le passage suivant s'en charger.
+      if(bb - hb < 120) return null;
+      return { x1: 8, y1: hb, x2: window.innerWidth - 76, y2: bb - 60 };
+    }
+
+    function placerIcone(el, fx, fy){
+      const c = cadreDuFond();
+      if(!c) return false;
+      const x = Math.min(Math.max(c.x1, fx * window.innerWidth), c.x2);
+      const y = Math.min(Math.max(c.y1, fy * window.innerHeight), c.y2);
+      el.style.left = Math.round(x) + 'px';
+      el.style.top = Math.round(y) + 'px';
+      return true;
+    }
+
+    // Chaque icône reprend la place qu'on lui a donnée. Appelé à l'ouverture,
+    // puis une fois la page complète : le premier passage tombe souvent avant
+    // que la rangée du bas ait une hauteur.
+    function replacerLesIcones(){
+      const liste = lireBureau();
+      [].slice.call(document.querySelectorAll('.icone-bureau')).forEach(function(el){
+        const e = liste.filter(function(i){ return i.cle === el.dataset.cle; })[0];
+        if(e) placerIcone(el, e.x, e.y);
+      });
+    }
+
+    function retirerDuFond(cle){
+      ecrireBureau(lireBureau().filter(function(i){ return i.cle !== cle; }));
+      const el = document.querySelector('.icone-bureau[data-cle="' + cle + '"]');
+      if(el) el.remove();
+    }
+
+    function dessinerIcone(entree){
+      const fig = figureDe(entree.cle);
+      if(!fig) return null;
+      const el = document.createElement('button');
+      el.type = 'button';
+      el.className = 'icone-bureau';
+      el.dataset.cle = entree.cle;
+      el.title = fig.nom;
+      el.setAttribute('aria-label', fig.nom);
+      const emoji = document.createElement('span');
+      emoji.className = 'emoji';
+      emoji.setAttribute('aria-hidden', 'true');
+      emoji.textContent = fig.icone;
+      const nom = document.createElement('span');
+      nom.className = 'nom';
+      nom.textContent = fig.nom;
+      el.appendChild(emoji);
+      el.appendChild(nom);
+
+      const croix = document.createElement('span');
+      croix.className = 'epingle-retirer';
+      croix.textContent = '✕';
+      croix.title = 'Esorina : ' + fig.nom;
+      croix.setAttribute('aria-label', 'Esorina : ' + fig.nom);
+      croix.addEventListener('click', function(e){
+        e.stopPropagation();
+        retirerDuFond(entree.cle);
+      });
+      el.appendChild(croix);
+
+      document.body.appendChild(el);
+      placerIcone(el, entree.x, entree.y);
+      armerIcone(el, entree.cle);
+      return el;
+    }
+
+    function redessinerLeFond(){
+      [].slice.call(document.querySelectorAll('.icone-bureau')).forEach(function(el){ el.remove(); });
+      lireBureau().forEach(dessinerIcone);
+    }
+
+    // ---- Le geste, un seul pour les deux sens ----
+    let fantome = null;
+    function montrerFantome(cle, x, y){
+      const fig = figureDe(cle);
+      if(!fantome){
+        fantome = document.createElement('div');
+        fantome.className = 'icone-fantome';
+        document.body.appendChild(fantome);
+      }
+      fantome.textContent = fig ? fig.icone : '•';
+      fantome.style.left = Math.round(x) + 'px';
+      fantome.style.top = Math.round(y) + 'px';
+    }
+    function effacerFantome(){
+      if(fantome){ fantome.remove(); fantome = null; }
+    }
+    function surLaRangee(x, y){
+      const r = rangee.getBoundingClientRect();
+      return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+    }
+
+    // Sortir une icône de la rangée. On ne passe pas par retirer() : celui-ci
+    // referme la page ouverte, et déplacer une icône n'est pas s'en défaire.
+    function detacherDeLaRangee(cle, bouton){
+      if(cle.indexOf('fixe:') === 0){
+        const id = cle.slice(5);
+        bouton.style.display = 'none';
+        const l = lireRetirees();
+        if(l.indexOf(id) < 0){ l.push(id); ecrireRetirees(l); }
+      } else {
+        ecrireEpingles(lireEpingles().filter(function(e){ return e.cle !== cle; }));
+        bouton.remove();
+      }
+      mesurer();
+    }
+    function rendreALaRangee(cle){
+      retirerDuFond(cle);
+      if(cle.indexOf('fixe:') === 0){
+        const id = cle.slice(5);
+        const b = document.getElementById(id);
+        if(b) b.style.display = '';
+        ecrireRetirees(lireRetirees().filter(function(x){ return x !== id; }));
+      } else {
+        const liste = lireEpingles();
+        if(!liste.some(function(e){ return e.cle === cle; })){
+          liste.push({ cle: cle, vu: Date.now() });
+          ecrireEpingles(liste);
+        }
+        poser(cle);
+      }
+      mesurer();
+    }
+
+    // Depuis la rangée : vers le haut, au-delà de dix pixels, et plus haut que
+    // large. En dessous de ce seuil, c'est un appui — la page s'ouvre.
+    rangee.addEventListener('pointerdown', function(e){
+      const bouton = e.target.closest ? e.target.closest('.dash-tab') : null;
+      if(!bouton || !rangee.contains(bouton)) return;
+      // La loupe et les réglages tiennent la rangée : ils n'en sortent pas.
+      if(bouton.id === 'menuToggle' || bouton.id === 'barReglagesBtn') return;
+      if(e.target.closest && e.target.closest('.epingle-retirer')) return;
+      const cle = bouton.dataset.epingle || (bouton.id ? 'fixe:' + bouton.id : null);
+      if(!cle) return;
+
+      let parti = false;
+      const x0 = e.clientX, y0 = e.clientY;
+      function bouger(ev){
+        const dx = ev.clientX - x0, dy = ev.clientY - y0;
+        if(!parti){
+          if(dy > -10 || Math.abs(dy) <= Math.abs(dx)) return;
+          parti = true;
+          bouton.classList.add('tire');
+        }
+        ev.preventDefault();
+        montrerFantome(cle, ev.clientX, ev.clientY);
+      }
+      function lacher(ev){
+        document.removeEventListener('pointermove', bouger);
+        document.removeEventListener('pointerup', lacher);
+        document.removeEventListener('pointercancel', lacher);
+        bouton.classList.remove('tire');
+        effacerFantome();
+        if(!parti) return;
+        // Relâchée sur la rangée : elle n'a jamais voulu en sortir.
+        if(surLaRangee(ev.clientX, ev.clientY)) return;
+        detacherDeLaRangee(cle, bouton);
+        const entree = {
+          cle: cle,
+          x: ev.clientX / window.innerWidth,
+          y: ev.clientY / window.innerHeight
+        };
+        ecrireBureau(lireBureau().filter(function(i){ return i.cle !== cle; }).concat([entree]));
+        dessinerIcone(entree);
+      }
+      document.addEventListener('pointermove', bouger);
+      document.addEventListener('pointerup', lacher);
+      document.addEventListener('pointercancel', lacher);
+    });
+
+    // Sur le fond : quatre pixels suffisent, dans n'importe quel sens. Rien à
+    // ménager ici — il n'y a pas de défilement à préserver.
+    function armerIcone(el, cle){
+      el.addEventListener('pointerdown', function(e){
+        if(e.target.closest && e.target.closest('.epingle-retirer')) return;
+        e.preventDefault();
+        const r = el.getBoundingClientRect();
+        const dx = e.clientX - r.left, dy = e.clientY - r.top;
+        const x0 = e.clientX, y0 = e.clientY;
+        let parti = false;
+        try{ el.setPointerCapture(e.pointerId); }catch(err){}
+        function bouger(ev){
+          if(!parti && Math.abs(ev.clientX - x0) + Math.abs(ev.clientY - y0) < 4) return;
+          parti = true;
+          el.classList.add('tire');
+          el.style.left = Math.round(ev.clientX - dx) + 'px';
+          el.style.top = Math.round(ev.clientY - dy) + 'px';
+        }
+        function lacher(ev){
+          el.removeEventListener('pointermove', bouger);
+          el.removeEventListener('pointerup', lacher);
+          el.removeEventListener('pointercancel', lacher);
+          try{ el.releasePointerCapture(ev.pointerId); }catch(err){}
+          el.classList.remove('tire');
+          if(!parti){ ouvrirDepuisLaCle(cle); return; }
+          if(surLaRangee(ev.clientX, ev.clientY)){ rendreALaRangee(cle); return; }
+          placerIcone(el, (ev.clientX - dx) / window.innerWidth, (ev.clientY - dy) / window.innerHeight);
+          const r2 = el.getBoundingClientRect();
+          const liste = lireBureau().map(function(i){
+            return i.cle === cle
+              ? { cle: cle, x: r2.left / window.innerWidth, y: r2.top / window.innerHeight }
+              : i;
+          });
+          ecrireBureau(liste);
+        }
+        el.addEventListener('pointermove', bouger);
+        el.addEventListener('pointerup', lacher);
+        el.addEventListener('pointercancel', lacher);
+      });
+    }
+
+    // Une icône posée sur le fond n'a rien à faire dans la rangée : elle y
+    // reviendrait au premier passage par le menu, et on l'aurait en double.
+    const poserOriginal = poser;
+    poser = function(cle){
+      if(surLeFond(cle)) return;
+      poserOriginal(cle);
+    };
+
+    window.addEventListener('resize', replacerLesIcones);
+    window.addEventListener('orientationchange', replacerLesIcones);
+
+    // Les entrées fixes sorties sur le fond ne doivent pas revenir dans la
+    // rangée quand on les rappelle du menu.
+    lireBureau().forEach(function(i){
+      if(i.cle.indexOf('fixe:') !== 0) return;
+      const b = document.getElementById(i.cle.slice(5));
+      if(b) b.style.display = 'none';
+    });
+    requestAnimationFrame(function(){ redessinerLeFond(); replacerLesIcones(); });
+    window.addEventListener('load', replacerLesIcones);
 
     lireEpingles().forEach(function(e){ poser(e.cle); });
     direLeMode();
