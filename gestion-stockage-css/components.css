@@ -97,11 +97,18 @@
   /* L'en-tête de l'Accueil ne partage plus sa ligne avec des boutons : le
      titre tient le milieu, les deux exports passent dessous. Un titre poussé
      à gauche par ce qui l'accompagne ne nomme plus la page — il la borde. */
+  /* En colonne, et non en bloc : display:block emportait avec lui le « gap »
+     de .section-head, et le titre se retrouvait collé à ses boutons. */
   .tete-accueil{
-    display: block;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.1rem;
     text-align: center;
+    margin-bottom: 1.8rem;
   }
-  .tete-accueil .actions-row{ justify-content: center; }
+  .tete-accueil h2{ line-height: 1.4; }
+  .tete-accueil .actions-row{ justify-content: center; gap: 0.8rem; }
 
   /* Les fenêtres du menu se tirent par les quatre coins : au doigt sur
      téléphone, à la souris sur ordinateur. Les poignées vivent dans un calque
