@@ -202,6 +202,33 @@
     });
   }
 
+  // Le portrait complet pèse des dizaines de kilo-octets. Recopié sur chaque
+  // publication, il alourdirait le fil d'autant de fois qu'il y a de billets,
+  // pour finir affiché dans un rond de 42 pixels. On en garde une vignette.
+  const TAILLE_VIGNETTE = 96;
+  function vignette(source){
+    return new Promise(function(resoudre){
+      if(!source) return resoudre(null);
+      const img = new Image();
+      img.onload = function(){
+        try{
+          const c = document.createElement('canvas');
+          c.width = TAILLE_VIGNETTE; c.height = TAILLE_VIGNETTE;
+          const ctx = c.getContext('2d');
+          // Recadrage au centre sur le plus petit côté : le visage reste au
+          // milieu, et rien n'est étiré.
+          const cote = Math.min(img.width, img.height);
+          ctx.drawImage(img, (img.width - cote) / 2, (img.height - cote) / 2, cote, cote,
+                             0, 0, TAILLE_VIGNETTE, TAILLE_VIGNETTE);
+          resoudre(c.toDataURL('image/jpeg', 0.72));
+        }catch(e){ resoudre(null); }
+      };
+      // Une image illisible ne doit pas empêcher de publier.
+      img.onerror = function(){ resoudre(null); };
+      img.src = source;
+    });
+  }
+
   function initials(name){
     if(!name) return '?';
     const parts = name.trim().split(/\s+/);
@@ -506,9 +533,21 @@
     if(!list) return;
     if(!window.__sb){ list.innerHTML=''; emptyHint.style.display = 'block'; return; }
     const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    window.__sb.from('client_news').select('id,client_name,network,message,link,type,price,image,created_at')
-      .gte('created_at', oneWeekAgo)
-      .order('created_at', { ascending: false }).limit(30)
+    // La colonne author_photo peut ne pas exister encore : tant que le script
+    // SQL n'a pas été passé, la demander ferait échouer la requête entière et
+    // le fil resterait vide. On la redemande alors sans elle.
+    const COLONNES = 'id,client_name,network,message,link,type,price,image,created_at';
+    function lireLeFil(avecPhoto){
+      return window.__sb.from('client_news')
+        .select(COLONNES + (avecPhoto ? ',author_photo' : ''))
+        .gte('created_at', oneWeekAgo)
+        .order('created_at', { ascending: false }).limit(30);
+    }
+    lireLeFil(true)
+      .then(function(res){
+        if(res && res.error) return lireLeFil(false);
+        return res;
+      })
       .then(function(res){
         list.innerHTML = '';
         const rows = (res && res.data) || [];
@@ -538,7 +577,12 @@
           }
           div.innerHTML =
             '<div class="fb-post-head">' +
-              '<div class="fb-avatar">' + escapeHtml(initials(n.client_name)) + '</div>' +
+              // La photo que l'auteur a jointe à SON billet, et rien d'autre :
+              // aller la chercher ailleurs d'après le nom affiché la donnerait
+              // à une homonyme. Sans photo, les initiales.
+              '<div class="fb-avatar">' + (n.author_photo
+                ? '<img src="' + escapeHtml(n.author_photo) + '" alt="' + escapeHtml(n.client_name || '') + '">'
+                : escapeHtml(initials(n.client_name))) + '</div>' +
               '<div>' +
                 '<div class="fb-post-name">' + escapeHtml(n.client_name || 'Client') + '</div>' +
                 '<div class="fb-post-meta">' + typeBadge + '<span class="fb-network-badge">' + escapeHtml(n.network || 'Autre') + '</span><span>' + d + '</span></div>' +
@@ -694,20 +738,34 @@
       if(!message && !pendingNewsImages.length){ alert('Soraty ny vaovao na alao sary aloha.'); return; }
       if(!window.__sb){ alert('Tsy misy fifandraisana amin\'ny serveur.'); return; }
       const clientName = (currentUser && currentUser.name) || 'Client';
-      window.__sb.from('client_news').insert({
+      // La vignette est calculée avant l'envoi : le billet part avec le visage
+      // de son auteur, seul moyen d'en être sûr chez les autres.
+      vignette(currentUser && currentUser.logo).then(function(photo){
+      const billet = {
         client_name: clientName, network: 'Autre', message: message, link: '',
         // Une annonce marquée « entana amidy » porte son prix, et c'est elle
         // qui fera apparaître le bouton Acheter chez les autres.
         type: (newsIsGoods && newsIsGoods.checked) ? 'entana' : 'vaovao',
         price: (newsIsGoods && newsIsGoods.checked && newsPrice && newsPrice.value) ? Number(newsPrice.value) : null,
         image: pendingNewsImages.length ? JSON.stringify(pendingNewsImages) : null
-      }).then(function(){
+      };
+      const avecAuteur = Object.assign({}, billet, {
+        author_email: (currentUser && currentUser.email) || null,
+        author_photo: photo
+      });
+      // Tant que le script SQL n'a pas été passé, ces deux colonnes n'existent
+      // pas et l'envoi entier serait refusé : le message doit partir quand même,
+      // sans le visage.
+      window.__sb.from('client_news').insert(avecAuteur)
+        .then(function(res){ return (res && res.error) ? window.__sb.from('client_news').insert(billet) : res; })
+        .then(function(){
         document.getElementById('newsMessage').value = '';
         if(newsIsGoods){ newsIsGoods.checked = false; }
         if(newsPrice){ newsPrice.value = ''; newsPrice.style.display = 'none'; }
         clearNewsImages();
         renderCommunityNews();
       }, function(){ alert("Tsy voaray ny fanambarana."); });
+      });
     });
   }
 
