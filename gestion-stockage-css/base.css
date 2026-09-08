@@ -313,8 +313,14 @@
   #menuFlottant{ display:none; }
   @media (min-width: 900px){
     #menuFlottant{ display:flex; }
-    #stockMainTabs #menuToggle{ display:none; }
     .menu-recherche, .menu-vide{ display:none !important; }
+    /* La rangée du bas est un geste de téléphone : le pouce y arrive sans que
+       la main se déplace. Sur un écran d'ordinateur elle barre le bas de la
+       page pour rien — tout ce qu'elle porte est dans le menu. */
+    #stockMainTabs.dash-tabs-main{ display:none; }
+    /* Sans rangée, plus de hauteur à lui réserver. Le sélecteur passe par
+       .shell : à poids égal, la règle de base, écrite plus bas, l'emportait. */
+    .shell .content{ padding-bottom: 2.4rem; }
   }
 
   /* Le champ de recherche du menu : il tient la première ligne, là où le
