@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gestion de Stockage — Tanjona</title>
-<link rel="stylesheet" href="gestion-stockage-css/base.css?v=c891f704">
+<link rel="stylesheet" href="gestion-stockage-css/base.css?v=89fac21e">
 <link rel="stylesheet" href="gestion-stockage-css/components.css?v=32f57cd2">
 </head>
 <body>
@@ -397,6 +397,12 @@
         </div>
       </div>
       <div class="brand-sub">Tanjona · Gestion de Stockage</div>
+
+      <!-- Le hamburger revient pour l'ordinateur, où l'on a une souris et de la
+           place : il se pose où l'on veut. Sur téléphone, c'est la loupe de la
+           rangée du bas qui ouvre le même menu — les deux ne paraissent jamais
+           ensemble. -->
+      <button class="menu-toggle floating" id="menuFlottant" aria-label="Ouvrir le menu" aria-expanded="false">☰</button>
 
       <!-- Le menu ne porte plus la navigation — elle est passée dans la rangée
            du bas. Il ne reste que l'identité et la sortie : « Se déconnecter »
@@ -1638,7 +1644,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<script src="gestion-stockage-js/common.js?v=502c1a3c"></script>
+<script src="gestion-stockage-js/common.js?v=9b24af7a"></script>
 <script src="gestion-stockage-js/stock.js?v=275a327a"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=7204c861"></script>

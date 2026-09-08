@@ -292,6 +292,31 @@
     --sur-droite: env(safe-area-inset-right, 0px);
   }
 
+  /* touch-action:none : sans cela le doigt fait défiler la page au lieu de
+     déplacer le bouton, et rien ne bouge. */
+  .menu-toggle.floating{
+    position: fixed;
+    z-index: 120;
+    touch-action: none;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+  }
+  .menu-toggle.floating.dragging{
+    cursor: grabbing;
+    opacity: 0.85;
+    transform: scale(1.06);
+  }
+
+  /* Deux portes pour un seul menu, jamais ouvertes en même temps.
+     Sur téléphone : la loupe de la rangée du bas, sous le pouce.
+     Sur ordinateur : le hamburger qu'on pose où l'on veut à la souris — et
+     pas de champ de recherche, la liste tient sous les yeux. */
+  #menuFlottant{ display:none; }
+  @media (min-width: 900px){
+    #menuFlottant{ display:flex; }
+    #stockMainTabs #menuToggle{ display:none; }
+    .menu-recherche, .menu-vide{ display:none !important; }
+  }
+
   /* Le champ de recherche du menu : il tient la première ligne, là où le
      pouce arrive après avoir touché la loupe. */
   .menu-recherche{

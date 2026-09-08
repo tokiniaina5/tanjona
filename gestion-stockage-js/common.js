@@ -2280,37 +2280,81 @@ const STORAGE_ITEMS = 'stockmanager_items';
   });
 
   // ---------------- NAVIGATION ----------------
+  // Deux portes pour un seul menu, jamais ouvertes en même temps : la loupe de
+  // la rangée du bas sur téléphone, le hamburger qu'on pose où l'on veut sur
+  // ordinateur. Le CSS décide laquelle paraît ; le code les traite ensemble.
   var menuToggle = document.getElementById('menuToggle');
+  var menuFlottant = document.getElementById('menuFlottant');
+  var portesDuMenu = [menuToggle, menuFlottant].filter(Boolean);
   // Les autres panneaux (notifications, achats, réglages) s'ouvrent au même
   // endroit : la fonction est posée ici et servie à tous.
   var placerPresDuMenu = function(){};
   var navList = document.getElementById('navList');
-  if(menuToggle && navList){
+  if(portesDuMenu.length && navList){
+    const MENU_POS_KEY = 'stockmanager_menu_pos';
     const MARGE = 8;
-    // Le menu quitte le fil de la page pour flotter au-dessus de la rangée,
-    // d'où la loupe l'appelle.
     document.body.appendChild(navList);
     navList.classList.add('floating');
+    if(menuFlottant) document.body.appendChild(menuFlottant);
 
+    function flottantVisible(){
+      return !!menuFlottant && getComputedStyle(menuFlottant).display !== 'none';
+    }
+
+    // ---- Ce que l'œil voit, et non ce que la page mesure ----
+    function bordSur(nom){
+      const v = getComputedStyle(document.documentElement).getPropertyValue(nom);
+      const n = parseFloat(v);
+      return isFinite(n) ? n : 0;
+    }
     function hauteurRangee(){
       const r = document.querySelector('.dash-tabs-main');
       // Une rangée escamotée ne prend plus de place : le panneau peut descendre.
       return (r && !r.classList.contains('barre-cachee'))
         ? r.getBoundingClientRect().height : 0;
     }
+    function zoneVisible(){
+      const vv = window.visualViewport;
+      const base = vv
+        ? { x: vv.offsetLeft, y: vv.offsetTop, w: vv.width, h: vv.height }
+        : { x: 0, y: 0, w: window.innerWidth, h: window.innerHeight };
+      const haut = bordSur('--sur-haut'), bas = bordSur('--sur-bas');
+      const gauche = bordSur('--sur-gauche'), droite = bordSur('--sur-droite');
+      return {
+        x: base.x + gauche, y: base.y + haut,
+        w: Math.max(0, base.w - gauche - droite),
+        h: Math.max(0, base.h - haut - bas - hauteurRangee())
+      };
+    }
 
-    // Les panneaux montent depuis la rangée du bas, centrés, et reçoivent pour
-    // hauteur la place restante : un menu plus long que l'écran défile à
-    // l'intérieur au lieu de sortir par le haut.
+    // ---- Le panneau ----
+    // Près du hamburger quand il est là ; au-dessus de la rangée sinon, d'où la
+    // loupe l'appelle.
     placerPresDuMenu = function(el){
-      const haute = hauteurRangee();
-      const large = el.getBoundingClientRect().width;
-      let gauche = (window.innerWidth - large) / 2;
-      gauche = Math.max(MARGE, Math.min(gauche, window.innerWidth - large - MARGE));
-      el.style.left = gauche + 'px';
-      el.style.top = 'auto';
-      el.style.bottom = (haute + 10) + 'px';
-      el.style.maxHeight = Math.max(160, window.innerHeight - haute - 10 - MARGE) + 'px';
+      if(flottantVisible()){
+        const b = menuFlottant.getBoundingClientRect();
+        const n = el.getBoundingClientRect();
+        const z = zoneVisible();
+        let left = b.left;
+        if(left + n.width > z.x + z.w - MARGE) left = b.right - n.width;
+        left = Math.max(z.x + MARGE, Math.min(left, z.x + z.w - n.width - MARGE));
+        let top = b.bottom + 6;
+        if(top + n.height > z.y + z.h - MARGE) top = b.top - n.height - 6;
+        top = Math.max(z.y + MARGE, top);
+        el.style.left = left + 'px';
+        el.style.top = top + 'px';
+        el.style.bottom = 'auto';
+        el.style.maxHeight = Math.max(160, z.y + z.h - top - MARGE) + 'px';
+      } else {
+        const haute = hauteurRangee();
+        const large = el.getBoundingClientRect().width;
+        let gauche = (window.innerWidth - large) / 2;
+        gauche = Math.max(MARGE, Math.min(gauche, window.innerWidth - large - MARGE));
+        el.style.left = gauche + 'px';
+        el.style.top = 'auto';
+        el.style.bottom = (haute + 10) + 'px';
+        el.style.maxHeight = Math.max(160, window.innerHeight - haute - 10 - MARGE) + 'px';
+      }
       el.style.overflowY = 'auto';
     };
     function placerPanneau(){
@@ -2318,9 +2362,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
       placerPresDuMenu(navList);
     }
 
-    // ---- La recherche dans le menu ----
-    // À quatorze entrées, on trouve un nom plus vite qu'on ne parcourt une
-    // liste : c'est ce que dit la loupe.
+    // ---- La recherche dans le menu (téléphone) ----
     const champ = document.getElementById('menuRecherche');
     const vide = document.getElementById('menuVide');
 
@@ -2329,14 +2371,13 @@ const STORAGE_ITEMS = 'stockmanager_items';
         return el.classList.contains('nav-item') || el.classList.contains('nav-action');
       });
     }
-
     function filtrer(){
       if(!champ) return;
       const q = champ.value.trim().toLowerCase();
       let trouves = 0;
       entreesDuMenu().forEach(function(el){
         // « Stock » est masqué exprès : le filtre ne doit pas le ressusciter.
-        if(el.id === 'navStock' || el.dataset.horsMenu === '1') return;
+        if(el.id === 'navStock') return;
         const cache = el.dataset.masque === '1';
         const correspond = !q || el.textContent.toLowerCase().indexOf(q) >= 0;
         if(!cache) el.style.display = correspond ? '' : 'none';
@@ -2345,36 +2386,36 @@ const STORAGE_ITEMS = 'stockmanager_items';
       if(vide) vide.style.display = (q && !trouves) ? 'block' : 'none';
       placerPanneau();
     }
-
     // « Espace admin » est caché pour les clients : on retient qu'il l'est,
     // sinon le filtre le rendrait visible au premier mot tapé.
     const admin = document.getElementById('navAdmin');
     function noterLesMasques(){
-      entreesDuMenu().forEach(function(el){
-        if(el === admin) el.dataset.masque = (el.style.display === 'none') ? '1' : '0';
-      });
+      if(admin) admin.dataset.masque = (admin.style.display === 'none') ? '1' : '0';
     }
 
     function ouvrirMenu(ouvert){
       navList.classList.toggle('open', ouvert);
-      menuToggle.setAttribute('aria-expanded', ouvert ? 'true' : 'false');
+      portesDuMenu.forEach(function(b){ b.setAttribute('aria-expanded', ouvert ? 'true' : 'false'); });
       if(ouvert){
         noterLesMasques();
-        if(champ){ champ.value = ''; }
+        if(champ) champ.value = '';
         filtrer();
         requestAnimationFrame(function(){
           placerPanneau();
-          // Le clavier s'ouvre avec le menu : on cherche, on ne parcourt pas.
-          if(champ) champ.focus({ preventScroll: true });
+          // Le clavier ne s'ouvre que là où l'on cherche : sur ordinateur, la
+          // liste tient sous les yeux et le champ est masqué.
+          if(champ && !flottantVisible()) champ.focus({ preventScroll: true });
         });
       }
       updateTopbarHeight();
     }
 
-    menuToggle.addEventListener('click', function(e){
-      e.stopPropagation();
-      ouvrirMenu(!navList.classList.contains('open'));
-    });
+    if(menuToggle){
+      menuToggle.addEventListener('click', function(e){
+        e.stopPropagation();
+        ouvrirMenu(!navList.classList.contains('open'));
+      });
+    }
 
     if(champ){
       champ.addEventListener('input', filtrer);
@@ -2386,16 +2427,137 @@ const STORAGE_ITEMS = 'stockmanager_items';
         });
         if(restants.length === 1) restants[0].click();
       });
-      // Le champ ne doit pas refermer le menu qui le porte.
       champ.addEventListener('click', function(e){ e.stopPropagation(); });
     }
 
-    // Un clic à côté referme, comme pour les autres panneaux.
     document.addEventListener('click', function(e){
       if(!navList.classList.contains('open')) return;
-      if(navList.contains(e.target) || menuToggle.contains(e.target)) return;
+      if(navList.contains(e.target)) return;
+      if(portesDuMenu.some(function(b){ return b.contains(e.target); })) return;
       ouvrirMenu(false);
     });
+
+    // ================= Le hamburger qu'on déplace =================
+    if(menuFlottant){
+      // Détaché de l'application, il s'afficherait aussi par dessus l'écran de
+      // connexion — où il n'a rien à faire.
+      const appScreenEl = document.getElementById('appScreen');
+      let pret = false;
+      function syncMenuVisibility(){
+        const visible = appScreenEl && getComputedStyle(appScreenEl).display !== 'none';
+        menuFlottant.style.visibility = visible ? '' : 'hidden';
+        if(!visible){
+          navList.classList.remove('open');
+          portesDuMenu.forEach(function(b){ b.setAttribute('aria-expanded', 'false'); });
+        }
+        if(visible && pret){
+          // La barre n'a de hauteur qu'une fois l'application affichée, et cette
+          // hauteur n'est connue qu'à l'image suivante.
+          requestAnimationFrame(function(){
+            if(placeLibre) position = positionParDefaut();
+            replacer();
+          });
+        }
+      }
+      if(appScreenEl){
+        new MutationObserver(syncMenuVisibility)
+          .observe(appScreenEl, { attributes: true, attributeFilter: ['style', 'class'] });
+      }
+
+      function tailleBouton(){
+        const r = menuFlottant.getBoundingClientRect();
+        return { w: r.width || 38, h: r.height || 38 };
+      }
+      function poserBouton(x, y){
+        const t = tailleBouton();
+        const z = zoneVisible();
+        const minX = z.x + MARGE, minY = z.y + MARGE;
+        const maxX = Math.max(minX, z.x + z.w - t.w - MARGE);
+        const maxY = Math.max(minY, z.y + z.h - t.h - MARGE);
+        const px = Math.min(Math.max(minX, x), maxX);
+        const py = Math.min(Math.max(minY, y), maxY);
+        menuFlottant.style.left = px + 'px';
+        menuFlottant.style.top = py + 'px';
+        return { x: px, y: py };
+      }
+      // Sous la ligne des boutons du haut : posé au coin, il viendrait sur le
+      // nom. On mesure .sidebar-top et non .sidebar — celle-ci, étirée par la
+      // grille, déborde bien plus bas que ce qu'elle donne à voir.
+      function positionParDefaut(){
+        const t = tailleBouton();
+        const z = zoneVisible();
+        const barre = document.querySelector('.sidebar-top');
+        const bas = barre ? barre.getBoundingClientRect().bottom : 0;
+        const y = bas > 0 ? bas + 12 : z.y + 16;
+        return { x: z.x + z.w - t.w - 16, y: Math.min(Math.max(z.y + 16, y), z.y + z.h - t.h - 16) };
+      }
+      function chargerPosition(){
+        try{
+          const brut = JSON.parse(localStorage.getItem(MENU_POS_KEY));
+          if(brut && typeof brut.x === 'number' && typeof brut.y === 'number') return brut;
+        }catch(e){}
+        return positionParDefaut();
+      }
+      let placeLibre = true;
+      try{ placeLibre = !localStorage.getItem(MENU_POS_KEY); }catch(e){}
+      function enregistrerPosition(pos){
+        placeLibre = false;
+        try{ localStorage.setItem(MENU_POS_KEY, JSON.stringify(pos)); }catch(e){}
+      }
+
+      const depart = chargerPosition();
+      let position = poserBouton(depart.x, depart.y);
+      pret = true;
+      syncMenuVisibility();
+
+      // Un seul chemin pour la souris comme pour le doigt : ce qu'on vérifie de
+      // l'un vaut pour l'autre.
+      let glisse = null;
+      menuFlottant.addEventListener('pointerdown', function(e){
+        const r = menuFlottant.getBoundingClientRect();
+        glisse = { dx: e.clientX - r.left, dy: e.clientY - r.top,
+                   x0: e.clientX, y0: e.clientY, bouge: false };
+        // Sans capture, le pointeur qui sort du bouton cesse d'être suivi et le
+        // déplacement s'arrête net.
+        try{ menuFlottant.setPointerCapture(e.pointerId); }catch(err){}
+      });
+      menuFlottant.addEventListener('pointermove', function(e){
+        if(!glisse) return;
+        // Trois pixels de tolérance : une main ne se pose jamais parfaitement
+        // immobile, et sans ce seuil chaque appui deviendrait un déplacement.
+        if(!glisse.bouge && Math.abs(e.clientX - glisse.x0) + Math.abs(e.clientY - glisse.y0) < 3) return;
+        glisse.bouge = true;
+        menuFlottant.classList.add('dragging');
+        position = poserBouton(e.clientX - glisse.dx, e.clientY - glisse.dy);
+        placerPanneau();
+      });
+      function finGlisse(e){
+        if(!glisse) return;
+        const bouge = glisse.bouge;
+        glisse = null;
+        menuFlottant.classList.remove('dragging');
+        try{ menuFlottant.releasePointerCapture(e.pointerId); }catch(err){}
+        if(bouge){ enregistrerPosition(position); return; }
+        ouvrirMenu(!navList.classList.contains('open'));
+      }
+      menuFlottant.addEventListener('pointerup', finGlisse);
+      menuFlottant.addEventListener('pointercancel', finGlisse);
+
+      // On replace sans toucher à `position` : elle garde l'endroit voulu. Le
+      // bouton y revient de lui-même quand l'écran redevient grand.
+      function replacer(){
+        poserBouton(position.x, position.y);
+        placerPanneau();
+      }
+      window.addEventListener('resize', replacer);
+      window.addEventListener('orientationchange', replacer);
+      if(window.visualViewport){
+        // Le zoom au doigt et la barre d'adresse qui glisse ne déclenchent aucun
+        // `resize` : sans ces deux-là, le bouton reste hors de l'écran.
+        window.visualViewport.addEventListener('resize', replacer);
+        window.visualViewport.addEventListener('scroll', replacer);
+      }
+    }
 
     window.addEventListener('scroll', placerPanneau, { passive: true });
     window.addEventListener('resize', placerPanneau);
