@@ -2579,8 +2579,17 @@ const STORAGE_ITEMS = 'stockmanager_items';
     // plutôt que de laisser un geste maladroit la réduire à un trait.
     const MIN_L = 170, MIN_H = 110;
     const MARGE = 8;
-    // Le menu, et les fenêtres qu'il ouvre.
+    // Le menu, et les panneaux qu'il ouvre.
     const IDS = ['navList', 'notifPanel', 'marketPanel', 'barReglages', 'fbComposer'];
+    // Les pages qu'il ouvre. Elles remplaçaient le fil ; elles se posent
+    // maintenant par-dessus, dans une fenêtre qu'on tire par les coins. Le fil
+    // reste dessous : on n'ouvre pas une page pour perdre de vue d'où l'on
+    // vient. L'Accueil n'y est pas — c'est le fond, pas une fenêtre.
+    const PAGES = [
+      'dash-articles', 'section-factures', 'section-inviter', 'section-contact',
+      'section-live', 'section-appels', 'section-wallet', 'section-connexions',
+      'section-admin'
+    ];
     const COINS = [
       { nom: 'hg', x: -1, y: -1 }, { nom: 'hd', x: 1, y: -1 },
       { nom: 'bg', x: -1, y: 1 },  { nom: 'bd', x: 1, y: 1 }
@@ -2641,10 +2650,63 @@ const STORAGE_ITEMS = 'stockmanager_items';
       el.style.top = Math.max(z.y + MARGE, top) + 'px';
     }
 
+    // Entre les deux barres : ni sous l'encoche, ni sous la rangée du bas.
+    // Une barre escamotée ne compte plus — elle a rendu sa place.
+    function bandeHaute(){
+      const b = document.querySelector('.sidebar');
+      if(!b || b.classList.contains('barre-cachee')) return null;
+      const pos = getComputedStyle(b).position;
+      if(pos !== 'fixed' && pos !== 'sticky') return null;
+      return b.getBoundingClientRect().bottom;
+    }
+    function bandeBasse(){
+      const r = document.querySelector('.dash-tabs-main');
+      if(!r || r.classList.contains('barre-cachee')) return null;
+      if(getComputedStyle(r).display === 'none') return null;
+      return r.getBoundingClientRect().top;
+    }
+    // La taille d'ouverture, tant que personne n'en a choisi une autre.
+    function poserFenetre(el){
+      const z = ecran();
+      const haut = Math.max(z.y, bandeHaute() === null ? z.y : bandeHaute());
+      const bas = Math.min(z.y + z.h, bandeBasse() === null ? z.y + z.h : bandeBasse());
+      const largeur = Math.max(MIN_L, Math.min(900, z.w - 2 * MARGE));
+      const hauteur = Math.max(MIN_H, bas - haut - 2 * MARGE);
+      el.style.transform = 'none';
+      el.style.right = 'auto';
+      el.style.bottom = 'auto';
+      el.style.maxHeight = 'none';
+      el.style.left = Math.round(z.x + (z.w - largeur) / 2) + 'px';
+      el.style.top = Math.round(haut + MARGE) + 'px';
+      el.style.width = Math.round(largeur) + 'px';
+      el.style.height = Math.round(hauteur) + 'px';
+      el.style.overflowY = 'auto';
+    }
+    // Refermer, c'est revenir au fil : le bouton « Stock » est le chemin par
+    // lequel tout y revient déjà, on ne s'en invente pas un second.
+    function fermerFenetre(){
+      const navStock = document.querySelector('.nav-item[data-section="stock"]');
+      if(navStock) navStock.click();
+      if(typeof showDashView === 'function') showDashView('accueil');
+      if(typeof saveLastView === 'function') saveLastView();
+    }
+
     function synchroniser(){
       suivis.forEach(function(s){
         const vu = visible(s.el);
-        if(vu && !s.vu) appliquerTaille(s.el);
+        // Le fil reste ouvert derrière, tant qu'une page est posée dessus : la
+        // navigation vient de l'éteindre pour mettre la page à sa place, et
+        // une fenêtre posée sur du vide n'est plus une fenêtre. On le vérifie
+        // à chaque passage et non au seul moment de l'ouverture — rouvrir une
+        // page déjà ouverte éteint le fil sans rien rallumer.
+        if(vu && s.page){
+          const fond = document.getElementById('section-stock');
+          if(fond) fond.classList.add('active');
+        }
+        if(vu && !s.vu){
+          if(s.page) poserFenetre(s.el);
+          appliquerTaille(s.el);
+        }
         s.vu = vu;
         s.calque.hidden = !vu;
         if(!vu) return;
@@ -2718,13 +2780,30 @@ const STORAGE_ITEMS = 'stockmanager_items';
       poignee.addEventListener('pointercancel', fin);
     }
 
-    IDS.forEach(function(id){
+    IDS.concat(PAGES).forEach(function(id){
       const el = document.getElementById(id);
       if(!el) return;
+      const page = PAGES.indexOf(id) >= 0;
+      if(page){
+        el.classList.add('fenetre-page');
+        // Hors du contenu : « .content » découpe ce qui déborde, et une
+        // fenêtre posée par-dessus n'a rien à faire dans une boîte qui coupe.
+        document.body.appendChild(el);
+      }
       const calque = document.createElement('div');
       calque.className = 'poignees';
       calque.hidden = true;
-      const s = { el: el, calque: calque, vu: false };
+      const s = { el: el, calque: calque, vu: false, page: page };
+      if(page){
+        const croix = document.createElement('button');
+        croix.type = 'button';
+        croix.className = 'fenetre-fermer';
+        croix.textContent = '✕';
+        croix.title = 'Fermer la fenêtre';
+        croix.setAttribute('aria-label', 'Fermer la fenêtre');
+        croix.addEventListener('click', function(e){ e.stopPropagation(); fermerFenetre(); });
+        calque.appendChild(croix);
+      }
       COINS.forEach(function(coin){
         const poignee = document.createElement('span');
         poignee.className = 'poignee ' + coin.nom;
@@ -2750,8 +2829,18 @@ const STORAGE_ITEMS = 'stockmanager_items';
       synchroniser();
     };
 
-    window.addEventListener('resize', synchroniser);
-    window.addEventListener('orientationchange', synchroniser);
+    // L'écran change de taille : une fenêtre à qui personne n'a donné de
+    // taille reprend celle d'ouverture, les autres se rentrent dans le cadre.
+    function replacerLesPages(){
+      const tailles = lire();
+      suivis.forEach(function(s){
+        if(!s.page || !visible(s.el)) return;
+        if(tailles[s.el.id]) appliquerTaille(s.el); else poserFenetre(s.el);
+      });
+      synchroniser();
+    }
+    window.addEventListener('resize', replacerLesPages);
+    window.addEventListener('orientationchange', replacerLesPages);
     window.addEventListener('scroll', synchroniser, { passive: true });
     if(window.visualViewport){
       window.visualViewport.addEventListener('resize', synchroniser);
