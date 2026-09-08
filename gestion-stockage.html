@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gestion de Stockage — Tanjona</title>
-<link rel="stylesheet" href="gestion-stockage-css/base.css?v=f765d4dd">
+<link rel="stylesheet" href="gestion-stockage-css/base.css?v=85aca277">
 <link rel="stylesheet" href="gestion-stockage-css/components.css?v=7af606cd">
 </head>
 <body>
@@ -368,6 +368,7 @@
             🔔
             <span id="notifBadge" style="display:none; position:absolute; top:-4px; right:-4px; background:#ff6b6b; color:#fff; font-size:0.62rem; font-weight:700; border-radius:999px; min-width:16px; height:16px; line-height:16px; text-align:center; padding:0 3px;">0</span>
           </button>
+          <div class="nav-item menu-toggle active" id="navStock" data-section="stock" title="Stock" aria-label="Stock">📦</div>
           <button class="menu-toggle" id="menuToggle" aria-label="Ouvrir le menu" aria-expanded="false">☰</button>
 
           <div id="notifPanel" style="display:none; position:absolute; top:44px; right:0; width:300px; max-height:360px; overflow-y:auto; background:var(--panel); border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.35); z-index:50;">
@@ -408,7 +409,6 @@
         <button type="button" class="nav-action" id="menuAccueil">🏠 Accueil</button>
         <button type="button" class="nav-action" id="menuArticles">📦 Articles</button>
         <button type="button" class="nav-action" id="marketToggle" aria-label="Achats internationaux" aria-expanded="false">🌍 Achats internationaux</button>
-        <div class="nav-item active" data-section="stock">📦 Stock</div>
         <div class="nav-item" data-section="factures">🧾 Factures</div>
         <div class="nav-item" data-section="inviter">✉️ Inviter des amis</div>
         <div class="nav-item" data-section="contact">📞 Nous contacter</div>
