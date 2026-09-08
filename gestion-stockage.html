@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gestion de Stockage — Tanjona</title>
 <link rel="stylesheet" href="gestion-stockage-css/base.css?v=22708615">
-<link rel="stylesheet" href="gestion-stockage-css/components.css?v=b31cd007">
+<link rel="stylesheet" href="gestion-stockage-css/components.css?v=1276eab8">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -399,25 +399,11 @@
       </div>
       <div class="brand-sub">Tanjona · Gestion de Stockage</div>
 
+      <!-- Le menu ne porte plus la navigation — elle est passée dans la rangée
+           du bas. Il ne reste que l'identité et la sortie : « Se déconnecter »
+           n'a rien à faire dans une rangée d'icônes qui défile, où le doigt
+           l'atteindrait par accident. -->
       <div class="nav-list" id="navList">
-        <button type="button" class="nav-action" id="menuAccueil">🏠 Accueil</button>
-        <button type="button" class="nav-action" id="menuArticles">📦 Articles</button>
-        <button type="button" class="nav-action" id="marketToggle" aria-label="Achats internationaux" aria-expanded="false">🌍 Achats internationaux</button>
-        <button type="button" class="nav-action" id="notifToggle" aria-label="Notifications" aria-expanded="false" style="position:relative;">
-          <span>🔔 Notifications</span>
-          <span id="notifBadge" style="display:none; background:#ff6b6b; color:#fff; font-size:0.62rem; font-weight:700; border-radius:999px; min-width:16px; height:16px; line-height:16px; text-align:center; padding:0 4px;">0</span>
-        </button>
-        <div class="nav-item active" id="navStock" data-section="stock">📦 Stock</div>
-        <div class="nav-item" data-section="factures">🧾 Factures</div>
-        <div class="nav-item" data-section="inviter">✉️ Inviter des amis</div>
-        <div class="nav-item" data-section="contact">📞 Nous contacter</div>
-        <div class="nav-item" data-section="live">🔴 Live direct</div>
-        <div class="nav-item" data-section="appels">📞 Antso mivantana</div>
-        <div class="nav-item" data-section="wallet">💰 Portefeuille</div>
-        <div class="nav-item" data-section="connexions" id="navParametres">⚙️ Paramètres</div>
-        <!-- Espace du propriétaire : masqué pour tous les clients -->
-        <div class="nav-item" data-section="admin" id="navAdmin" style="display:none;">🛡️ Espace admin</div>
-
         <div class="user-chip">
           <strong id="currentUserName">—</strong>
           <span id="currentUserEmail">—</span>
@@ -433,9 +419,21 @@
       <!-- Rangée fixée en bas, commune à toutes les pages. Il n'y reste que le
            crayon : tout le reste a rejoint le menu. -->
       <div class="dash-tabs dash-tabs-main" id="stockMainTabs">
-        <button type="button" class="dash-tab" id="composerToggle" aria-label="Écrire un message" title="Écrire" aria-expanded="false">
-          <span aria-hidden="true">✏️</span><span class="tab-text">Écrire</span>
-        </button>
+        <button type="button" class="dash-tab bar-icone" id="composerToggle" title="Écrire" aria-label="Écrire un message" aria-expanded="false">✏️</button>
+        <button type="button" class="dash-tab bar-icone" id="menuAccueil" title="Accueil" aria-label="Accueil">🏠</button>
+        <button type="button" class="dash-tab bar-icone" id="menuArticles" title="Articles" aria-label="Articles">📋</button>
+        <div class="nav-item dash-tab bar-icone active" id="navStock" data-section="stock" title="Stock" aria-label="Stock">📦</div>
+        <div class="nav-item dash-tab bar-icone" data-section="factures" title="Factures" aria-label="Factures">🧾</div>
+        <button type="button" class="dash-tab bar-icone" id="notifToggle" title="Notifications" aria-label="Notifications" aria-expanded="false" style="position:relative;">🔔<span id="notifBadge" style="display:none; position:absolute; top:2px; right:2px; background:#ff6b6b; color:#fff; font-size:0.62rem; font-weight:700; border-radius:999px; min-width:16px; height:16px; line-height:16px; text-align:center; padding:0 3px;">0</span></button>
+        <button type="button" class="dash-tab bar-icone" id="marketToggle" title="Achats internationaux" aria-label="Achats internationaux" aria-expanded="false">🌍</button>
+        <div class="nav-item dash-tab bar-icone" data-section="inviter" title="Inviter des amis" aria-label="Inviter des amis">✉️</div>
+        <div class="nav-item dash-tab bar-icone" data-section="contact" title="Nous contacter" aria-label="Nous contacter">☎️</div>
+        <div class="nav-item dash-tab bar-icone" data-section="live" title="Live direct" aria-label="Live direct">🔴</div>
+        <div class="nav-item dash-tab bar-icone" data-section="appels" title="Antso mivantana" aria-label="Antso mivantana">📞</div>
+        <div class="nav-item dash-tab bar-icone" data-section="wallet" title="Portefeuille" aria-label="Portefeuille">💰</div>
+        <div class="nav-item dash-tab bar-icone" data-section="connexions" id="navParametres" title="Paramètres" aria-label="Paramètres">⚙️</div>
+        <!-- Espace du propriétaire : masqué pour tous les clients -->
+        <div class="nav-item dash-tab bar-icone" data-section="admin" id="navAdmin" title="Espace admin" aria-label="Espace admin" style="display:none;">🛡️</div>
       </div>
 
       <!-- ---- STOCK ---- -->
@@ -1597,7 +1595,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<script src="gestion-stockage-js/common.js?v=55b9b541"></script>
+<script src="gestion-stockage-js/common.js?v=32f56798"></script>
 <script src="gestion-stockage-js/stock.js?v=275a327a"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=7204c861"></script>

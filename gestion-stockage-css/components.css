@@ -16,7 +16,34 @@
   #stockMainTabs .dash-tab{ display:flex; align-items:center; gap:0.4rem; padding-left:0.65rem; padding-right:0.65rem; }
   /* Jamais deux lignes : la rangée est fixée en bas, une deuxième ligne
      mangerait le contenu et déplacerait les entrées sous le doigt. */
-  #stockMainTabs.dash-tabs{ flex-wrap:nowrap; justify-content:center; }
+  /* Quatorze entrées ne tiennent pas sur la largeur d'un téléphone : la rangée
+     défile sur le côté plutôt que de passer à la ligne — une deuxième ligne
+     mangerait le contenu et déplacerait les icônes sous le doigt. */
+  #stockMainTabs.dash-tabs{
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+  #stockMainTabs.dash-tabs::-webkit-scrollbar{ display:none; }
+  /* Rien ne dit qu’une rangée défile. Un fondu au bord annonce ce qui
+     attend plus loin, et disparaît une fois le bout atteint. */
+  #stockMainTabs.reste-a-droite{
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  }
+
+  /* Une icône, rien d'autre : à quatorze, le moindre libellé déborderait. Le
+     sens tient dans title et aria-label — au survol pour la souris, à la
+     lecture d'écran pour qui ne voit pas l'image. */
+  #stockMainTabs .bar-icone{
+    flex: 0 0 auto;
+    width: 44px;
+    padding-left: 0; padding-right: 0;
+    justify-content: center;
+    font-size: 1.15rem;
+  }
   /* Un <button> apporte son propre fond et ses bordures ; seul le
      soulignement de .dash-tab doit rester. */
   #stockMainTabs button.dash-tab{ background:none; border-top:none; border-left:none; border-right:none; }
