@@ -268,7 +268,10 @@
     cursor:pointer;
     flex-shrink:0;
   }
-  .sidebar-top{ display:flex; align-items:center; justify-content:space-between; }
+  /* La barre du haut ne porte plus que le nom : il se tient au milieu. Le
+     'space-between' d'avant le poussait à gauche pour laisser la droite aux
+     boutons, qui sont tous descendus dans la rangée du bas. */
+  .sidebar-top{ display:flex; align-items:center; justify-content:center; }
   .brand-sub{ display:none; }
   .nav-spacer{ display:none; }
 
