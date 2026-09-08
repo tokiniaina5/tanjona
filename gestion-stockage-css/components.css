@@ -57,6 +57,14 @@
     background: rgba(79,216,224,0.12);
   }
 
+  /* La liste des notifications s'ouvre au-dessus de la rangée, d'où la cloche
+     l'appelle maintenant. */
+  #notifPanel.panneau-flottant{
+    position: fixed;
+    z-index: 110;
+    width: min(340px, calc(100vw - 1.6rem));
+  }
+
   #fbComposer.composer-flottant{
     position: fixed;
     left: 50%;

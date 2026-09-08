@@ -2627,12 +2627,43 @@ const STORAGE_ITEMS = 'stockmanager_items';
   var notifToggle = document.getElementById('notifToggle');
   var notifPanel = document.getElementById('notifPanel');
   if(notifToggle && notifPanel){
+    // La cloche est descendue dans la rangée du bas : sa liste s'ouvre
+    // au-dessus d'elle, comme la boîte d'écriture. Laissée dans la barre du
+    // haut, elle serait restée accrochée à un bouton qui n'y est plus.
+    document.body.appendChild(notifPanel);
+    notifPanel.classList.add('panneau-flottant');
+    notifPanel.style.right = 'auto';
+    notifPanel.style.top = 'auto';
+
+    function placerNotif(){
+      const rangee = document.querySelector('.dash-tabs-main');
+      // Une rangée escamotée ne prend plus de place : la liste peut descendre.
+      const haute = (rangee && !rangee.classList.contains('barre-cachee'))
+        ? rangee.getBoundingClientRect().height : 0;
+      notifPanel.style.bottom = (haute + 10) + 'px';
+      // Centrée sur la cloche, puis ramenée dans l'écran : près du bord, une
+      // liste de 340 pixels déborderait.
+      const b = notifToggle.getBoundingClientRect();
+      const l = notifPanel.getBoundingClientRect().width;
+      let gauche = b.left + b.width / 2 - l / 2;
+      gauche = Math.max(8, Math.min(gauche, window.innerWidth - l - 8));
+      notifPanel.style.left = gauche + 'px';
+    }
+
+    window.addEventListener('scroll', function(){
+      if(notifPanel.style.display === 'block') placerNotif();
+    }, { passive: true });
+    window.addEventListener('resize', function(){
+      if(notifPanel.style.display === 'block') placerNotif();
+    });
+
     notifToggle.addEventListener('click', function(e){
       e.stopPropagation();
       var isOpen = notifPanel.style.display === 'block';
       notifPanel.style.display = isOpen ? 'none' : 'block';
       notifToggle.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
       if(!isOpen){
+        placerNotif();
         var mp = document.getElementById('marketPanel');
         if(mp){
           mp.style.display = 'none';
@@ -2647,7 +2678,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
       }
     });
     document.addEventListener('click', function(e){
-      if(notifPanel.style.display === 'block' && !notifPanel.contains(e.target) && e.target !== notifToggle){
+      // .contains et non !== : le bouton porte maintenant une icône, un
+      // libellé et une pastille, et c'est l'un d'eux que le clic désigne.
+      if(notifPanel.style.display === 'block' && !notifPanel.contains(e.target) && !notifToggle.contains(e.target)){
         notifPanel.style.display = 'none';
         notifToggle.setAttribute('aria-expanded', 'false');
       }

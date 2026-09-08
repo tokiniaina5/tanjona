@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gestion de Stockage — Tanjona</title>
 <link rel="stylesheet" href="gestion-stockage-css/base.css?v=36842e73">
-<link rel="stylesheet" href="gestion-stockage-css/components.css?v=59b3c760">
+<link rel="stylesheet" href="gestion-stockage-css/components.css?v=589a5661">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -363,10 +363,6 @@
       <div class="sidebar-top">
         <div class="brand">Ny <span>asako</span></div>
         <div style="display:flex; align-items:center; gap:0.5rem; position:relative;">
-          <button class="menu-toggle" id="notifToggle" aria-label="Notifications" aria-expanded="false" style="position:relative;">
-            🔔
-            <span id="notifBadge" style="display:none; position:absolute; top:-4px; right:-4px; background:#ff6b6b; color:#fff; font-size:0.62rem; font-weight:700; border-radius:999px; min-width:16px; height:16px; line-height:16px; text-align:center; padding:0 3px;">0</span>
-          </button>
           <button class="menu-toggle" id="menuToggle" aria-label="Ouvrir le menu" aria-expanded="false">☰</button>
 
           <div id="notifPanel" style="display:none; position:absolute; top:44px; right:0; width:300px; max-height:360px; overflow-y:auto; background:var(--panel); border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.35); z-index:50;">
@@ -435,6 +431,10 @@
       <div class="dash-tabs dash-tabs-main" id="stockMainTabs">
         <button type="button" class="dash-tab" id="composerToggle" aria-label="Écrire un message" title="Écrire" aria-expanded="false">
           <span aria-hidden="true">✏️</span><span class="tab-text">Écrire</span>
+        </button>
+        <button type="button" class="dash-tab" id="notifToggle" aria-label="Notifications" title="Notifications" aria-expanded="false" style="position:relative;">
+          <span aria-hidden="true">🔔</span><span class="tab-text">Notifications</span>
+          <span id="notifBadge" style="display:none; position:absolute; top:2px; right:2px; background:#ff6b6b; color:#fff; font-size:0.62rem; font-weight:700; border-radius:999px; min-width:16px; height:16px; line-height:16px; text-align:center; padding:0 3px;">0</span>
         </button>
         <button type="button" class="dash-tab" id="refreshBtn" aria-label="Actualiser" title="Actualiser">
           <span aria-hidden="true">🔄</span><span class="tab-text">Actualiser</span>
@@ -1609,7 +1609,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<script src="gestion-stockage-js/common.js?v=a8909c3d"></script>
+<script src="gestion-stockage-js/common.js?v=a822255a"></script>
 <script src="gestion-stockage-js/stock.js?v=275a327a"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=7204c861"></script>
