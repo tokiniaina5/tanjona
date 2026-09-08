@@ -2513,9 +2513,14 @@ const STORAGE_ITEMS = 'stockmanager_items';
   // ---------------- ÉCRIRE ----------------
   // La boîte d'écriture occupait le haut du fil en permanence, alors qu'on
   // vient surtout y lire. Elle s'ouvre maintenant depuis la rangée du bas.
-  var composerToggle = document.getElementById('composerToggle');
+  // Le crayon se trouve à deux endroits — la rangée du bas et le menu — et les
+  // deux ouvrent la même boîte. On les traite ensemble : un seul état, deux
+  // portes.
+  var boutonsComposer = ['composerToggle', 'barComposer']
+    .map(function(id){ return document.getElementById(id); })
+    .filter(Boolean);
   var fbComposer = document.getElementById('fbComposer');
-  if(composerToggle && fbComposer){
+  if(boutonsComposer.length && fbComposer){
     // Elle quitte le fil pour flotter : le fil n'est plus qu'un fil, et la
     // boîte s'ouvre là où on l'appelle, quelle que soit la page.
     document.body.appendChild(fbComposer);
@@ -2529,19 +2534,25 @@ const STORAGE_ITEMS = 'stockmanager_items';
       fbComposer.style.bottom = (haute + 10) + 'px';
     }
 
-    function fermerComposer(){
-      fbComposer.style.display = 'none';
-      composerToggle.setAttribute('aria-expanded', 'false');
+    function marquerLesBoutons(ouvert){
+      boutonsComposer.forEach(function(b){ b.setAttribute('aria-expanded', ouvert ? 'true' : 'false'); });
     }
 
-    composerToggle.addEventListener('click', function(e){
-      e.stopPropagation();
-      if(fbComposer.style.display !== 'none'){ fermerComposer(); return; }
-      fbComposer.style.display = '';
-      composerToggle.setAttribute('aria-expanded', 'true');
-      placerComposer();
-      const champ = document.getElementById('newsMessage');
-      if(champ) champ.focus({ preventScroll: true });
+    function fermerComposer(){
+      fbComposer.style.display = 'none';
+      marquerLesBoutons(false);
+    }
+
+    boutonsComposer.forEach(function(bouton){
+      bouton.addEventListener('click', function(e){
+        e.stopPropagation();
+        if(fbComposer.style.display !== 'none'){ fermerComposer(); return; }
+        fbComposer.style.display = '';
+        marquerLesBoutons(true);
+        placerComposer();
+        const champ = document.getElementById('newsMessage');
+        if(champ) champ.focus({ preventScroll: true });
+      });
     });
 
     // La rangée s'efface au défilement : la boîte suit, sinon elle laisserait
@@ -2556,7 +2567,8 @@ const STORAGE_ITEMS = 'stockmanager_items';
     // Un clic à côté referme, comme pour les autres panneaux.
     document.addEventListener('click', function(e){
       if(fbComposer.style.display === 'none') return;
-      if(fbComposer.contains(e.target) || composerToggle.contains(e.target)) return;
+      if(fbComposer.contains(e.target)) return;
+      if(boutonsComposer.some(function(b){ return b.contains(e.target); })) return;
       fermerComposer();
     });
 
