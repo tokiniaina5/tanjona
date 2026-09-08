@@ -2589,6 +2589,98 @@ const STORAGE_ITEMS = 'stockmanager_items';
     }
   }
 
+  // ---------------- PAGES ÉPINGLÉES ----------------
+  // Une page ouverte depuis le menu laisse son icône dans la rangée du bas :
+  // le deuxième passage ne demande plus d'ouvrir le menu. Les icônes restent
+  // d'une visite à l'autre — épinglées puis disparues au rechargement, elles
+  // n'inspireraient aucune confiance.
+  (function(){
+    const rangee = document.getElementById('stockMainTabs');
+    if(!rangee) return;
+    const CLE = 'stockmanager_barre_epingles';
+
+    function lireEpingles(){
+      try{ const l = JSON.parse(localStorage.getItem(CLE)); return Array.isArray(l) ? l : []; }
+      catch(e){ return []; }
+    }
+    function ecrireEpingles(liste){
+      try{ localStorage.setItem(CLE, JSON.stringify(liste)); }catch(e){}
+    }
+
+    // La clé désigne l'entrée du menu, pas l'icône : c'est elle qu'on recliquera.
+    function cleDe(entree){
+      return (entree.dataset && entree.dataset.section)
+        ? 'section:' + entree.dataset.section
+        : 'id:' + entree.id;
+    }
+    function entreeDe(cle){
+      return cle.indexOf('section:') === 0
+        ? document.querySelector('#navList .nav-item[data-section="' + cle.slice(8) + '"]')
+        : document.getElementById(cle.slice(3));
+    }
+
+    function poser(cle){
+      const entree = entreeDe(cle);
+      if(!entree || rangee.querySelector('[data-epingle="' + cle + '"]')) return;
+      // « 📋 Articles » : l'emoji jusqu'à la première espace, le nom après.
+      const texte = entree.textContent.trim();
+      const espace = texte.indexOf(' ');
+      const icone = espace > 0 ? texte.slice(0, espace) : texte;
+      const nom = espace > 0 ? texte.slice(espace + 1).trim() : texte;
+
+      const bouton = document.createElement('button');
+      bouton.type = 'button';
+      bouton.className = 'dash-tab bar-icone';
+      bouton.dataset.epingle = cle;
+      bouton.title = nom;
+      bouton.setAttribute('aria-label', nom);
+      bouton.textContent = icone;
+      // On délègue à l'entrée du menu : elle sait déjà tout faire — changer de
+      // page, refermer le menu, retenir la vue.
+      bouton.addEventListener('click', function(){ entree.click(); });
+      rangee.appendChild(bouton);
+    }
+
+    function mesurer(){
+      const deborde = rangee.scrollWidth > rangee.clientWidth;
+      rangee.classList.toggle('pleine', deborde);
+      const reste = rangee.scrollWidth - rangee.clientWidth - rangee.scrollLeft;
+      rangee.classList.toggle('reste-a-droite', reste > 4);
+    }
+
+    function epingler(entree){
+      const cle = cleDe(entree);
+      const liste = lireEpingles();
+      if(liste.indexOf(cle) < 0){ liste.push(cle); ecrireEpingles(liste); }
+      poser(cle);
+      mesurer();
+    }
+
+    // Les pages, et elles seules : la cloche et les achats ouvrent un panneau,
+    // pas un écran, et se déconnecter n'a rien à faire dans une rangée où le
+    // doigt passe.
+    function entreesEpinglables(){
+      return [].concat(
+        [document.getElementById('menuArticles')].filter(Boolean),
+        [].slice.call(document.querySelectorAll('#navList .nav-item[data-section]'))
+          // « Stock » est masqué : il ne sert qu'à ouvrir la section depuis le
+          // code, et l'Accueil passe par lui. L'épingler poserait une icône que
+          // personne n'a demandée, à chaque retour à l'Accueil.
+          .filter(function(e){ return e.id !== 'navStock'; })
+      );
+    }
+    entreesEpinglables().forEach(function(entree){
+      entree.addEventListener('click', function(){ epingler(entree); });
+    });
+
+    lireEpingles().forEach(poser);
+    rangee.addEventListener('scroll', mesurer, { passive: true });
+    window.addEventListener('resize', mesurer);
+    // La rangée n'a de largeur qu'une fois l'application affichée.
+    if(window.ResizeObserver) new ResizeObserver(mesurer).observe(rangee);
+    requestAnimationFrame(mesurer);
+  })();
+
   // ---------------- BARRES ESCAMOTABLES ----------------
   // On descend dans la page : les deux bandes s'effacent, l'écran est rendu à
   // la lecture. On remonte : elles reviennent aussitôt, sans qu'il faille

@@ -16,8 +16,35 @@
   #stockMainTabs .dash-tab{ display:flex; align-items:center; gap:0.4rem; padding-left:0.65rem; padding-right:0.65rem; }
   /* Jamais deux lignes : la rangée est fixée en bas, une deuxième ligne
      mangerait le contenu et déplacerait les entrées sous le doigt. */
-  /* Une seule entrée : elle se tient au milieu, et jamais sur deux lignes. */
-  #stockMainTabs.dash-tabs{ flex-wrap:nowrap; justify-content:center; }
+  /* La rangée s'allonge à mesure qu'on ouvre des pages. Elle se tire donc sur
+     le côté plutôt que de passer à la ligne — une deuxième ligne mangerait le
+     contenu et déplacerait les icônes sous le doigt. */
+  #stockMainTabs.dash-tabs{
+    flex-wrap: nowrap;
+    justify-content: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+  #stockMainTabs.dash-tabs::-webkit-scrollbar{ display:none; }
+  /* Pleine, elle ne se centre plus : le début doit rester à sa place. */
+  #stockMainTabs.dash-tabs.pleine{ justify-content: flex-start; }
+  /* Rien ne dit qu'une rangée défile. Un fondu au bord droit annonce ce qui
+     attend plus loin, et s'efface une fois le bout atteint. */
+  #stockMainTabs.reste-a-droite{
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  }
+
+  /* Une page épinglée n'a que son icône : à plusieurs, les libellés
+     déborderaient. Le nom tient dans title et aria-label. */
+  #stockMainTabs .bar-icone{
+    flex: 0 0 auto;
+    width: 44px;
+    padding-left: 0; padding-right: 0;
+    justify-content: center;
+    font-size: 1.15rem;
+  }
   /* Un <button> apporte son propre fond et ses bordures ; seul le
      soulignement de .dash-tab doit rester. */
   #stockMainTabs button.dash-tab{ background:none; border-top:none; border-left:none; border-right:none; }
