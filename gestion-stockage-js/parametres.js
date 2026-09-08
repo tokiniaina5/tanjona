@@ -679,6 +679,10 @@
   if(newsIsGoods && newsPrice){
     newsIsGoods.addEventListener('change', function(){
       newsPrice.style.display = newsIsGoods.checked ? 'inline-block' : 'none';
+      // :has() suffit aux navigateurs récents ; la classe assure les autres,
+      // sans quoi l'icône ne montrerait rien de son état.
+      const etiquette = document.getElementById('newsIsGoodsLabel');
+      if(etiquette) etiquette.classList.toggle('actif', newsIsGoods.checked);
       if(newsIsGoods.checked) newsPrice.focus();
     });
   }

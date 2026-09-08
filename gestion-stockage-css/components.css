@@ -34,6 +34,29 @@
   }
   /* La boîte d'écriture ne vit plus dans le fil : elle s'ouvre au-dessus de la
      rangée du bas, d'où le crayon l'appelle. Le fil n'est plus qu'un fil. */
+  /* Les deux réglages de la boîte tiennent en une icône chacun. Ils gardent la
+     taille des boutons du reste du site, pour rester atteignables au doigt. */
+  .composer-icone{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:38px; height:38px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background: var(--panel-2);
+    font-size:1.05rem; line-height:1;
+    cursor:pointer;
+  }
+  .composer-icone:hover{ border-color: var(--cyan); }
+  /* La case reste dans la page — c'est elle que le reste du code interroge —
+     mais ne se montre plus : l'icône dit déjà tout. */
+  .composer-case{ position:absolute; opacity:0; width:0; height:0; margin:0; pointer-events:none; }
+  /* Cochée, l'icône s'allume : sans ce signe, rien ne distinguerait une
+     annonce d'un simple message. */
+  #newsIsGoodsLabel:has(.composer-case:checked),
+  #newsIsGoodsLabel.actif{
+    border-color: var(--cyan);
+    background: rgba(79,216,224,0.12);
+  }
+
   #fbComposer.composer-flottant{
     position: fixed;
     left: 50%;

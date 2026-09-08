@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gestion de Stockage — Tanjona</title>
 <link rel="stylesheet" href="gestion-stockage-css/base.css?v=36842e73">
-<link rel="stylesheet" href="gestion-stockage-css/components.css?v=4671bea7">
+<link rel="stylesheet" href="gestion-stockage-css/components.css?v=57c38256">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -493,10 +493,13 @@
                   </div>
                 </div>
                 <div class="fb-composer-extra">
-                  <label for="newsImage" class="btn btn-sm" style="width:auto; cursor:pointer;">🖼️ Sary (maromaro azo alaina)</label>
+                  <!-- title et aria-label portent le sens que l'icône seule ne
+                       dit pas : au survol pour la souris, à la lecture d'écran
+                       pour qui ne voit pas l'image. -->
+                  <label for="newsImage" class="composer-icone" title="Sary (maromaro azo alaina)" aria-label="Sary (maromaro azo alaina)">🖼️</label>
                   <input type="file" id="newsImage" accept="image/*" multiple style="display:none;">
-                  <label class="btn btn-sm" style="width:auto; cursor:pointer; display:inline-flex; align-items:center; gap:0.4rem;">
-                    <input type="checkbox" id="newsIsGoods" style="width:auto; margin:0;"> 🛒 Entana amidy
+                  <label class="composer-icone" id="newsIsGoodsLabel" title="Entana amidy" aria-label="Entana amidy">
+                    <input type="checkbox" id="newsIsGoods" class="composer-case"> 🛒
                   </label>
                   <input type="number" id="newsPrice" min="0" step="100" placeholder="Vidiny (Ar)" style="display:none; width:130px;">
                   <button type="button" class="btn btn-primary btn-sm" id="postNewsBtn" style="width:auto;">Publier</button>
@@ -1615,7 +1618,7 @@
 <script src="gestion-stockage-js/contact.js?v=5b213ad8"></script>
 <script src="gestion-stockage-js/live.js?v=aa8bc9b9"></script>
 <script src="gestion-stockage-js/traduction.js?v=8f5605bc"></script>
-<script src="gestion-stockage-js/parametres.js?v=aac21293"></script>
+<script src="gestion-stockage-js/parametres.js?v=cdd2d4c3"></script>
 <script src="gestion-stockage-js/identite.js?v=32177fac"></script>
 <script src="gestion-stockage-js/securite.js?v=9b276532"></script>
 
