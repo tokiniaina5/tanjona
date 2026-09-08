@@ -3018,16 +3018,20 @@ const STORAGE_ITEMS = 'stockmanager_items';
   // les images du fil d'actualité changent la hauteur en arrivant
   document.addEventListener('load', queueTopbarMeasure, true);
 
-  // Les onglets secondaires (Tableau de bord, Historique, Ajouter, Acheter...)
-  // ne sont utiles qu'une fois dans « Articles » : on les masque sur l'Accueil.
+  // Les onglets secondaires (Tableau de bord, Historique, Ajouter...) et la
+  // recherche d'article ne servent qu'une fois dans « Articles ». L'Accueil est
+  // un fil d'actualité : on n'y cherche pas une référence de stock, et la barre
+  // repoussait les publications d'autant.
   function vueAffichee(){
     const vue = document.querySelector('.dash-view.active');
     return vue ? vue.id.replace(/^dash-/, '') : 'accueil';
   }
   function updateSubTabsVisibility(){
+    const surLAccueil = vueAffichee() === 'accueil';
     const subTabs = document.getElementById('stockSubTabs');
-    if(!subTabs) return;
-    subTabs.style.display = vueAffichee() === 'accueil' ? 'none' : '';
+    if(subTabs) subTabs.style.display = surLAccueil ? 'none' : '';
+    const recherche = document.querySelector('#section-stock .global-search');
+    if(recherche) recherche.style.display = surLAccueil ? 'none' : '';
   }
   updateSubTabsVisibility();
 
