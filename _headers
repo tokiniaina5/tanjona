@@ -1,0 +1,11 @@
+# En-têtes servis par Netlify.
+
+# Le manifeste partait en « application/octet-stream », faute d'être reconnu à
+# son extension. Chrome s'en accommode, mais rien ne l'y oblige : on le nomme.
+/manifest.webmanifest
+  Content-Type: application/manifest+json; charset=utf-8
+
+# Le service worker ne doit jamais venir d'un cache : c'est lui qui décide de
+# tous les autres, et une version figée figerait l'application entière.
+/sw.js
+  Cache-Control: public, max-age=0, must-revalidate
