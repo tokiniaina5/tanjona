@@ -58,9 +58,11 @@ if (fs.existsSync(cheminSw)) {
   const crlfSw = sw.includes('\r\n');
   if (crlfSw) sw = sw.replace(/\r\n/g, '\n');
   const marque = crypto.createHash('md5').update(page).digest('hex').slice(0, 8);
-  const avant = sw;
-  sw = sw.replace(/const CACHE = '[^']*';/, "const CACHE = 'nyasako-" + marque + "';");
-  if (sw === avant) throw new Error('ligne CACHE introuvable dans ' + SW);
+  // On vérifie que la ligne existe, et non qu'elle change : deux passages sur
+  // une page identique donnent la même empreinte, et le second criait à tort.
+  const motif = /const CACHE = '[^']*';/;
+  if (!motif.test(sw)) throw new Error('ligne CACHE introuvable dans ' + SW);
+  sw = sw.replace(motif, "const CACHE = 'nyasako-" + marque + "';");
   fs.writeFileSync(cheminSw, crlfSw ? sw.replace(/\n/g, '\r\n') : sw);
   console.log('cache du service worker : nyasako-' + marque);
 }
