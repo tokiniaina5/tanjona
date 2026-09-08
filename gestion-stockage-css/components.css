@@ -129,16 +129,30 @@
      qui ne ferait rien. */
   .epingle-retirer{
     display:none;
-    position:absolute; top:1px; right:1px;
-    width:16px; height:16px; line-height:15px;
+    position:absolute; top:0; right:2px;
+    width:13px; height:13px; line-height:12px;
     border-radius:999px;
     background:#ff6b6b; color:#fff;
-    font-size:0.6rem; text-align:center;
+    font-size:0.5rem; text-align:center;
+  }
+  /* Quatorze pixels, c'est lisible mais trop peu pour un doigt. On agrandit la
+     cible sans agrandir le dessin. */
+  .epingle-retirer::after{
+    content:''; position:absolute; inset:-5px; border-radius:999px;
   }
   #stockMainTabs .dash-tab[data-epingle],
   #stockMainTabs .dash-tab[data-retirable]{ position:relative; }
   #stockMainTabs.mode-manuel .dash-tab[data-epingle] .epingle-retirer,
   #stockMainTabs.mode-manuel .dash-tab[data-retirable] .epingle-retirer{ display:block; }
+  /* La croix se posait sur l'icône et la cachait. En mode manuel, la rangée
+     réserve donc une bande en haut : toutes les icônes descendent ensemble —
+     y compris celles qui n'ont pas de croix, sans quoi la rangée serait de
+     travers — et la hauteur totale ne bouge pas, la rangée ne saute pas quand
+     on change de mode. */
+  #stockMainTabs.mode-manuel .dash-tab{
+    padding-top: calc(0.65rem + 7px);
+    padding-bottom: calc(0.65rem - 7px);
+  }
 
   #fbComposer.composer-flottant{
     position: fixed;
