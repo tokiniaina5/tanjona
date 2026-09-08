@@ -2584,12 +2584,19 @@ const STORAGE_ITEMS = 'stockmanager_items';
     // Les pages qu'il ouvre. Elles remplaçaient le fil ; elles se posent
     // maintenant par-dessus, dans une fenêtre qu'on tire par les coins. Le fil
     // reste dessous : on n'ouvre pas une page pour perdre de vue d'où l'on
-    // vient. L'Accueil n'y est pas — c'est le fond, pas une fenêtre.
+    // vient.
+    //
+    // L'Accueil en est une lui aussi. Restent dehors, autour d'elle : le nom
+    // « Ny asako », la bannière d'essai et la rangée du bas.
     const PAGES = [
+      'dash-accueil',
       'dash-articles', 'section-factures', 'section-inviter', 'section-contact',
       'section-live', 'section-appels', 'section-wallet', 'section-connexions',
       'section-admin'
     ];
+    // L'Accueil ne se ferme pas : c'est le fond de l'application, et une croix
+    // ne laisserait qu'un écran vide derrière elle.
+    const SANS_CROIX = ['dash-accueil'];
     const COINS = [
       { nom: 'hg', x: -1, y: -1 }, { nom: 'hd', x: 1, y: -1 },
       { nom: 'bg', x: -1, y: 1 },  { nom: 'bd', x: 1, y: 1 }
@@ -2657,7 +2664,12 @@ const STORAGE_ITEMS = 'stockmanager_items';
       if(!b || b.classList.contains('barre-cachee')) return null;
       const pos = getComputedStyle(b).position;
       if(pos !== 'fixed' && pos !== 'sticky') return null;
-      return b.getBoundingClientRect().bottom;
+      // On mesure le rang qu'on voit, et non la case de la grille : celle-ci
+      // s'étire avec la place libre et donnait une barre trois fois trop haute.
+      const dedans = b.querySelector('.sidebar-top');
+      const r = (dedans || b).getBoundingClientRect();
+      if(r.height < 1) return null;
+      return dedans ? r.bottom + 8 : r.bottom;
     }
     function bandeBasse(){
       const r = document.querySelector('.dash-tabs-main');
@@ -2665,11 +2677,28 @@ const STORAGE_ITEMS = 'stockmanager_items';
       if(getComputedStyle(r).display === 'none') return null;
       return r.getBoundingClientRect().top;
     }
+    // La bannière d'essai est de celles qu'on garde dehors : l'Accueil
+    // s'ouvre en dessous, et non par-dessus.
+    function sousLaBanniere(){
+      const b = document.getElementById('trialBanner');
+      if(!b || getComputedStyle(b).display === 'none') return null;
+      const r = b.getBoundingClientRect();
+      return r.height > 0 ? r.bottom : null;
+    }
     // La taille d'ouverture, tant que personne n'en a choisi une autre.
     function poserFenetre(el){
       const z = ecran();
-      const haut = Math.max(z.y, bandeHaute() === null ? z.y : bandeHaute());
+      let haut = Math.max(z.y, bandeHaute() === null ? z.y : bandeHaute());
+      // Toutes les fenêtres s'ouvrent sous la bannière, et non seulement
+      // l'Accueil : ce qu'on a voulu garder dehors doit le rester quelle que
+      // soit la page posée dessus.
+      const sous = sousLaBanniere();
+      if(sous !== null) haut = Math.max(haut, sous);
       const bas = Math.min(z.y + z.h, bandeBasse() === null ? z.y + z.h : bandeBasse());
+      // Trop tôt : la mise en page n'a pas encore de hauteur, et se caler
+      // maintenant donnerait une fenêtre haute comme un trait, posée sur le
+      // nom de l'application. On laisse le prochain passage s'en charger.
+      if(bas - haut < MIN_H + 2 * MARGE) return false;
       const largeur = Math.max(MIN_L, Math.min(900, z.w - 2 * MARGE));
       const hauteur = Math.max(MIN_H, bas - haut - 2 * MARGE);
       el.style.transform = 'none';
@@ -2681,6 +2710,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
       el.style.width = Math.round(largeur) + 'px';
       el.style.height = Math.round(hauteur) + 'px';
       el.style.overflowY = 'auto';
+      return true;
     }
     // Refermer, c'est revenir au fil : le bouton « Stock » est le chemin par
     // lequel tout y revient déjà, on ne s'en invente pas un second.
@@ -2703,11 +2733,16 @@ const STORAGE_ITEMS = 'stockmanager_items';
           const fond = document.getElementById('section-stock');
           if(fond) fond.classList.add('active');
         }
-        if(vu && !s.vu){
-          if(s.page) poserFenetre(s.el);
-          appliquerTaille(s.el);
+        if(!vu){
+          s.vu = false;
+        } else if(!s.vu){
+          // Posée, alors seulement retenue comme ouverte : sinon un passage
+          // trop précoce la marquerait faite et personne n'y reviendrait.
+          if(!s.page || poserFenetre(s.el)){
+            appliquerTaille(s.el);
+            s.vu = true;
+          }
         }
-        s.vu = vu;
         s.calque.hidden = !vu;
         if(!vu) return;
         const r = s.el.getBoundingClientRect();
@@ -2794,7 +2829,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
       calque.className = 'poignees';
       calque.hidden = true;
       const s = { el: el, calque: calque, vu: false, page: page };
-      if(page){
+      if(page && SANS_CROIX.indexOf(id) < 0){
         const croix = document.createElement('button');
         croix.type = 'button';
         croix.className = 'fenetre-fermer';
@@ -2839,6 +2874,20 @@ const STORAGE_ITEMS = 'stockmanager_items';
       });
       synchroniser();
     }
+    // L'Accueil est déjà ouvert quand la page arrive : aucun changement ne
+    // viendra prévenir qu'il faut le poser, il faut donc le faire soi-même.
+    requestAnimationFrame(synchroniser);
+    window.addEventListener('load', synchroniser);
+
+    // La bannière d'essai n'arrive qu'une fois l'abonnement connu, et c'est
+    // sous elle que l'Accueil doit se poser : quand elle paraît ou s'en va,
+    // on refait le calcul.
+    const banniere = document.getElementById('trialBanner');
+    if(banniere){
+      new MutationObserver(function(){ replacerLesPages(); })
+        .observe(banniere, { attributes: true, attributeFilter: ['style', 'class'] });
+    }
+
     window.addEventListener('resize', replacerLesPages);
     window.addEventListener('orientationchange', replacerLesPages);
     window.addEventListener('scroll', synchroniser, { passive: true });

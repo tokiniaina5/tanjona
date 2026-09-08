@@ -190,6 +190,12 @@
   .shell{
     display:grid;
     grid-template-columns: 1fr;
+    /* Deux rangées : la barre garde la hauteur de son contenu, le contenu
+       prend le reste. Sans cela, la grille répartit la place libre entre les
+       deux — et depuis que l'Accueil s'ouvre en fenêtre, hors du flux, il
+       n'en reste que trop : la barre du haut gonflait jusqu'à repousser la
+       bannière d'essai au milieu de l'écran. */
+    grid-template-rows: auto 1fr;
     min-height:100vh;
   }
   /* sans min-width:0, un tableau large étire toute la grille au lieu de
