@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gestion de Stockage — Tanjona</title>
 <link rel="stylesheet" href="gestion-stockage-css/base.css?v=36842e73">
-<link rel="stylesheet" href="gestion-stockage-css/components.css?v=ff0aad94">
+<link rel="stylesheet" href="gestion-stockage-css/components.css?v=6dc677fd">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -433,6 +433,9 @@
            retour au Stock. Elle vivait dans la section « Stock » ; ses deux
            nouveaux voisins y auraient disparu partout ailleurs. -->
       <div class="dash-tabs dash-tabs-main" id="stockMainTabs">
+        <button type="button" class="dash-tab" id="composerToggle" aria-label="Écrire un message" title="Écrire" aria-expanded="false">
+          <span aria-hidden="true">✏️</span><span class="tab-text">Écrire</span>
+        </button>
         <button type="button" class="dash-tab" id="refreshBtn" aria-label="Actualiser" title="Actualiser">
           <span aria-hidden="true">🔄</span><span class="tab-text">Actualiser</span>
         </button>
@@ -481,7 +484,7 @@
         <div class="dash-view active" id="dash-accueil">
           <div class="community-grid">
             <div class="fb-main">
-              <div class="panel fb-composer" style="margin-top:0;">
+              <div class="panel fb-composer" id="fbComposer" style="margin-top:0; display:none;">
                 <div class="fb-composer-row">
                   <div class="fb-avatar" id="composerAvatar">?</div>
                   <div style="flex:1; display:flex; flex-direction:column; gap:0.6rem;">
@@ -1603,7 +1606,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<script src="gestion-stockage-js/common.js?v=5cc1e41e"></script>
+<script src="gestion-stockage-js/common.js?v=c9fdb5b8"></script>
 <script src="gestion-stockage-js/stock.js?v=275a327a"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=7204c861"></script>

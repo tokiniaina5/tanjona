@@ -2310,10 +2310,13 @@ const STORAGE_ITEMS = 'stockmanager_items';
       // A chaque ouverture de l'application on verifie que le bouton est bien
       // a portee : c'est le moment ou l'ecran a sa taille definitive.
       if(visible && pret){
-        // La barre n'a de hauteur qu'une fois l'application affichée : c'est
-        // ici, et pas plus tôt, que la place par défaut peut être juste.
-        if(placeLibre) position = positionParDefaut();
-        replacer();
+        // La barre n'a de hauteur qu'une fois l'application affichée, et cette
+        // hauteur n'est connue qu'à l'image suivante : mesurée dans la foulée,
+        // elle vaut encore zéro et le bouton se pose sur la cloche.
+        requestAnimationFrame(function(){
+          if(placeLibre) position = positionParDefaut();
+          replacer();
+        });
       }
       if(!visible){
         navList.classList.remove('open');
@@ -2383,10 +2386,12 @@ const STORAGE_ITEMS = 'stockmanager_items';
     function positionParDefaut(){
       const t = tailleBouton();
       const z = zoneVisible();
-      // Sous la barre du haut : posé au coin, le bouton flottant viendrait
-      // exactement sur la cloche. La rangée, elle, est passée en bas — et
+      // Sous la ligne des boutons du haut : posé au coin, le bouton flottant
+      // viendrait exactement sur la cloche. On mesure .sidebar-top et non
+      // .sidebar — cette dernière, étirée par la grille, déborde bien plus bas
+      // que ce qu'elle donne à voir. La rangée, elle, est passée en bas, et
       // zoneVisible en tient déjà compte.
-      const barre = document.querySelector('.sidebar');
+      const barre = document.querySelector('.sidebar-top');
       const bas = barre ? barre.getBoundingClientRect().bottom : 0;
       const y = bas > 0 ? bas + 12 : z.y + 16;
       return { x: z.x + z.w - t.w - 16, y: Math.min(Math.max(z.y + 16, y), z.y + z.h - t.h - 16) };
@@ -2510,6 +2515,47 @@ const STORAGE_ITEMS = 'stockmanager_items';
       if(mp) mp.style.display = 'none';
       location.reload();
     });
+  }
+
+  // ---------------- ÉCRIRE ----------------
+  // La boîte d'écriture occupait le haut du fil en permanence, alors qu'on
+  // vient surtout y lire. Elle s'ouvre maintenant depuis la rangée du bas.
+  var composerToggle = document.getElementById('composerToggle');
+  var fbComposer = document.getElementById('fbComposer');
+  if(composerToggle && fbComposer){
+    composerToggle.addEventListener('click', function(){
+      const ouvert = fbComposer.style.display !== 'none';
+      if(ouvert){
+        fbComposer.style.display = 'none';
+        composerToggle.setAttribute('aria-expanded', 'false');
+        return;
+      }
+      // Elle vit en tête du fil d'actualité : depuis Articles ou Factures, il
+      // faut d'abord y revenir, sinon on ouvrirait une boîte que personne ne
+      // voit.
+      if(typeof ouvrirDepuisLeMenu === 'function') ouvrirDepuisLeMenu('accueil');
+      fbComposer.style.display = '';
+      composerToggle.setAttribute('aria-expanded', 'true');
+      fbComposer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const champ = document.getElementById('newsMessage');
+      if(champ) champ.focus({ preventScroll: true });
+    });
+
+    // Une fois le message parti, la boîte n'a plus lieu d'être ouverte.
+    const publier = document.getElementById('postNewsBtn');
+    if(publier){
+      publier.addEventListener('click', function(){
+        setTimeout(function(){
+          const champ = document.getElementById('newsMessage');
+          // Le champ vidé est le signe que l'envoi a réussi ; en cas d'échec le
+          // message est encore là, et la boîte doit le rester aussi.
+          if(champ && !champ.value.trim()){
+            fbComposer.style.display = 'none';
+            composerToggle.setAttribute('aria-expanded', 'false');
+          }
+        }, 600);
+      });
+    }
   }
 
   // ---------------- BARRES ESCAMOTABLES ----------------
