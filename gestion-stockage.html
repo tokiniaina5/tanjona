@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gestion de Stockage — Tanjona</title>
-<link rel="stylesheet" href="gestion-stockage-css/base.css?v=85aca277">
-<link rel="stylesheet" href="gestion-stockage-css/components.css?v=7af606cd">
+<link rel="stylesheet" href="gestion-stockage-css/base.css?v=f765d4dd">
+<link rel="stylesheet" href="gestion-stockage-css/components.css?v=ff0aad94">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -363,12 +363,10 @@
       <div class="sidebar-top">
         <div class="brand">Stock<span>Manager</span></div>
         <div style="display:flex; align-items:center; gap:0.5rem; position:relative;">
-          <button class="menu-toggle" id="refreshBtn" aria-label="Actualiser" title="Actualiser">🔄</button>
           <button class="menu-toggle" id="notifToggle" aria-label="Notifications" aria-expanded="false" style="position:relative;">
             🔔
             <span id="notifBadge" style="display:none; position:absolute; top:-4px; right:-4px; background:#ff6b6b; color:#fff; font-size:0.62rem; font-weight:700; border-radius:999px; min-width:16px; height:16px; line-height:16px; text-align:center; padding:0 3px;">0</span>
           </button>
-          <div class="nav-item menu-toggle active" id="navStock" data-section="stock" title="Stock" aria-label="Stock">📦</div>
           <button class="menu-toggle" id="menuToggle" aria-label="Ouvrir le menu" aria-expanded="false">☰</button>
 
           <div id="notifPanel" style="display:none; position:absolute; top:44px; right:0; width:300px; max-height:360px; overflow-y:auto; background:var(--panel); border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.35); z-index:50;">
@@ -431,20 +429,29 @@
 
     <main class="content">
 
+      <!-- Rangée commune à toutes les pages : Actualiser, l'appel vidéo, et le
+           retour au Stock. Elle vivait dans la section « Stock » ; ses deux
+           nouveaux voisins y auraient disparu partout ailleurs. -->
+      <div class="dash-tabs dash-tabs-main" id="stockMainTabs">
+        <button type="button" class="dash-tab" id="refreshBtn" aria-label="Actualiser" title="Actualiser">
+          <span aria-hidden="true">🔄</span><span class="tab-text">Actualiser</span>
+        </button>
+        <!-- Appel vidéo, au centre : un vrai lien (copiable, partageable),
+             qui lance directement l'appel quand on le touche dans l'appli. -->
+        <a id="videoCallTab" class="dash-tab dash-tab-call" href="#" title="Appel vidéo"
+           style="margin:0 auto; text-decoration:none;">
+          <span aria-hidden="true">📹</span><span class="tab-text">Appel vidéo</span>
+        </a>
+        <div class="nav-item dash-tab active" id="navStock" data-section="stock" title="Stock" aria-label="Stock">
+          <span aria-hidden="true">📦</span><span class="tab-text">Stock</span>
+        </div>
+      </div>
+
       <!-- ---- STOCK ---- -->
       <section class="section active" id="section-stock">
         <div class="trial-banner" id="trialBanner" style="display:none;">
           <span><strong id="trialDaysLeft">—</strong> jours restants sur votre essai gratuit de 7 jours. <em id="trialBonusNote" style="display:none; color:var(--cyan); font-style:normal;"></em></span>
           <button type="button" class="btn btn-primary btn-sm" id="subscribeNowBtn">S'abonner maintenant</button>
-        </div>
-
-        <div class="dash-tabs dash-tabs-main" id="stockMainTabs">
-          <!-- Appel vidéo, au centre : un vrai lien (copiable, partageable),
-               qui lance directement l'appel quand on le touche dans l'appli. -->
-          <a id="videoCallTab" class="dash-tab dash-tab-call" href="#" title="Appel vidéo"
-             style="margin:0 auto; text-decoration:none; display:flex; align-items:center; gap:0.4rem;">
-            <span aria-hidden="true">📹</span><span class="call-tab-text">Appel vidéo</span>
-          </a>
         </div>
 
         <div class="section-head">
@@ -1596,7 +1603,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<script src="gestion-stockage-js/common.js?v=4fca6604"></script>
+<script src="gestion-stockage-js/common.js?v=de52d3ea"></script>
 <script src="gestion-stockage-js/stock.js?v=275a327a"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=7204c861"></script>

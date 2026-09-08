@@ -9,9 +9,25 @@
   /* appel vidéo : au centre de la rangée, en évidence sans être criard */
   .dash-tab-call{ color:var(--cyan); }
   .dash-tab-call:hover{ color:var(--text); }
-  .dash-tab-call span[aria-hidden]{ font-size:1.05rem; line-height:1; }
+  .dash-tab span[aria-hidden]{ font-size:1.05rem; line-height:1; }
+
+  /* Les trois entrées de la rangée — Actualiser, l'appel vidéo, le Stock —
+     s'alignent de la même façon : une icône puis un libellé. */
+  #stockMainTabs .dash-tab{ display:flex; align-items:center; gap:0.4rem; }
+  /* Un <button> apporte son propre fond et ses bordures ; seul le
+     soulignement de .dash-tab doit rester. */
+  #stockMainTabs button.dash-tab{ background:none; border-top:none; border-left:none; border-right:none; }
+  /* « Stock » garde .nav-item — c'est à cette classe qu'est accrochée toute la
+     navigation par section — mais s'habille en onglet : sans annuler ce dont
+     il hérite, .nav-item.active dessinerait un cadre complet là où un simple
+     soulignement suffit. */
+  #stockMainTabs .nav-item{
+    margin-bottom:0; border-radius:0; background:none;
+    border-top:none; border-left:none; border-right:none;
+  }
+  /* Trois libellés ne tiennent pas sur un téléphone : les icônes suffisent. */
   @media (max-width: 520px){
-    .dash-tab-call .call-tab-text{ display:none; }
+    #stockMainTabs .tab-text{ display:none; }
   }
   .dash-view{ display:none; }
   .dash-view.active{ display:block; }

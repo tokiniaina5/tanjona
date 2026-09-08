@@ -2376,8 +2376,14 @@ const STORAGE_ITEMS = 'stockmanager_items';
     function positionParDefaut(){
       const t = tailleBouton();
       const z = zoneVisible();
-      const barre = document.querySelector('.sidebar');
-      const bas = barre ? barre.getBoundingClientRect().bottom : 0;
+      // Deux bandes restent collées en haut : la barre, et la rangée
+      // Actualiser / Appel vidéo / Stock. Le bouton doit passer sous les deux,
+      // sinon il vient sur l'une d'elles.
+      let bas = 0;
+      document.querySelectorAll('.sidebar, .dash-tabs-main').forEach(function(el){
+        const r = el.getBoundingClientRect();
+        if(r.height > 0) bas = Math.max(bas, r.bottom);
+      });
       const y = bas > 0 ? bas + 12 : z.y + 16;
       return { x: z.x + z.w - t.w - 16, y: Math.min(Math.max(z.y + 16, y), z.y + z.h - t.h - 16) };
     }

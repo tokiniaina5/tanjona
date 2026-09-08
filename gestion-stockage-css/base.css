@@ -271,12 +271,6 @@
   @keyframes tourne{ to{ transform: rotate(360deg); } }
   #refreshBtn.tourne{ animation: tourne 0.8s linear infinite; }
 
-  /* « Stock » quitte le menu pour la barre du haut, où il prend la taille des
-     autres boutons. Il garde .nav-item : c''est à cette classe qu''est
-     accrochée toute la navigation par section, et .nav-item.active y montre
-     encore qu''on s''y trouve. */
-  .nav-item.menu-toggle{ padding:0; margin-bottom:0; gap:0; font-size:1.1rem; }
-
   .sidebar-top{ display:flex; align-items:center; justify-content:space-between; }
   .brand-sub{ display:none; }
   .nav-spacer{ display:none; }
