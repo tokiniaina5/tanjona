@@ -282,12 +282,9 @@
   }
   .nav-list.open{ display:flex; }
 
-  /* ---------- menu déplaçable ---------- */
-  /* touch-action:none : sans cela le doigt fait défiler la page au lieu de
-     déplacer le bouton, et rien ne bouge sur téléphone. */
   /* Les bords sûrs du téléphone : encoche en haut, barre d'accueil en bas.
-     Le JS les relit pour ne jamais y poser le bouton, qui y serait visible
-     mais intouchable. */
+     Les panneaux les relisent pour ne jamais s'y glisser — visibles, mais
+     hors d'atteinte du doigt. */
   :root{
     --sur-haut: env(safe-area-inset-top, 0px);
     --sur-bas: env(safe-area-inset-bottom, 0px);
@@ -295,17 +292,22 @@
     --sur-droite: env(safe-area-inset-right, 0px);
   }
 
-  .menu-toggle.floating{
-    position: fixed;
-    z-index: 120;
-    touch-action: none;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+  /* Le champ de recherche du menu : il tient la première ligne, là où le
+     pouce arrive après avoir touché la loupe. */
+  .menu-recherche{
+    width: 100%;
+    padding: 0.55rem 0.7rem;
+    margin-bottom: 0.6rem;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    color: var(--text);
+    font: inherit;
+    font-size: 0.82rem;
+    box-sizing: border-box;
   }
-  .menu-toggle.floating.dragging{
-    cursor: grabbing;
-    opacity: 0.85;
-    transform: scale(1.06);
-  }
+  .menu-recherche:focus{ outline:none; border-color: var(--cyan); }
+  .menu-vide{ font-size:0.75rem; color: var(--muted); margin:0.4rem 0.2rem; }
   /* Le panneau suit le bouton : ouvert en bas de l'écran, il doit s'ouvrir
      vers le haut, sinon il sort par le bas et devient inatteignable. */
   .nav-list.floating{

@@ -2281,141 +2281,17 @@ const STORAGE_ITEMS = 'stockmanager_items';
 
   // ---------------- NAVIGATION ----------------
   var menuToggle = document.getElementById('menuToggle');
-  // Le panneau des achats s'ouvre lui aussi a cote du bouton flottant, ou
-  // qu'on l'ait pose ; la fonction est fournie par le bloc ci-dessous.
+  // Les autres panneaux (notifications, achats, réglages) s'ouvrent au même
+  // endroit : la fonction est posée ici et servie à tous.
   var placerPresDuMenu = function(){};
   var navList = document.getElementById('navList');
   if(menuToggle && navList){
-    // Le bouton quitte la barre pour flotter : c'est ce qui lui permet d'aller
-    // où l'on veut. Le panneau le suit, sinon on ouvrirait en bas un menu qui
-    // s'affiche en haut.
-    const MENU_POS_KEY = 'stockmanager_menu_pos';
     const MARGE = 8;
-    document.body.appendChild(menuToggle);
+    // Le menu quitte le fil de la page pour flotter au-dessus de la rangée,
+    // d'où la loupe l'appelle.
     document.body.appendChild(navList);
-    menuToggle.classList.add('floating');
     navList.classList.add('floating');
 
-    // Détaché de l'application, le bouton flottant s'afficherait aussi par
-    // dessus l'écran de connexion — où il n'a rien à faire. On surveille donc
-    // l'affichage de l'application plutôt que d'aller modifier chacun des
-    // endroits qui l'ouvrent ou la ferment.
-    const appScreenEl = document.getElementById('appScreen');
-    // Vrai une fois la position connue : ce garde-fou tourne aussi a
-    // l'initialisation, avant qu'elle existe.
-    let pret = false;
-    function syncMenuVisibility(){
-      const visible = appScreenEl && getComputedStyle(appScreenEl).display !== 'none';
-      menuToggle.style.display = visible ? 'flex' : 'none';
-      // A chaque ouverture de l'application on verifie que le bouton est bien
-      // a portee : c'est le moment ou l'ecran a sa taille definitive.
-      if(visible && pret){
-        // La barre n'a de hauteur qu'une fois l'application affichée, et cette
-        // hauteur n'est connue qu'à l'image suivante : mesurée dans la foulée,
-        // elle vaut encore zéro et le bouton se pose sur la cloche.
-        requestAnimationFrame(function(){
-          if(placeLibre) position = positionParDefaut();
-          replacer();
-        });
-      }
-      if(!visible){
-        navList.classList.remove('open');
-        menuToggle.textContent = '☰';
-        menuToggle.setAttribute('aria-expanded', 'false');
-      }
-    }
-    if(appScreenEl){
-      new MutationObserver(syncMenuVisibility)
-        .observe(appScreenEl, { attributes: true, attributeFilter: ['style', 'class'] });
-    }
-    syncMenuVisibility();
-
-    function tailleBouton(){
-      const r = menuToggle.getBoundingClientRect();
-      return { w: r.width || 38, h: r.height || 38 };
-    }
-
-    function bordSur(nom){
-      const v = getComputedStyle(document.documentElement).getPropertyValue(nom);
-      const n = parseFloat(v);
-      return isFinite(n) ? n : 0;
-    }
-
-    // Ce que l'oeil voit, et non ce que la page mesure. Sur un téléphone les
-    // deux diffèrent : window.innerHeight compte la bande cachée derrière la
-    // barre d'adresse, et le zoom au doigt ne la change pas du tout. Un bouton
-    // posé d'après ces mesures-là se retrouve hors de l'écran, visible nulle
-    // part et intouchable — c'est ce qui vient d'arriver.
-    function zoneVisible(){
-      const vv = window.visualViewport;
-      const base = vv
-        ? { x: vv.offsetLeft, y: vv.offsetTop, w: vv.width, h: vv.height }
-        : { x: 0, y: 0, w: window.innerWidth, h: window.innerHeight };
-      // Encoche et barre d'accueil : visibles, mais le doigt n'y atteint rien.
-      const haut = bordSur('--sur-haut'), bas = bordSur('--sur-bas');
-      const gauche = bordSur('--sur-gauche'), droite = bordSur('--sur-droite');
-      // La rangée du bas est fixée par-dessus tout : un bouton posé dessus
-      // serait caché, et le doigt toucherait la rangée à sa place.
-      const rangee = document.querySelector('.dash-tabs-main');
-      // Effacée, elle ne masque plus rien : lui réserver sa hauteur priverait
-      // le bouton du bas de l'écran sans raison.
-      const hauteurRangee = (rangee && !rangee.classList.contains('barre-cachee'))
-        ? rangee.getBoundingClientRect().height : 0;
-      return {
-        x: base.x + gauche, y: base.y + haut,
-        w: Math.max(0, base.w - gauche - droite),
-        h: Math.max(0, base.h - haut - bas - hauteurRangee)
-      };
-    }
-
-    function poserBouton(x, y){
-      const t = tailleBouton();
-      const z = zoneVisible();
-      const minX = z.x + MARGE, minY = z.y + MARGE;
-      const maxX = Math.max(minX, z.x + z.w - t.w - MARGE);
-      const maxY = Math.max(minY, z.y + z.h - t.h - MARGE);
-      const px = Math.min(Math.max(minX, x), maxX);
-      const py = Math.min(Math.max(minY, y), maxY);
-      menuToggle.style.left = px + 'px';
-      menuToggle.style.top = py + 'px';
-      return { x: px, y: py };
-    }
-
-    // Sous la barre du haut, et non dedans : posé au coin, le bouton flottant
-    // vient exactement sur la cloche et la masque.
-    function positionParDefaut(){
-      const t = tailleBouton();
-      const z = zoneVisible();
-      // Sous la ligne des boutons du haut : posé au coin, le bouton flottant
-      // viendrait exactement sur la cloche. On mesure .sidebar-top et non
-      // .sidebar — cette dernière, étirée par la grille, déborde bien plus bas
-      // que ce qu'elle donne à voir. La rangée, elle, est passée en bas, et
-      // zoneVisible en tient déjà compte.
-      const barre = document.querySelector('.sidebar-top');
-      const bas = barre ? barre.getBoundingClientRect().bottom : 0;
-      const y = bas > 0 ? bas + 12 : z.y + 16;
-      return { x: z.x + z.w - t.w - 16, y: Math.min(Math.max(z.y + 16, y), z.y + z.h - t.h - 16) };
-    }
-
-    function chargerPosition(){
-      try{
-        const brut = JSON.parse(localStorage.getItem(MENU_POS_KEY));
-        if(brut && typeof brut.x === 'number' && typeof brut.y === 'number') return brut;
-      }catch(e){}
-      return positionParDefaut();
-    }
-
-    // Vrai tant que l'utilisateur n'a pas déplacé le bouton lui-même.
-    let placeLibre = true;
-    try{ placeLibre = !localStorage.getItem(MENU_POS_KEY); }catch(e){}
-
-    function enregistrerPosition(pos){
-      placeLibre = false;
-      try{ localStorage.setItem(MENU_POS_KEY, JSON.stringify(pos)); }catch(e){}
-    }
-
-    // Le panneau se place sous le bouton, et bascule au-dessus ou de l'autre
-    // côté quand il n'y a plus la place.
     function hauteurRangee(){
       const r = document.querySelector('.dash-tabs-main');
       // Une rangée escamotée ne prend plus de place : le panneau peut descendre.
@@ -2423,9 +2299,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
         ? r.getBoundingClientRect().height : 0;
     }
 
-    // Les panneaux montent depuis la rangée du bas, et non plus depuis le
-    // bouton flottant : celui-ci se pose où l'on veut, y compris tout en haut,
-    // et le menu partait alors à l'opposé du pouce.
+    // Les panneaux montent depuis la rangée du bas, centrés, et reçoivent pour
+    // hauteur la place restante : un menu plus long que l'écran défile à
+    // l'intérieur au lieu de sortir par le haut.
     placerPresDuMenu = function(el){
       const haute = hauteurRangee();
       const large = el.getBoundingClientRect().width;
@@ -2434,8 +2310,6 @@ const STORAGE_ITEMS = 'stockmanager_items';
       el.style.left = gauche + 'px';
       el.style.top = 'auto';
       el.style.bottom = (haute + 10) + 'px';
-      // La place restante, et pas un pouce de plus : un menu plus long que
-      // l'écran sortirait par le haut au lieu de défiler.
       el.style.maxHeight = Math.max(160, window.innerHeight - haute - 10 - MARGE) + 'px';
       el.style.overflowY = 'auto';
     };
@@ -2443,71 +2317,89 @@ const STORAGE_ITEMS = 'stockmanager_items';
       if(!navList.classList.contains('open')) return;
       placerPresDuMenu(navList);
     }
-    // La rangée s'efface au défilement : les panneaux ouverts la suivent.
-    window.addEventListener('scroll', placerPanneau, { passive: true });
 
-    const depart = chargerPosition();
-    let position = poserBouton(depart.x, depart.y);
-    pret = true;
+    // ---- La recherche dans le menu ----
+    // À quatorze entrées, on trouve un nom plus vite qu'on ne parcourt une
+    // liste : c'est ce que dit la loupe.
+    const champ = document.getElementById('menuRecherche');
+    const vide = document.getElementById('menuVide');
 
-    // ---- Déplacement au doigt comme à la souris ----
-    // Les événements « pointer » couvrent les deux : un seul chemin, donc un
-    // seul comportement à vérifier.
-    let glisse = null;
-    menuToggle.addEventListener('pointerdown', function(e){
-      glisse = { dx: e.clientX - menuToggle.getBoundingClientRect().left,
-                 dy: e.clientY - menuToggle.getBoundingClientRect().top,
-                 x0: e.clientX, y0: e.clientY, bouge: false };
-      // Sans capture, le doigt qui sort du bouton cesse d'être suivi et le
-      // déplacement s'arrête net ; un navigateur qui la refuse ne doit pas pour
-      // autant faire échouer tout le reste.
-      try{ menuToggle.setPointerCapture(e.pointerId); }catch(err){}
-    });
+    function entreesDuMenu(){
+      return [].slice.call(navList.children).filter(function(el){
+        return el.classList.contains('nav-item') || el.classList.contains('nav-action');
+      });
+    }
 
-    menuToggle.addEventListener('pointermove', function(e){
-      if(!glisse) return;
-      // Trois pixels de tolérance : un doigt ne se pose jamais parfaitement
-      // immobile, et sans ce seuil chaque appui deviendrait un déplacement,
-      // donc plus aucune ouverture du menu.
-      if(!glisse.bouge && Math.abs(e.clientX - glisse.x0) + Math.abs(e.clientY - glisse.y0) < 3) return;
-      glisse.bouge = true;
-      menuToggle.classList.add('dragging');
-      position = poserBouton(e.clientX - glisse.dx, e.clientY - glisse.dy);
+    function filtrer(){
+      if(!champ) return;
+      const q = champ.value.trim().toLowerCase();
+      let trouves = 0;
+      entreesDuMenu().forEach(function(el){
+        // « Stock » est masqué exprès : le filtre ne doit pas le ressusciter.
+        if(el.id === 'navStock' || el.dataset.horsMenu === '1') return;
+        const cache = el.dataset.masque === '1';
+        const correspond = !q || el.textContent.toLowerCase().indexOf(q) >= 0;
+        if(!cache) el.style.display = correspond ? '' : 'none';
+        if(correspond && !cache) trouves += 1;
+      });
+      if(vide) vide.style.display = (q && !trouves) ? 'block' : 'none';
       placerPanneau();
-    });
+    }
 
-    function finGlisse(e){
-      if(!glisse) return;
-      const bouge = glisse.bouge;
-      glisse = null;
-      menuToggle.classList.remove('dragging');
-      try{ menuToggle.releasePointerCapture(e.pointerId); }catch(err){}
-      if(bouge){ enregistrerPosition(position); return; }
-      // Simple appui : on ouvre ou on ferme.
-      const isOpen = navList.classList.toggle('open');
-      menuToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-      menuToggle.textContent = isOpen ? '✕' : '☰';
-      if(isOpen) requestAnimationFrame(placerPanneau);
+    // « Espace admin » est caché pour les clients : on retient qu'il l'est,
+    // sinon le filtre le rendrait visible au premier mot tapé.
+    const admin = document.getElementById('navAdmin');
+    function noterLesMasques(){
+      entreesDuMenu().forEach(function(el){
+        if(el === admin) el.dataset.masque = (el.style.display === 'none') ? '1' : '0';
+      });
+    }
+
+    function ouvrirMenu(ouvert){
+      navList.classList.toggle('open', ouvert);
+      menuToggle.setAttribute('aria-expanded', ouvert ? 'true' : 'false');
+      if(ouvert){
+        noterLesMasques();
+        if(champ){ champ.value = ''; }
+        filtrer();
+        requestAnimationFrame(function(){
+          placerPanneau();
+          // Le clavier s'ouvre avec le menu : on cherche, on ne parcourt pas.
+          if(champ) champ.focus({ preventScroll: true });
+        });
+      }
       updateTopbarHeight();
     }
-    menuToggle.addEventListener('pointerup', finGlisse);
-    menuToggle.addEventListener('pointercancel', finGlisse);
 
-    // On replace sans toucher a `position` : elle garde l'endroit voulu par
-    // l'utilisateur. Le bouton y revient de lui-même quand l'écran redevient
-    // grand, au lieu de rester coincé là où un zoom l'avait rabattu.
-    function replacer(){
-      poserBouton(position.x, position.y);
-      placerPanneau();
+    menuToggle.addEventListener('click', function(e){
+      e.stopPropagation();
+      ouvrirMenu(!navList.classList.contains('open'));
+    });
+
+    if(champ){
+      champ.addEventListener('input', filtrer);
+      // Entrée : on ouvre la seule page qui reste, sans avoir à viser.
+      champ.addEventListener('keydown', function(e){
+        if(e.key !== 'Enter') return;
+        const restants = entreesDuMenu().filter(function(el){
+          return el.style.display !== 'none' && el.id !== 'navStock';
+        });
+        if(restants.length === 1) restants[0].click();
+      });
+      // Le champ ne doit pas refermer le menu qui le porte.
+      champ.addEventListener('click', function(e){ e.stopPropagation(); });
     }
-    window.addEventListener('resize', replacer);
-    window.addEventListener('orientationchange', replacer);
-    if(window.visualViewport){
-      // Le zoom au doigt et la barre d'adresse qui glisse ne déclenchent aucun
-      // `resize` : sans ces deux-là, le bouton reste hors de l'écran.
-      window.visualViewport.addEventListener('resize', replacer);
-      window.visualViewport.addEventListener('scroll', replacer);
-    }
+
+    // Un clic à côté referme, comme pour les autres panneaux.
+    document.addEventListener('click', function(e){
+      if(!navList.classList.contains('open')) return;
+      if(navList.contains(e.target) || menuToggle.contains(e.target)) return;
+      ouvrirMenu(false);
+    });
+
+    window.addEventListener('scroll', placerPanneau, { passive: true });
+    window.addEventListener('resize', placerPanneau);
+    window.addEventListener('orientationchange', placerPanneau);
   }
 
   // ---------------- ÉCRIRE ----------------
@@ -2675,9 +2567,10 @@ const STORAGE_ITEMS = 'stockmanager_items';
       // On délègue à l'entrée du menu : elle sait déjà tout faire — changer de
       // page, refermer le menu, retenir la vue.
       bouton.addEventListener('click', function(){ entree.click(); });
-      // Le réglage des icônes reste la dernière de la rangée.
-      const reglages = document.getElementById('barReglagesBtn');
-      if(reglages && reglages.parentElement === rangee) rangee.insertBefore(bouton, reglages);
+      // Les pages épinglées se rangent entre les entrées fixes et les deux
+      // outils de fin — la loupe et les réglages, qui gardent leur place.
+      const outils = document.getElementById('menuToggle') || document.getElementById('barReglagesBtn');
+      if(outils && outils.parentElement === rangee) rangee.insertBefore(bouton, outils);
       else rangee.appendChild(bouton);
     }
 
@@ -2885,7 +2778,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
         // recouvriraient sinon.
         if(navList && navList.classList.contains('open')){
           navList.classList.remove('open');
-          if(menuToggle){ menuToggle.textContent = '☰'; menuToggle.setAttribute('aria-expanded','false'); }
+          if(menuToggle) menuToggle.setAttribute('aria-expanded','false');
         }
         placerNotif();
         var mp = document.getElementById('marketPanel');
@@ -2931,7 +2824,6 @@ const STORAGE_ITEMS = 'stockmanager_items';
         // Le menu s'efface : les deux listes se recouvriraient sinon.
         if(navList){
           navList.classList.remove('open');
-          menuToggle.textContent = '☰';
           menuToggle.setAttribute('aria-expanded', 'false');
         }
         placerPresDuMenu(marketPanel);
@@ -2981,7 +2873,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
       // ferme le menu mobile après avoir choisi une section
       if(navList && navList.classList.contains('open')){
         navList.classList.remove('open');
-        if(menuToggle){ menuToggle.textContent = '☰'; menuToggle.setAttribute('aria-expanded','false'); }
+        if(menuToggle) menuToggle.setAttribute('aria-expanded','false');
       }
       saveLastView();
     });
@@ -3077,7 +2969,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
     showDashView(nom);
     if(navList){
       navList.classList.remove('open');
-      if(menuToggle){ menuToggle.textContent = '☰'; menuToggle.setAttribute('aria-expanded','false'); }
+      if(menuToggle) menuToggle.setAttribute('aria-expanded','false');
     }
     saveLastView();
   }

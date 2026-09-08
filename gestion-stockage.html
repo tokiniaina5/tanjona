@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gestion de Stockage — Tanjona</title>
-<link rel="stylesheet" href="gestion-stockage-css/base.css?v=b56fe9a0">
+<link rel="stylesheet" href="gestion-stockage-css/base.css?v=c891f704">
 <link rel="stylesheet" href="gestion-stockage-css/components.css?v=32f57cd2">
 </head>
 <body>
@@ -363,7 +363,6 @@
       <div class="sidebar-top">
         <div class="brand">Ny <span>asako</span></div>
         <div style="display:flex; align-items:center; gap:0.5rem; position:relative;">
-          <button class="menu-toggle" id="menuToggle" aria-label="Ouvrir le menu" aria-expanded="false">☰</button>
 
           <div id="notifPanel" style="display:none; position:absolute; top:44px; right:0; width:300px; max-height:360px; overflow-y:auto; background:var(--panel); border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.35); z-index:50;">
             <div style="display:flex; align-items:center; justify-content:space-between; padding:0.7rem 0.9rem; border-bottom:1px solid var(--line);">
@@ -404,6 +403,8 @@
            n'a rien à faire dans une rangée d'icônes qui défile, où le doigt
            l'atteindrait par accident. -->
       <div class="nav-list" id="navList">
+        <input type="search" id="menuRecherche" class="menu-recherche" placeholder="Karohy ny pejy..." aria-label="Rechercher une page" autocomplete="off">
+        <p class="menu-vide" id="menuVide" style="display:none;">Tsy misy pejy mifanaraka.</p>
         <button type="button" class="nav-action" id="menuAccueil">🏠 Accueil</button>
         <button type="button" class="nav-action" id="composerToggle" aria-label="Écrire un message" aria-expanded="false">✏️ Écrire</button>
         <button type="button" class="nav-action" id="menuArticles">📋 Articles</button>
@@ -452,6 +453,9 @@
         <button type="button" class="dash-tab" id="barAccueil" title="Accueil" aria-label="Accueil">
           <span aria-hidden="true">🏠</span><span class="tab-text">Accueil</span>
         </button>
+        <!-- Le menu tient dans une loupe : à quatorze entrées, on cherche un
+             nom plus vite qu'on ne parcourt une liste. -->
+        <button type="button" class="dash-tab bar-icone" id="menuToggle" title="Rechercher une page" aria-label="Rechercher une page" aria-expanded="false">🔍</button>
         <!-- Dernière de la rangée : c'est d'ici qu'on décide comment les icônes
              s'en vont. Trois points, et non un engrenage — celui-ci désigne
              déjà les Paramètres du compte. -->
@@ -1634,7 +1638,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<script src="gestion-stockage-js/common.js?v=f4e97f7a"></script>
+<script src="gestion-stockage-js/common.js?v=5b8aefbb"></script>
 <script src="gestion-stockage-js/stock.js?v=275a327a"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=7204c861"></script>
