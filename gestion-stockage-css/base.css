@@ -360,6 +360,24 @@
        réserve, la rangée se retrouve dessous et ne répond plus au doigt. */
     padding-bottom: calc(0.3rem + env(safe-area-inset-bottom, 0px));
   }
+  /* Les deux bandes s'effacent quand on descend dans la page et reviennent dès
+     qu'on remonte. Elles occupaient en permanence un cinquième de l'écran d'un
+     téléphone ; on les retrouve d'un simple geste vers le haut.
+     Un déplacement, et non un display:none : la barre garde sa place dans la
+     mise en page, et le contenu ne saute pas au moment où elle disparaît. */
+  .sidebar,
+  #stockMainTabs.dash-tabs-main{
+    transition: transform 0.22s ease;
+  }
+  .sidebar.barre-cachee{ transform: translateY(-100%); }
+  #stockMainTabs.dash-tabs-main.barre-cachee{ transform: translateY(100%); }
+
+  /* Réglage système « moins d'animations » : le résultat compte, pas le
+     glissement. */
+  @media (prefers-reduced-motion: reduce){
+    .sidebar, #stockMainTabs.dash-tabs-main{ transition: none; }
+  }
+
   .section{ display:none; }
   .section.active{ display:block; }
 

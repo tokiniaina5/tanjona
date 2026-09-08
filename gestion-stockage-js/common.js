@@ -2354,7 +2354,10 @@ const STORAGE_ITEMS = 'stockmanager_items';
       // La rangée du bas est fixée par-dessus tout : un bouton posé dessus
       // serait caché, et le doigt toucherait la rangée à sa place.
       const rangee = document.querySelector('.dash-tabs-main');
-      const hauteurRangee = rangee ? rangee.getBoundingClientRect().height : 0;
+      // Effacée, elle ne masque plus rien : lui réserver sa hauteur priverait
+      // le bouton du bas de l'écran sans raison.
+      const hauteurRangee = (rangee && !rangee.classList.contains('barre-cachee'))
+        ? rangee.getBoundingClientRect().height : 0;
       return {
         x: base.x + gauche, y: base.y + haut,
         w: Math.max(0, base.w - gauche - droite),
@@ -2508,6 +2511,45 @@ const STORAGE_ITEMS = 'stockmanager_items';
       location.reload();
     });
   }
+
+  // ---------------- BARRES ESCAMOTABLES ----------------
+  // On descend dans la page : les deux bandes s'effacent, l'écran est rendu à
+  // la lecture. On remonte : elles reviennent aussitôt, sans qu'il faille
+  // revenir jusqu'en haut pour les retrouver.
+  (function(){
+    const barreHaut = document.querySelector('.sidebar');
+    const barreBas = document.querySelector('.dash-tabs-main');
+    if(!barreHaut && !barreBas) return;
+
+    // Six pixels de tolérance : un doigt ne fait jamais défiler tout droit, et
+    // sans ce seuil les barres clignoteraient à chaque frémissement.
+    const SEUIL = 6;
+    // Près du haut, elles restent en place : les cacher là n'apporte rien et
+    // laisserait l'écran nu à l'ouverture.
+    const REPOS = 80;
+
+    let dernierY = window.scrollY;
+    let enAttente = false;
+
+    function appliquer(){
+      enAttente = false;
+      const y = window.scrollY;
+      const delta = y - dernierY;
+      if(Math.abs(delta) < SEUIL) return;
+      dernierY = y;
+      const cacher = delta > 0 && y > REPOS;
+      if(barreHaut) barreHaut.classList.toggle('barre-cachee', cacher);
+      if(barreBas) barreBas.classList.toggle('barre-cachee', cacher);
+    }
+
+    // passive : le navigateur n'a pas à attendre ce code pour faire défiler.
+    // requestAnimationFrame : un seul calcul par image, pas un par événement.
+    window.addEventListener('scroll', function(){
+      if(enAttente) return;
+      enAttente = true;
+      requestAnimationFrame(appliquer);
+    }, { passive: true });
+  })();
 
   // ---------------- NOTIFICATIONS ----------------
   var notifToggle = document.getElementById('notifToggle');
