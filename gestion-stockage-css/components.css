@@ -85,13 +85,53 @@
     background: rgba(79,216,224,0.12);
   }
 
-  /* La liste des notifications s'ouvre au-dessus de la rangée, d'où la cloche
-     l'appelle maintenant. */
-  #notifPanel.panneau-flottant{
+  /* Les panneaux appelés depuis la rangée s'ouvrent au-dessus d'elle. La règle
+     vaut pour tous : nommée par un identifiant, elle ne servait qu'à la liste
+     des notifications et laissait les suivants tomber au fil de la page. */
+  .panneau-flottant{
     position: fixed;
     z-index: 110;
     width: min(340px, calc(100vw - 1.6rem));
   }
+
+  /* Les panneaux qui n'héritent d'aucun habillage prennent celui-ci. */
+  .panneau-boite{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 0.9rem 1rem;
+    box-shadow: 0 -10px 34px rgba(0,0,0,0.5);
+  }
+  .panneau-titre{ font-size:0.82rem; font-weight:700; margin-bottom:0.7rem; }
+  .panneau-note{ font-size:0.72rem; color:var(--muted); margin:0.7rem 0 0; line-height:1.45; }
+
+  .reglages-choix{ display:flex; gap:0.6rem; }
+  /* Les deux choix sont d'abord des images : le mot n'est là que pour lever le
+     doute sur ce que la main et la machine veulent dire. */
+  .reglage-mode{
+    flex:1;
+    display:flex; flex-direction:column; align-items:center; gap:0.35rem;
+    padding:0.7rem 0.4rem;
+    border:1px solid var(--line); border-radius:10px;
+    background:var(--panel-2); color:var(--muted);
+    font:inherit; font-size:0.72rem; cursor:pointer;
+  }
+  .reglage-mode:hover{ color:var(--text); border-color:var(--cyan); }
+  .reglage-mode.actif{ color:var(--cyan); border-color:var(--cyan); background:rgba(79,216,224,0.1); }
+  .reglage-icone{ font-size:1.5rem; line-height:1; }
+
+  /* La croix ne paraît qu'en mode manuel : ailleurs, elle proposerait un geste
+     qui ne ferait rien. */
+  .epingle-retirer{
+    display:none;
+    position:absolute; top:1px; right:1px;
+    width:16px; height:16px; line-height:15px;
+    border-radius:999px;
+    background:#ff6b6b; color:#fff;
+    font-size:0.6rem; text-align:center;
+  }
+  #stockMainTabs.mode-manuel .bar-icone[data-epingle] .epingle-retirer{ display:block; }
+  #stockMainTabs .bar-icone[data-epingle]{ position:relative; }
 
   #fbComposer.composer-flottant{
     position: fixed;

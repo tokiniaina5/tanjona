@@ -2594,18 +2594,37 @@ const STORAGE_ITEMS = 'stockmanager_items';
   // le deuxième passage ne demande plus d'ouvrir le menu. Les icônes restent
   // d'une visite à l'autre — épinglées puis disparues au rechargement, elles
   // n'inspireraient aucune confiance.
+  //
+  // Elles s'en vont de deux façons, au choix : à la main, par une croix ; ou
+  // d'elles-mêmes, les moins servies cédant la place aux dernières ouvertes.
   (function(){
     const rangee = document.getElementById('stockMainTabs');
     if(!rangee) return;
     const CLE = 'stockmanager_barre_epingles';
+    const CLE_MODE = 'stockmanager_barre_mode';
+    // Six icônes tiennent sur la largeur d'un téléphone sans qu'il faille tirer
+    // la rangée : c'est la limite du mode automatique.
+    const GARDEES = 6;
 
+    // Chaque épingle retient sa dernière visite : c'est elle qui décide, en
+    // automatique, laquelle cède la place.
     function lireEpingles(){
-      try{ const l = JSON.parse(localStorage.getItem(CLE)); return Array.isArray(l) ? l : []; }
-      catch(e){ return []; }
+      let brut = [];
+      try{ brut = JSON.parse(localStorage.getItem(CLE)) || []; }catch(e){ brut = []; }
+      if(!Array.isArray(brut)) return [];
+      // Les premières versions n'enregistraient que la clé.
+      return brut.map(function(x){
+        return (typeof x === 'string') ? { cle: x, vu: 0 } : x;
+      }).filter(function(x){ return x && x.cle; });
     }
     function ecrireEpingles(liste){
       try{ localStorage.setItem(CLE, JSON.stringify(liste)); }catch(e){}
     }
+    function lireMode(){
+      try{ return localStorage.getItem(CLE_MODE) === 'auto' ? 'auto' : 'manuel'; }
+      catch(e){ return 'manuel'; }
+    }
+    function ecrireMode(m){ try{ localStorage.setItem(CLE_MODE, m); }catch(e){} }
 
     // La clé désigne l'entrée du menu, pas l'icône : c'est elle qu'on recliquera.
     function cleDe(entree){
@@ -2617,6 +2636,13 @@ const STORAGE_ITEMS = 'stockmanager_items';
       return cle.indexOf('section:') === 0
         ? document.querySelector('#navList .nav-item[data-section="' + cle.slice(8) + '"]')
         : document.getElementById(cle.slice(3));
+    }
+
+    function retirer(cle){
+      ecrireEpingles(lireEpingles().filter(function(e){ return e.cle !== cle; }));
+      const bouton = rangee.querySelector('[data-epingle="' + cle + '"]');
+      if(bouton) bouton.remove();
+      mesurer();
     }
 
     function poser(cle){
@@ -2635,10 +2661,24 @@ const STORAGE_ITEMS = 'stockmanager_items';
       bouton.title = nom;
       bouton.setAttribute('aria-label', nom);
       bouton.textContent = icone;
+
+      const croix = document.createElement('span');
+      croix.className = 'epingle-retirer';
+      croix.textContent = '✕';
+      croix.title = 'Esorina : ' + nom;
+      croix.setAttribute('aria-label', 'Esorina : ' + nom);
+      // stopPropagation : sans cela, retirer l'icône ouvrirait la page qu'on
+      // vient d'écarter.
+      croix.addEventListener('click', function(e){ e.stopPropagation(); retirer(cle); });
+      bouton.appendChild(croix);
+
       // On délègue à l'entrée du menu : elle sait déjà tout faire — changer de
       // page, refermer le menu, retenir la vue.
       bouton.addEventListener('click', function(){ entree.click(); });
-      rangee.appendChild(bouton);
+      // Le réglage des icônes reste la dernière de la rangée.
+      const reglages = document.getElementById('barReglagesBtn');
+      if(reglages && reglages.parentElement === rangee) rangee.insertBefore(bouton, reglages);
+      else rangee.appendChild(bouton);
     }
 
     function mesurer(){
@@ -2648,11 +2688,30 @@ const STORAGE_ITEMS = 'stockmanager_items';
       rangee.classList.toggle('reste-a-droite', reste > 4);
     }
 
+    // En automatique, la rangée se tient à six : la plus anciennement ouverte
+    // s'efface pour la nouvelle. En manuel, rien ne part sans qu'on le dise.
+    function elaguer(){
+      if(lireMode() !== 'auto') return;
+      let liste = lireEpingles();
+      if(liste.length <= GARDEES) return;
+      liste.sort(function(a, b){ return (b.vu || 0) - (a.vu || 0); });
+      liste.slice(GARDEES).forEach(function(e){
+        const bouton = rangee.querySelector('[data-epingle="' + e.cle + '"]');
+        if(bouton) bouton.remove();
+      });
+      ecrireEpingles(liste.slice(0, GARDEES));
+      mesurer();
+    }
+
     function epingler(entree){
       const cle = cleDe(entree);
       const liste = lireEpingles();
-      if(liste.indexOf(cle) < 0){ liste.push(cle); ecrireEpingles(liste); }
+      const connue = liste.filter(function(e){ return e.cle === cle; })[0];
+      if(connue) connue.vu = Date.now();
+      else liste.push({ cle: cle, vu: Date.now() });
+      ecrireEpingles(liste);
       poser(cle);
+      elaguer();
       mesurer();
     }
 
@@ -2673,7 +2732,78 @@ const STORAGE_ITEMS = 'stockmanager_items';
       entree.addEventListener('click', function(){ epingler(entree); });
     });
 
-    lireEpingles().forEach(poser);
+    // ---- Le petit panneau des réglages ----
+    const boutonReglages = document.getElementById('barReglagesBtn');
+    const panneau = document.getElementById('barReglages');
+    const note = document.getElementById('barReglagesNote');
+
+    function direLeMode(){
+      const mode = lireMode();
+      rangee.classList.toggle('mode-manuel', mode === 'manuel');
+      if(panneau){
+        panneau.querySelectorAll('.reglage-mode').forEach(function(b){
+          b.classList.toggle('actif', b.dataset.mode === mode);
+        });
+      }
+      if(note){
+        note.textContent = mode === 'manuel'
+          ? "Ianao no manala : tsindrio ny ✕ eo amin'ny sary."
+          : "Ny sary " + GARDEES + " farany nampiasainao no mijanona ; ny hafa miala ho azy.";
+      }
+    }
+
+    if(boutonReglages && panneau){
+      document.body.appendChild(panneau);
+
+      function placerReglages(){
+        const r = document.querySelector('.dash-tabs-main');
+        const haute = (r && !r.classList.contains('barre-cachee'))
+          ? r.getBoundingClientRect().height : 0;
+        panneau.style.bottom = (haute + 10) + 'px';
+        const large = panneau.getBoundingClientRect().width;
+        let gauche = (window.innerWidth - large) / 2;
+        gauche = Math.max(8, Math.min(gauche, window.innerWidth - large - 8));
+        panneau.style.left = gauche + 'px';
+        panneau.style.top = 'auto';
+      }
+
+      boutonReglages.addEventListener('click', function(e){
+        e.stopPropagation();
+        const ouvert = panneau.style.display === 'block';
+        panneau.style.display = ouvert ? 'none' : 'block';
+        boutonReglages.setAttribute('aria-expanded', ouvert ? 'false' : 'true');
+        if(!ouvert) placerReglages();
+      });
+
+      panneau.querySelectorAll('.reglage-mode').forEach(function(b){
+        b.addEventListener('click', function(){
+          ecrireMode(b.dataset.mode);
+          direLeMode();
+          // Le passage en automatique se voit tout de suite : la rangée se
+          // ramène à six.
+          elaguer();
+          mesurer();
+        });
+      });
+
+      document.addEventListener('click', function(e){
+        if(panneau.style.display !== 'block') return;
+        if(panneau.contains(e.target) || boutonReglages.contains(e.target)) return;
+        panneau.style.display = 'none';
+        boutonReglages.setAttribute('aria-expanded', 'false');
+      });
+
+      window.addEventListener('scroll', function(){
+        if(panneau.style.display === 'block') placerReglages();
+      }, { passive: true });
+      window.addEventListener('resize', function(){
+        if(panneau.style.display === 'block') placerReglages();
+      });
+    }
+
+    lireEpingles().forEach(function(e){ poser(e.cle); });
+    direLeMode();
+    elaguer();
     rangee.addEventListener('scroll', mesurer, { passive: true });
     window.addEventListener('resize', mesurer);
     // La rangée n'a de largeur qu'une fois l'application affichée.

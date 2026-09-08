@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gestion de Stockage — Tanjona</title>
 <link rel="stylesheet" href="gestion-stockage-css/base.css?v=22708615">
-<link rel="stylesheet" href="gestion-stockage-css/components.css?v=f41e6f17">
+<link rel="stylesheet" href="gestion-stockage-css/components.css?v=32f57cd2">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -452,6 +452,27 @@
         <button type="button" class="dash-tab" id="barAccueil" title="Accueil" aria-label="Accueil">
           <span aria-hidden="true">🏠</span><span class="tab-text">Accueil</span>
         </button>
+        <!-- Dernière de la rangée : c'est d'ici qu'on décide comment les icônes
+             s'en vont. Trois points, et non un engrenage — celui-ci désigne
+             déjà les Paramètres du compte. -->
+        <button type="button" class="dash-tab bar-icone" id="barReglagesBtn" title="Réglages de la rangée" aria-label="Réglages de la rangée" aria-expanded="false">⋯</button>
+      </div>
+
+      <!-- Petit panneau des réglages de la rangée : il monte au-dessus d'elle,
+           comme les autres. -->
+      <div class="panneau-flottant panneau-boite" id="barReglages" style="display:none;">
+        <div class="panneau-titre">Ny sary eo amin'ny barre</div>
+        <div class="reglages-choix">
+          <button type="button" class="reglage-mode" data-mode="manuel" title="Manuel">
+            <span class="reglage-icone" aria-hidden="true">✋</span>
+            <span class="reglage-nom">Manuel</span>
+          </button>
+          <button type="button" class="reglage-mode" data-mode="auto" title="Automatique">
+            <span class="reglage-icone" aria-hidden="true">🤖</span>
+            <span class="reglage-nom">Automatique</span>
+          </button>
+        </div>
+        <p class="panneau-note" id="barReglagesNote"></p>
       </div>
 
       <!-- ---- STOCK ---- -->
@@ -1613,7 +1634,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<script src="gestion-stockage-js/common.js?v=f8ccac66"></script>
+<script src="gestion-stockage-js/common.js?v=69f02aad"></script>
 <script src="gestion-stockage-js/stock.js?v=275a327a"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=7204c861"></script>
