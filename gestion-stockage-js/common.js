@@ -428,27 +428,17 @@ const STORAGE_ITEMS = 'stockmanager_items';
   // ouvre la page, et son icône ne doit pas revenir dans la rangée après qu'on
   // l'en a retirée.
   var restaurationEnCours = false;
-  function restoreLastView(){
-    let view = null;
-    try{ view = JSON.parse(localStorage.getItem(STORAGE_LAST_VIEW)) || null; }catch(e){}
-    if(!view) return;
+  // L'application s'ouvre sur l'Accueil, quelle que soit la page quittée.
+  // C'est le fil : on y vient pour voir ce qui est arrivé depuis la dernière
+  // fois, et non pour reprendre un tableau là où on l'avait laissé.
+  function ouvrirSurLAccueil(){
     restaurationEnCours = true;
     try{
-      if(view.section){
-        const nav = document.querySelector('.nav-item[data-section="' + view.section + '"]');
-        if(nav && !nav.classList.contains('active')) nav.click();
-      }
-      if(view.dash){
-        const tab = document.querySelector('.dash-tab[data-dash="' + view.dash + '"]');
-        if(tab){
-          if(!tab.classList.contains('active')) tab.click();
-        } else if(typeof showDashView === 'function'){
-          // « Acheter » n'a plus d'onglet : sans ce recours, la vue quittée à la
-          // fermeture ne revenait plus à l'ouverture suivante.
-          showDashView(view.dash);
-        }
-      }
+      const navStock = document.querySelector('.nav-item[data-section="stock"]');
+      if(navStock && !navStock.classList.contains('active')) navStock.click();
+      if(typeof showDashView === 'function') showDashView('accueil');
       if(typeof updateSubTabsVisibility === 'function') updateSubTabsVisibility();
+      saveLastView();
     } finally { restaurationEnCours = false; }
   }
 
@@ -1358,7 +1348,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
       openPaywall();
     } else {
       openApp();
-      if(opts && opts.restoreView) restoreLastView();
+      ouvrirSurLAccueil();
     }
   }
 
@@ -2193,7 +2183,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
         openPaywall();
       } else {
         openApp();
-        restoreLastView();
+        ouvrirSurLAccueil();
       }
     };
     if(document.readyState === 'loading'){
