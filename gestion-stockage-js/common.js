@@ -2416,25 +2416,35 @@ const STORAGE_ITEMS = 'stockmanager_items';
 
     // Le panneau se place sous le bouton, et bascule au-dessus ou de l'autre
     // côté quand il n'y a plus la place.
+    function hauteurRangee(){
+      const r = document.querySelector('.dash-tabs-main');
+      // Une rangée escamotée ne prend plus de place : le panneau peut descendre.
+      return (r && !r.classList.contains('barre-cachee'))
+        ? r.getBoundingClientRect().height : 0;
+    }
+
+    // Les panneaux montent depuis la rangée du bas, et non plus depuis le
+    // bouton flottant : celui-ci se pose où l'on veut, y compris tout en haut,
+    // et le menu partait alors à l'opposé du pouce.
     placerPresDuMenu = function(el){
-      const b = menuToggle.getBoundingClientRect();
-      const n = el.getBoundingClientRect();
-      const z = zoneVisible();
-      let left = b.left;
-      if(left + n.width > z.x + z.w - MARGE) left = b.right - n.width;
-      left = Math.max(z.x + MARGE, Math.min(left, z.x + z.w - n.width - MARGE));
-
-      let top = b.bottom + 6;
-      if(top + n.height > z.y + z.h - MARGE) top = b.top - n.height - 6;
-      top = Math.max(z.y + MARGE, top);
-
-      el.style.left = left + 'px';
-      el.style.top = top + 'px';
+      const haute = hauteurRangee();
+      const large = el.getBoundingClientRect().width;
+      let gauche = (window.innerWidth - large) / 2;
+      gauche = Math.max(MARGE, Math.min(gauche, window.innerWidth - large - MARGE));
+      el.style.left = gauche + 'px';
+      el.style.top = 'auto';
+      el.style.bottom = (haute + 10) + 'px';
+      // La place restante, et pas un pouce de plus : un menu plus long que
+      // l'écran sortirait par le haut au lieu de défiler.
+      el.style.maxHeight = Math.max(160, window.innerHeight - haute - 10 - MARGE) + 'px';
+      el.style.overflowY = 'auto';
     };
     function placerPanneau(){
       if(!navList.classList.contains('open')) return;
       placerPresDuMenu(navList);
     }
+    // La rangée s'efface au défilement : les panneaux ouverts la suivent.
+    window.addEventListener('scroll', placerPanneau, { passive: true });
 
     const depart = chargerPosition();
     let position = poserBouton(depart.x, depart.y);
@@ -2621,7 +2631,6 @@ const STORAGE_ITEMS = 'stockmanager_items';
     // La cloche est remontée dans le menu : sa liste s'ouvre à côté du bouton
     // flottant, comme celle des achats internationaux.
     function placerNotif(){
-      notifPanel.style.bottom = 'auto';
       placerPresDuMenu(notifPanel);
     }
 
