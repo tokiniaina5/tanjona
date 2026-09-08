@@ -2594,9 +2594,6 @@ const STORAGE_ITEMS = 'stockmanager_items';
       'section-live', 'section-appels', 'section-wallet', 'section-fond',
       'section-connexions', 'section-admin'
     ];
-    // L'Accueil ne se ferme pas : c'est le fond de l'application, et une croix
-    // ne laisserait qu'un écran vide derrière elle.
-    const SANS_CROIX = ['dash-accueil'];
     const COINS = [
       { nom: 'hg', x: -1, y: -1 }, { nom: 'hd', x: 1, y: -1 },
       { nom: 'bg', x: -1, y: 1 },  { nom: 'bd', x: 1, y: 1 }
@@ -2737,7 +2734,15 @@ const STORAGE_ITEMS = 'stockmanager_items';
     }
     // Refermer, c'est revenir au fil : le bouton « Stock » est le chemin par
     // lequel tout y revient déjà, on ne s'en invente pas un second.
-    function fermerFenetre(){
+    //
+    // Sauf pour l'Accueil, qui est ce fil : y revenir le rouvrirait aussitôt.
+    // Le refermer, c'est l'éteindre — on le retrouve dans le menu.
+    function fermerFenetre(el){
+      if(el && el.id === 'dash-accueil'){
+        el.classList.remove('active');
+        if(typeof saveLastView === 'function') saveLastView();
+        return;
+      }
       const navStock = document.querySelector('.nav-item[data-section="stock"]');
       if(navStock) navStock.click();
       if(typeof showDashView === 'function') showDashView('accueil');
@@ -2860,14 +2865,14 @@ const STORAGE_ITEMS = 'stockmanager_items';
       calque.dataset.pour = id;
       calque.hidden = true;
       const s = { el: el, calque: calque, vu: false, page: page };
-      if(page && SANS_CROIX.indexOf(id) < 0){
+      if(page){
         const croix = document.createElement('button');
         croix.type = 'button';
         croix.className = 'fenetre-fermer';
         croix.textContent = '✕';
         croix.title = 'Fermer la fenêtre';
         croix.setAttribute('aria-label', 'Fermer la fenêtre');
-        croix.addEventListener('click', function(e){ e.stopPropagation(); fermerFenetre(); });
+        croix.addEventListener('click', function(e){ e.stopPropagation(); fermerFenetre(s.el); });
         calque.appendChild(croix);
       }
       COINS.forEach(function(coin){
@@ -3192,6 +3197,13 @@ const STORAGE_ITEMS = 'stockmanager_items';
         const l = lireRetirees();
         if(l.indexOf(id) < 0){ l.push(id); ecrireRetirees(l); }
         fermerLesFenetres();
+        // Comme pour les icônes épinglées : ce que l'icône ouvrait ne reste pas
+        // ouvert derrière elle. L'Accueil est devenu une fenêtre, et
+        // fermerLesFenetres ne connaît que les panneaux.
+        if(id === 'barAccueil'){
+          const vue = document.getElementById('dash-accueil');
+          if(vue) vue.classList.remove('active');
+        }
         mesurer();
       });
       bouton.appendChild(croix);
