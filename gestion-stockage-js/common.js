@@ -2567,10 +2567,10 @@ const STORAGE_ITEMS = 'stockmanager_items';
       // On délègue à l'entrée du menu : elle sait déjà tout faire — changer de
       // page, refermer le menu, retenir la vue.
       bouton.addEventListener('click', function(){ entree.click(); });
-      // Les pages épinglées se rangent entre les entrées fixes et les deux
-      // outils de fin — la loupe et les réglages, qui gardent leur place.
-      const outils = document.getElementById('menuToggle') || document.getElementById('barReglagesBtn');
-      if(outils && outils.parentElement === rangee) rangee.insertBefore(bouton, outils);
+      // Les pages épinglées se rangent après les entrées fixes et avant les
+      // réglages, qui ferment la rangée. La loupe, elle, l'ouvre.
+      const reglages = document.getElementById('barReglagesBtn');
+      if(reglages && reglages.parentElement === rangee) rangee.insertBefore(bouton, reglages);
       else rangee.appendChild(bouton);
     }
 
