@@ -2653,6 +2653,96 @@ const STORAGE_ITEMS = 'stockmanager_items';
     }
   }
 
+  // ---------------- APPLICATION INSTALLABLE ----------------
+  // Le site s'installe : une icône sur l'écran d'accueil ou le bureau, une
+  // fenêtre à lui, et il s'ouvre même sans réseau.
+  (function(){
+    // Le service worker est ce qui rend l'installation possible — et ce qui
+    // garde la page quand le réseau manque. Il n'existe qu'en https (ou en
+    // local) : ailleurs, on ne tente rien plutôt que de jeter une erreur.
+    if('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
+      window.addEventListener('load', function(){
+        navigator.serviceWorker.register('/sw.js').catch(function(){});
+      });
+    }
+
+    const bouton = document.getElementById('installerBtn');
+    const aide = document.getElementById('installerAide');
+    const etapes = document.getElementById('installerEtapes');
+    if(!bouton) return;
+
+    function dejaInstallee(){
+      return window.matchMedia('(display-mode: standalone)').matches ||
+             window.navigator.standalone === true;
+    }
+    // Installée, l'entrée n'a plus d'objet : on est déjà dans l'application.
+    if(dejaInstallee()) bouton.style.display = 'none';
+
+    // Chrome et Edge préviennent quand ils sont prêts à proposer l'installation.
+    // On retient l'événement : il ne se redonne pas, et ne s'accepte que sur un
+    // geste de la personne.
+    let invitation = null;
+    window.addEventListener('beforeinstallprompt', function(e){
+      e.preventDefault();
+      invitation = e;
+    });
+    window.addEventListener('appinstalled', function(){
+      invitation = null;
+      bouton.style.display = 'none';
+      if(aide) aide.style.display = 'none';
+    });
+
+    function marcheASuivre(){
+      const ua = navigator.userAgent;
+      const iOS = /iPad|iPhone|iPod/.test(ua) ||
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      if(iOS){
+        return "<p class=\"panneau-note\">Safari amin'ny iPhone / iPad :</p>" +
+               "<ol class=\"install-etapes\"><li>Tsindrio ny <strong>Partager</strong> (⬆️) eo ambany.</li>" +
+               "<li>Safidio <strong>« Sur l'écran d'accueil »</strong>.</li>" +
+               "<li>Tsindrio <strong>Ajouter</strong>.</li></ol>";
+      }
+      if(/Android/.test(ua)){
+        return "<p class=\"panneau-note\">Amin'ny Android :</p>" +
+               "<ol class=\"install-etapes\"><li>Tsindrio ny <strong>⋮</strong> eo an-tampon'ny navigateur.</li>" +
+               "<li>Safidio <strong>« Installer l'application »</strong> na <strong>« Ajouter à l'écran d'accueil »</strong>.</li></ol>";
+      }
+      return "<p class=\"panneau-note\">Amin'ny ordinatera (Chrome / Edge) :</p>" +
+             "<ol class=\"install-etapes\"><li>Jereo ny sary <strong>⊕</strong> na <strong>🖥️</strong> eo amin'ny faran'ny barre d'adresse.</li>" +
+             "<li>Na ny <strong>⋮</strong> → <strong>« Installer Ny asako »</strong>.</li></ol>";
+    }
+
+    function montrerLAide(){
+      if(!aide || !etapes) return;
+      etapes.innerHTML = marcheASuivre();
+      aide.style.display = 'block';
+      if(typeof placerPresDuMenu === 'function') placerPresDuMenu(aide);
+    }
+
+    bouton.addEventListener('click', function(e){
+      e.stopPropagation();
+      if(navList) navList.classList.remove('open');
+      if(invitation){
+        invitation.prompt();
+        // Le choix est celui de la personne : refusé, on garde l'entrée pour
+        // qu'elle puisse y revenir.
+        invitation.userChoice.then(function(res){
+          if(res && res.outcome === 'accepted') bouton.style.display = 'none';
+          invitation = null;
+        }, function(){});
+        return;
+      }
+      // Aucun navigateur ne propose : on explique où le trouver.
+      montrerLAide();
+    });
+
+    document.addEventListener('click', function(e){
+      if(!aide || aide.style.display !== 'block') return;
+      if(aide.contains(e.target) || bouton.contains(e.target)) return;
+      aide.style.display = 'none';
+    });
+  })();
+
   // ---------------- PAGES ÉPINGLÉES ----------------
   // Une page ouverte depuis le menu laisse son icône dans la rangée du bas :
   // le deuxième passage ne demande plus d'ouvrir le menu. Les icônes restent

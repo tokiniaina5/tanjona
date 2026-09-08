@@ -105,6 +105,11 @@
   .panneau-titre{ font-size:0.82rem; font-weight:700; margin-bottom:0.7rem; }
   .panneau-note{ font-size:0.72rem; color:var(--muted); margin:0.7rem 0 0; line-height:1.45; }
 
+  /* La marche à suivre pour installer : une liste courte, numérotée, qu'on lit
+     en tenant le téléphone d'une main. */
+  .install-etapes{ margin:0.5rem 0 0; padding-left:1.2rem; font-size:0.76rem; color:var(--text); line-height:1.6; }
+  .install-etapes li{ margin-bottom:0.35rem; }
+
   .reglages-choix{ display:flex; gap:0.6rem; }
   /* Les deux choix sont d'abord des images : le mot n'est là que pour lever le
      doute sur ce que la main et la machine veulent dire. */

@@ -46,3 +46,21 @@ page = page.replace(motif, (tout, avant, relatif, apres) => {
 fs.writeFileSync(path.join(racine, PAGE), crlf ? page.replace(/\n/g, '\r\n') : page);
 console.log(touches + ' fichiers estampilles dans ' + PAGE);
 for (const [f, h] of empreintes) console.log('  ' + h + '  ' + f);
+
+// Le service worker garde les fichiers dans un cache nommé. On y écrit
+// l'empreinte de la page : chaque envoi repart d'un cache neuf, et l'ancien est
+// effacé à l'activation — sans quoi les fichiers de toutes les versions passées
+// s'y empileraient sans jamais resservir.
+const SW = 'sw.js';
+const cheminSw = path.join(racine, SW);
+if (fs.existsSync(cheminSw)) {
+  let sw = fs.readFileSync(cheminSw, 'utf8');
+  const crlfSw = sw.includes('\r\n');
+  if (crlfSw) sw = sw.replace(/\r\n/g, '\n');
+  const marque = crypto.createHash('md5').update(page).digest('hex').slice(0, 8);
+  const avant = sw;
+  sw = sw.replace(/const CACHE = '[^']*';/, "const CACHE = 'nyasako-" + marque + "';");
+  if (sw === avant) throw new Error('ligne CACHE introuvable dans ' + SW);
+  fs.writeFileSync(cheminSw, crlfSw ? sw.replace(/\n/g, '\r\n') : sw);
+  console.log('cache du service worker : nyasako-' + marque);
+}

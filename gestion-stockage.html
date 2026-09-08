@@ -4,8 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gestion de Stockage — Tanjona</title>
+<!-- Application installable : le manifeste décrit le nom, l'icône et la façon
+     de s'ouvrir ; le reste est affaire de service worker, enregistré plus bas. -->
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#0a0d10">
+<meta name="mobile-web-app-capable" content="yes">
+<!-- iOS ne lit pas le manifeste : il lui faut ses propres balises. -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ny asako">
+<link rel="apple-touch-icon" href="/icone-192.png">
+<link rel="icon" href="/icone-192.png" type="image/png">
 <link rel="stylesheet" href="gestion-stockage-css/base.css?v=8475e005">
-<link rel="stylesheet" href="gestion-stockage-css/components.css?v=2a3f2a09">
+<link rel="stylesheet" href="gestion-stockage-css/components.css?v=8852aa09">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -419,6 +430,7 @@
           <span id="notifBadge" style="display:none; background:#ff6b6b; color:#fff; font-size:0.62rem; font-weight:700; border-radius:999px; min-width:16px; height:16px; line-height:16px; text-align:center; padding:0 4px;">0</span>
         </button>
         <button type="button" class="nav-action" id="marketToggle" aria-label="Achats internationaux" aria-expanded="false">🌍 Achats internationaux</button>
+        <button type="button" class="nav-action" id="installerBtn">📥 Installer l'application</button>
         <!-- « Stock » ne se montre plus : on y entre par Accueil ou Articles,
              qui sont ses deux vues. L'entrée reste pourtant là, masquée : c'est
              par elle que le code ouvre la section — l'Accueil et les Articles
@@ -466,6 +478,14 @@
              s'en vont. Trois points, et non un engrenage — celui-ci désigne
              déjà les Paramètres du compte. -->
         <button type="button" class="dash-tab bar-icone" id="barReglagesBtn" title="Réglages de la rangée" aria-label="Réglages de la rangée" aria-expanded="false">⋯</button>
+      </div>
+
+      <!-- Marche à suivre quand le navigateur ne propose pas l'installation de
+           lui-même : Safari ne le fait jamais, et Chrome attend parfois une
+           deuxième visite. -->
+      <div class="panneau-flottant panneau-boite" id="installerAide" style="display:none;">
+        <div class="panneau-titre">📥 Ampidiro ho application</div>
+        <div id="installerEtapes"></div>
       </div>
 
       <!-- Petit panneau des réglages de la rangée : il monte au-dessus d'elle,
@@ -1644,7 +1664,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<script src="gestion-stockage-js/common.js?v=57026383"></script>
+<script src="gestion-stockage-js/common.js?v=6178510a"></script>
 <script src="gestion-stockage-js/stock.js?v=275a327a"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=7204c861"></script>
