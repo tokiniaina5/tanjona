@@ -2543,9 +2543,12 @@ const STORAGE_ITEMS = 'stockmanager_items';
       menuFlottant.addEventListener('pointerup', finGlisse);
       menuFlottant.addEventListener('pointercancel', finGlisse);
 
-      // On replace sans toucher à `position` : elle garde l'endroit voulu. Le
-      // bouton y revient de lui-même quand l'écran redevient grand.
+      // Tant que personne n'a choisi de place, on recalcule celle par défaut :
+      // mesurée à l'ouverture, la barre du haut n'avait pas encore de hauteur et
+      // le bouton se posait dessus. Dès qu'une place est choisie, elle seule
+      // compte — on se contente alors de la ramener dans l'écran.
       function replacer(){
+        if(placeLibre) position = positionParDefaut();
         poserBouton(position.x, position.y);
         placerPanneau();
       }
