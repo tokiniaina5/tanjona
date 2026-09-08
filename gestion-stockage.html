@@ -405,6 +405,8 @@
       <div class="brand-sub">Tanjona · Gestion de Stockage</div>
 
       <div class="nav-list" id="navList">
+        <button type="button" class="nav-action" id="menuAccueil">🏠 Accueil</button>
+        <button type="button" class="nav-action" id="menuArticles">📦 Articles</button>
         <button type="button" class="nav-action" id="marketToggle" aria-label="Achats internationaux" aria-expanded="false">🌍 Achats internationaux</button>
         <div class="nav-item active" data-section="stock">📦 Stock</div>
         <div class="nav-item" data-section="factures">🧾 Factures</div>
@@ -437,14 +439,12 @@
         </div>
 
         <div class="dash-tabs dash-tabs-main" id="stockMainTabs">
-          <div class="dash-tab active" data-dash="accueil">🏠 Accueil</div>
           <!-- Appel vidéo, au centre : un vrai lien (copiable, partageable),
                qui lance directement l'appel quand on le touche dans l'appli. -->
           <a id="videoCallTab" class="dash-tab dash-tab-call" href="#" title="Appel vidéo"
              style="margin:0 auto; text-decoration:none; display:flex; align-items:center; gap:0.4rem;">
             <span aria-hidden="true">📹</span><span class="call-tab-text">Appel vidéo</span>
           </a>
-          <div class="dash-tab" data-dash="articles">📦 Articles</div>
         </div>
 
         <div class="section-head">
@@ -1596,7 +1596,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<script src="gestion-stockage-js/common.js?v=46c35c17"></script>
+<script src="gestion-stockage-js/common.js?v=4fca6604"></script>
 <script src="gestion-stockage-js/stock.js?v=275a327a"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=7204c861"></script>

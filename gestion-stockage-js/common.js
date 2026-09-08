@@ -415,10 +415,12 @@ const STORAGE_ITEMS = 'stockmanager_items';
   function saveLastView(){
     try{
       const nav = document.querySelector('.nav-item.active');
-      const tab = document.querySelector('.dash-tab.active');
+      // La vue affichée, et non l'onglet actif : Accueil et Articles s'ouvrent
+      // depuis le menu et n'ont plus d'onglet à interroger.
+      const vue = document.querySelector('.dash-view.active');
       localStorage.setItem(STORAGE_LAST_VIEW, JSON.stringify({
         section: nav ? nav.dataset.section : null,
-        dash: tab ? tab.dataset.dash : null
+        dash: vue ? vue.id.replace(/^dash-/, '') : null
       }));
     }catch(e){}
   }
@@ -2640,17 +2642,37 @@ const STORAGE_ITEMS = 'stockmanager_items';
 
   // Les onglets secondaires (Tableau de bord, Historique, Ajouter, Acheter...)
   // ne sont utiles qu'une fois dans « Articles » : on les masque sur l'Accueil.
+  function vueAffichee(){
+    const vue = document.querySelector('.dash-view.active');
+    return vue ? vue.id.replace(/^dash-/, '') : 'accueil';
+  }
   function updateSubTabsVisibility(){
     const subTabs = document.getElementById('stockSubTabs');
     if(!subTabs) return;
-    const active = document.querySelector('.dash-tab.active');
-    const dash = active ? active.dataset.dash : 'accueil';
-    subTabs.style.display = dash === 'accueil' ? 'none' : '';
+    subTabs.style.display = vueAffichee() === 'accueil' ? 'none' : '';
   }
   updateSubTabsVisibility();
 
   // « Acheter » n'a plus d'onglet : on y entre depuis une annonce de l'Accueil.
   // Il faut donc pouvoir montrer une vue sans qu'un onglet la porte.
+  // Chaque vue redessine ce qui lui appartient. Deux chemins y mènent
+  // maintenant — les onglets restants et les entrées du menu — et une vue
+  // ouverte sans être redessinée montre l'état d'avant.
+  function rafraichirVue(nom){
+    // Gardes typeof : showDashView tourne aussi au démarrage, pour rouvrir
+    // la vue quittée, et tous les fichiers ne sont pas encore chargés.
+    if(nom === 'dashboard'){
+      if(typeof renderFilters === 'function') renderFilters();
+      if(typeof renderDashboard === 'function') renderDashboard();
+    }
+    if(nom === 'accueil' && typeof renderCommunityPanel === 'function') renderCommunityPanel();
+    if(nom === 'historique' && typeof renderMovementsHistory === 'function') renderMovementsHistory();
+    if(nom === 'ajouter' && typeof renderStock === 'function') renderStock();
+    if(nom === 'articles' && typeof renderStock === 'function') renderStock();
+    if(nom === 'acheter' && typeof populateAcheterItemSelect === 'function') populateAcheterItemSelect();
+    if(nom === 'comptes' && typeof renderClientsList === 'function') renderClientsList();
+  }
+
   function showDashView(nom){
     const view = document.getElementById('dash-' + nom);
     if(!view) return false;
@@ -2659,15 +2681,35 @@ const STORAGE_ITEMS = 'stockmanager_items';
     view.classList.add('active');
     const tab = document.querySelector('.dash-tab[data-dash="' + nom + '"]');
     if(tab) tab.classList.add('active');
+    rafraichirVue(nom);
     if(typeof updateSubTabsVisibility === 'function') updateSubTabsVisibility();
     return true;
   }
 
+  // Accueil et Articles s'ouvrent depuis le menu. Ils vivent dans la section
+  // « Stock » : depuis Factures ou Portefeuille, il faut d'abord y revenir,
+  // sinon on activerait une vue que personne ne regarde.
+  function ouvrirDepuisLeMenu(nom){
+    const navStock = document.querySelector('.nav-item[data-section="stock"]');
+    if(navStock && !navStock.classList.contains('active')) navStock.click();
+    showDashView(nom);
+    if(navList){
+      navList.classList.remove('open');
+      if(menuToggle){ menuToggle.textContent = '☰'; menuToggle.setAttribute('aria-expanded','false'); }
+    }
+    saveLastView();
+  }
+
+  const menuAccueil = document.getElementById('menuAccueil');
+  if(menuAccueil) menuAccueil.addEventListener('click', function(){ ouvrirDepuisLeMenu('accueil'); });
+  const menuArticles = document.getElementById('menuArticles');
+  if(menuArticles) menuArticles.addEventListener('click', function(){ ouvrirDepuisLeMenu('articles'); });
+
   const backToAccueilBtn = document.getElementById('backToAccueilBtn');
   if(backToAccueilBtn){
     backToAccueilBtn.addEventListener('click', function(){
-      const tab = document.querySelector('.dash-tab[data-dash="accueil"]');
-      if(tab) tab.click();
+      showDashView('accueil');
+      saveLastView();
     });
   }
 
@@ -2682,25 +2724,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
       document.querySelectorAll('.dash-view').forEach(v => v.classList.remove('active'));
       tab.classList.add('active');
       view.classList.add('active');
-      if(tab.dataset.dash === 'dashboard'){ renderFilters(); renderDashboard(); }
-      if(tab.dataset.dash === 'accueil'){ renderCommunityPanel(); }
-      // Historique / Ajouter : averina soratana mba ho mifanaraka amin'ny stock
-      // sy ny achat vao vita (état du stock sy mouvements tsy ho tara).
-      if(tab.dataset.dash === 'historique'){
-        if(typeof renderMovementsHistory === 'function') renderMovementsHistory();
-      }
-      if(tab.dataset.dash === 'ajouter'){
-        if(typeof renderStock === 'function') renderStock();
-      }
-      if(tab.dataset.dash === 'articles'){
-        if(typeof renderStock === 'function') renderStock();
-      }
-      if(tab.dataset.dash === 'acheter'){
-        if(typeof populateAcheterItemSelect === 'function') populateAcheterItemSelect();
-      }
-      if(tab.dataset.dash === 'comptes'){
-        if(typeof renderClientsList === 'function') renderClientsList();
-      }
+      rafraichirVue(tab.dataset.dash);
       updateSubTabsVisibility();
       saveLastView();
     });
@@ -2720,7 +2744,14 @@ const STORAGE_ITEMS = 'stockmanager_items';
     const navStock = document.querySelector('.nav-item[data-section="stock"]');
     if(navStock && !navStock.classList.contains('active')) navStock.click();
     const tab = document.querySelector('.dash-tab[data-dash="' + dashTab + '"]');
-    if(tab && !tab.classList.contains('active')) tab.click();
+    if(tab){
+      if(!tab.classList.contains('active')) tab.click();
+    } else {
+      // Articles n'a plus d'onglet : sans ce recours, un résultat de recherche
+      // surlignait une ligne dans une vue restée cachée.
+      showDashView(dashTab);
+      saveLastView();
+    }
   }
 
   function performGlobalSearch(query){
