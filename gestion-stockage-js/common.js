@@ -2307,7 +2307,12 @@ const STORAGE_ITEMS = 'stockmanager_items';
       menuToggle.style.display = visible ? 'flex' : 'none';
       // A chaque ouverture de l'application on verifie que le bouton est bien
       // a portee : c'est le moment ou l'ecran a sa taille definitive.
-      if(visible && pret) replacer();
+      if(visible && pret){
+        // La barre n'a de hauteur qu'une fois l'application affichée : c'est
+        // ici, et pas plus tôt, que la place par défaut peut être juste.
+        if(placeLibre) position = positionParDefaut();
+        replacer();
+      }
       if(!visible){
         navList.classList.remove('open');
         menuToggle.textContent = '☰';
@@ -2364,10 +2369,15 @@ const STORAGE_ITEMS = 'stockmanager_items';
       return { x: px, y: py };
     }
 
+    // Sous la barre du haut, et non dedans : posé au coin, le bouton flottant
+    // vient exactement sur la cloche et la masque.
     function positionParDefaut(){
       const t = tailleBouton();
       const z = zoneVisible();
-      return { x: z.x + z.w - t.w - 16, y: z.y + 16 };
+      const barre = document.querySelector('.sidebar');
+      const bas = barre ? barre.getBoundingClientRect().bottom : 0;
+      const y = bas > 0 ? bas + 12 : z.y + 16;
+      return { x: z.x + z.w - t.w - 16, y: Math.min(Math.max(z.y + 16, y), z.y + z.h - t.h - 16) };
     }
 
     function chargerPosition(){
@@ -2378,7 +2388,12 @@ const STORAGE_ITEMS = 'stockmanager_items';
       return positionParDefaut();
     }
 
+    // Vrai tant que l'utilisateur n'a pas déplacé le bouton lui-même.
+    let placeLibre = true;
+    try{ placeLibre = !localStorage.getItem(MENU_POS_KEY); }catch(e){}
+
     function enregistrerPosition(pos){
+      placeLibre = false;
       try{ localStorage.setItem(MENU_POS_KEY, JSON.stringify(pos)); }catch(e){}
     }
 
