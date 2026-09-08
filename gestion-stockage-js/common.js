@@ -2859,7 +2859,10 @@ const STORAGE_ITEMS = 'stockmanager_items';
       const entree = entreeDe(cle);
       if(!entree || rangee.querySelector('[data-epingle="' + cle + '"]')) return;
       // « 📋 Articles » : l'emoji jusqu'à la première espace, le nom après.
-      const texte = entree.textContent.trim();
+      // On lit le premier libellé et non tout le bouton : la cloche porte un
+      // compteur, qui donnerait « Notifications3 ».
+      const porteur = entree.querySelector('span') || entree;
+      const texte = porteur.textContent.trim();
       const espace = texte.indexOf(' ');
       const icone = espace > 0 ? texte.slice(0, espace) : texte;
       const nom = espace > 0 ? texte.slice(espace + 1).trim() : texte;
@@ -2884,7 +2887,15 @@ const STORAGE_ITEMS = 'stockmanager_items';
 
       // On délègue à l'entrée du menu : elle sait déjà tout faire — changer de
       // page, refermer le menu, retenir la vue.
-      bouton.addEventListener('click', function(){ entree.click(); });
+      //
+      // stopPropagation sur le clic d'origine : sans lui, celui-ci poursuivait
+      // sa route jusqu'au document, où le guetteur de « clic à côté » trouvait
+      // un panneau tout juste ouvert et le refermait aussitôt. La cloche et les
+      // achats s'ouvraient et se fermaient dans le même geste.
+      bouton.addEventListener('click', function(e){
+        e.stopPropagation();
+        entree.click();
+      });
       // Les pages épinglées se rangent après les entrées fixes et avant les
       // réglages, qui ferment la rangée. La loupe, elle, l'ouvre.
       const reglages = document.getElementById('barReglagesBtn');
@@ -2914,7 +2925,20 @@ const STORAGE_ITEMS = 'stockmanager_items';
       mesurer();
     }
 
+    // Écrire et l'Accueil tiennent déjà leur place dans la rangée. Les presser
+    // dans le menu après les en avoir retirés doit les y ramener — et non en
+    // poser un second exemplaire à côté du premier.
+    const JUMEAUX = { menuAccueil: 'barAccueil', composerToggle: 'barComposer' };
+
     function epingler(entree){
+      const jumeau = JUMEAUX[entree.id];
+      if(jumeau){
+        const bouton = document.getElementById(jumeau);
+        if(bouton) bouton.style.display = '';
+        ecrireRetirees(lireRetirees().filter(function(id){ return id !== jumeau; }));
+        mesurer();
+        return;
+      }
       const cle = cleDe(entree);
       const liste = lireEpingles();
       const connue = liste.filter(function(e){ return e.cle === cle; })[0];
@@ -2926,18 +2950,23 @@ const STORAGE_ITEMS = 'stockmanager_items';
       mesurer();
     }
 
-    // Les pages, et elles seules : la cloche et les achats ouvrent un panneau,
-    // pas un écran, et se déconnecter n'a rien à faire dans une rangée où le
-    // doigt passe.
+    // Tout ce qu'on presse dans le menu se pose dans la rangée : les pages
+    // comme les panneaux. Deux exceptions, et pour cause.
+    //
+    // « Stock » est masqué : il ne sert qu'à ouvrir la section depuis le code,
+    // et l'Accueil passe par lui — l'épingler poserait une icône que personne
+    // n'a demandée, à chaque retour à l'accueil.
+    //
+    // « Installer l'application » ne se fait qu'une fois : son icône
+    // survivrait à ce pour quoi elle existe.
+    //
+    // « Se déconnecter » n'est pas une entrée du menu mais un bouton à part :
+    // il reste dehors, et c'est aussi bien — une sortie n'a rien à faire dans
+    // une rangée où le doigt passe.
     function entreesEpinglables(){
-      return [].concat(
-        [document.getElementById('menuArticles')].filter(Boolean),
-        [].slice.call(document.querySelectorAll('#navList .nav-item[data-section]'))
-          // « Stock » est masqué : il ne sert qu'à ouvrir la section depuis le
-          // code, et l'Accueil passe par lui. L'épingler poserait une icône que
-          // personne n'a demandée, à chaque retour à l'Accueil.
-          .filter(function(e){ return e.id !== 'navStock'; })
-      );
+      const hors = ['navStock', 'installerBtn'];
+      return [].slice.call(document.querySelectorAll('#navList .nav-action, #navList .nav-item[data-section]'))
+        .filter(function(e){ return hors.indexOf(e.id) < 0; });
     }
     entreesEpinglables().forEach(function(entree){
       entree.addEventListener('click', function(){
