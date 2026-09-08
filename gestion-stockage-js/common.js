@@ -2745,6 +2745,12 @@ const STORAGE_ITEMS = 'stockmanager_items';
     }
 
     function synchroniser(){
+      // Une page ouverte recouvre l'Accueil exactement : ses poignées se
+      // superposeraient aux siennes, aux mêmes coins, pour redimensionner une
+      // fenêtre que personne ne voit. Elles s'effacent le temps de la visite.
+      const pageDevant = suivis.some(function(x){
+        return x.page && x.el.id !== 'dash-accueil' && visible(x.el);
+      });
       suivis.forEach(function(s){
         const vu = visible(s.el);
         // Le fil reste ouvert derrière, tant qu'une page est posée dessus : la
@@ -2766,8 +2772,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
             s.vu = true;
           }
         }
-        s.calque.hidden = !vu;
-        if(!vu) return;
+        const cache = !vu || (s.el.id === 'dash-accueil' && pageDevant);
+        s.calque.hidden = cache;
+        if(cache) return;
         const r = s.el.getBoundingClientRect();
         s.calque.style.left = r.left + 'px';
         s.calque.style.top = r.top + 'px';
@@ -2850,6 +2857,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
       }
       const calque = document.createElement('div');
       calque.className = 'poignees';
+      calque.dataset.pour = id;
       calque.hidden = true;
       const s = { el: el, calque: calque, vu: false, page: page };
       if(page && SANS_CROIX.indexOf(id) < 0){
