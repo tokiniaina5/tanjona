@@ -502,7 +502,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
     renderDashboard();
     renderCommunityPanel();
     setupInviteLink();
-    updateTrialBanner();
+    majPageAbonnement();
     renderNotifications();
     // Demandes de déblocage en attente : le propriétaire l'apprend en ouvrant
     // l'application, pas seulement en passant par Paramètres.
@@ -555,28 +555,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
     ligne.textContent = 'Essai terminé. Un abonnement est nécessaire pour continuer.';
   }
 
-  function updateTrialBanner(){
-    majPageAbonnement();
-    const st = getSubscriptionStatus();
-    const banner = document.getElementById('trialBanner');
-    if(st.status === 'trial'){
-      banner.style.display = 'flex';
-      document.getElementById('trialDaysLeft').textContent = st.daysLeft;
-      const bonusEl = document.getElementById('trialBonusNote');
-      if(bonusEl){
-        bonusEl.textContent = st.bonusDays > 0
-          ? ('dia ' + st.bonusDays + ' andro fanampiny avy amin\'ny parrainage no efa tafiditra')
-          : '';
-        bonusEl.style.display = st.bonusDays > 0 ? 'inline' : 'none';
-      }
-    } else {
-      banner.style.display = 'none';
-    }
-  }
-
   function refreshReferralProgress(){
     syncReferralBonus(function(sub){
-      updateTrialBanner();
+      majPageAbonnement();
       const countEl = document.getElementById('referralCount');
       const availEl = document.getElementById('referralBonusDays');
       const spentEl = document.getElementById('referralNextIn');
@@ -1003,7 +984,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
           detail = ' : ' + WALLET_SUB_DAYS + ' jours mis de côté pour votre prochain abonnement';
         }
         saveSubscription(sub);
-        updateTrialBanner();
+        majPageAbonnement();
         if(typeof renderWallet === 'function') renderWallet();
         if(statusEl){
           statusEl.textContent = res.label + ' réglé : ' + formatWalletAr(res.priceAr) +
@@ -2197,10 +2178,6 @@ const STORAGE_ITEMS = 'stockmanager_items';
     showAutoNotice();
   });
 
-  document.getElementById('subscribeNowBtn').addEventListener('click', function(){
-    openPaywall();
-  });
-
   const abonnementOuvrir = document.getElementById('abonnementOuvrirBtn');
   if(abonnementOuvrir) abonnementOuvrir.addEventListener('click', function(){ openPaywall(); });
   // L'état se relit à l'ouverture de la page : un jour a pu passer, ou le
@@ -2731,24 +2708,12 @@ const STORAGE_ITEMS = 'stockmanager_items';
       if(getComputedStyle(r).display === 'none') return null;
       return r.getBoundingClientRect().top;
     }
-    // La bannière d'essai est de celles qu'on garde dehors : l'Accueil
-    // s'ouvre en dessous, et non par-dessus.
-    function sousLaBanniere(){
-      const b = document.getElementById('trialBanner');
-      if(!b || getComputedStyle(b).display === 'none') return null;
-      const r = b.getBoundingClientRect();
-      return r.height > 0 ? r.bottom : null;
-    }
     // La taille d'ouverture, tant que personne n'en a choisi une autre.
-    // La bande où une fenêtre de page a le droit de vivre : sous le nom et la
-    // bannière, au-dessus de la rangée du bas. Toutes s'ouvrent sous la
-    // bannière, et non seulement l'Accueil : ce qu'on garde dehors doit le
-    // rester quelle que soit la page posée dessus.
+    // La bande où une fenêtre de page a le droit de vivre : sous le nom,
+    // au-dessus de la rangée du bas.
     function bandeUtile(){
       const z = ecran();
-      let haut = Math.max(z.y, bandeHaute() === null ? z.y : bandeHaute());
-      const sous = sousLaBanniere();
-      if(sous !== null) haut = Math.max(haut, sous);
+      const haut = Math.max(z.y, bandeHaute() === null ? z.y : bandeHaute());
       const bas = Math.min(z.y + z.h, bandeBasse() === null ? z.y + z.h : bandeBasse());
       return { haut: haut, bas: bas };
     }
@@ -2963,14 +2928,6 @@ const STORAGE_ITEMS = 'stockmanager_items';
     requestAnimationFrame(synchroniser);
     window.addEventListener('load', synchroniser);
 
-    // La bannière d'essai n'arrive qu'une fois l'abonnement connu, et c'est
-    // sous elle que l'Accueil doit se poser : quand elle paraît ou s'en va,
-    // on refait le calcul.
-    const banniere = document.getElementById('trialBanner');
-    if(banniere){
-      new MutationObserver(function(){ replacerLesPages(); })
-        .observe(banniere, { attributes: true, attributeFilter: ['style', 'class'] });
-    }
 
     window.addEventListener('resize', replacerLesPages);
     window.addEventListener('orientationchange', replacerLesPages);

@@ -115,23 +115,6 @@
     line-height: 1.6;
   }
   .paywall-pay strong{ color: var(--text); }
-  .trial-banner{
-    background: var(--panel-2);
-    border:1px solid var(--line);
-    border-left: 4px solid var(--cyan);
-    border-radius:8px;
-    padding: 0.7rem 1rem;
-    margin-bottom: 1rem;
-    font-size: 0.85rem;
-    color: var(--muted);
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:1rem;
-    flex-wrap:wrap;
-  }
-  .trial-banner strong{ color: var(--text); }
-
   .notif-item{
     padding: 0.65rem 0.9rem;
     border-bottom: 1px solid var(--line);
