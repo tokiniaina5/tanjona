@@ -45,6 +45,30 @@
     justify-content: center;
     font-size: 1.15rem;
   }
+  /* La loupe et les réglages ne sont pas des pages : ce sont les deux
+     commandes de la rangée. Depuis qu'elle porte tout le menu, elles partaient
+     avec le défilement — les réglages se retrouvaient à huit cents pixels du
+     bord droit d'un écran qui en fait trois cent soixante-quinze, et il fallait
+     savoir qu'ils étaient là pour aller les chercher. Elles restent collées aux
+     deux bords ; les pages défilent entre elles.
+
+     Un fond opaque, sinon les icônes passeraient dessous en défilant, et une
+     ombre côté intérieur pour qu'on voie qu'elles surplombent. */
+  #stockMainTabs #menuToggle,
+  #stockMainTabs #barReglagesBtn{
+    position: sticky;
+    z-index: 2;
+    background: var(--panel);
+  }
+  #stockMainTabs #menuToggle{ left: 0; box-shadow: 6px 0 8px -6px rgba(0,0,0,0.65); }
+  #stockMainTabs #barReglagesBtn{ right: 0; box-shadow: -6px 0 8px -6px rgba(0,0,0,0.65); }
+  /* Le fondu du bord droit annonçait la suite ; il passerait maintenant sur les
+     réglages, qui ne défilent plus. */
+  #stockMainTabs.reste-a-droite{
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
   /* Un <button> apporte son propre fond et ses bordures ; seul le
      soulignement de .dash-tab doit rester. */
   #stockMainTabs button.dash-tab{ background:none; border-top:none; border-left:none; border-right:none; }
