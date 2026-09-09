@@ -3754,6 +3754,21 @@ const STORAGE_ITEMS = 'stockmanager_items';
     requestAnimationFrame(mesurer);
   })();
 
+  // ---------------- CE QUI FLOTTE SUIT L'APPLICATION ----------------
+  // Sept endroits ouvrent ou ferment l'écran de l'application. Plutôt que de
+  // leur demander à tous de penser aux fenêtres, on regarde cet écran : le
+  // corps de la page porte la réponse, et le style s'en charge. Un chemin
+  // oublié ne peut plus laisser une fenêtre sur la page de connexion.
+  (function(){
+    const ecran = document.getElementById('appScreen');
+    if(!ecran) return;
+    function refleter(){
+      document.body.classList.toggle('appli-ouverte', getComputedStyle(ecran).display !== 'none');
+    }
+    new MutationObserver(refleter).observe(ecran, { attributes: true, attributeFilter: ['style', 'class'] });
+    refleter();
+  })();
+
   // ---------------- BARRES ESCAMOTABLES ----------------
   // On descend dans la page : les deux bandes s'effacent, l'écran est rendu à
   // la lecture. On remonte : elles reviennent aussitôt, sans qu'il faille

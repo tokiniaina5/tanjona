@@ -127,6 +127,20 @@
      premier chassait le second sur la ligne suivante. */
   #section-fond .actions-row .btn{ width: auto; }
 
+  /* Tout ce qui flotte appartient à l'application ouverte, et à elle seule.
+     Ces éléments ont quitté l'écran de l'application pour le corps de la page
+     — c'est ce qui leur permet d'échapper aux boîtes qui découpent — mais ils
+     ont cessé du même coup de disparaître avec lui : la fenêtre de l'Accueil
+     et ses poignées venaient se poser sur la page de connexion, par-dessus le
+     formulaire. */
+  body:not(.appli-ouverte) .fenetre-page,
+  body:not(.appli-ouverte) .poignees,
+  body:not(.appli-ouverte) .icone-bureau,
+  body:not(.appli-ouverte) .icone-fantome,
+  body:not(.appli-ouverte) .panneau-flottant,
+  body:not(.appli-ouverte) .nav-list.floating,
+  body:not(.appli-ouverte) #menuFlottant{ display: none !important; }
+
   /* Les icônes posées sur le fond. Elles vivent sous les fenêtres, comme les
      icônes d'un bureau : c'est l'image de fond qu'elles habitent, pas le
      travail en cours. */
