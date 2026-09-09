@@ -60,8 +60,13 @@
     z-index: 2;
     background: var(--panel);
   }
-  #stockMainTabs #menuToggle{ left: 0; box-shadow: 6px 0 8px -6px rgba(0,0,0,0.65); }
-  #stockMainTabs #barReglagesBtn{ right: 0; box-shadow: -6px 0 8px -6px rgba(0,0,0,0.65); }
+  #stockMainTabs #menuToggle{ left: 0; }
+  #stockMainTabs #barReglagesBtn{ right: 0; }
+  /* L'ombre dit qu'une icône passe dessous, et donc qu'il y en a d'autres de
+     ce côté. Elle ne paraît que si c'est vrai : arrivé au bout, plus d'ombre,
+     et l'on sait qu'on a tout vu. */
+  #stockMainTabs.reste-a-gauche #menuToggle{ box-shadow: 7px 0 9px -6px rgba(0,0,0,0.75); }
+  #stockMainTabs.reste-a-droite #barReglagesBtn{ box-shadow: -7px 0 9px -6px rgba(0,0,0,0.75); }
   /* Le fondu du bord droit annonçait la suite ; il passerait maintenant sur les
      réglages, qui ne défilent plus. */
   #stockMainTabs.reste-a-droite{

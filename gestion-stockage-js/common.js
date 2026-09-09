@@ -3260,6 +3260,8 @@ const STORAGE_ITEMS = 'stockmanager_items';
       rangee.classList.toggle('pleine', deborde);
       const reste = rangee.scrollWidth - rangee.clientWidth - rangee.scrollLeft;
       rangee.classList.toggle('reste-a-droite', reste > 4);
+      // Et ce qui reste derrière : sans quoi rien ne dit qu'on peut revenir.
+      rangee.classList.toggle('reste-a-gauche', rangee.scrollLeft > 4);
     }
 
     // En automatique, la rangée se tient à six : la plus anciennement ouverte
