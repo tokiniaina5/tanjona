@@ -317,7 +317,11 @@
      Sur ordinateur : le hamburger qu'on pose où l'on veut à la souris — et
      pas de champ de recherche, la liste tient sous les yeux. */
   #menuFlottant{ display:none; }
-  @media (min-width: 900px){
+  /* 768 pixels, et non 900 : une tablette debout en fait 768 ou 810, et se
+     retrouvait avec la rangée du pouce alors qu'on la tient à deux mains.
+     C'est la largeur qui décide, pas l'appareil — un téléphone couché, large
+     lui aussi, y gagne le même confort. */
+  @media (min-width: 768px){
     #menuFlottant{ display:flex; }
     .menu-recherche, .menu-vide{ display:none !important; }
     /* La rangée du bas est un geste de téléphone : le pouce y arrive sans que
