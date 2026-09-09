@@ -443,6 +443,7 @@
         <div class="nav-item" data-section="live">🔴 Live direct</div>
         <div class="nav-item" data-section="appels">📞 Antso mivantana</div>
         <div class="nav-item" data-section="wallet">💰 Portefeuille</div>
+        <div class="nav-item" data-section="abonnement">💳 Abonnement</div>
         <div class="nav-item" data-section="fond">🖼️ Fond d'écran</div>
         <div class="nav-item" data-section="connexions" id="navParametres">⚙️ Paramètres</div>
         <!-- Espace du propriétaire : masqué pour tous les clients -->
@@ -1475,6 +1476,45 @@
       </section>
 
       <!-- ---- PARAMÈTRES ---- -->
+      <!-- L'abonnement se consultait seulement quand il bloquait. Il a sa page,
+           comme les autres : on y voit où l'on en est sans attendre d'y être
+           forcé. L'écran qui bloque à la fin de l'essai, lui, ne bouge pas. -->
+      <section class="section" id="section-abonnement">
+        <div class="section-head">
+          <div>
+            <h2>Abonnement</h2>
+            <p>Où en est votre accès, et comment le prolonger.</p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panneau-titre">État de votre accès</div>
+          <p id="abonnementEtat" style="font-size:0.9rem; line-height:1.6; margin:0;">—</p>
+        </div>
+
+        <div class="panel" style="margin-top:1rem;">
+          <div class="panneau-titre">Les deux formules</div>
+          <div class="paywall-plans">
+            <div class="plan-card">
+              <div class="plan-name">Mensuel</div>
+              <div class="plan-price">15 000 Ar</div>
+              <div class="plan-note">par mois</div>
+            </div>
+            <div class="plan-card">
+              <div class="plan-name">Annuel</div>
+              <div class="plan-price">150 000 Ar</div>
+              <div class="plan-note">par an (2 mois offerts)</div>
+            </div>
+          </div>
+          <p style="font-size:0.8rem; color:var(--muted); line-height:1.6; margin:0.9rem 0 0;">
+            Deux voies : votre <strong>portefeuille</strong>, et l'abonnement démarre dans la seconde ;
+            ou <strong>MVola, Orange Money, Airtel Money</strong> au <strong data-owner="phone"></strong>
+            (<strong data-owner="name"></strong>), puis le code de déverrouillage que le vendeur vous donne.
+          </p>
+          <button type="button" class="btn btn-primary btn-sm" id="abonnementOuvrirBtn" style="margin-top:1rem;">Payer ou saisir mon code</button>
+        </div>
+      </section>
+
       <section class="section" id="section-fond">
         <div class="section-head">
           <div>
@@ -1680,7 +1720,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<script src="gestion-stockage-js/common.js?v=d568509c"></script>
+<script src="gestion-stockage-js/common.js?v=86c41531"></script>
 <script src="gestion-stockage-js/stock.js?v=275a327a"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=7204c861"></script>

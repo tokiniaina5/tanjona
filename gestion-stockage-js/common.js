@@ -531,7 +531,32 @@ const STORAGE_ITEMS = 'stockmanager_items';
     if(typeof refreshPaywallWallet === 'function') refreshPaywallWallet();
   }
 
+  // La page « Abonnement » dit où l'on en est. Elle ne refait pas le paiement :
+  // celui-ci vit dans l'écran de blocage, qui sait déjà tout faire — le
+  // portefeuille, le code, le mail au vendeur. Le bouton y mène.
+  function majPageAbonnement(){
+    const ligne = document.getElementById('abonnementEtat');
+    if(!ligne) return;
+    const st = getSubscriptionStatus();
+    const sub = ensureInstallDate();
+    if(st.status === 'active'){
+      const fin = sub.paidUntil ? new Date(sub.paidUntil) : null;
+      ligne.textContent = fin
+        ? ('Abonnement actif jusqu\'au ' + fin.toLocaleDateString('fr-FR') + '.')
+        : 'Abonnement actif.';
+      return;
+    }
+    if(st.status === 'trial'){
+      ligne.textContent = 'Essai gratuit : ' + st.daysLeft + ' jour' + (st.daysLeft > 1 ? 's' : '') + ' restant' +
+        (st.daysLeft > 1 ? 's' : '') +
+        (st.bonusDays > 0 ? ' (dont ' + st.bonusDays + ' offert' + (st.bonusDays > 1 ? 's' : '') + ' par le parrainage).' : '.');
+      return;
+    }
+    ligne.textContent = 'Essai terminé. Un abonnement est nécessaire pour continuer.';
+  }
+
   function updateTrialBanner(){
+    majPageAbonnement();
     const st = getSubscriptionStatus();
     const banner = document.getElementById('trialBanner');
     if(st.status === 'trial'){
@@ -2176,6 +2201,13 @@ const STORAGE_ITEMS = 'stockmanager_items';
     openPaywall();
   });
 
+  const abonnementOuvrir = document.getElementById('abonnementOuvrirBtn');
+  if(abonnementOuvrir) abonnementOuvrir.addEventListener('click', function(){ openPaywall(); });
+  // L'état se relit à l'ouverture de la page : un jour a pu passer, ou le
+  // portefeuille avoir payé, depuis la dernière fois qu'on l'a regardée.
+  const navAbonnement = document.querySelector('#navList .nav-item[data-section="abonnement"]');
+  if(navAbonnement) navAbonnement.addEventListener('click', majPageAbonnement);
+
   // Au chargement : si une session est enregistrée, on rouvre directement
   // l'application (et la vue précédente) ; sinon on affiche l'écran de connexion.
   const savedSession = loadSession();
@@ -2599,7 +2631,8 @@ const STORAGE_ITEMS = 'stockmanager_items';
     const PAGES = [
       'dash-accueil',
       'dash-articles', 'section-factures', 'section-inviter', 'section-contact',
-      'section-live', 'section-appels', 'section-wallet', 'section-fond',
+      'section-live', 'section-appels', 'section-wallet', 'section-abonnement',
+      'section-fond',
       'section-connexions', 'section-admin'
     ];
     const COINS = [
