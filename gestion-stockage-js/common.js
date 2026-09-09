@@ -2899,6 +2899,13 @@ const STORAGE_ITEMS = 'stockmanager_items';
         .observe(el, { attributes: true, attributeFilter: ['style', 'class'] });
     });
 
+    // L'application s'ouvre ou se ferme : les fenêtres paraissent et
+    // disparaissent sans que rien n'ait changé sur elles — c'est le corps de la
+    // page qui porte la bascule. Sans ce second guetteur, une connexion rapide
+    // ouvrait l'Accueil sans ses poignées, jusqu'au premier autre mouvement.
+    new MutationObserver(synchroniser)
+      .observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
     // Ce qui place les fenêtres leur impose une hauteur maximale ; la taille
     // choisie doit reprendre la main juste après.
     const placerAvant = placerPresDuMenu;
