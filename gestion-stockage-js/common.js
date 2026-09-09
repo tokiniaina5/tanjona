@@ -2901,7 +2901,13 @@ const STORAGE_ITEMS = 'stockmanager_items';
     // disparaissent sans que rien n'ait changé sur elles — c'est le corps de la
     // page qui porte la bascule. Sans ce second guetteur, une connexion rapide
     // ouvrait l'Accueil sans ses poignées, jusqu'au premier autre mouvement.
-    new MutationObserver(synchroniser)
+    //
+    // On les refait tenir dans la bande au passage, et non seulement au moment
+    // où l'une paraît : la bande a pu changer sous elles — la rangée du bas
+    // retirée leur rendait de la place, et l'Accueil, déjà ouvert derrière les
+    // autres, ne l'a jamais reprise. Celles dont on a choisi la taille la
+    // gardent.
+    new MutationObserver(function(){ replacerLesPages(); })
       .observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
     // Ce qui place les fenêtres leur impose une hauteur maximale ; la taille
@@ -2936,6 +2942,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
       window.visualViewport.addEventListener('resize', synchroniser);
       window.visualViewport.addEventListener('scroll', synchroniser);
     }
+    // Une fois la mise en page posée : une fenêtre ouverte d'une visite à
+    // l'autre a pu être calculée pour une bande qui n'existe plus.
+    requestAnimationFrame(function(){ replacerLesPages(); });
   })();
 
   // ---------------- ÉCRIRE ----------------
