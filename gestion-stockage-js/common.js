@@ -3035,8 +3035,30 @@ const STORAGE_ITEMS = 'stockmanager_items';
     // garde la page quand le réseau manque. Il n'existe qu'en https (ou en
     // local) : ailleurs, on ne tente rien plutôt que de jeter une erreur.
     if('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
+      // Le téléphone restait sur la version de la veille. Le nouveau service
+      // worker prenait bien la main — il s'installe et réclame les pages tout
+      // de suite — mais la page déjà ouverte, elle, gardait son ancien code
+      // jusqu'à ce que quelqu'un pense à la recharger. Personne n'y pense.
+      //
+      // On avait un contrôleur avant : c'est donc un remplacement, et la page
+      // affichée est périmée. Sans ce test, la toute première visite se
+      // rechargerait pour rien, au moment même où le service worker s'installe.
+      const avaitUnControleur = !!navigator.serviceWorker.controller;
+      let rechargeFaite = false;
+      navigator.serviceWorker.addEventListener('controllerchange', function(){
+        if(!avaitUnControleur || rechargeFaite) return;
+        rechargeFaite = true;
+        location.reload();
+      });
       window.addEventListener('load', function(){
-        navigator.serviceWorker.register('/sw.js').catch(function(){});
+        navigator.serviceWorker.register('/sw.js').then(function(inscription){
+          inscription.update();
+          // Une application installée reste ouverte des jours durant sans
+          // jamais recharger. On redemande à chaque fois qu'on y revient.
+          document.addEventListener('visibilitychange', function(){
+            if(!document.hidden) inscription.update();
+          });
+        }).catch(function(){});
       });
     }
 
