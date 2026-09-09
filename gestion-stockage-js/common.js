@@ -2652,18 +2652,30 @@ const STORAGE_ITEMS = 'stockmanager_items';
       el.style.overflowY = 'auto';
     }
 
+    // Là où on a posé la fenêtre. Séparée de la taille : on peut déplacer sans
+    // redimensionner, et l'inverse.
+    const CLE_PLACES = 'stockmanager_places';
+    function lirePlaces(){
+      try{ return JSON.parse(localStorage.getItem(CLE_PLACES)) || {}; }catch(e){ return {}; }
+    }
+    function ecrirePlaces(o){
+      try{ localStorage.setItem(CLE_PLACES, JSON.stringify(o)); }catch(e){}
+    }
+
     function appliquerTaille(el){
       const t = lire()[el.id];
-      if(!t || !visible(el)) return;
+      const place = lirePlaces()[el.id];
+      if((!t && !place) || !visible(el)) return;
       const z = ecran();
       const page = el.classList.contains('fenetre-page');
       const bande = page ? bandeUtile() : { haut: z.y, bas: z.y + z.h };
+      const actuel = el.getBoundingClientRect();
       // Une taille choisie sur un grand écran ne tient pas sur un téléphone.
       // On garde ce qui a été demandé, sans le laisser déborder : la fenêtre
       // sortait de l'écran par la droite, et le bouton du bout devenait
       // introuvable.
-      const largeur = Math.max(MIN_L, Math.min(t.l, z.w - 2 * MARGE));
-      const hauteur = Math.max(MIN_H, Math.min(t.h, bande.bas - bande.haut - 2 * MARGE));
+      const largeur = Math.max(MIN_L, Math.min(t ? t.l : actuel.width, z.w - 2 * MARGE));
+      const hauteur = Math.max(MIN_H, Math.min(t ? t.h : actuel.height, bande.bas - bande.haut - 2 * MARGE));
       el.style.width = Math.round(largeur) + 'px';
       el.style.height = Math.round(hauteur) + 'px';
       el.style.maxHeight = 'none';
@@ -2672,10 +2684,15 @@ const STORAGE_ITEMS = 'stockmanager_items';
       el.style.right = 'auto';
       el.style.bottom = 'auto';
       if(page){
-        // Une page ne se déplace pas : elle reprend le milieu et le haut de sa
-        // bande, quelle que soit la taille qu'on lui a donnée.
-        el.style.left = Math.round(z.x + (z.w - largeur) / 2) + 'px';
-        el.style.top = Math.round(bande.haut + MARGE) + 'px';
+        // La place choisie, si on en a choisi une ; le milieu et le haut de la
+        // bande sinon. Dans les deux cas ramenée dans le cadre : une place
+        // prise sur un grand écran tomberait hors d'un petit.
+        let gx = place ? place.x : z.x + (z.w - largeur) / 2;
+        let gy = place ? place.y : bande.haut + MARGE;
+        gx = Math.max(z.x + MARGE, Math.min(gx, z.x + z.w - largeur - MARGE));
+        gy = Math.max(bande.haut + MARGE, Math.min(gy, bande.bas - hauteur - MARGE));
+        el.style.left = Math.round(gx) + 'px';
+        el.style.top = Math.round(gy) + 'px';
         return;
       }
       // Un panneau est accroché au menu : il garde sa place, on le rentre
@@ -2798,6 +2815,48 @@ const STORAGE_ITEMS = 'stockmanager_items';
       });
     }
 
+    // Déplacer : la fenêtre suit le doigt, sans changer de taille, et sans
+    // sortir de la bande où on la verrait encore.
+    function armerDeplacement(s, ruban){
+      let g = null;
+      ['pointerdown', 'mousedown', 'touchstart', 'click'].forEach(function(t){
+        ruban.addEventListener(t, function(e){ e.stopPropagation(); });
+      });
+      ruban.addEventListener('pointerdown', function(e){
+        const r = s.el.getBoundingClientRect();
+        if(!visible(s.el) || r.width < 1 || r.height < 1) return;
+        e.preventDefault();
+        figer(s.el, r);
+        g = { x: e.clientX, y: e.clientY, l: r.left, t: r.top, w: r.width, h: r.height };
+        ruban.classList.add('tire');
+        try{ ruban.setPointerCapture(e.pointerId); }catch(err){}
+      });
+      ruban.addEventListener('pointermove', function(e){
+        if(!g) return;
+        const z = ecran();
+        const bande = s.page ? bandeUtile() : { haut: z.y, bas: z.y + z.h };
+        let l = g.l + (e.clientX - g.x);
+        let t = g.t + (e.clientY - g.y);
+        l = Math.max(z.x + MARGE, Math.min(l, z.x + z.w - g.w - MARGE));
+        t = Math.max(bande.haut + MARGE, Math.min(t, bande.bas - g.h - MARGE));
+        s.el.style.left = Math.round(l) + 'px';
+        s.el.style.top = Math.round(t) + 'px';
+        synchroniser();
+      });
+      function fin(e){
+        if(!g) return;
+        g = null;
+        ruban.classList.remove('tire');
+        try{ ruban.releasePointerCapture(e.pointerId); }catch(err){}
+        const r = s.el.getBoundingClientRect();
+        const o = lirePlaces();
+        o[s.el.id] = { x: Math.round(r.left), y: Math.round(r.top) };
+        ecrirePlaces(o);
+      }
+      ruban.addEventListener('pointerup', fin);
+      ruban.addEventListener('pointercancel', fin);
+    }
+
     function armer(s, coin, poignee){
       let g = null;
       // Le document referme le menu dès qu'on presse ailleurs. Les poignées
@@ -2872,6 +2931,17 @@ const STORAGE_ITEMS = 'stockmanager_items';
       calque.hidden = true;
       const s = { el: el, calque: calque, vu: false, page: page };
       if(page){
+        // Un ruban en haut de la fenêtre, pour la prendre et la poser
+        // ailleurs. Dans le calque et non dans la fenêtre : à l'intérieur il
+        // défilerait avec la page et l'on ne pourrait plus la déplacer sitôt
+        // qu'on aurait lu une ligne.
+        const ruban = document.createElement('span');
+        ruban.className = 'poignee-deplacer';
+        ruban.title = 'Déplacer la fenêtre';
+        ruban.setAttribute('aria-hidden', 'true');
+        calque.appendChild(ruban);
+        armerDeplacement(s, ruban);
+
         const croix = document.createElement('button');
         croix.type = 'button';
         croix.className = 'fenetre-fermer';
@@ -2923,9 +2993,10 @@ const STORAGE_ITEMS = 'stockmanager_items';
     // taille reprend celle d'ouverture, les autres se rentrent dans le cadre.
     function replacerLesPages(){
       const tailles = lire();
+      const places = lirePlaces();
       suivis.forEach(function(s){
         if(!s.page || !visible(s.el)) return;
-        if(tailles[s.el.id]) appliquerTaille(s.el); else poserFenetre(s.el);
+        if(tailles[s.el.id] || places[s.el.id]) appliquerTaille(s.el); else poserFenetre(s.el);
       });
       synchroniser();
     }

@@ -8,7 +8,7 @@
 // Le nom porte l'empreinte du dernier envoi : outils/versionner.mjs le réécrit.
 // Chaque mise en ligne repart donc d'un cache neuf, et l'ancien est effacé —
 // sans quoi les fichiers de toutes les versions passées s'y empileraient.
-const CACHE = 'nyasako-361b12ae';
+const CACHE = 'nyasako-88a1af35';
 
 // Fichiers demandés avant toute chose, pour que la première ouverture hors
 // réseau trouve déjà de quoi s'afficher.

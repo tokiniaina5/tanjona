@@ -255,6 +255,30 @@
     padding: 0.9rem 1rem;
     overflow-y: auto;
   }
+  /* Le ruban par lequel on prend la fenêtre pour la poser ailleurs. Il court
+     entre le coin haut-gauche et la croix, et porte un trait au milieu : sans
+     lui, rien ne dirait qu'on peut saisir là. */
+  .poignee-deplacer{
+    position: absolute;
+    top: 0; left: 18px; right: 40px;
+    height: 22px;
+    pointer-events: auto;
+    touch-action: none;
+    cursor: grab;
+  }
+  .poignee-deplacer::after{
+    content: '';
+    position: absolute;
+    left: 50%; top: 8px;
+    transform: translateX(-50%);
+    width: 36px; height: 4px;
+    border-radius: 999px;
+    background: var(--line);
+  }
+  .poignee-deplacer:hover::after{ background: var(--cyan); }
+  .poignee-deplacer.tire{ cursor: grabbing; }
+  .poignee-deplacer.tire::after{ background: var(--cyan); }
+
   /* La croix de fermeture vit dans le calque des poignées, et non dans la
      fenêtre : à l'intérieur, elle défilerait avec la page et disparaîtrait
      dès qu'on descend d'une ligne. */
