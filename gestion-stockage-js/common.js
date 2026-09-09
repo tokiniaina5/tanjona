@@ -3738,6 +3738,13 @@ const STORAGE_ITEMS = 'stockmanager_items';
     window.addEventListener('resize', mesurer);
     // La rangée n'a de largeur qu'une fois l'application affichée.
     if(window.ResizeObserver) new ResizeObserver(mesurer).observe(rangee);
+    // Sa largeur, elle, ne change pas quand elle déborde : c'est son contenu
+    // qui dépasse. Remplie pendant que l'application était fermée, elle
+    // restait donc centrée, sans le fondu qui annonce la suite — et ses
+    // premières icônes se retrouvaient hors d'atteinte. On la remesure quand
+    // l'application s'ouvre : le corps de la page porte cette bascule.
+    new MutationObserver(mesurer)
+      .observe(document.body, { attributes: true, attributeFilter: ['class'] });
     requestAnimationFrame(mesurer);
   })();
 
