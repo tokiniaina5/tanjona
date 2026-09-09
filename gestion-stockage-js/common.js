@@ -3079,81 +3079,11 @@ const STORAGE_ITEMS = 'stockmanager_items';
       });
     }
 
-    const bouton = document.getElementById('installerBtn');
-    const aide = document.getElementById('installerAide');
-    const etapes = document.getElementById('installerEtapes');
-    if(!bouton) return;
-
-    function dejaInstallee(){
-      return window.matchMedia('(display-mode: standalone)').matches ||
-             window.navigator.standalone === true;
-    }
-    // Installée, l'entrée n'a plus d'objet : on est déjà dans l'application.
-    if(dejaInstallee()) bouton.style.display = 'none';
-
-    // Chrome et Edge préviennent quand ils sont prêts à proposer l'installation.
-    // On retient l'événement : il ne se redonne pas, et ne s'accepte que sur un
-    // geste de la personne.
-    let invitation = null;
-    window.addEventListener('beforeinstallprompt', function(e){
-      e.preventDefault();
-      invitation = e;
-    });
-    window.addEventListener('appinstalled', function(){
-      invitation = null;
-      bouton.style.display = 'none';
-      if(aide) aide.style.display = 'none';
-    });
-
-    function marcheASuivre(){
-      const ua = navigator.userAgent;
-      const iOS = /iPad|iPhone|iPod/.test(ua) ||
-                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-      if(iOS){
-        return "<p class=\"panneau-note\">Safari amin'ny iPhone / iPad :</p>" +
-               "<ol class=\"install-etapes\"><li>Tsindrio ny <strong>Partager</strong> (⬆️) eo ambany.</li>" +
-               "<li>Safidio <strong>« Sur l'écran d'accueil »</strong>.</li>" +
-               "<li>Tsindrio <strong>Ajouter</strong>.</li></ol>";
-      }
-      if(/Android/.test(ua)){
-        return "<p class=\"panneau-note\">Amin'ny Android :</p>" +
-               "<ol class=\"install-etapes\"><li>Tsindrio ny <strong>⋮</strong> eo an-tampon'ny navigateur.</li>" +
-               "<li>Safidio <strong>« Installer l'application »</strong> na <strong>« Ajouter à l'écran d'accueil »</strong>.</li></ol>";
-      }
-      return "<p class=\"panneau-note\">Amin'ny ordinatera (Chrome / Edge) :</p>" +
-             "<ol class=\"install-etapes\"><li>Jereo ny sary <strong>⊕</strong> na <strong>🖥️</strong> eo amin'ny faran'ny barre d'adresse.</li>" +
-             "<li>Na ny <strong>⋮</strong> → <strong>« Installer Ny asako »</strong>.</li></ol>";
-    }
-
-    function montrerLAide(){
-      if(!aide || !etapes) return;
-      etapes.innerHTML = marcheASuivre();
-      aide.style.display = 'block';
-      if(typeof placerPresDuMenu === 'function') placerPresDuMenu(aide);
-    }
-
-    bouton.addEventListener('click', function(e){
-      e.stopPropagation();
-      if(navList) navList.classList.remove('open');
-      if(invitation){
-        invitation.prompt();
-        // Le choix est celui de la personne : refusé, on garde l'entrée pour
-        // qu'elle puisse y revenir.
-        invitation.userChoice.then(function(res){
-          if(res && res.outcome === 'accepted') bouton.style.display = 'none';
-          invitation = null;
-        }, function(){});
-        return;
-      }
-      // Aucun navigateur ne propose : on explique où le trouver.
-      montrerLAide();
-    });
-
-    document.addEventListener('click', function(e){
-      if(!aide || aide.style.display !== 'block') return;
-      if(aide.contains(e.target) || bouton.contains(e.target)) return;
-      aide.style.display = 'none';
-    });
+    // L'entrée « Installer l'application » a été retirée du menu : le
+    // navigateur propose l'installation lui-même, par l'icône de sa barre
+    // d'adresse, et une entrée de plus dans une liste qu'on parcourt au pouce
+    // ne valait pas de doubler ce qu'il fait déjà. Le manifeste et le service
+    // worker restent — ce sont eux qui rendent l'application installable.
   })();
 
   // ---------------- PAGES ÉPINGLÉES ----------------
@@ -3400,7 +3330,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
     // il reste dehors, et c'est aussi bien — une sortie n'a rien à faire dans
     // une rangée où le doigt passe.
     function entreesEpinglables(){
-      const hors = ['navStock', 'installerBtn'];
+      const hors = ['navStock'];
       return [].slice.call(document.querySelectorAll('#navList .nav-action, #navList .nav-item[data-section]'))
         .filter(function(e){ return hors.indexOf(e.id) < 0; });
     }

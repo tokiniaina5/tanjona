@@ -430,7 +430,6 @@
           <span id="notifBadge" style="display:none; background:#ff6b6b; color:#fff; font-size:0.62rem; font-weight:700; border-radius:999px; min-width:16px; height:16px; line-height:16px; text-align:center; padding:0 4px;">0</span>
         </button>
         <button type="button" class="nav-action" id="marketToggle" aria-label="Achats internationaux" aria-expanded="false">🌍 Achats internationaux</button>
-        <button type="button" class="nav-action" id="installerBtn">📥 Installer l'application</button>
         <!-- « Stock » ne se montre plus : on y entre par Accueil ou Articles,
              qui sont ses deux vues. L'entrée reste pourtant là, masquée : c'est
              par elle que le code ouvre la section — l'Accueil et les Articles
@@ -482,14 +481,6 @@
              s'en vont. Trois points, et non un engrenage — celui-ci désigne
              déjà les Paramètres du compte. -->
         <button type="button" class="dash-tab bar-icone" id="barReglagesBtn" title="Réglages de la rangée" aria-label="Réglages de la rangée" aria-expanded="false">⋯</button>
-      </div>
-
-      <!-- Marche à suivre quand le navigateur ne propose pas l'installation de
-           lui-même : Safari ne le fait jamais, et Chrome attend parfois une
-           deuxième visite. -->
-      <div class="panneau-flottant panneau-boite" id="installerAide" style="display:none;">
-        <div class="panneau-titre">📥 Ampidiro ho application</div>
-        <div id="installerEtapes"></div>
       </div>
 
       <!-- Petit panneau des réglages de la rangée : il monte au-dessus d'elle,
@@ -1689,7 +1680,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<script src="gestion-stockage-js/common.js?v=ef78f6a2"></script>
+<script src="gestion-stockage-js/common.js?v=d568509c"></script>
 <script src="gestion-stockage-js/stock.js?v=275a327a"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=7204c861"></script>
