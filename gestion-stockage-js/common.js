@@ -223,6 +223,14 @@ const STORAGE_ITEMS = 'stockmanager_items';
   // renvoie { status: 'trial'|'active'|'expired', daysLeft, bonusDays }
   function getSubscriptionStatus(){
     const sub = ensureInstallDate();
+    // Le propriétaire ne s'abonne pas à sa propre application. L'essai avait
+    // fini par expirer sur son appareil et le mettait à la porte de son propre
+    // outil — sans recours : c'est lui qui délivre les codes de déverrouillage,
+    // et personne ne peut lui en envoyer un. Son compte est ouvert, toujours,
+    // et la bannière d'essai ne le concerne pas non plus.
+    if(currentUser && currentUser.email && isOwnerEmail(currentUser.email)){
+      return { status: 'active', daysLeft: 0, bonusDays: sub.bonusDays || 0 };
+    }
     const now = new Date();
     if(sub.paidUntil && new Date(sub.paidUntil) > now){
       return { status: 'active', daysLeft: 0, bonusDays: sub.bonusDays || 0 };
