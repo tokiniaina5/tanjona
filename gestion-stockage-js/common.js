@@ -3034,13 +3034,82 @@ const STORAGE_ITEMS = 'stockmanager_items';
   // Elle n'est écrite nulle part à la main — ce serait un chiffre de plus à
   // oublier. On la lit sur l'adresse du script, que le versionneur estampille
   // à chaque envoi avec l'empreinte de son contenu.
+  // L'empreinte de la version qui tourne, lue sur l'adresse du script — le
+  // versionneur l'y met à chaque envoi. Elle sert deux fois : à l'afficher, et
+  // à savoir si celle du serveur a changé.
+  const VERSION = (function(){
+    const script = document.querySelector('script[src*="common.js"]');
+    const src = script ? script.getAttribute('src') || '' : '';
+    return (src.split('?v=')[1] || '').trim();
+  })();
   (function(){
     const ligne = document.getElementById('menuVersion');
     if(!ligne) return;
-    const script = document.querySelector('script[src*="common.js"]');
-    const src = script ? script.getAttribute('src') || '' : '';
-    const marque = (src.split('?v=')[1] || '').trim();
-    ligne.textContent = marque ? ('version ' + marque) : 'version —';
+    ligne.textContent = VERSION ? ('version ' + VERSION) : 'version —';
+  })();
+
+  // ---------------- LA VEILLE DE VERSION ----------------
+  // Le service worker se met à jour tout seul, et la page se recharge quand il
+  // prend la main. Cela suppose qu'il fasse son travail : un service worker
+  // resté en travers, un cache têtu, et le téléphone garde la version de la
+  // veille sans que rien ne le signale.
+  //
+  // Alors on va voir soi-même. On demande la page au serveur, sans passer par
+  // aucun cache, et on lit l'empreinte qu'elle annonce. Différente de celle qui
+  // tourne : on vide les caches et on recharge — c'est ce « vider » qui fait
+  // que la mise à jour est entière, et non à moitié.
+  (function(){
+    if(!VERSION || !window.fetch) return;
+    // Une fois par version, et pas davantage : si le rechargement ne suffit
+    // pas, on n'y revient pas en boucle — mieux vaut une version en retard
+    // qu'une page qui se recharge sans fin.
+    const MARQUE = 'stockmanager_version_rechargee';
+    const DELAI = 10 * 60 * 1000;
+    let enCours = false;
+
+    function dejaTentee(v){
+      try{ return sessionStorage.getItem(MARQUE) === v; }catch(e){ return false; }
+    }
+    function noterTentative(v){
+      try{ sessionStorage.setItem(MARQUE, v); }catch(e){}
+    }
+    function oublierTentative(){
+      try{ sessionStorage.removeItem(MARQUE); }catch(e){}
+    }
+
+    function verifier(){
+      if(enCours || document.hidden) return;
+      enCours = true;
+      fetch('/gestion-stockage.html', { cache: 'no-store' })
+        .then(function(r){ return r.ok ? r.text() : null; })
+        .then(function(texte){
+          if(!texte) return;
+          const trouve = texte.match(/common\.js\?v=([a-f0-9]+)/);
+          if(!trouve) return;
+          const enLigne = trouve[1];
+          if(enLigne === VERSION){ oublierTentative(); return; }
+          if(dejaTentee(enLigne)) return;
+          noterTentative(enLigne);
+          // Les caches d'abord : sans cela le rechargement retrouverait les
+          // mêmes fichiers, et l'on aurait tourné pour rien.
+          const vider = window.caches
+            ? caches.keys().then(function(noms){ return Promise.all(noms.map(function(n){ return caches.delete(n); })); })
+            : Promise.resolve();
+          return vider.catch(function(){}).then(function(){ location.reload(); });
+        })
+        .catch(function(){})
+        .then(function(){ enCours = false; });
+    }
+
+    // Au démarrage, mais après lui : la première ouverture a mieux à faire.
+    setTimeout(verifier, 4000);
+    // Chaque fois qu'on revient à l'application — c'est là qu'une application
+    // installée, restée ouverte des jours, a le plus de retard à rattraper.
+    document.addEventListener('visibilitychange', function(){
+      if(!document.hidden) verifier();
+    });
+    window.addEventListener('focus', verifier);
+    setInterval(verifier, DELAI);
   })();
 
   // ---------------- APPLICATION INSTALLABLE ----------------
