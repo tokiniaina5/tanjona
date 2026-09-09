@@ -3656,7 +3656,18 @@ const STORAGE_ITEMS = 'stockmanager_items';
           y: ev.clientY / window.innerHeight
         };
         ecrireBureau(lireBureau().filter(function(i){ return i.cle !== cle; }).concat([entree]));
-        dessinerIcone(entree);
+        const pose = dessinerIcone(entree);
+        // C'est la place où elle s'est posée qu'on retient, et non le point du
+        // lâcher : lâchée au bord, elle est ramenée dans le cadre, et garder
+        // le point brut la ferait réapparaître ailleurs sur un autre écran.
+        if(pose){
+          const r2 = pose.getBoundingClientRect();
+          ecrireBureau(lireBureau().map(function(i){
+            return i.cle === cle
+              ? { cle: cle, x: r2.left / window.innerWidth, y: r2.top / window.innerHeight }
+              : i;
+          }));
+        }
       }
       document.addEventListener('pointermove', bouger);
       document.addEventListener('pointerup', lacher);
