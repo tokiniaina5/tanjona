@@ -3710,7 +3710,28 @@ const STORAGE_ITEMS = 'stockmanager_items';
     requestAnimationFrame(function(){ redessinerLeFond(); replacerLesIcones(); });
     window.addEventListener('load', replacerLesIcones);
 
+    // ---- La rangée porte tout le menu ----
+    // Elle ne portait que ce qu'on avait déjà ouvert : il fallait passer par le
+    // menu une première fois pour que l'icône s'y pose, et la rangée restait
+    // presque vide. Elle porte maintenant toutes les entrées.
+    //
+    // Une seule fois : ensuite, ce qu'on retire à la croix reste retiré — sans
+    // quoi la rangée se remplirait à nouveau au rechargement suivant, et la
+    // croix ne servirait plus à rien.
+    const CLE_TOUTES = 'stockmanager_barre_toutes';
+    function poserToutesLesEntrees(){
+      try{ if(localStorage.getItem(CLE_TOUTES) === '1') return; }catch(e){ return; }
+      try{ localStorage.setItem(CLE_TOUTES, '1'); }catch(e){}
+      entreesEpinglables().forEach(function(entree){
+        // « Espace admin » est masqué pour les clients : la rangée n'a pas à
+        // montrer ce que le menu cache.
+        if(getComputedStyle(entree).display === 'none') return;
+        epingler(entree);
+      });
+    }
+
     lireEpingles().forEach(function(e){ poser(e.cle); });
+    poserToutesLesEntrees();
     direLeMode();
     elaguer();
     rangee.addEventListener('scroll', mesurer, { passive: true });
