@@ -184,12 +184,20 @@
   /* sans min-width:0, un tableau large étire toute la grille au lieu de
      défiler dans son propre conteneur (.table-scroll) */
   .shell > *{ min-width: 0; }
+  /* La barre du haut — le nom « Ny asako » et son sous-titre — s'en va. Elle
+     ne portait plus rien d'autre : la cloche et les achats sont descendus dans
+     la rangée, le menu et le hamburger vivent dans le corps de la page. Un
+     bandeau qui ne fait que se nommer prend le haut de l'écran sans rien y
+     mettre, et les fenêtres remontent d'autant.
+
+     Un seul mot la ramènerait — display:flex — le reste de son habillage
+     attend ici. */
   .sidebar{
     background: var(--panel);
     border-right: none;
     border-bottom: 1px solid var(--line);
     padding: 1rem 1.2rem;
-    display:flex;
+    display:none;
     flex-direction:column;
     align-items:stretch;
     /* la barre reste visible pendant le défilement */
@@ -295,20 +303,25 @@
     transform: scale(1.06);
   }
 
-  /* Une seule porte pour le menu, partout : le hamburger qu'on pose où l'on
-     veut. La rangée du bas barrait un cinquième de l'écran d'un téléphone
-     pour porter ce que le menu porte déjà — elle s'en va, et le hamburger la
-     remplace ; il se déplace au doigt comme à la souris.
-
-     Le champ de recherche du menu reste sur les écrans étroits : la liste est
-     longue, et il n'y tient pas d'un seul regard. */
-  #stockMainTabs.dash-tabs-main{ display:none; }
-  #menuFlottant{ display:flex; }
-  /* Plus de rangée, plus de hauteur à lui réserver. Le sélecteur passe par
-     .shell : à poids égal, la règle de base, écrite plus bas, l'emportait. */
-  .shell .content{ padding-bottom: 2.4rem; }
+  /* Deux portes pour un seul menu, jamais ouvertes en même temps.
+     Sur téléphone : la loupe de la rangée du bas, sous le pouce.
+     Sur ordinateur : le hamburger qu'on pose où l'on veut à la souris — et
+     pas de champ de recherche, la liste tient sous les yeux. */
+  #menuFlottant{ display:none; }
+  /* 768 pixels, et non 900 : une tablette debout en fait 768 ou 810, et se
+     retrouvait avec la rangée du pouce alors qu'on la tient à deux mains.
+     C'est la largeur qui décide, pas l'appareil — un téléphone couché, large
+     lui aussi, y gagne le même confort. */
   @media (min-width: 768px){
+    #menuFlottant{ display:flex; }
     .menu-recherche, .menu-vide{ display:none !important; }
+    /* La rangée du bas est un geste de téléphone : le pouce y arrive sans que
+       la main se déplace. Sur un écran d'ordinateur elle barre le bas de la
+       page pour rien — tout ce qu'elle porte est dans le menu. */
+    #stockMainTabs.dash-tabs-main{ display:none; }
+    /* Sans rangée, plus de hauteur à lui réserver. Le sélecteur passe par
+       .shell : à poids égal, la règle de base, écrite plus bas, l'emportait. */
+    .shell .content{ padding-bottom: 2.4rem; }
   }
 
   /* Le champ de recherche du menu : il tient la première ligne, là où le
