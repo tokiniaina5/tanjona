@@ -16,7 +16,7 @@
 <link rel="apple-touch-icon" href="/icone-192.png">
 <link rel="icon" href="/icone-192.png" type="image/png">
 <link rel="stylesheet" href="gestion-stockage-css/base.css?v=82e4415c">
-<link rel="stylesheet" href="gestion-stockage-css/components.css?v=28972cf0">
+<link rel="stylesheet" href="gestion-stockage-css/components.css?v=de5f7e67">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -454,6 +454,9 @@
           <span id="currentUserEmail">—</span>
         </div>
         <button class="btn btn-red btn-sm" id="logoutBtn" style="margin-top:0.8rem;">Se déconnecter</button>
+        <!-- L'empreinte de la version installée. Sans elle, « c'est encore
+             l'ancienne » et « c'est la nouvelle » se ressemblent trop. -->
+        <div class="menu-version" id="menuVersion">version —</div>
       </div>
 
       <div class="nav-spacer"></div>
@@ -1686,7 +1689,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<script src="gestion-stockage-js/common.js?v=690a04c5"></script>
+<script src="gestion-stockage-js/common.js?v=ef78f6a2"></script>
 <script src="gestion-stockage-js/stock.js?v=275a327a"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=7204c861"></script>

@@ -3027,6 +3027,23 @@ const STORAGE_ITEMS = 'stockmanager_items';
     }
   }
 
+  // ---------------- LA VERSION AFFICHÉE ----------------
+  // « C'est encore l'ancienne » et « c'est la nouvelle » se ressemblent trop
+  // pour qu'on en discute à distance. Le menu porte l'empreinte de la version
+  // installée : on la lit, on la compare, la question est close.
+  //
+  // Elle n'est écrite nulle part à la main — ce serait un chiffre de plus à
+  // oublier. On la lit sur l'adresse du script, que le versionneur estampille
+  // à chaque envoi avec l'empreinte de son contenu.
+  (function(){
+    const ligne = document.getElementById('menuVersion');
+    if(!ligne) return;
+    const script = document.querySelector('script[src*="common.js"]');
+    const src = script ? script.getAttribute('src') || '' : '';
+    const marque = (src.split('?v=')[1] || '').trim();
+    ligne.textContent = marque ? ('version ' + marque) : 'version —';
+  })();
+
   // ---------------- APPLICATION INSTALLABLE ----------------
   // Le site s'installe : une icône sur l'écran d'accueil ou le bureau, une
   // fenêtre à lui, et il s'ouvre même sans réseau.

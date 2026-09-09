@@ -127,6 +127,18 @@
      premier chassait le second sur la ligne suivante. */
   #section-fond .actions-row .btn{ width: auto; }
 
+  /* L'empreinte de la version, en bas du menu. Discrète : on ne la cherche
+     que le jour où l'on se demande si le téléphone a bien reçu la dernière. */
+  .menu-version{
+    margin-top: 0.7rem;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    color: var(--muted);
+    opacity: 0.7;
+    text-align: center;
+    user-select: text;
+  }
+
   /* Tout ce qui flotte appartient à l'application ouverte, et à elle seule.
      Ces éléments ont quitté l'écran de l'application pour le corps de la page
      — c'est ce qui leur permet d'échapper aux boîtes qui découpent — mais ils
