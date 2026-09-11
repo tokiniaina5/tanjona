@@ -3513,6 +3513,19 @@ const STORAGE_ITEMS = 'stockmanager_items';
       }
     }
 
+    // Une rangée vidée — à la croix, ou par accident — ne se remplissait plus
+    // jamais : le premier remplissage n'a lieu qu'une fois, et rien ne
+    // permettait d'y revenir. Le bouton est cette sortie.
+    const boutonRemettre = document.getElementById('barToutRemettre');
+    if(boutonRemettre){
+      boutonRemettre.addEventListener('click', function(e){
+        e.stopPropagation();
+        toutRemettre();
+        if(panneau) panneau.style.display = 'none';
+        if(boutonReglages) boutonReglages.setAttribute('aria-expanded', 'false');
+      });
+    }
+
     if(boutonReglages && panneau){
       document.body.appendChild(panneau);
 
@@ -3878,15 +3891,29 @@ const STORAGE_ITEMS = 'stockmanager_items';
     // quoi la rangée se remplirait à nouveau au rechargement suivant, et la
     // croix ne servirait plus à rien.
     const CLE_TOUTES = 'stockmanager_barre_toutes';
-    function poserToutesLesEntrees(){
-      try{ if(localStorage.getItem(CLE_TOUTES) === '1') return; }catch(e){ return; }
-      try{ localStorage.setItem(CLE_TOUTES, '1'); }catch(e){}
+    // Le geste lui-même, qu'on peut refaire : tout ce que le menu montre
+    // reprend sa place dans la rangée, y compris ce qu'on en avait retiré.
+    function toutRemettre(){
+      ecrireRetirees([]);
+      ['barComposer', 'barAccueil'].forEach(function(id){
+        const b = document.getElementById(id);
+        if(b) b.style.display = '';
+      });
       entreesEpinglables().forEach(function(entree){
         // « Espace admin » est masqué pour les clients : la rangée n'a pas à
         // montrer ce que le menu cache.
         if(getComputedStyle(entree).display === 'none') return;
         epingler(entree);
       });
+      mesurer();
+    }
+    // Au premier démarrage seulement : ensuite, ce qu'on retire à la croix
+    // reste retiré — sans quoi la rangée se remplirait à nouveau à chaque
+    // ouverture et la croix ne servirait plus à rien.
+    function poserToutesLesEntrees(){
+      try{ if(localStorage.getItem(CLE_TOUTES) === '1') return; }catch(e){ return; }
+      try{ localStorage.setItem(CLE_TOUTES, '1'); }catch(e){}
+      toutRemettre();
     }
 
     lireEpingles().forEach(function(e){ poser(e.cle); });
