@@ -303,25 +303,19 @@
     transform: scale(1.06);
   }
 
-  /* Deux portes pour un seul menu, jamais ouvertes en même temps.
-     Sur téléphone : la loupe de la rangée du bas, sous le pouce.
-     Sur ordinateur : le hamburger qu'on pose où l'on veut à la souris — et
-     pas de champ de recherche, la liste tient sous les yeux. */
+  /* La rangée du bas est partout : elle portait les icônes sous le pouce d'un
+     téléphone, elle les porte aussi sous la souris. Le hamburger reste — les
+     deux ne se gênent pas, l'un est posé où l'on veut, l'autre tient le bas de
+     l'écran.
+
+     Le champ de recherche du menu, lui, ne sert qu'aux écrans étroits : au
+     large, la liste tient sous les yeux. */
   #menuFlottant{ display:none; }
-  /* 768 pixels, et non 900 : une tablette debout en fait 768 ou 810, et se
-     retrouvait avec la rangée du pouce alors qu'on la tient à deux mains.
-     C'est la largeur qui décide, pas l'appareil — un téléphone couché, large
-     lui aussi, y gagne le même confort. */
+  /* 768 pixels : une tablette debout en fait 768 ou 810. C'est la largeur qui
+     décide, pas l'appareil. */
   @media (min-width: 768px){
     #menuFlottant{ display:flex; }
     .menu-recherche, .menu-vide{ display:none !important; }
-    /* La rangée du bas est un geste de téléphone : le pouce y arrive sans que
-       la main se déplace. Sur un écran d'ordinateur elle barre le bas de la
-       page pour rien — tout ce qu'elle porte est dans le menu. */
-    #stockMainTabs.dash-tabs-main{ display:none; }
-    /* Sans rangée, plus de hauteur à lui réserver. Le sélecteur passe par
-       .shell : à poids égal, la règle de base, écrite plus bas, l'emportait. */
-    .shell .content{ padding-bottom: 2.4rem; }
   }
 
   /* Le champ de recherche du menu : il tient la première ligne, là où le
