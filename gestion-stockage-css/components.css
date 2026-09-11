@@ -85,10 +85,11 @@
     margin-bottom:0; border-radius:0; background:none;
     border-top:none; border-left:none; border-right:none;
   }
-  /* Quatre libellés ne tiennent qu’au large : en dessous, les icônes seules. */
-  @media (max-width: 760px){
-    #stockMainTabs .tab-text{ display:none; }
-  }
+  /* Les icônes seules, partout. Deux entrées portaient encore leur nom et
+     prenaient la place de trois autres ; les quatorze qui les entourent n'en
+     ont jamais eu, et la rangée se lisait de travers. Le nom reste dans
+     l'infobulle et dans l'étiquette que lit un lecteur d'écran. */
+  #stockMainTabs .tab-text{ display:none; }
   /* La boîte d'écriture ne vit plus dans le fil : elle s'ouvre au-dessus de la
      rangée du bas, d'où le crayon l'appelle. Le fil n'est plus qu'un fil. */
   /* Les deux réglages de la boîte tiennent en une icône chacun. Ils gardent la
