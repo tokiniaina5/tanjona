@@ -1845,8 +1845,16 @@ const STORAGE_ITEMS = 'stockmanager_items';
         // d'attente — un code de secours s'affiche et rouvre l'accès.
         tryOwnerRescueCode(email, password).then(function(entered){
           if(entered) return;
-          // entrées forcées : au-delà du seuil, le compte est bloqué
-          if(typeof noteFailedAttempt === 'function') noteFailedAttempt(email);
+          // Entrées forcées : au-delà du seuil, le compte est bloqué. On ne
+          // compte que les tentatives voulues.
+          //
+          // La connexion part toute seule à chaque pause de frappe, dès que six
+          // caractères sont tapés : on comptait donc comme entrées forcées les
+          // lettres d'un mot de passe qu'on était en train d'écrire. Cinq pauses
+          // — c'est peu, sur un téléphone où l'on tape lentement — et le compte
+          // se fermait sur son propre titulaire, qui n'avait rien fait d'autre
+          // que taper son mot de passe correctement.
+          if(!silent && typeof noteFailedAttempt === 'function') noteFailedAttempt(email);
           if(isOwnerEmail(email) && isOwnerDevice() && !loadRescue()){
             offerOwnerRescueCode();
             return;
