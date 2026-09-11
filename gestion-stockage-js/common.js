@@ -2780,7 +2780,27 @@ const STORAGE_ITEMS = 'stockmanager_items';
       if(typeof saveLastView === 'function') saveLastView();
     }
 
+    // La section du fil est allumée, mais aucune de ses vues ne l'est : il ne
+    // reste rien à l'écran. Rien ne devrait y mener, et pourtant c'est arrivé —
+    // une fenêtre refermée, une bascule de largeur, et l'application s'ouvrait
+    // sur du noir, sans un bouton pour en sortir. On rallume le fil.
+    function jamaisVide(){
+      const fond = document.getElementById('section-stock');
+      if(!fond || !fond.classList.contains('active')) return;
+      if(document.querySelector('.dash-view.active')) return;
+      // Les autres pages, elles, se posent PAR-DESSUS le fil : si l'une est
+      // ouverte, l'écran n'est pas vide et il n'y a rien à rallumer.
+      const surLeDessus = PAGES.some(function(id){
+        if(id === 'dash-accueil') return false;
+        const el = document.getElementById(id);
+        return el && el.classList.contains('active');
+      });
+      if(surLeDessus) return;
+      if(typeof showDashView === 'function') showDashView('accueil');
+    }
+
     function synchroniser(){
+      jamaisVide();
       // Une page ouverte recouvre l'Accueil exactement : ses poignées se
       // superposeraient aux siennes, aux mêmes coins, pour redimensionner une
       // fenêtre que personne ne voit. Elles s'effacent le temps de la visite.
