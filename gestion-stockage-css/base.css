@@ -310,11 +310,16 @@
 
      Le champ de recherche du menu, lui, ne sert qu'aux écrans étroits : au
      large, la liste tient sous les yeux. */
-  #menuFlottant{ display:none; }
+
+  /* Une seule porte pour le menu, et c'est le hamburger. La loupe faisait
+     double emploi avec lui et prenait une place dans la rangée ; elle s'en va.
+     Le hamburger paraît donc partout — sans quoi un téléphone se retrouverait
+     sans aucun moyen d'ouvrir le menu. */
+  #stockMainTabs #menuToggle{ display:none; }
+  #menuFlottant{ display:flex; }
   /* 768 pixels : une tablette debout en fait 768 ou 810. C'est la largeur qui
      décide, pas l'appareil. */
   @media (min-width: 768px){
-    #menuFlottant{ display:flex; }
     .menu-recherche, .menu-vide{ display:none !important; }
   }
 
