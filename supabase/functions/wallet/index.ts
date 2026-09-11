@@ -102,7 +102,15 @@ async function balanceFor(admin: Admin, email: string): Promise<number> {
   const spent = (unlocks ?? []).reduce(
     (sum: number, u: { amount: number }) => sum + (Number(u.amount) || 0) * AR_PER_REFERRAL, 0);
 
-  return Math.max(0, earned - withdrawn - spent);
+  // 4) ce qui est entré du dehors. Les versements confirmés seulement :
+  //    un versement annoncé et pas encore vérifié ne vaut rien, sans quoi
+  //    l'annonce suffirait à dépenser.
+  const { data: depots } = await admin.from("wallet_deposits")
+    .select("amount_ar").eq("email", email).eq("status", "confirme");
+  const deposited = (depots ?? []).reduce(
+    (sum: number, d: { amount_ar: number }) => sum + (Number(d.amount_ar) || 0), 0);
+
+  return Math.max(0, earned + deposited - withdrawn - spent);
 }
 
 Deno.serve(async (req: Request) => {
@@ -160,9 +168,15 @@ Deno.serve(async (req: Request) => {
       queue = pending ?? [];
     }
 
+    // Ce qui est entré, avec son état : un versement en attente doit se voir,
+    // sinon la personne qui vient de payer croit que rien n'est arrivé.
+    const { data: depots } = await admin.from("wallet_deposits")
+      .select("id,amount_ar,provider,provider_ref,status,note,created_at,confirmed_at")
+      .eq("email", email).order("created_at", { ascending: false }).limit(20);
+
     return json({
       balanceAr: balance, arPerReferral: AR_PER_REFERRAL, minPayoutAr: MIN_PAYOUT_AR,
-      payouts: mine ?? [], queue, isOwner, items: SITE_ITEMS,
+      payouts: mine ?? [], deposits: depots ?? [], queue, isOwner, items: SITE_ITEMS,
     });
   }
 

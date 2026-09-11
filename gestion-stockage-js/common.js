@@ -797,7 +797,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
     return '<span style="color:var(--amber);">En attente d\'envoi</span>';
   }
 
+  // La liste des versements suit le même état que celle des retraits.
   function renderPayoutList(){
+    renderDepositList();
     const list = document.getElementById('payoutList');
     const empty = document.getElementById('payoutEmpty');
     if(!list || !walletState) return;
@@ -822,7 +824,43 @@ const STORAGE_ITEMS = 'stockmanager_items';
     });
   }
 
-  const payoutRequestBtn = document.getElementById('payoutRequestBtn');
+  // Ce qui est ENTRÉ dans le portefeuille. Le solde ne compte que les
+  // versements confirmés — mais un versement annoncé doit se voir, sinon la
+  // personne qui vient de payer croit que rien n'est arrivé et paie deux fois.
+  const DEPOT_ETATS = {
+    confirme: { texte: 'reçu', couleur: 'var(--cyan)' },
+    en_attente: { texte: 'en attente de confirmation', couleur: 'var(--amber)' },
+    refuse: { texte: 'refusé', couleur: 'var(--red)' }
+  };
+  const DEPOT_CANAUX = {
+    mvola: 'MVola', orange: 'Orange Money', airtel: 'Airtel Money',
+    paypal: 'PayPal', essai: 'Essai'
+  };
+
+  function renderDepositList(){
+    const list = document.getElementById('depositList');
+    const empty = document.getElementById('depositEmpty');
+    if(!list || !walletState) return;
+    const rows = walletState.deposits || [];
+    list.innerHTML = '';
+    if(empty) empty.style.display = rows.length ? 'none' : 'block';
+    rows.forEach(function(r){
+      const etat = DEPOT_ETATS[r.status] || { texte: r.status, couleur: 'var(--muted)' };
+      const canal = DEPOT_CANAUX[r.provider] || r.provider || '—';
+      const div = document.createElement('div');
+      div.style.cssText = 'border:1px solid var(--line); border-radius:8px; padding:0.7rem 0.9rem; margin-bottom:0.6rem; font-size:0.8rem; color:var(--muted); line-height:1.7;';
+      div.innerHTML =
+        '<strong style="color:var(--text);">+ ' + formatWalletAr(r.amount_ar) + '</strong>' +
+        ' · ' + escapeHtml(canal) + '<br>' +
+        new Date(r.created_at).toLocaleString('fr-FR') +
+        ' · <span style="color:' + etat.couleur + ';">' + escapeHtml(etat.texte) + '</span>' +
+        (r.provider_ref ? '<br>Référence : ' + escapeHtml(r.provider_ref) : '') +
+        (r.note ? '<br>Note : ' + escapeHtml(r.note) : '');
+      list.appendChild(div);
+    });
+  }
+
+    const payoutRequestBtn = document.getElementById('payoutRequestBtn');
   if(payoutRequestBtn){
     payoutRequestBtn.addEventListener('click', function(){
       const statusEl = document.getElementById('payoutStatus');

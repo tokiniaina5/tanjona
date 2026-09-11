@@ -1297,6 +1297,15 @@
               <div id="payoutList" style="margin-top:0.7rem;"></div>
               <p class="empty-hint" id="payoutEmpty" style="display:none;">Aucun retrait demandé.</p>
             </div>
+
+            <!-- Ce qui est ENTRÉ. Un versement annoncé et pas encore confirmé
+                 doit se voir : sans cela, la personne qui vient de payer croit
+                 que rien n'est arrivé et paie une seconde fois. -->
+            <div style="margin-top:1.2rem; padding-top:1rem; border-top:1px solid var(--line);">
+              <h3 style="font-size:0.95rem;">Mes versements</h3>
+              <div id="depositList" style="margin-top:0.7rem;"></div>
+              <p class="empty-hint" id="depositEmpty" style="display:none;">Aucun versement reçu.</p>
+            </div>
           </div>
 
           <!-- ---- FILE DES RETRAITS À ENVOYER (propriétaire uniquement) ---- -->
@@ -1718,7 +1727,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<script src="gestion-stockage-js/common.js?v=b39488b4"></script>
+<script src="gestion-stockage-js/common.js?v=beff35b7"></script>
 <script src="gestion-stockage-js/stock.js?v=275a327a"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=7204c861"></script>
