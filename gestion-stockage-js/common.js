@@ -2768,8 +2768,13 @@ const STORAGE_ITEMS = 'stockmanager_items';
     //
     // Sauf pour l'Accueil, qui est ce fil : y revenir le rouvrirait aussitôt.
     // Le refermer, c'est l'éteindre — on le retrouve dans le menu.
+    // Refermé exprès, le fil doit le rester : le garde-fou d'en dessous le
+    // rallumerait aussitôt, et la croix ne fermerait rien.
+    let filFermeExpres = false;
+
     function fermerFenetre(el){
       if(el && el.id === 'dash-accueil'){
+        filFermeExpres = true;
         el.classList.remove('active');
         if(typeof saveLastView === 'function') saveLastView();
         return;
@@ -2785,6 +2790,10 @@ const STORAGE_ITEMS = 'stockmanager_items';
     // une fenêtre refermée, une bascule de largeur, et l'application s'ouvrait
     // sur du noir, sans un bouton pour en sortir. On rallume le fil.
     function jamaisVide(){
+      // Sauf si on l'a fermé soi-même : un écran qu'on a voulu vide n'est pas
+      // un écran perdu, et la rangée du bas comme le hamburger restent là pour
+      // en sortir.
+      if(filFermeExpres) return;
       const fond = document.getElementById('section-stock');
       if(!fond || !fond.classList.contains('active')) return;
       if(document.querySelector('.dash-view.active')) return;
@@ -2818,6 +2827,8 @@ const STORAGE_ITEMS = 'stockmanager_items';
           const fond = document.getElementById('section-stock');
           if(fond) fond.classList.add('active');
         }
+        // Rouvert d'une façon ou d'une autre, le fil redevient rattrapable.
+        if(vu && s.el.id === 'dash-accueil') filFermeExpres = false;
         if(!vu){
           s.vu = false;
         } else if(!s.vu){
