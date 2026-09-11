@@ -145,6 +145,70 @@ Comment ça se passe :
    prochaine ouverture même s'il avait fermé la page. Un refus lui
    rend son solde et lui dit pourquoi.
 
+FAIRE ENTRER DE L'ARGENT DANS LE PORTEFEUILLE
+Jusqu'ici le solde ne pouvait que descendre : il naissait du
+parrainage, puis sortait en retraits ou se dépensait dans
+l'application. Rien ne pouvait y entrer. Maintenant si.
+
+Ce qu'il y a à faire, dans l'ordre :
+
+1. SQL. Dans Supabase > SQL Editor > New query, collez tout le
+   contenu de "supabase-portefeuille-depots.sql" et exécutez.
+   La requête de fin doit afficher les colonnes de la table.
+
+2. Un secret, que vous inventez. C'est le mot de passe entre votre
+   fournisseur de paiement et Supabase. Prenez-le long et au hasard.
+   Dans le Terminal :
+     supabase secrets set WALLET_WEBHOOK_SECRET=votre-secret-tres-long
+
+   NE L'ÉCRIVEZ NULLE PART D'AUTRE. Ni dans un message, ni dans une
+   page : celui qui l'a peut créditer n'importe quel compte.
+
+3. Les deux fonctions. Dans le Terminal :
+     supabase functions deploy wallet
+     supabase functions deploy wallet-encaisse --no-verify-jwt
+
+   Le --no-verify-jwt n'est PAS un oubli : c'est une machine qui
+   appelle "wallet-encaisse", pas une personne connectée. Elle n'a
+   pas de jeton d'utilisateur à présenter. C'est le secret de
+   l'étape 2 qui tient la porte à sa place.
+
+POUR ESSAYER SANS AUCUN CONTRAT
+La fonction accepte une forme générique. Dans le Terminal, en
+remplaçant l'adresse du projet, le secret, et l'email par celui d'un
+compte qui existe :
+
+  curl -X POST https://VOTRE-PROJET.supabase.co/functions/v1/wallet-encaisse \
+    -H "Content-Type: application/json" \
+    -H "x-secret-encaisse: votre-secret-tres-long" \
+    -d '{"provider":"essai","ref":"T-1","amountAr":5000,"email":"client@exemple.mg","status":"confirme"}'
+
+Ouvrez ensuite Portefeuille : le versement apparaît sous "Mes
+versements" et le solde a monté de 5 000 Ar. Relancez la même
+commande : rien ne bouge — c'est la référence "T-1" qui l'empêche,
+et c'est voulu.
+
+CE QUI EST GARDÉ, ET CE QUI NE L'EST PAS
+- Le solde ne compte que les versements CONFIRMÉS. Un versement
+  annoncé et pas encore vérifié ne vaut rien : sinon l'annonce
+  suffirait à dépenser. Il se voit quand même dans la page, pour que
+  celui qui vient de payer sache que c'est arrivé et ne paie pas
+  deux fois.
+- Un versement adressé à un compte inconnu n'est crédité à personne.
+  Il attend, avec la notification entière, pour être rattaché à la
+  main.
+- Personne n'écrit dans la table depuis une page : elle n'a aucune
+  policy d'insertion. Seule la clé de service, qui ne quitte jamais
+  le serveur, peut y toucher.
+
+QUAND VOUS AUREZ UN VRAI FOURNISSEUR
+MVola, Orange, Airtel et PayPal parlent chacun leur langue. Tout est
+déjà en place sauf la traduction : la fonction "normaliser", au début
+de "supabase/functions/wallet-encaisse/index.ts", ramène la
+notification à la même forme. C'est le seul endroit à toucher, et
+c'est quelques lignes. Donnez-moi la documentation du fournisseur et
+je les écris.
+
 ACHETER DANS L'APPLICATION AVEC LE PORTEFEUILLE
 L'abonnement se règle depuis le solde, sans code à demander ni
 argent à envoyer : la somme quitte le portefeuille et le droit est
