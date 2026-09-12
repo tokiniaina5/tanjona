@@ -161,6 +161,7 @@
         ' · <span style="color:var(--muted);">' + html(role) + '</span>' +
         (auTravail ? ' · <span style="color:var(--cyan);">eo am-piasana</span>' : '') +
         (p.actif ? '' : ' · <span style="color:var(--red);">tsy miasa intsony</span>') +
+        (p.ora_andrasana ? ' · <span style="color:var(--muted);">' + p.ora_andrasana + ' ora/andro</span>' : '') +
         (p.telephone ? '<br><a href="tel:' + html(p.telephone) + '" style="color:var(--cyan);">' + html(p.telephone) + '</a>' : '') +
         (p.email ? '<br><span style="color:var(--muted);">' + html(p.email) + '</span>' : '');
 
@@ -226,13 +227,15 @@
       nom: nom,
       telephone: document.getElementById('equipeTel').value.trim() || null,
       role: document.getElementById('equipeRole').value,
-      email: document.getElementById('equipeEmail').value.trim().toLowerCase() || null
+      email: document.getElementById('equipeEmail').value.trim().toLowerCase() || null,
+      ora_andrasana: parseFloat(document.getElementById('equipeOra').value) || null
     }).then(function (res) {
       bouton.disabled = false;
       if (res && res.error) { dire('equipeStatut', 'Tsy tafiditra : ' + res.error.message, true); return; }
       document.getElementById('equipeNom').value = '';
       document.getElementById('equipeTel').value = '';
       document.getElementById('equipeEmail').value = '';
+      document.getElementById('equipeOra').value = '';
       dire('equipeStatut', 'Voasoratra.');
       charger();
     }, function () {
@@ -501,6 +504,33 @@
     const hs = document.getElementById('personneHeuresSemaine');
     if (hj) hj.textContent = heures(msJour);
     if (hs) hs.textContent = heures(msSemaine);
+
+    // Des heures seules ne sont qu'un nombre. En face de ce qu'on attend,
+    // elles disent quelque chose : ce qui manque, ou ce qui dépasse.
+    const attendu = personneOuverte && Number(personneOuverte.ora_andrasana) || 0;
+    const ecart = document.getElementById('personneEcart');
+    if (ecart) {
+      if (!attendu) {
+        ecart.textContent = '';
+      } else {
+        const attenduMs = attendu * 3600000;
+        const diff = msJour - attenduMs;
+        const manque = diff < 0;
+        ecart.innerHTML = 'Andrasana : <strong>' + attendu + ' ora</strong> · ' +
+          '<span style="color:' + (manque ? 'var(--amber)' : 'var(--cyan)') + ';">' +
+          (manque ? 'tsy ampy ' : 'mihoatra ') + heures(Math.abs(diff)) + '</span>';
+      }
+    }
+
+    // Combien de jours cette semaine : une semaine se juge aussi au nombre
+    // de venues, et non seulement au total des heures.
+    const jours = {};
+    lignes.forEach(function (l) {
+      const d = new Date(l.arrivee);
+      if (d.getTime() >= semaine) jours[d.toDateString()] = true;
+    });
+    const nb = document.getElementById('personneJoursSemaine');
+    if (nb) nb.textContent = Object.keys(jours).length + ' andro';
 
     const liste = document.getElementById('personnePointages');
     const vide = document.getElementById('personnePointagesVide');

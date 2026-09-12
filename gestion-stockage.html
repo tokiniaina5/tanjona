@@ -1516,6 +1516,10 @@
             </select>
           </div>
           <div class="field">
+            <label for="equipeOra">Ora fiasana andrasana isan'andro</label>
+            <input id="equipeOra" type="number" inputmode="decimal" min="0" max="24" step="0.5" placeholder="8">
+          </div>
+          <div class="field">
             <label for="equipeEmail">Email (tsy voatery)</label>
             <input id="equipeEmail" type="email" placeholder="koto@exemple.mg">
           </div>
@@ -1595,8 +1599,10 @@
             <div>
               <div class="plan-note">Herinandro</div>
               <div class="plan-price" id="personneHeuresSemaine" style="font-size:1.2rem; color:var(--cyan);">—</div>
+              <div class="plan-note" id="personneJoursSemaine" style="margin-top:0.2rem;">—</div>
             </div>
           </div>
+          <p id="personneEcart" style="font-size:0.85rem; color:var(--muted); margin:0.9rem 0 0; line-height:1.6;"></p>
         </div>
 
         <div class="panel" style="margin-top:1rem;">
@@ -1859,7 +1865,7 @@
 <script src="gestion-stockage-js/parametres.js?v=ccebdd78"></script>
 <script src="gestion-stockage-js/identite.js?v=32177fac"></script>
 <script src="gestion-stockage-js/fond.js?v=9130e24f"></script>
-<script src="gestion-stockage-js/equipe.js?v=f04d43e1"></script>
+<script src="gestion-stockage-js/equipe.js?v=f4abea39"></script>
 <script src="gestion-stockage-js/vue-mpiasa.js?v=5cbd5f5b"></script>
 <script src="gestion-stockage-js/securite.js?v=9b276532"></script>
 

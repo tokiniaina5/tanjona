@@ -37,6 +37,14 @@ create table if not exists public.equipe (
   created_at timestamptz not null default now()
 );
 
+-- Les heures attendues par jour. En dehors du create table : ceux qui ont
+-- deja passe ce fichier n'auraient pas eu la colonne, "if not exists" ne
+-- valant que pour la table entiere.
+--
+-- C'est elle qui donne un sens au pointage : sans attente, des heures ne
+-- sont qu'un nombre ; avec elle, on voit ce qui manque ou ce qui depasse.
+alter table public.equipe add column if not exists ora_andrasana numeric;
+
 create index if not exists equipe_owner_idx on public.equipe (owner_email, actif);
 
 alter table public.equipe enable row level security;
