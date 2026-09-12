@@ -30,6 +30,13 @@
   // Qui est affiché dans la fenêtre d'une personne.
   let personneOuverte = null;
 
+  // La dernière position connue de chaque livreur, la carte, et ses repères.
+  const CLE_MAPS = 'stockmanager_cle_maps';
+  let positions = [];
+  let carte = null;
+  let reperes = {};
+  let mapsDemandee = null;
+
   function sb() {
     return window.__sb || null;
   }
@@ -139,13 +146,19 @@
         .order('created_at', { ascending: true }),
       client.from('livraisons').select('*').eq('owner_email', email)
         .order('created_at', { ascending: false }).limit(100),
-      client.from('pointages').select('*').eq('owner_email', email).is('depart', null)
+      client.from('pointages').select('*').eq('owner_email', email).is('depart', null),
+      // Les cent derniers relevés suffisent : on ne garde que le plus récent
+      // de chacun, et une équipe n'a pas cent livreurs.
+      client.from('positions').select('equipe_id,lat,lng,precision_m,at')
+        .eq('owner_email', email).order('at', { ascending: false }).limit(100)
     ]).then(function (res) {
       equipe = (res[0] && res[0].data) || [];
       livraisons = (res[1] && res[1].data) || [];
       ouverts = {};
       ((res[2] && res[2].data) || []).forEach(function (o) { ouverts[o.equipe_id] = o; });
+      dernierDeChacun((res[3] && res[3].data) || []);
       dessinerEquipe();
+      dessinerCarte();
       remplirLivreurs();
       dessinerLivraisons();
       if (personneOuverte) chargerPersonne(personneOuverte.id);
@@ -226,6 +239,170 @@
       div.appendChild(actions);
       liste.appendChild(div);
     });
+  }
+
+  // ---------- Aiza izy ireo ----------
+  // Le suivi ne remplace pas un coup de téléphone : il dit où quelqu'un était
+  // il y a une minute, pas ce qu'il fait. C'est pourquoi l'heure est écrite
+  // à côté du lieu — une position sans son heure ment.
+
+  // La liste arrive triée du plus récent au plus ancien : le premier relevé
+  // vu pour une personne est donc le sien le plus récent.
+  function dernierDeChacun(lignes) {
+    const vus = {};
+    lignes.forEach(function (r) { if (!vus[r.equipe_id]) vus[r.equipe_id] = r; });
+    positions = Object.keys(vus).map(function (k) { return vus[k]; });
+  }
+
+  function cleMaps() {
+    try { return (localStorage.getItem(CLE_MAPS) || '').trim(); } catch (e) { return ''; }
+  }
+
+  function depuis(iso) {
+    const mn = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+    if (mn < 1) return 'vao izao';
+    if (mn < 60) return mn + ' mn lasa izay';
+    const h = Math.floor(mn / 60);
+    if (h < 24) return h + ' ora lasa izay';
+    return new Date(iso).toLocaleString('fr-FR');
+  }
+
+  // Nom, lieu, heure : les trois choses demandées, dans cet ordre.
+  function dessinerCarte() {
+    const liste = document.getElementById('positionsListe');
+    const vide = document.getElementById('positionsVide');
+    if (!liste) return;
+
+    const lignes = [];
+    positions.forEach(function (pos) {
+      const gens = equipe.filter(function (x) { return x.id === pos.equipe_id; });
+      // Un relevé dont la personne a été retirée ne dit plus de qui il parle.
+      if (gens.length && (gens[0].role || 'mpiasa') === 'livreur') {
+        lignes.push({ p: gens[0], pos: pos });
+      }
+    });
+    lignes.sort(function (a, b) { return new Date(b.pos.at) - new Date(a.pos.at); });
+
+    liste.innerHTML = '';
+    if (vide) vide.style.display = lignes.length ? 'none' : 'block';
+
+    lignes.forEach(function (l) {
+      const lat = Number(l.pos.lat), lng = Number(l.pos.lng);
+      const div = document.createElement('div');
+      div.style.cssText = 'border:1px solid var(--line); border-radius:8px; padding:0.7rem 0.9rem; margin-bottom:0.6rem; font-size:0.82rem; line-height:1.6;';
+      div.innerHTML =
+        '<strong style="color:var(--text);">' + html(l.p.nom) + '</strong>' +
+        ' · <span style="color:var(--cyan);">' + html(depuis(l.pos.at)) + '</span>' +
+        '<br><span style="color:var(--muted);">' + lat.toFixed(5) + ', ' + lng.toFixed(5) +
+        (l.pos.precision_m ? ' (± ' + Math.round(l.pos.precision_m) + ' m)' : '') + '</span>' +
+        '<br><span style="color:var(--muted);">' + new Date(l.pos.at).toLocaleString('fr-FR') + '</span>' +
+        (l.p.telephone ? ' · <a href="tel:' + html(l.p.telephone) + '" style="color:var(--cyan);">' + html(l.p.telephone) + '</a>' : '') +
+        '<br><a href="https://www.google.com/maps?q=' + lat + ',' + lng + '" target="_blank" rel="noopener" style="color:var(--cyan);">Sokafy ao amin&#39;ny Google Maps</a>';
+      liste.appendChild(div);
+    });
+
+    poserLaCarte(lignes);
+  }
+
+  // Google Maps ne se charge que si une clé existe : un script appelé sans
+  // clé ne rend qu'un rectangle gris barré d'un avertissement.
+  function chargerGoogleMaps() {
+    if (window.google && window.google.maps && window.google.maps.Map) return Promise.resolve(true);
+    if (mapsDemandee) return mapsDemandee;
+    if (!cleMaps()) return Promise.resolve(false);
+    mapsDemandee = new Promise(function (fini) {
+      const s = document.createElement('script');
+      window.__carteLivreurPrete = function () { fini(true); };
+      s.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(cleMaps()) +
+        '&loading=async&callback=__carteLivreurPrete';
+      s.async = true;
+      s.onerror = function () { fini(false); };
+      document.head.appendChild(s);
+      // Une clé refusée ne déclenche ni onerror ni callback : sans ce délai,
+      // on attendrait pour toujours.
+      setTimeout(function () { fini(!!(window.google && window.google.maps)); }, 12000);
+    });
+    return mapsDemandee;
+  }
+
+  function poserLaCarte(lignes) {
+    const boite = document.getElementById('carteLivreur');
+    const note = document.getElementById('carteSansCle');
+    if (!boite) return;
+
+    if (!cleMaps()) {
+      boite.style.display = 'none';
+      if (note) {
+        note.style.display = 'block';
+        note.textContent = 'Tsy mbola misy clé Google Maps : ny lisitra ihany no miseho. Ny rohy isaky ny anarana dia manokatra ny Google Maps.';
+      }
+      return;
+    }
+    if (note) note.style.display = 'none';
+    if (!lignes.length) { boite.style.display = 'none'; return; }
+    boite.style.display = 'block';
+
+    chargerGoogleMaps().then(function (prete) {
+      if (!prete) {
+        boite.style.display = 'none';
+        if (note) {
+          note.style.display = 'block';
+          note.textContent = 'Tsy nety ny clé Google Maps. Jereo ao amin\'ny Google Cloud raha mandeha ny Maps JavaScript API sy ny facturation.';
+        }
+        return;
+      }
+      const g = window.google.maps;
+      const premier = { lat: Number(lignes[0].pos.lat), lng: Number(lignes[0].pos.lng) };
+      if (!carte) {
+        carte = new g.Map(boite, {
+          center: premier, zoom: 14,
+          mapTypeControl: false, streetViewControl: false, fullscreenControl: false
+        });
+      }
+      const bornes = new g.LatLngBounds();
+      const vivants = {};
+      lignes.forEach(function (l) {
+        const point = { lat: Number(l.pos.lat), lng: Number(l.pos.lng) };
+        bornes.extend(point);
+        vivants[l.p.id] = true;
+        let m = reperes[l.p.id];
+        if (!m) {
+          m = new g.Marker({ map: carte, position: point, title: l.p.nom });
+          m.__bulle = new g.InfoWindow();
+          m.addListener('click', function () {
+            m.__bulle.setContent(m.__texte || '');
+            m.__bulle.open(carte, m);
+          });
+          reperes[l.p.id] = m;
+        } else {
+          m.setPosition(point);
+          m.setTitle(l.p.nom);
+        }
+        m.__texte = '<div style="font-size:13px; line-height:1.5; color:#111;"><strong>' +
+          html(l.p.nom) + '</strong><br>' + html(depuis(l.pos.at)) + '<br>' +
+          new Date(l.pos.at).toLocaleString('fr-FR') + '</div>';
+      });
+      // Celui qu'on a retiré de l'équipe ne doit pas rester planté là.
+      Object.keys(reperes).forEach(function (id) {
+        if (!vivants[id]) { reperes[id].setMap(null); delete reperes[id]; }
+      });
+      if (lignes.length === 1) { carte.setCenter(premier); carte.setZoom(15); }
+      else carte.fitBounds(bornes);
+    });
+  }
+
+  function garderLaCle() {
+    const champ = document.getElementById('carteCle');
+    if (!champ) return;
+    const v = champ.value.trim();
+    try {
+      if (v) localStorage.setItem(CLE_MAPS, v);
+      else localStorage.removeItem(CLE_MAPS);
+    } catch (e) {}
+    // Une clé qu'on change demande un nouveau chargement du script.
+    mapsDemandee = null; carte = null; reperes = {};
+    dire('carteCleStatut', v ? 'Voatahiry. Havaozina ny sarintany.' : 'Nesorina ny clé.');
+    dessinerCarte();
   }
 
   // Le rôle ne se choisit plus dans une liste : il est celui de la page où
@@ -665,6 +842,11 @@
       if (personneOuverte) donnerLeLien(personneOuverte, lienBtn);
     });
 
+    const cleBtn = document.getElementById('carteCleBtn');
+    if (cleBtn) cleBtn.addEventListener('click', garderLaCle);
+    const cleChamp = document.getElementById('carteCle');
+    if (cleChamp) cleChamp.value = cleMaps();
+
     const tonga = document.getElementById('personneTongaBtn');
     if (tonga) tonga.addEventListener('click', pointerArrivee);
     const lasa = document.getElementById('personneLasaBtn');
@@ -677,6 +859,15 @@
       if (nav) nav.addEventListener('click', charger);
     });
   });
+
+  // Une position vieille de dix minutes affichée comme neuve tromperait. Tant
+  // que la page du livreur est sous les yeux, on relit ; fermée, on se tait.
+  setInterval(function () {
+    const sec = document.getElementById('section-livreur');
+    if (!sec || sec.offsetParent === null) return;
+    if (!monEmail()) return;
+    charger();
+  }, 60000);
 
   // L'application appelle ceci quand elle s'ouvre : on en profite pour
   // déposer la copie du stock, puisque c'est le moment où elle est fraîche.

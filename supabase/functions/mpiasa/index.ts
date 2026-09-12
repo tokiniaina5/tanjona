@@ -9,8 +9,10 @@
 // service reste sur le serveur, et la fonction ne rend que ce qui revient
 // au porteur du jeton.
 //
-// Elle ne sait qu'une chose : lire. Aucun chemin d'écriture n'existe — un
-// employé regarde, il ne change rien.
+// Elle ne sait presque que lire. La seule écriture qu'elle accepte, c'est la
+// position du porteur du jeton, et uniquement la sienne : un livreur dit où
+// il est, il ne dit rien d'autre et ne parle pour personne. Tout le reste —
+// le stock, les courses, les heures — se lit et ne s'écrit pas.
 //
 // Déploiement : appelée sans jeton d'utilisateur, donc
 //   supabase functions deploy mpiasa --no-verify-jwt
@@ -63,6 +65,28 @@ Deno.serve(async (req: Request) => {
   if (!personne.actif) return json({ error: "lien suspendu" }, 403);
 
   const owner = personne.owner_email;
+
+  // ---- « Je suis ici » ----
+  // Le téléphone du livreur envoie sa position ; on l'inscrit sous SON
+  // identifiant, celui que le jeton désigne. Le corps de la requête ne dit
+  // pas de qui il s'agit : il ne pourrait que mentir.
+  if (String(body.action ?? "") === "position") {
+    const lat = Number(body.lat);
+    const lng = Number(body.lng);
+    // Des coordonnées hors du monde ne sont pas des coordonnées.
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) ||
+        lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      return json({ error: "position illisible" }, 400);
+    }
+    const precision = Number(body.precision);
+    await admin.from("positions").insert({
+      owner_email: owner,
+      equipe_id: personne.id,
+      lat, lng,
+      precision_m: Number.isFinite(precision) ? precision : null,
+    });
+    return json({ ok: true });
+  }
 
   const [stock, livraisons, pointages] = await Promise.all([
     admin.from("stock_partage").select("articles,maj").eq("owner_email", owner).maybeSingle(),

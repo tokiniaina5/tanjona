@@ -114,6 +114,20 @@
     }
     sortie += '</div>';
 
+    // ---- Où il est ----
+    // Seulement pour les livreurs : un employé au magasin n'a pas à être suivi.
+    if (p.role === 'livreur') {
+      sortie += '<div class="panel" style="margin-top:1rem;">' +
+        '<div class="panneau-titre">Ny toerana misy anao</div>' +
+        '<p style="font-size:0.78rem; color:var(--muted); line-height:1.6; margin:0 0 0.7rem;">' +
+        'Raha manaiky ianao, ny toerana misy anao dia alefa isaky ny iray minitra, mba hahitan\'ny patron hoe aiza ianao. ' +
+        'Azonao esorina na oviana na oviana ao amin\'ny r\u00e9glages ny finday.' +
+        '</p>' +
+        '<p id="maPosition" style="font-size:0.85rem; line-height:1.6; margin:0 0 0.7rem;">—</p>' +
+        '<button type="button" class="btn btn-primary btn-sm" id="maPositionBtn" style="width:auto;">Manaiky — alefaso ny toerako</button>' +
+        '</div>';
+    }
+
     // ---- Ses courses ----
     sortie += '<div class="panel" style="margin-top:1rem;">' +
       '<div class="panneau-titre">Ny fandefasana nomena anao</div>';
@@ -133,6 +147,65 @@
     sortie += '</div>';
 
     ecran.innerHTML = sortie;
+
+    const b = document.getElementById('maPositionBtn');
+    if (b) b.addEventListener('click', function () {
+      b.disabled = true;
+      b.textContent = 'Alefa…';
+      commencerLeSuivi();
+    });
+  }
+
+  // ---------- Dire où l'on est ----------
+  // Le navigateur demande la permission lui-même, et la refuse par défaut :
+  // personne n'est suivi sans l'avoir accepté, et l'accord se retire dans les
+  // réglages du téléphone. On ne contourne rien — on ne le pourrait pas.
+  let suivi = null;
+  let dernierEnvoi = 0;
+
+  function envoyerPosition(pos) {
+    const client = window.__sb;
+    if (!client || !client.functions) return;
+    // Une fois par minute au plus : un téléphone qui parle sans cesse se vide,
+    // et une position à la seconde n'apprend rien de plus qu'une à la minute.
+    const maintenant = Date.now();
+    if (maintenant - dernierEnvoi < 60000) return;
+    dernierEnvoi = maintenant;
+    client.functions.invoke('mpiasa', {
+      body: {
+        jeton: jeton,
+        action: 'position',
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        precision: pos.coords.accuracy
+      }
+    }).then(function () {}, function () {});
+    montrerMaPosition(pos);
+  }
+
+  function montrerMaPosition(pos) {
+    const el = document.getElementById('maPosition');
+    if (!el) return;
+    const lat = pos.coords.latitude.toFixed(5);
+    const lng = pos.coords.longitude.toFixed(5);
+    el.innerHTML = 'Ny toerana misy anao : <strong style="color:var(--cyan);">' + lat + ', ' + lng + '</strong>' +
+      ' (± ' + Math.round(pos.coords.accuracy) + ' m)<br>' +
+      '<span style="color:var(--muted);">' + new Date().toLocaleTimeString('fr-FR') + '</span>';
+  }
+
+  function commencerLeSuivi() {
+    const el = document.getElementById('maPosition');
+    if (!navigator.geolocation) {
+      if (el) el.textContent = 'Tsy mahay milaza toerana ity finday ity.';
+      return;
+    }
+    if (el) el.textContent = 'Miandry ny toerana…';
+    suivi = navigator.geolocation.watchPosition(envoyerPosition, function (e) {
+      if (!el) return;
+      el.textContent = (e && e.code === 1)
+        ? 'Tsy nomena alalana. Sokafy ao amin\'ny r\u00e9glages ny toerana raha tianao ho hitan\'ny patron.'
+        : 'Tsy hita ny toerana amin\'izao fotoana izao.';
+    }, { enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 });
   }
 
   function erreur(message) {

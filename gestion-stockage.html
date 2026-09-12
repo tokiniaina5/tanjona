@@ -1563,6 +1563,34 @@
           <p class="empty-hint" id="livreurVide" style="display:none;">Mbola tsy misy voasoratra.</p>
         </div>
 
+        <!-- Où ils sont. La carte ne s'affiche que si une clé Google Maps a
+             été posée ; sans elle, la liste en dessous dit la même chose en
+             mots, et chaque ligne s'ouvre dans Google Maps d'un doigt. -->
+        <div class="panel" style="margin-top:1rem;">
+          <div class="panneau-titre">Aiza izy ireo</div>
+          <p style="font-size:0.78rem; color:var(--muted); line-height:1.6; margin:0 0 0.8rem;">
+            Ny toerana farany nalefan'ny livreur tsirairay avy amin'ny rohiny. Izy no manaiky aloha ao amin'ny findainy.
+          </p>
+          <div id="carteLivreur" style="height:320px; border-radius:10px; overflow:hidden; border:1px solid var(--line); display:none;"></div>
+          <p id="carteSansCle" style="font-size:0.78rem; color:var(--muted); line-height:1.6; margin:0 0 0.8rem; display:none;"></p>
+          <div id="positionsListe" style="margin-top:0.8rem;"></div>
+          <p class="empty-hint" id="positionsVide" style="display:none;">Mbola tsy nisy nandefa ny toerana misy azy.</p>
+
+          <details style="margin-top:1rem;">
+            <summary style="cursor:pointer; font-size:0.8rem; color:var(--muted);">Clé Google Maps</summary>
+            <p style="font-size:0.78rem; color:var(--muted); line-height:1.6; margin:0.7rem 0;">
+              Ny sarintany tena izy dia mila clé alaina ao amin'ny Google Cloud. Raha tsy misy clé, ny lisitra etsy ambony ihany no miseho.
+              Mitoetra ato amin'ity finday ity ihany ilay clé.
+            </p>
+            <div class="field">
+              <label for="carteCle">Clé</label>
+              <input id="carteCle" type="text" autocomplete="off" spellcheck="false" placeholder="AIza…">
+            </div>
+            <button type="button" class="btn btn-sm" id="carteCleBtn">Tehirizo</button>
+            <p id="carteCleStatut" style="font-size:0.8rem; color:var(--cyan); margin-top:0.7rem; line-height:1.5;"></p>
+          </details>
+        </div>
+
         <div class="panel" style="margin-top:1rem;">
           <div class="panneau-titre">Fandefasana vaovao</div>
           <div class="field">
@@ -1912,8 +1940,8 @@
 <script src="gestion-stockage-js/parametres.js?v=ccebdd78"></script>
 <script src="gestion-stockage-js/identite.js?v=32177fac"></script>
 <script src="gestion-stockage-js/fond.js?v=9130e24f"></script>
-<script src="gestion-stockage-js/equipe.js?v=09e94c56"></script>
-<script src="gestion-stockage-js/vue-mpiasa.js?v=5cbd5f5b"></script>
+<script src="gestion-stockage-js/equipe.js?v=37bfa3c7"></script>
+<script src="gestion-stockage-js/vue-mpiasa.js?v=095ee4fa"></script>
 <script src="gestion-stockage-js/securite.js?v=9b276532"></script>
 
 
