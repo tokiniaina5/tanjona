@@ -33,10 +33,14 @@
   function sb() {
     return window.__sb || null;
   }
+  // common.js n'est pas enveloppé : son « let currentUser » vit dans la portée
+  // du script, partagée par tous les fichiers chargés ensuite — mais ce n'est
+  // PAS une propriété de window. On le lisait par window.currentUser : c'était
+  // toujours vide, et le bouton répondait « midira aloha » à quelqu'un qui
+  // était entré.
   function monEmail() {
-    return (window.currentUser && window.currentUser.email)
-      ? String(window.currentUser.email).trim().toLowerCase()
-      : '';
+    const u = (typeof currentUser !== 'undefined') ? currentUser : null;
+    return (u && u.email) ? String(u.email).trim().toLowerCase() : '';
   }
   function dire(id, texte, erreur) {
     const el = document.getElementById(id);
@@ -101,6 +105,7 @@
         if (res && res.error) { direPartout('Tsy voaforona ny rohy : ' + res.error.message, true); return; }
         personne.jeton = jeton;
         montrerLeLien(personne, jeton);
+        if (personneOuverte && personneOuverte.id === personne.id) dessinerLienPersonne(personne);
         charger();
       }, function () {
         if (bouton) bouton.disabled = false;
@@ -473,7 +478,42 @@
     const fond = document.getElementById('section-stock');
     if (fond) fond.classList.add('active');
     section.classList.add('active');
+    dessinerLienPersonne(p);
+    dessinerArticlesPersonne();
     chargerPersonne(p.id);
+  }
+
+  function dessinerLienPersonne(p) {
+    const ligne = document.getElementById('personneLien');
+    const bouton = document.getElementById('personneLienBtn');
+    if (ligne) ligne.textContent = p.jeton ? lienDe(p.jeton) : 'Mbola tsy misy rohy.';
+    if (bouton) bouton.textContent = p.jeton ? 'Adikao ny rohy' : 'Hamorona rohy';
+  }
+
+  // Les mêmes articles que ceux qu'il verra : c'est la copie déposée à
+  // l'ouverture, donc ce que l'application a sous la main. Aucun champ, aucun
+  // bouton — on regarde, on ne change rien.
+  function dessinerArticlesPersonne() {
+    const boite = document.getElementById('personneArticles');
+    if (!boite) return;
+    let articles = [];
+    try { articles = (typeof loadItems === 'function' ? loadItems() : []) || []; } catch (e) { articles = []; }
+    if (!articles.length) {
+      boite.innerHTML = '<p class="empty-hint">Mbola tsy misy article.</p>';
+      return;
+    }
+    let t = '<div class="table-scroll"><table><thead><tr>' +
+      '<th>Article</th><th>Réf.</th><th>Isa</th><th>Vidiny</th></tr></thead><tbody>';
+    articles.forEach(function (a) {
+      const qte = Number(a.qty ?? a.quantity ?? a.quantite ?? 0);
+      const prix = Number(a.price ?? a.prix ?? 0);
+      t += '<tr><td>' + html(a.name ?? a.nom ?? '—') + '</td>' +
+        '<td>' + html(a.ref ?? a.reference ?? '—') + '</td>' +
+        '<td>' + qte.toLocaleString('fr-FR') + '</td>' +
+        '<td>' + (prix ? prix.toLocaleString('fr-FR') + ' Ar' : '—') + '</td></tr>';
+    });
+    t += '</tbody></table></div>';
+    boite.innerHTML = t;
   }
 
   function chargerPersonne(id) {
@@ -619,6 +659,11 @@
 
     const ajouterL = document.getElementById('livraisonAjouterBtn');
     if (ajouterL) ajouterL.addEventListener('click', ajouterLivraison);
+
+    const lienBtn = document.getElementById('personneLienBtn');
+    if (lienBtn) lienBtn.addEventListener('click', function () {
+      if (personneOuverte) donnerLeLien(personneOuverte, lienBtn);
+    });
 
     const tonga = document.getElementById('personneTongaBtn');
     if (tonga) tonga.addEventListener('click', pointerArrivee);
