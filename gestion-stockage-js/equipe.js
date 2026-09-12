@@ -79,10 +79,34 @@
       return;
     }
     sessionServeur().then(function (ouvert) {
-      dire(msgId, ouvert
-        ? 'Nolavina : tsy mifanaraka amin\'ny kaonty misokatra ny email. Mivoaha dia midira indray.'
-        : REENTRER, true);
+      if (!ouvert) { direReentrer(msgId); return; }
+      dire(msgId, 'Nolavina : tsy mifanaraka amin\'ny kaonty misokatra ny email. Mivoaha dia midira indray.', true);
+      poserLaPorte(msgId);
     });
+  }
+
+  // Un message qui dit « sortez et rentrez » sans montrer la porte oblige à
+  // la chercher. On la pose à côté de la phrase : le bouton fait ce que la
+  // phrase demande, et rien d'autre — c'est la déconnexion de l'application,
+  // celle qui existe déjà, pressée à la place de l'utilisateur.
+  function poserLaPorte(id) {
+    const el = document.getElementById(id);
+    if (!el || !el.parentElement) return;
+    let b = document.getElementById(id + 'Porte');
+    if (!b) {
+      b = document.createElement('button');
+      b.type = 'button';
+      b.id = id + 'Porte';
+      b.className = 'btn btn-primary btn-sm';
+      b.style.cssText = 'width:auto; margin-top:0.6rem;';
+      b.textContent = 'Hivoaka dia hiditra indray';
+      b.addEventListener('click', function () {
+        const sortie = document.getElementById('logoutBtn');
+        if (sortie) sortie.click();
+      });
+      el.parentElement.insertBefore(b, el.nextSibling);
+    }
+    b.style.display = '';
   }
 
   function dire(id, texte, erreur) {
@@ -90,6 +114,16 @@
     if (!el) return;
     el.textContent = texte || '';
     el.style.color = erreur ? 'var(--red)' : 'var(--cyan)';
+    // Le message change : la porte de la fois d'avant n'a plus de raison
+    // d'être là. Celui qui en a besoin la repose juste après.
+    const b = document.getElementById(id + 'Porte');
+    if (b) b.style.display = 'none';
+  }
+
+  // Le seul message qui s'accompagne d'un geste.
+  function direReentrer(id) {
+    dire(id, REENTRER, true);
+    poserLaPorte(id);
   }
   // Les deux métiers ont chacun leur page, donc chacun sa ligne de message.
   const METIERS = ['mpiasa', 'livreur'];
@@ -223,7 +257,7 @@
     return sessionServeur().then(function (ouvert) {
       // Sans session, les tables répondent « rien » et on afficherait une
       // liste vide comme si l'équipe n'existait pas. Mieux vaut le dire.
-      if (!ouvert) { direPartout(REENTRER, true); return; }
+      if (!ouvert) { METIERS.forEach(function (r) { direReentrer(r + 'Statut'); }); return; }
       return lireVraiment(client, email);
     });
   }
