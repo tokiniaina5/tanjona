@@ -1,0 +1,27 @@
+# Ce qui n'appartient pas au site public.
+#
+# L'envoi vers Netlify téléverse le dossier entier : le schéma de la base, le
+# code des fonctions Edge, les outils et le mode d'emploi partaient donc en
+# ligne avec les pages, et se téléchargeaient à qui connaissait leur nom.
+# Aucun mot de passe ne s'y trouve — ils vivent dans les secrets Supabase —
+# mais ces fichiers disent exactement quelles tables existent, quelles règles
+# les gardent et à partir de combien d'essais un compte se ferme. Autant ne
+# pas le publier.
+#
+# Ils restent dans le dépôt, là où ils servent. Ici, ils ne répondent plus.
+
+/supabase/*                       /index.html   404
+/outils/*                         /index.html   404
+/LISEZ-MOI-SUPABASE.txt           /index.html   404
+/README.md                        /index.html   404
+
+/supabase-schema.sql              /index.html   404
+/supabase-commentaires.sql        /index.html   404
+/supabase-jaime.sql               /index.html   404
+/supabase-paiements.sql           /index.html   404
+/supabase-portefeuille.sql        /index.html   404
+/supabase-portefeuille-2.sql      /index.html   404
+/supabase-portefeuille-depots.sql /index.html   404
+/supabase-sary-mpanoratra.sql     /index.html   404
+/supabase-securite-donnees.sql    /index.html   404
+/supabase-verification.sql        /index.html   404

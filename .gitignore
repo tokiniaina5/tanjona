@@ -4,3 +4,7 @@
 # fanalahidy miafina : tsy versionne, tsy alefa
 .env.secrets
 test-alerte.json
+
+# Archive laissee derriere lui par un envoi Netlify interrompu :
+# 4 Mo du depot entier, ni a versionner ni a publier.
+deploy-*.zip
