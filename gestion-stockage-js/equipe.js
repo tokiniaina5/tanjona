@@ -49,6 +49,42 @@
     const u = (typeof currentUser !== 'undefined') ? currentUser : null;
     return (u && u.email) ? String(u.email).trim().toLowerCase() : '';
   }
+  // ---------- Être entré ici ne suffit pas ----------
+  // L'application peut s'ouvrir sur une session gardée dans le navigateur,
+  // sans que Supabase, lui, ait encore une session ouverte : au retour d'un
+  // code de secours, ou quand le jeton a expiré pendant une longue absence.
+  //
+  // L'écran dit alors « entré », et la base dit « je ne vous connais pas ».
+  // Les tables ne rendent rien — pas une erreur, rien, car une ligne qu'on
+  // n'a pas le droit de voir n'existe pas — et toute écriture est refusée
+  // au nom de la sécurité au niveau des lignes. C'est ce qui faisait une
+  // liste vide sans un mot d'explication.
+  function sessionServeur() {
+    const client = sb();
+    if (!client || !client.auth || !client.auth.getSession) return Promise.resolve(false);
+    return client.auth.getSession().then(function (r) {
+      return !!(r && r.data && r.data.session);
+    }, function () { return false; });
+  }
+
+  const REENTRER = 'Tsy misy fidirana amin\'ny serveur. Mivoaha (Hivoaka) dia midira indray amin\'ny email sy tenimiafina — avy eo dia handeha ny fanoratana.';
+
+  // Un refus de la base est presque toujours le même refus. On regarde une
+  // fois de plus avant d'accuser : session perdue, ou email qui ne correspond
+  // pas à celui du compte ouvert.
+  function expliquerRefus(res, msgId) {
+    const m = (res && res.error && res.error.message) ? String(res.error.message) : '';
+    if (m.indexOf('row-level security') < 0 && m.indexOf('violates') < 0) {
+      dire(msgId, 'Tsy tafiditra : ' + m, true);
+      return;
+    }
+    sessionServeur().then(function (ouvert) {
+      dire(msgId, ouvert
+        ? 'Nolavin\'ny serveur : tsy mifanaraka amin\'ny kaonty misokatra ny email. Mivoaha dia midira indray.'
+        : REENTRER, true);
+    });
+  }
+
   function dire(id, texte, erreur) {
     const el = document.getElementById(id);
     if (!el) return;
@@ -184,6 +220,15 @@
     const email = monEmail();
     if (!client || !email) return Promise.resolve();
 
+    return sessionServeur().then(function (ouvert) {
+      // Sans session, les tables répondent « rien » et on afficherait une
+      // liste vide comme si l'équipe n'existait pas. Mieux vaut le dire.
+      if (!ouvert) { direPartout(REENTRER, true); return; }
+      return lireVraiment(client, email);
+    });
+  }
+
+  function lireVraiment(client, email) {
     return Promise.all([
       client.from('equipe').select('*').eq('owner_email', email)
         .order('created_at', { ascending: true }),
@@ -509,7 +554,7 @@
       ora_andrasana: parseFloat(document.getElementById(role + 'Ora').value) || null
     }).then(function (res) {
       bouton.disabled = false;
-      if (res && res.error) { dire(msg, 'Tsy tafiditra : ' + res.error.message, true); return; }
+      if (res && res.error) { expliquerRefus(res, msg); return; }
       ['Nom', 'Tel', 'Email', 'Ora'].forEach(function (c) {
         document.getElementById(role + c).value = '';
       });
@@ -671,7 +716,7 @@
       livreur_nom: porteur ? porteur.nom : null
     }).then(function (res) {
       bouton.disabled = false;
-      if (res && res.error) { dire('livraisonStatut', 'Tsy tafiditra : ' + res.error.message, true); return; }
+      if (res && res.error) { expliquerRefus(res, 'livraisonStatut'); return; }
       ['livraisonQuoi', 'livraisonClient', 'livraisonAdresse', 'livraisonTel'].forEach(function (id) {
         document.getElementById(id).value = '';
       });
