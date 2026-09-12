@@ -3314,11 +3314,134 @@ const STORAGE_ITEMS = 'stockmanager_items';
       });
     }
 
-    // L'entrée « Installer l'application » a été retirée du menu : le
-    // navigateur propose l'installation lui-même, par l'icône de sa barre
-    // d'adresse, et une entrée de plus dans une liste qu'on parcourt au pouce
-    // ne valait pas de doubler ce qu'il fait déjà. Le manifeste et le service
-    // worker restent — ce sont eux qui rendent l'application installable.
+    // L'entrée « Installer l'application » du menu n'est pas revenue : elle
+    // doublait l'icône de la barre d'adresse, et se trouvait derrière un menu
+    // qu'il fallait penser à ouvrir. C'est un bandeau qui la remplace — il se
+    // montre de lui-même, une fois, et s'en va pour de bon.
+    const bandeau = document.getElementById('bandeauInstall');
+    if(!bandeau) return;
+    // Sorti de l'application pour être posé sur le corps de la page : un
+    // ancêtre porteur d'un « transform » redéfinit ce à quoi « position:fixed »
+    // se rapporte, et le bandeau se serait ancré à lui plutôt qu'à l'écran.
+    document.body.appendChild(bandeau);
+
+    const sous = document.getElementById('bandeauInstallSous');
+    const oui = document.getElementById('bandeauInstallOui');
+    const non = document.getElementById('bandeauInstallNon');
+    const CLE = 'stockmanager_install_propose';
+
+    function dejaRepondu(){
+      try{ return localStorage.getItem(CLE) === 'oui'; }catch(e){ return false; }
+    }
+    function noterLaReponse(){
+      try{ localStorage.setItem(CLE, 'oui'); }catch(e){}
+    }
+    function dejaInstallee(){
+      return window.matchMedia('(display-mode: standalone)').matches ||
+             window.navigator.standalone === true;
+    }
+    function surIOS(){
+      return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    }
+    function applicationVisible(){
+      const el = document.getElementById('appScreen');
+      return !!el && getComputedStyle(el).display !== 'none';
+    }
+
+    // La rangée du bas est fixée à l'écran : le bandeau posé au même endroit
+    // passerait dessous. On mesure sa hauteur et le style s'en sert.
+    function mesurerLaRangee(){
+      const rangee = document.getElementById('stockMainTabs');
+      const h = rangee ? Math.round(rangee.getBoundingClientRect().height) : 0;
+      document.documentElement.style.setProperty('--barre-bas-h', h + 'px');
+    }
+
+    function cacher(){ bandeau.hidden = true; }
+
+    // Chrome et Edge préviennent quand ils sont prêts à proposer l'installation.
+    // On retient l'événement : il ne se redonne pas, et ne s'accepte que sur un
+    // geste de la personne.
+    let invitation = null;
+    window.addEventListener('beforeinstallprompt', function(e){
+      e.preventDefault();
+      invitation = e;
+      envisager();
+    });
+    window.addEventListener('appinstalled', function(){
+      invitation = null;
+      noterLaReponse();
+      cacher();
+    });
+
+    function montrer(){
+      if(invitation){
+        if(sous) sous.textContent = "Une icône sur l'écran d'accueil, et elle s'ouvre en plein écran.";
+        if(oui) oui.hidden = false;
+      }else{
+        // Safari ne propose rien et n'annonce rien : le seul chemin passe par
+        // le menu de partage. Le bouton n'aurait ici rien à déclencher — on le
+        // retire, et la phrase dit où aller.
+        if(sous) sous.textContent = "Touchez Partager ⬆️ puis « Sur l'écran d'accueil ».";
+        if(oui) oui.hidden = true;
+      }
+      mesurerLaRangee();
+      bandeau.hidden = false;
+      // Proposé une fois, et une seule : quelqu'un qui ne répond pas a répondu
+      // quand même. L'icône de la barre d'adresse reste là pour qui se ravise.
+      noterLaReponse();
+    }
+
+    // Le bandeau attend que l'application soit ouverte — sur l'écran de
+    // connexion, il vient avant qu'on sache seulement où l'on entre — puis
+    // laisse passer quelques secondes, le temps que la page se pose.
+    let prevu = false;
+    function envisager(){
+      if(prevu || dejaRepondu() || dejaInstallee()) return;
+      if(!invitation && !surIOS()) return;   // ailleurs, rien à proposer
+      if(!applicationVisible()) return;
+      prevu = true;
+      setTimeout(function(){
+        if(dejaInstallee() || !applicationVisible()){ prevu = false; return; }
+        montrer();
+      }, 5000);
+    }
+
+    if(oui) oui.addEventListener('click', function(){
+      cacher();
+      if(!invitation) return;
+      invitation.prompt();
+      invitation.userChoice.then(function(){ invitation = null; }, function(){});
+    });
+    if(non) non.addEventListener('click', function(){
+      noterLaReponse();
+      cacher();
+    });
+
+    window.addEventListener('resize', function(){
+      if(!bandeau.hidden) mesurerLaRangee();
+    });
+
+    // L'application s'ouvre après coup, une fois la connexion faite : on guette
+    // le moment où elle paraît plutôt que de tenter notre chance au chargement.
+    const ecran = document.getElementById('appScreen');
+    if(ecran){
+      new MutationObserver(envisager).observe(ecran, { attributes: true, attributeFilter: ['style', 'class'] });
+    }
+    envisager();
+  })();
+
+  // ---------------- SANS RÉSEAU ----------------
+  // La page s'ouvre sans réseau — le service worker en garde une copie — mais
+  // Supabase, lui, ne répond pas : les listes restent vides, l'entrée est
+  // refusée, et rien n'en donne la raison. Une bande le dit.
+  (function(){
+    const bande = document.getElementById('bandeauReseau');
+    if(!bande) return;
+    function majReseau(){ bande.hidden = navigator.onLine !== false; }
+    window.addEventListener('online', majReseau);
+    window.addEventListener('offline', majReseau);
+    majReseau();
   })();
 
   // ---------------- PAGES ÉPINGLÉES ----------------

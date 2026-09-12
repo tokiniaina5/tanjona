@@ -16,7 +16,7 @@
 <link rel="apple-touch-icon" href="/icone-192.png">
 <link rel="icon" href="/icone-192.png" type="image/png">
 <link rel="stylesheet" href="gestion-stockage-css/base.css?v=d0e9b428">
-<link rel="stylesheet" href="gestion-stockage-css/components.css?v=f54b93ce">
+<link rel="stylesheet" href="gestion-stockage-css/components.css?v=4eee254f">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -320,6 +320,16 @@
 </div>
 
 <!-- ============ APP ============ -->
+<!-- Sans réseau, la page s'ouvre quand même — le service worker l'a gardée —
+     mais Supabase ne répond pas : les listes restent vides et rien ne dit
+     pourquoi. Ce bandeau le dit. Il vit hors de l'application : la panne de
+     réseau se constate aussi bien devant l'écran de connexion, qui autrement
+     refuse d'entrer sans expliquer. -->
+<div class="bandeau-reseau" id="bandeauReseau" role="status" hidden>
+  <span aria-hidden="true">📡</span>
+  <span>Vous êtes hors ligne — les données peuvent dater.</span>
+</div>
+
 <div id="appScreen">
   <div id="callOverlay" style="display:none; position:fixed; inset:0; background:rgba(4,8,10,0.94); z-index:200; align-items:center; justify-content:center; flex-direction:column; padding:1.5rem; text-align:center;">
     <div id="callIncomingBox" style="display:none;">
@@ -504,6 +514,22 @@
         <!-- Sortie de secours : une rangée vidée ne se remplissait plus jamais
              d'elle-même, et il n'y avait aucun chemin pour y revenir. -->
         <button type="button" class="btn btn-sm" id="barToutRemettre" style="width:100%; margin-top:0.8rem;">↩︎ Averina ny sary rehetra</button>
+      </div>
+
+      <!-- Bandeau d'installation. Le navigateur propose déjà l'installation par
+           une icône de sa barre d'adresse — que personne ne regarde sur un
+           téléphone. Le bandeau la propose une fois, là où le pouce se trouve
+           déjà, puis ne revient plus : refusée ou acceptée, la réponse est prise.
+           Il ne paraît que dans l'application, jamais sur l'écran de connexion,
+           et jamais quand on est déjà dans l'application installée. -->
+      <div class="bandeau-install" id="bandeauInstall" hidden>
+        <span class="bandeau-install-icone" aria-hidden="true">📲</span>
+        <div class="bandeau-install-texte">
+          <strong>Installer l'application</strong>
+          <span id="bandeauInstallSous">Une icône sur l'écran d'accueil, et elle s'ouvre en plein écran.</span>
+        </div>
+        <button type="button" class="btn btn-sm btn-primary" id="bandeauInstallOui">Installer</button>
+        <button type="button" class="bandeau-install-fermer" id="bandeauInstallNon" aria-label="Ne plus proposer">✕</button>
       </div>
 
       <!-- ---- STOCK ---- -->
@@ -1928,7 +1954,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<script src="gestion-stockage-js/common.js?v=e6c4cfc4"></script>
+<script src="gestion-stockage-js/common.js?v=0bed4320"></script>
 <script src="gestion-stockage-js/stock.js?v=275a327a"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=7204c861"></script>

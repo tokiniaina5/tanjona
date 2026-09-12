@@ -315,6 +315,68 @@
   .install-etapes{ margin:0.5rem 0 0; padding-left:1.2rem; font-size:0.76rem; color:var(--text); line-height:1.6; }
   .install-etapes li{ margin-bottom:0.35rem; }
 
+  /* ---------- Bandeau « Installer l'application » ---------- */
+  /* Il se pose au-dessus de la rangée du bas, dont la hauteur est mesurée par
+     le script : posé à même le bord, il tomberait dessous et on ne pourrait
+     ni l'atteindre ni le fermer. */
+  .bandeau-install{
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(var(--barre-bas-h, 0px) + 0.6rem + env(safe-area-inset-bottom, 0px));
+    width: min(460px, calc(100vw - 1.6rem));
+    z-index: 109;
+    display: flex; align-items: center; gap: 0.7rem;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--cyan);
+    border-radius: 12px;
+    padding: 0.65rem 0.8rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+  .bandeau-install[hidden]{ display: none; }
+  .bandeau-install-icone{ font-size: 1.3rem; line-height: 1; }
+  .bandeau-install-texte{ flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.15rem; }
+  .bandeau-install-texte strong{ font-size: 0.82rem; }
+  /* Le sous-titre explique, il n'annonce pas : il reste en retrait, et
+     s'efface tout à fait sur les écrans trop étroits pour le porter. */
+  .bandeau-install-texte span{ font-size: 0.7rem; color: var(--muted); line-height: 1.35; }
+  /* .btn-primary s'étale sur toute la largeur : dans un formulaire c'est ce
+     qu'on veut, dans une ligne qui porte aussi du texte il ne reste plus rien
+     pour lui — le libellé tombait mot à mot, un par ligne. */
+  .bandeau-install .btn{ flex: none; width: auto; white-space: nowrap; }
+  /* Safari n'a rien à déclencher : le bouton s'efface, et le UA seul ne suffit
+     pas toujours à l'effacer quand une classe l'habille. */
+  .bandeau-install .btn[hidden]{ display: none; }
+  .bandeau-install-fermer{
+    flex: none;
+    border: 0; background: none; color: var(--muted);
+    font-size: 0.95rem; line-height: 1; cursor: pointer;
+    padding: 0.3rem;
+  }
+  .bandeau-install-fermer:hover{ color: var(--text); }
+  @media (max-width: 380px){
+    .bandeau-install-texte span{ display: none; }
+  }
+
+  /* ---------- Bandeau « hors ligne » ---------- */
+  /* En haut, et non en bas : le bas appartient à la rangée et au bandeau
+     d'installation, et cette bande-ci doit se voir aussi devant l'écran de
+     connexion, où il n'y a rien d'autre. */
+  .bandeau-reseau{
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 200;
+    display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    background: var(--amber);
+    color: #2a1a05;
+    font-size: 0.74rem; font-weight: 600; line-height: 1.35;
+    padding: 0.4rem 0.9rem;
+    padding-top: calc(0.4rem + env(safe-area-inset-top, 0px));
+    text-align: center;
+  }
+  .bandeau-reseau[hidden]{ display: none; }
+
   .reglages-choix{ display:flex; gap:0.6rem; }
   /* Les deux choix sont d'abord des images : le mot n'est là que pour lever le
      doute sur ce que la main et la machine veulent dire. */
