@@ -443,7 +443,8 @@
         <div class="nav-item" data-section="live">🔴 Live direct</div>
         <div class="nav-item" data-section="appels">📞 Antso mivantana</div>
         <div class="nav-item" data-section="wallet">💰 Portefeuille</div>
-        <div class="nav-item" data-section="equipe">👷 Mpiasa sy livreur</div>
+        <div class="nav-item" data-section="mpiasa">👷 Mpiasa</div>
+        <div class="nav-item" data-section="livreur">🛵 Livreur</div>
         <div class="nav-item" data-section="abonnement">💳 Abonnement</div>
         <div class="nav-item" data-section="fond">🖼️ Fond d'écran</div>
         <div class="nav-item" data-section="connexions" id="navParametres">⚙️ Paramètres</div>
@@ -1487,50 +1488,79 @@
       <!-- L'abonnement se consultait seulement quand il bloquait. Il a sa page,
            comme les autres : on y voit où l'on en est sans attendre d'y être
            forcé. L'écran qui bloque à la fin de l'essai, lui, ne bouge pas. -->
-      <!-- Qui travaille, et ce qu'on leur confie. Les deux dans la même page :
-           une livraison sans porteur ne veut rien dire, et un livreur sans
-           course non plus. -->
-      <section class="section" id="section-equipe">
+      <!-- Mpiasa -->
+      <section class="section" id="section-mpiasa">
         <div class="section-head">
           <div>
-            <h2>Mpiasa sy livreur</h2>
-            <p>Ny olona miasa aminao, sy ny entana ampitondraina azy ireo.</p>
+            <h2>👷 Mpiasa</h2>
+            <p>Ny olona miasa aminao ao an-toerana.</p>
           </div>
         </div>
 
         <div class="panel">
-          <div class="panneau-titre">Hanampy olona</div>
+          <div class="panneau-titre">Hanampy</div>
           <div class="field">
-            <label for="equipeNom">Anarana</label>
-            <input id="equipeNom" type="text" placeholder="RABE Koto">
+            <label for="mpiasaNom">Anarana</label>
+            <input id="mpiasaNom" type="text" placeholder="RABE Koto">
           </div>
           <div class="field">
-            <label for="equipeTel">Laharana finday</label>
-            <input id="equipeTel" type="tel" inputmode="tel" placeholder="034 00 000 00">
+            <label for="mpiasaTel">Laharana finday</label>
+            <input id="mpiasaTel" type="tel" inputmode="tel" placeholder="034 00 000 00">
           </div>
           <div class="field">
-            <label for="equipeRole">Andraikitra</label>
-            <select id="equipeRole">
-              <option value="mpiasa">Mpiasa</option>
-              <option value="livreur">Livreur</option>
-            </select>
+            <label for="mpiasaOra">Ora fiasana andrasana isan'andro</label>
+            <input id="mpiasaOra" type="number" inputmode="decimal" min="0" max="24" step="0.5" placeholder="8">
           </div>
           <div class="field">
-            <label for="equipeOra">Ora fiasana andrasana isan'andro</label>
-            <input id="equipeOra" type="number" inputmode="decimal" min="0" max="24" step="0.5" placeholder="8">
+            <label for="mpiasaEmail">Email (tsy voatery)</label>
+            <input id="mpiasaEmail" type="email" placeholder="koto@exemple.mg">
           </div>
-          <div class="field">
-            <label for="equipeEmail">Email (tsy voatery)</label>
-            <input id="equipeEmail" type="email" placeholder="koto@exemple.mg">
-          </div>
-          <button type="button" class="btn btn-primary btn-sm" id="equipeAjouterBtn">Hampiditra</button>
-          <p id="equipeStatut" style="font-size:0.8rem; color:var(--cyan); margin-top:0.7rem; line-height:1.5;"></p>
+          <button type="button" class="btn btn-primary btn-sm" id="mpiasaAjouterBtn">Hampiditra</button>
+          <p id="mpiasaStatut" style="font-size:0.8rem; color:var(--cyan); margin-top:0.7rem; line-height:1.5;"></p>
         </div>
 
         <div class="panel" style="margin-top:1rem;">
-          <div class="panneau-titre">Ny olona</div>
-          <div id="equipeListe" style="margin-top:0.7rem;"></div>
-          <p class="empty-hint" id="equipeVide" style="display:none;">Mbola tsy misy olona voasoratra.</p>
+          <div class="panneau-titre">Ny lisitra</div>
+          <div id="mpiasaListe" style="margin-top:0.7rem;"></div>
+          <p class="empty-hint" id="mpiasaVide" style="display:none;">Mbola tsy misy voasoratra.</p>
+        </div>
+      </section>
+
+      <!-- Livreur -->
+      <section class="section" id="section-livreur">
+        <div class="section-head">
+          <div>
+            <h2>🛵 Livreur</h2>
+            <p>Ny mpitondra entana, sy ny fandefasana ampanaovina azy ireo.</p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panneau-titre">Hanampy</div>
+          <div class="field">
+            <label for="livreurNom">Anarana</label>
+            <input id="livreurNom" type="text" placeholder="RABE Koto">
+          </div>
+          <div class="field">
+            <label for="livreurTel">Laharana finday</label>
+            <input id="livreurTel" type="tel" inputmode="tel" placeholder="034 00 000 00">
+          </div>
+          <div class="field">
+            <label for="livreurOra">Ora fiasana andrasana isan'andro</label>
+            <input id="livreurOra" type="number" inputmode="decimal" min="0" max="24" step="0.5" placeholder="8">
+          </div>
+          <div class="field">
+            <label for="livreurEmail">Email (tsy voatery)</label>
+            <input id="livreurEmail" type="email" placeholder="koto@exemple.mg">
+          </div>
+          <button type="button" class="btn btn-primary btn-sm" id="livreurAjouterBtn">Hampiditra</button>
+          <p id="livreurStatut" style="font-size:0.8rem; color:var(--cyan); margin-top:0.7rem; line-height:1.5;"></p>
+        </div>
+
+        <div class="panel" style="margin-top:1rem;">
+          <div class="panneau-titre">Ny lisitra</div>
+          <div id="livreurListe" style="margin-top:0.7rem;"></div>
+          <p class="empty-hint" id="livreurVide" style="display:none;">Mbola tsy misy voasoratra.</p>
         </div>
 
         <div class="panel" style="margin-top:1rem;">
@@ -1853,7 +1883,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<script src="gestion-stockage-js/common.js?v=ee3c7387"></script>
+<script src="gestion-stockage-js/common.js?v=e6c4cfc4"></script>
 <script src="gestion-stockage-js/stock.js?v=275a327a"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=7204c861"></script>
@@ -1865,7 +1895,7 @@
 <script src="gestion-stockage-js/parametres.js?v=ccebdd78"></script>
 <script src="gestion-stockage-js/identite.js?v=32177fac"></script>
 <script src="gestion-stockage-js/fond.js?v=9130e24f"></script>
-<script src="gestion-stockage-js/equipe.js?v=f4abea39"></script>
+<script src="gestion-stockage-js/equipe.js?v=68f23934"></script>
 <script src="gestion-stockage-js/vue-mpiasa.js?v=5cbd5f5b"></script>
 <script src="gestion-stockage-js/securite.js?v=9b276532"></script>
 

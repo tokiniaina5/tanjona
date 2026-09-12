@@ -2660,8 +2660,8 @@ const STORAGE_ITEMS = 'stockmanager_items';
     const PAGES = [
       'dash-accueil',
       'dash-articles', 'section-factures', 'section-inviter', 'section-contact',
-      'section-live', 'section-appels', 'section-wallet', 'section-equipe',
-      'section-personne',
+      'section-live', 'section-appels', 'section-wallet',
+      'section-mpiasa', 'section-livreur', 'section-personne',
       'section-abonnement',
       'section-fond',
       'section-connexions', 'section-admin'
@@ -2823,8 +2823,11 @@ const STORAGE_ITEMS = 'stockmanager_items';
       // qu'on revient, et non au fil, d'où l'on ne venait pas.
       if(el && el.id === 'section-personne'){
         el.classList.remove('active');
-        const equipe = document.querySelector('.nav-item[data-section="equipe"]');
-        if(equipe) equipe.click();
+        // On revient à la page d'où l'on venait — celle du métier de la
+        // personne — et non à l'autre, qui ne la contient pas.
+        const metier = el.dataset.metier === 'livreur' ? 'livreur' : 'mpiasa';
+        const retour = document.querySelector('.nav-item[data-section="' + metier + '"]');
+        if(retour) retour.click();
         return;
       }
       if(el && el.id === 'dash-accueil'){
@@ -4204,7 +4207,8 @@ const STORAGE_ITEMS = 'stockmanager_items';
       // Chaque page rafraîchit ce qui lui appartient, depuis qu'elles sont
       // séparées : la liste des lives d'un côté, celle des personnes à
       // appeler de l'autre.
-      if(nav.dataset.section === 'equipe' && typeof renderEquipe === 'function') renderEquipe();
+      if((nav.dataset.section === 'mpiasa' || nav.dataset.section === 'livreur')
+         && typeof renderEquipe === 'function') renderEquipe();
       if(nav.dataset.section === 'live') renderLiveList();
       if(nav.dataset.section === 'appels') renderOnlineClientsForCall();
       // ferme le menu mobile après avoir choisi une section

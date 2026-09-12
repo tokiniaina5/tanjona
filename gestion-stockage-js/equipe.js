@@ -44,6 +44,12 @@
     el.textContent = texte || '';
     el.style.color = erreur ? 'var(--red)' : 'var(--cyan)';
   }
+  // Les deux métiers ont chacun leur page, donc chacun sa ligne de message.
+  const METIERS = ['mpiasa', 'livreur'];
+  function direPartout(texte, erreur) {
+    METIERS.forEach(function (r) { dire(r + 'Statut', texte, erreur); });
+  }
+
   function html(v) {
     return (typeof escapeHtml === 'function') ? escapeHtml(String(v ?? '')) : String(v ?? '');
   }
@@ -92,13 +98,13 @@
     client.from('equipe').update({ jeton: jeton }).eq('id', personne.id)
       .then(function (res) {
         if (bouton) bouton.disabled = false;
-        if (res && res.error) { dire('equipeStatut', 'Tsy voaforona ny rohy : ' + res.error.message, true); return; }
+        if (res && res.error) { direPartout('Tsy voaforona ny rohy : ' + res.error.message, true); return; }
         personne.jeton = jeton;
         montrerLeLien(personne, jeton);
         charger();
       }, function () {
         if (bouton) bouton.disabled = false;
-        dire('equipeStatut', 'Tsy tafita ny fangatahana.', true);
+        direPartout('Tsy tafita ny fangatahana.', true);
       });
   }
 
@@ -108,12 +114,12 @@
     // veut coller le lien dans un message, pas le recopier à la main.
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(lien).then(function () {
-        dire('equipeStatut', 'Voadika ny rohin\'i ' + personne.nom + ' : ' + lien);
+        direPartout('Voadika ny rohin\'i ' + personne.nom + ' : ' + lien);
       }, function () {
-        dire('equipeStatut', 'Rohin\'i ' + personne.nom + ' : ' + lien);
+        direPartout('Rohin\'i ' + personne.nom + ' : ' + lien);
       });
     } else {
-      dire('equipeStatut', 'Rohin\'i ' + personne.nom + ' : ' + lien);
+      direPartout('Rohin\'i ' + personne.nom + ' : ' + lien);
     }
   }
 
@@ -139,19 +145,26 @@
       dessinerLivraisons();
       if (personneOuverte) chargerPersonne(personneOuverte.id);
     }, function () {
-      dire('equipeStatut', 'Tsy tafita ny fangatahana — jereo ny fifandraisana.', true);
+      direPartout('Tsy tafita ny fangatahana — jereo ny fifandraisana.', true);
     });
   }
 
   // ---------- Le registre ----------
   function dessinerEquipe() {
-    const liste = document.getElementById('equipeListe');
-    const vide = document.getElementById('equipeVide');
-    if (!liste) return;
-    liste.innerHTML = '';
-    if (vide) vide.style.display = equipe.length ? 'none' : 'block';
+    METIERS.forEach(dessinerMetier);
+  }
 
-    equipe.forEach(function (p) {
+  function dessinerMetier(role) {
+    const liste = document.getElementById(role + 'Liste');
+    const vide = document.getElementById(role + 'Vide');
+    if (!liste) return;
+    // Chaque page ne montre que les siens : c'est tout l'objet de les avoir
+    // séparés.
+    const gens = equipe.filter(function (p) { return (p.role || 'mpiasa') === role; });
+    liste.innerHTML = '';
+    if (vide) vide.style.display = gens.length ? 'none' : 'block';
+
+    gens.forEach(function (p) {
       const div = document.createElement('div');
       div.style.cssText = 'border:1px solid var(--line); border-radius:8px; padding:0.7rem 0.9rem; margin-bottom:0.6rem; font-size:0.82rem; line-height:1.6;';
       const role = ROLES[p.role] || p.role;
@@ -210,37 +223,39 @@
     });
   }
 
-  function ajouterPersonne() {
+  // Le rôle ne se choisit plus dans une liste : il est celui de la page où
+  // l'on se trouve. Une case de moins, et une erreur de moins.
+  function ajouterPersonne(role) {
     const client = sb();
     const email = monEmail();
-    if (!client || !email) { dire('equipeStatut', 'Midira aloha.', true); return; }
+    const msg = role + 'Statut';
+    if (!client || !email) { dire(msg, 'Midira aloha.', true); return; }
 
-    const nom = document.getElementById('equipeNom').value.trim();
-    if (!nom) { dire('equipeStatut', 'Ilaina ny anarana.', true); return; }
+    const nom = document.getElementById(role + 'Nom').value.trim();
+    if (!nom) { dire(msg, 'Ilaina ny anarana.', true); return; }
 
-    const bouton = document.getElementById('equipeAjouterBtn');
+    const bouton = document.getElementById(role + 'AjouterBtn');
     bouton.disabled = true;
-    dire('equipeStatut', 'Ampidirina…');
+    dire(msg, 'Ampidirina…');
 
     client.from('equipe').insert({
       owner_email: email,
       nom: nom,
-      telephone: document.getElementById('equipeTel').value.trim() || null,
-      role: document.getElementById('equipeRole').value,
-      email: document.getElementById('equipeEmail').value.trim().toLowerCase() || null,
-      ora_andrasana: parseFloat(document.getElementById('equipeOra').value) || null
+      telephone: document.getElementById(role + 'Tel').value.trim() || null,
+      role: role,
+      email: document.getElementById(role + 'Email').value.trim().toLowerCase() || null,
+      ora_andrasana: parseFloat(document.getElementById(role + 'Ora').value) || null
     }).then(function (res) {
       bouton.disabled = false;
-      if (res && res.error) { dire('equipeStatut', 'Tsy tafiditra : ' + res.error.message, true); return; }
-      document.getElementById('equipeNom').value = '';
-      document.getElementById('equipeTel').value = '';
-      document.getElementById('equipeEmail').value = '';
-      document.getElementById('equipeOra').value = '';
-      dire('equipeStatut', 'Voasoratra.');
+      if (res && res.error) { dire(msg, 'Tsy tafiditra : ' + res.error.message, true); return; }
+      ['Nom', 'Tel', 'Email', 'Ora'].forEach(function (c) {
+        document.getElementById(role + c).value = '';
+      });
+      dire(msg, 'Voasoratra.');
       charger();
     }, function () {
       bouton.disabled = false;
-      dire('equipeStatut', 'Tsy tafita ny fangatahana.', true);
+      dire(msg, 'Tsy tafita ny fangatahana.', true);
     });
   }
 
@@ -253,7 +268,7 @@
       charger();
     }, function () {
       if (bouton) bouton.disabled = false;
-      dire('equipeStatut', 'Tsy tafita ny fanovana.', true);
+      direPartout('Tsy tafita ny fanovana.', true);
     });
   }
 
@@ -266,7 +281,7 @@
       charger();
     }, function () {
       if (bouton) bouton.disabled = false;
-      dire('equipeStatut', 'Tsy voafafa.', true);
+      direPartout('Tsy voafafa.', true);
     });
   }
 
@@ -447,6 +462,8 @@
     personneOuverte = p;
     const section = document.getElementById('section-personne');
     if (!section) return;
+    // La croix doit ramener à la page du métier, et non à l'autre.
+    section.dataset.metier = (p.role === 'livreur') ? 'livreur' : 'mpiasa';
     document.getElementById('personneNom').textContent = p.nom;
     document.getElementById('personneRole').textContent =
       (ROLES[p.role] || p.role) + (p.telephone ? ' · ' + p.telephone : '');
@@ -595,8 +612,10 @@
 
   // ---------- Branchement ----------
   document.addEventListener('DOMContentLoaded', function () {
-    const ajouter = document.getElementById('equipeAjouterBtn');
-    if (ajouter) ajouter.addEventListener('click', ajouterPersonne);
+    METIERS.forEach(function (role) {
+      const b = document.getElementById(role + 'AjouterBtn');
+      if (b) b.addEventListener('click', function () { ajouterPersonne(role); });
+    });
 
     const ajouterL = document.getElementById('livraisonAjouterBtn');
     if (ajouterL) ajouterL.addEventListener('click', ajouterLivraison);
@@ -608,8 +627,10 @@
 
     // On relit à l'ouverture de la page : une course a pu avancer pendant
     // qu'on regardait ailleurs.
-    const nav = document.querySelector('#navList .nav-item[data-section="equipe"]');
-    if (nav) nav.addEventListener('click', charger);
+    METIERS.forEach(function (role) {
+      const nav = document.querySelector('#navList .nav-item[data-section="' + role + '"]');
+      if (nav) nav.addEventListener('click', charger);
+    });
   });
 
   // L'application appelle ceci quand elle s'ouvre : on en profite pour
