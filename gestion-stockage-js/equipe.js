@@ -135,6 +135,49 @@
     }
   }
 
+  // ---------- Le lien du client ----------
+  // Le commerçant l'envoie par SMS. Il ne donne rien d'autre que cette
+  // course-là : ni le stock, ni les autres clients, ni le téléphone du
+  // livreur. Et il s'éteint de lui-même — la fonction cesse de rendre une
+  // position dès que la course est arrivée ou annulée.
+  function lienSuivi(jeton) {
+    return location.origin + location.pathname + '?suivi=' + jeton;
+  }
+
+  function donnerLeLienClient(course, bouton) {
+    const client = sb();
+    if (!client) return;
+    if (course.jeton) { montrerLienClient(course, course.jeton); return; }
+
+    if (bouton) bouton.disabled = true;
+    const jeton = nouveauJeton();
+    client.from('livraisons').update({ jeton: jeton }).eq('id', course.id)
+      .then(function (res) {
+        if (bouton) bouton.disabled = false;
+        if (res && res.error) { dire('livraisonStatut', 'Tsy voaforona ny rohy : ' + res.error.message, true); return; }
+        course.jeton = jeton;
+        montrerLienClient(course, jeton);
+        charger();
+      }, function () {
+        if (bouton) bouton.disabled = false;
+        dire('livraisonStatut', 'Tsy tafita ny fangatahana.', true);
+      });
+  }
+
+  function montrerLienClient(course, jeton) {
+    const lien = lienSuivi(jeton);
+    const nom = course.client || course.designation;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(lien).then(function () {
+        dire('livraisonStatut', 'Voadika ny rohin\'i ' + nom + ' : ' + lien);
+      }, function () {
+        dire('livraisonStatut', 'Rohin\'i ' + nom + ' : ' + lien);
+      });
+    } else {
+      dire('livraisonStatut', 'Rohin\'i ' + nom + ' : ' + lien);
+    }
+  }
+
   // ---------- Lire ----------
   function charger() {
     const client = sb();
@@ -254,8 +297,28 @@
     positions = Object.keys(vus).map(function (k) { return vus[k]; });
   }
 
+  // Le navigateur n'en garde qu'une copie, pour que la carte se dessine sans
+  // attendre le serveur au prochain chargement. Ce qui fait foi est dans le
+  // compte : c'est là que le téléphone du patron la trouvera, et c'est de là
+  // que la fonction la tend au client qui suit sa livraison.
   function cleMaps() {
     try { return (localStorage.getItem(CLE_MAPS) || '').trim(); } catch (e) { return ''; }
+  }
+
+  function lireLaCleDuCompte() {
+    const client = sb();
+    const email = monEmail();
+    if (!client || !email) return;
+    client.from('reglages').select('cle_maps').eq('owner_email', email).maybeSingle()
+      .then(function (res) {
+        const v = (res && res.data && res.data.cle_maps) ? String(res.data.cle_maps).trim() : '';
+        if (!v || v === cleMaps()) return;
+        try { localStorage.setItem(CLE_MAPS, v); } catch (e) {}
+        const champ = document.getElementById('carteCle');
+        if (champ && !champ.value) champ.value = v;
+        mapsDemandee = null; carte = null; reperes = {};
+        dessinerCarte();
+      }, function () {});
   }
 
   function depuis(iso) {
@@ -401,8 +464,25 @@
     } catch (e) {}
     // Une clé qu'on change demande un nouveau chargement du script.
     mapsDemandee = null; carte = null; reperes = {};
-    dire('carteCleStatut', v ? 'Voatahiry. Havaozina ny sarintany.' : 'Nesorina ny clé.');
     dessinerCarte();
+
+    const client = sb();
+    const email = monEmail();
+    if (!client || !email) {
+      dire('carteCleStatut', 'Voatahiry ato amin\'ity fitaovana ity ihany — midira aloha raha tianao ho any amin\'ny kaontinao.', true);
+      return;
+    }
+    dire('carteCleStatut', 'Tehirizina…');
+    client.from('reglages').upsert({
+      owner_email: email, cle_maps: v || null, maj: new Date().toISOString()
+    }, { onConflict: 'owner_email' }).then(function (res) {
+      if (res && res.error) { dire('carteCleStatut', 'Tsy voatahiry : ' + res.error.message, true); return; }
+      dire('carteCleStatut', v
+        ? 'Voatahiry amin\'ny kaontinao. Hiasa amin\'ny fitaovanao rehetra, ary hahitan\'ny mpanjifa sarintany.'
+        : 'Nesorina ny clé.');
+    }, function () {
+      dire('carteCleStatut', 'Tsy tafita ny fangatahana.', true);
+    });
   }
 
   // Le rôle ne se choisit plus dans une liste : il est celui de la page où
@@ -540,6 +620,14 @@
         });
         actions.appendChild(annuler);
       }
+
+      const rohyClient = document.createElement('button');
+      rohyClient.type = 'button';
+      rohyClient.className = 'btn btn-sm';
+      rohyClient.textContent = l.jeton ? 'Adikao ny rohy mpanjifa' : 'Rohy ho an\'ny mpanjifa';
+      rohyClient.title = 'Ny rohy handefasana amin\'ny mpanjifa mba hanarahany ny entany';
+      rohyClient.addEventListener('click', function () { donnerLeLienClient(l, rohyClient); });
+      actions.appendChild(rohyClient);
 
       const retirer = document.createElement('button');
       retirer.type = 'button';
@@ -873,6 +961,7 @@
   // déposer la copie du stock, puisque c'est le moment où elle est fraîche.
   window.renderEquipe = function () {
     deposerLeStock();
+    lireLaCleDuCompte();
     return charger();
   };
   window.deposerLeStockPartage = deposerLeStock;
