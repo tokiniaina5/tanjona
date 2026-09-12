@@ -11,21 +11,13 @@
 # Ils restent dans le dépôt, là où ils servent. Ici, ils ne répondent plus.
 #
 # Le point d'exclamation n'est pas décoratif : sans lui, un fichier qui existe
-# vraiment l'emporte sur la règle, et la règle ne sert à rien. C'est ce qui
-# vient d'arriver au premier essai.
+# vraiment l'emporte sur la règle, et la règle ne sert à rien.
+#
+# Les fichiers SQL vivent sous supabase/ et non plus à la racine : une liste
+# nommant chaque fichier laissait passer le suivant, celui qu'on écrirait
+# demain. Un dossier, lui, couvre ce qui n'existe pas encore.
 
-/supabase/*                        /index.html  404!
-/outils/*                          /index.html  404!
-/LISEZ-MOI-SUPABASE.txt            /index.html  404!
-/README.md                         /index.html  404!
-
-/supabase-schema.sql               /index.html  404!
-/supabase-commentaires.sql         /index.html  404!
-/supabase-jaime.sql                /index.html  404!
-/supabase-paiements.sql            /index.html  404!
-/supabase-portefeuille.sql         /index.html  404!
-/supabase-portefeuille-2.sql       /index.html  404!
-/supabase-portefeuille-depots.sql  /index.html  404!
-/supabase-sary-mpanoratra.sql      /index.html  404!
-/supabase-securite-donnees.sql     /index.html  404!
-/supabase-verification.sql         /index.html  404!
+/supabase/*              /index.html  404!
+/outils/*                /index.html  404!
+/LISEZ-MOI-SUPABASE.txt  /index.html  404!
+/README.md               /index.html  404!

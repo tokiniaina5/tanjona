@@ -27,7 +27,7 @@ CE QUI A ÉTÉ CORRIGÉ
 ------------------------------------------
 1. Ouvrez votre projet sur https://supabase.com
 2. Allez dans "SQL Editor"
-3. Collez tout le contenu du fichier "supabase-schema.sql" et exécutez-le.
+3. Collez tout le contenu du fichier "supabase/sql/supabase-schema.sql" et exécutez-le.
    Cela crée 3 tables : site_visits, contact_messages, site_content,
    avec les règles de sécurité (RLS) déjà configurées.
 
@@ -113,7 +113,7 @@ de son choix au taux du jour, et retirable vers un compte extérieur :
 PayPal, compte bancaire, ou Mobile Money.
 
 À exécuter dans Supabase (SQL Editor) : le fichier
-"supabase-portefeuille.sql". Puis, dans le Terminal :
+"supabase/sql/supabase-portefeuille.sql". Puis, dans le Terminal :
   supabase functions deploy wallet
 (AVEC vérification du jeton, donc SANS --no-verify-jwt : c'est ce qui
 garantit que celui qui retire est bien celui qu'il prétend être.)
@@ -153,7 +153,7 @@ l'application. Rien ne pouvait y entrer. Maintenant si.
 Ce qu'il y a à faire, dans l'ordre :
 
 1. SQL. Dans Supabase > SQL Editor > New query, collez tout le
-   contenu de "supabase-portefeuille-depots.sql" et exécutez.
+   contenu de "supabase/sql/supabase-portefeuille-depots.sql" et exécutez.
    La requête de fin doit afficher les colonnes de la table.
 
 2. Un secret, que vous inventez. C'est le mot de passe entre votre
@@ -313,7 +313,7 @@ coordonnées partent automatiquement chez le propriétaire :
 Le client, lui, entre directement dans l'application : il n'y a
 rien à valider de votre part.
 
-À exécuter dans Supabase : la fin de "supabase-schema.sql"
+À exécuter dans Supabase : la fin de "supabase/sql/supabase-schema.sql"
 (table "client_signups").
 
 
@@ -340,7 +340,7 @@ Le compte du PROPRIÉTAIRE n'est jamais bloqué automatiquement : il
 serait enfermé dehors. Ses tentatives sont journalisées et lui sont
 signalées.
 
-À exécuter dans Supabase : la fin de "supabase-schema.sql"
+À exécuter dans Supabase : la fin de "supabase/sql/supabase-schema.sql"
 (tables "security_events" et "blocked_accounts").
 
 LIMITE : le solde réel PayPal n'est pas lisible par l'application ;
