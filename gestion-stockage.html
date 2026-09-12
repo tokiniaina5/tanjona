@@ -443,6 +443,7 @@
         <div class="nav-item" data-section="live">🔴 Live direct</div>
         <div class="nav-item" data-section="appels">📞 Antso mivantana</div>
         <div class="nav-item" data-section="wallet">💰 Portefeuille</div>
+        <div class="nav-item" data-section="equipe">👷 Mpiasa sy livreur</div>
         <div class="nav-item" data-section="abonnement">💳 Abonnement</div>
         <div class="nav-item" data-section="fond">🖼️ Fond d'écran</div>
         <div class="nav-item" data-section="connexions" id="navParametres">⚙️ Paramètres</div>
@@ -1486,6 +1487,81 @@
       <!-- L'abonnement se consultait seulement quand il bloquait. Il a sa page,
            comme les autres : on y voit où l'on en est sans attendre d'y être
            forcé. L'écran qui bloque à la fin de l'essai, lui, ne bouge pas. -->
+      <!-- Qui travaille, et ce qu'on leur confie. Les deux dans la même page :
+           une livraison sans porteur ne veut rien dire, et un livreur sans
+           course non plus. -->
+      <section class="section" id="section-equipe">
+        <div class="section-head">
+          <div>
+            <h2>Mpiasa sy livreur</h2>
+            <p>Ny olona miasa aminao, sy ny entana ampitondraina azy ireo.</p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panneau-titre">Hanampy olona</div>
+          <div class="field">
+            <label for="equipeNom">Anarana</label>
+            <input id="equipeNom" type="text" placeholder="RABE Koto">
+          </div>
+          <div class="field">
+            <label for="equipeTel">Laharana finday</label>
+            <input id="equipeTel" type="tel" inputmode="tel" placeholder="034 00 000 00">
+          </div>
+          <div class="field">
+            <label for="equipeRole">Andraikitra</label>
+            <select id="equipeRole">
+              <option value="mpiasa">Mpiasa</option>
+              <option value="livreur">Livreur</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="equipeEmail">Email (tsy voatery)</label>
+            <input id="equipeEmail" type="email" placeholder="koto@exemple.mg">
+          </div>
+          <button type="button" class="btn btn-primary btn-sm" id="equipeAjouterBtn">Hampiditra</button>
+          <p id="equipeStatut" style="font-size:0.8rem; color:var(--cyan); margin-top:0.7rem; line-height:1.5;"></p>
+        </div>
+
+        <div class="panel" style="margin-top:1rem;">
+          <div class="panneau-titre">Ny olona</div>
+          <div id="equipeListe" style="margin-top:0.7rem;"></div>
+          <p class="empty-hint" id="equipeVide" style="display:none;">Mbola tsy misy olona voasoratra.</p>
+        </div>
+
+        <div class="panel" style="margin-top:1rem;">
+          <div class="panneau-titre">Fandefasana vaovao</div>
+          <div class="field">
+            <label for="livraisonQuoi">Entana</label>
+            <input id="livraisonQuoi" type="text" placeholder="Fonosana 2 — savony">
+          </div>
+          <div class="field">
+            <label for="livraisonClient">Mpanjifa</label>
+            <input id="livraisonClient" type="text" placeholder="RASOA Hanta">
+          </div>
+          <div class="field">
+            <label for="livraisonAdresse">Adiresy</label>
+            <input id="livraisonAdresse" type="text" placeholder="Analakely, lot II M 12">
+          </div>
+          <div class="field">
+            <label for="livraisonTel">Laharana finday</label>
+            <input id="livraisonTel" type="tel" inputmode="tel" placeholder="033 00 000 00">
+          </div>
+          <div class="field">
+            <label for="livraisonLivreur">Livreur</label>
+            <select id="livraisonLivreur"></select>
+          </div>
+          <button type="button" class="btn btn-primary btn-sm" id="livraisonAjouterBtn">Hampiditra</button>
+          <p id="livraisonStatut" style="font-size:0.8rem; color:var(--cyan); margin-top:0.7rem; line-height:1.5;"></p>
+        </div>
+
+        <div class="panel" style="margin-top:1rem;">
+          <div class="panneau-titre">Ny fandefasana</div>
+          <div id="livraisonListe" style="margin-top:0.7rem;"></div>
+          <p class="empty-hint" id="livraisonVide" style="display:none;">Mbola tsy misy fandefasana.</p>
+        </div>
+      </section>
+
       <section class="section" id="section-abonnement">
         <div class="section-head">
           <div>
@@ -1727,7 +1803,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<script src="gestion-stockage-js/common.js?v=beff35b7"></script>
+<script src="gestion-stockage-js/common.js?v=5c65978d"></script>
 <script src="gestion-stockage-js/stock.js?v=275a327a"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=7204c861"></script>
@@ -1739,6 +1815,7 @@
 <script src="gestion-stockage-js/parametres.js?v=ccebdd78"></script>
 <script src="gestion-stockage-js/identite.js?v=32177fac"></script>
 <script src="gestion-stockage-js/fond.js?v=9130e24f"></script>
+<script src="gestion-stockage-js/equipe.js?v=e9590267"></script>
 <script src="gestion-stockage-js/securite.js?v=9b276532"></script>
 
 

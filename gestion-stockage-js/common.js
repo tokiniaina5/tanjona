@@ -2654,7 +2654,8 @@ const STORAGE_ITEMS = 'stockmanager_items';
     const PAGES = [
       'dash-accueil',
       'dash-articles', 'section-factures', 'section-inviter', 'section-contact',
-      'section-live', 'section-appels', 'section-wallet', 'section-abonnement',
+      'section-live', 'section-appels', 'section-wallet', 'section-equipe',
+      'section-abonnement',
       'section-fond',
       'section-connexions', 'section-admin'
     ];
@@ -4182,6 +4183,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
       // Chaque page rafraîchit ce qui lui appartient, depuis qu'elles sont
       // séparées : la liste des lives d'un côté, celle des personnes à
       // appeler de l'autre.
+      if(nav.dataset.section === 'equipe' && typeof renderEquipe === 'function') renderEquipe();
       if(nav.dataset.section === 'live') renderLiveList();
       if(nav.dataset.section === 'appels') renderOnlineClientsForCall();
       // ferme le menu mobile après avoir choisi une section
