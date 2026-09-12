@@ -1562,6 +1562,50 @@
         </div>
       </section>
 
+      <!-- La fenêtre d'UNE personne. Une seule pour tout le monde : on la
+           remplit de celle qu'on vient d'ouvrir. Un élément par personne
+           vivrait dans la page pour rien — on n'en regarde qu'une à la fois.
+
+           Elle n'est pas dans le menu : on y entre en pressant un nom. -->
+      <section class="section" id="section-personne">
+        <div class="section-head">
+          <div>
+            <h2 id="personneNom">—</h2>
+            <p id="personneRole">—</p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panneau-titre">Anio</div>
+          <p id="personneEtat" style="font-size:0.9rem; line-height:1.7; margin:0;">—</p>
+          <div class="actions-row" style="margin-top:0.9rem;">
+            <button type="button" class="btn btn-primary btn-sm" id="personneTongaBtn" style="width:auto;">Tonga</button>
+            <button type="button" class="btn btn-sm" id="personneLasaBtn">Lasa</button>
+          </div>
+          <p id="personnePointageStatut" style="font-size:0.8rem; color:var(--cyan); margin-top:0.7rem; line-height:1.5;"></p>
+        </div>
+
+        <div class="panel" style="margin-top:1rem;">
+          <div class="panneau-titre">Ora niasana</div>
+          <div style="display:flex; gap:1.2rem; flex-wrap:wrap; margin-top:0.5rem;">
+            <div>
+              <div class="plan-note">Anio</div>
+              <div class="plan-price" id="personneHeuresJour" style="font-size:1.2rem; color:var(--cyan);">—</div>
+            </div>
+            <div>
+              <div class="plan-note">Herinandro</div>
+              <div class="plan-price" id="personneHeuresSemaine" style="font-size:1.2rem; color:var(--cyan);">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:1rem;">
+          <div class="panneau-titre">Ny fivezivezena</div>
+          <div id="personnePointages" style="margin-top:0.7rem;"></div>
+          <p class="empty-hint" id="personnePointagesVide" style="display:none;">Mbola tsy nisy pointage.</p>
+        </div>
+      </section>
+
       <section class="section" id="section-abonnement">
         <div class="section-head">
           <div>
@@ -1803,7 +1847,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<script src="gestion-stockage-js/common.js?v=5c65978d"></script>
+<script src="gestion-stockage-js/common.js?v=d2168cff"></script>
 <script src="gestion-stockage-js/stock.js?v=275a327a"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=7204c861"></script>
@@ -1815,7 +1859,7 @@
 <script src="gestion-stockage-js/parametres.js?v=ccebdd78"></script>
 <script src="gestion-stockage-js/identite.js?v=32177fac"></script>
 <script src="gestion-stockage-js/fond.js?v=9130e24f"></script>
-<script src="gestion-stockage-js/equipe.js?v=e9590267"></script>
+<script src="gestion-stockage-js/equipe.js?v=5ffb6813"></script>
 <script src="gestion-stockage-js/securite.js?v=9b276532"></script>
 
 

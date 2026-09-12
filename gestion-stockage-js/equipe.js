@@ -24,6 +24,11 @@
 
   let equipe = [];
   let livraisons = [];
+  // Les venues encore ouvertes — arrivée inscrite, départ vide. C'est ce vide
+  // qui dit qui est au travail, sans rien avoir à calculer.
+  let ouverts = {};
+  // Qui est affiché dans la fenêtre d'une personne.
+  let personneOuverte = null;
 
   function sb() {
     return window.__sb || null;
@@ -53,13 +58,17 @@
       client.from('equipe').select('*').eq('owner_email', email)
         .order('created_at', { ascending: true }),
       client.from('livraisons').select('*').eq('owner_email', email)
-        .order('created_at', { ascending: false }).limit(100)
+        .order('created_at', { ascending: false }).limit(100),
+      client.from('pointages').select('*').eq('owner_email', email).is('depart', null)
     ]).then(function (res) {
       equipe = (res[0] && res[0].data) || [];
       livraisons = (res[1] && res[1].data) || [];
+      ouverts = {};
+      ((res[2] && res[2].data) || []).forEach(function (o) { ouverts[o.equipe_id] = o; });
       dessinerEquipe();
       remplirLivreurs();
       dessinerLivraisons();
+      if (personneOuverte) chargerPersonne(personneOuverte.id);
     }, function () {
       dire('equipeStatut', 'Tsy tafita ny fangatahana — jereo ny fifandraisana.', true);
     });
@@ -77,15 +86,25 @@
       const div = document.createElement('div');
       div.style.cssText = 'border:1px solid var(--line); border-radius:8px; padding:0.7rem 0.9rem; margin-bottom:0.6rem; font-size:0.82rem; line-height:1.6;';
       const role = ROLES[p.role] || p.role;
+      const auTravail = !!ouverts[p.id];
       div.innerHTML =
         '<strong style="color:var(--text);">' + html(p.nom) + '</strong>' +
         ' · <span style="color:var(--muted);">' + html(role) + '</span>' +
+        (auTravail ? ' · <span style="color:var(--cyan);">eo am-piasana</span>' : '') +
         (p.actif ? '' : ' · <span style="color:var(--red);">tsy miasa intsony</span>') +
         (p.telephone ? '<br><a href="tel:' + html(p.telephone) + '" style="color:var(--cyan);">' + html(p.telephone) + '</a>' : '') +
         (p.email ? '<br><span style="color:var(--muted);">' + html(p.email) + '</span>' : '');
 
       const actions = document.createElement('div');
       actions.style.cssText = 'display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.6rem;';
+
+      const ouvrir = document.createElement('button');
+      ouvrir.type = 'button';
+      ouvrir.className = 'btn btn-primary btn-sm';
+      ouvrir.style.width = 'auto';
+      ouvrir.textContent = 'Sokafy';
+      ouvrir.addEventListener('click', function () { ouvrirPersonne(p); });
+      actions.appendChild(ouvrir);
 
       const bascule = document.createElement('button');
       bascule.type = 'button';
@@ -326,6 +345,147 @@
     });
   }
 
+  // ---------- La fenêtre d'une personne ----------
+  function heures(ms) {
+    const h = Math.floor(ms / 3600000);
+    const m = Math.round((ms % 3600000) / 60000);
+    return h + ' h ' + (m < 10 ? '0' : '') + m;
+  }
+  function debutDuJour() {
+    const d = new Date(); d.setHours(0, 0, 0, 0); return d;
+  }
+  function debutDeSemaine() {
+    const d = debutDuJour();
+    // Lundi : le dimanche vaut 0 en JavaScript, et une semaine qui commence
+    // le dimanche ne dirait rien à personne ici.
+    const jour = (d.getDay() + 6) % 7;
+    d.setDate(d.getDate() - jour);
+    return d;
+  }
+
+  function ouvrirPersonne(p) {
+    personneOuverte = p;
+    const section = document.getElementById('section-personne');
+    if (!section) return;
+    document.getElementById('personneNom').textContent = p.nom;
+    document.getElementById('personneRole').textContent =
+      (ROLES[p.role] || p.role) + (p.telephone ? ' · ' + p.telephone : '');
+    // Les pages s'ouvrent toutes de la même façon : on retire l'active, on
+    // pose la sienne. Ici il n'y a pas d'entrée de menu, on le fait à la main.
+    document.querySelectorAll('.section').forEach(function (s) { s.classList.remove('active'); });
+    const fond = document.getElementById('section-stock');
+    if (fond) fond.classList.add('active');
+    section.classList.add('active');
+    chargerPersonne(p.id);
+  }
+
+  function chargerPersonne(id) {
+    const client = sb();
+    const email = monEmail();
+    if (!client || !email) return;
+    client.from('pointages').select('*')
+      .eq('owner_email', email).eq('equipe_id', id)
+      .order('arrivee', { ascending: false }).limit(60)
+      .then(function (res) {
+        dessinerPersonne((res && res.data) || []);
+      }, function () {
+        dire('personnePointageStatut', 'Tsy tafita ny fangatahana.', true);
+      });
+  }
+
+  function dessinerPersonne(lignes) {
+    const ouvert = lignes.filter(function (l) { return !l.depart; })[0] || null;
+    const etat = document.getElementById('personneEtat');
+    if (etat) {
+      etat.innerHTML = ouvert
+        ? 'Eo am-piasana hatramin\'ny <strong style="color:var(--cyan);">' +
+          new Date(ouvert.arrivee).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) +
+          '</strong>.'
+        : 'Tsy eo am-piasana amin\'izao fotoana izao.';
+    }
+    const tonga = document.getElementById('personneTongaBtn');
+    const lasa = document.getElementById('personneLasaBtn');
+    if (tonga) tonga.disabled = !!ouvert;
+    if (lasa) lasa.disabled = !ouvert;
+
+    // Le total ne compte que ce qui est terminé, plus la venue en cours
+    // arrêtée à maintenant : sinon une journée non close ne compterait pas.
+    const jour = debutDuJour().getTime();
+    const semaine = debutDeSemaine().getTime();
+    let msJour = 0, msSemaine = 0;
+    lignes.forEach(function (l) {
+      const debut = new Date(l.arrivee).getTime();
+      const fin = l.depart ? new Date(l.depart).getTime() : Date.now();
+      const duree = Math.max(0, fin - debut);
+      if (debut >= jour) msJour += duree;
+      if (debut >= semaine) msSemaine += duree;
+    });
+    const hj = document.getElementById('personneHeuresJour');
+    const hs = document.getElementById('personneHeuresSemaine');
+    if (hj) hj.textContent = heures(msJour);
+    if (hs) hs.textContent = heures(msSemaine);
+
+    const liste = document.getElementById('personnePointages');
+    const vide = document.getElementById('personnePointagesVide');
+    if (!liste) return;
+    liste.innerHTML = '';
+    if (vide) vide.style.display = lignes.length ? 'none' : 'block';
+    lignes.forEach(function (l) {
+      const d = new Date(l.arrivee);
+      const f = l.depart ? new Date(l.depart) : null;
+      const div = document.createElement('div');
+      div.style.cssText = 'border:1px solid var(--line); border-radius:8px; padding:0.6rem 0.9rem; margin-bottom:0.5rem; font-size:0.82rem; line-height:1.6;';
+      div.innerHTML =
+        '<strong style="color:var(--text);">' + d.toLocaleDateString('fr-FR') + '</strong>' +
+        ' · ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) +
+        ' → ' + (f ? f.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+                   : '<span style="color:var(--cyan);">mbola eo</span>') +
+        '<br><span style="color:var(--muted);">' +
+        heures(Math.max(0, (f ? f.getTime() : Date.now()) - d.getTime())) + '</span>';
+      liste.appendChild(div);
+    });
+  }
+
+  function pointerArrivee() {
+    const client = sb();
+    const email = monEmail();
+    if (!client || !email || !personneOuverte) return;
+    const b = document.getElementById('personneTongaBtn');
+    if (b) b.disabled = true;
+    dire('personnePointageStatut', 'Soratana…');
+    client.from('pointages').insert({
+      owner_email: email, equipe_id: personneOuverte.id
+    }).then(function (res) {
+      if (res && res.error) { dire('personnePointageStatut', 'Tsy voasoratra : ' + res.error.message, true); if (b) b.disabled = false; return; }
+      dire('personnePointageStatut', 'Voasoratra ny fotoana nahatongavana.');
+      charger();
+    }, function () {
+      if (b) b.disabled = false;
+      dire('personnePointageStatut', 'Tsy tafita ny fangatahana.', true);
+    });
+  }
+
+  function pointerDepart() {
+    const client = sb();
+    const email = monEmail();
+    if (!client || !email || !personneOuverte) return;
+    const b = document.getElementById('personneLasaBtn');
+    if (b) b.disabled = true;
+    dire('personnePointageStatut', 'Soratana…');
+    // La venue encore ouverte, et elle seule : on ne referme pas une journée
+    // d'hier au passage.
+    client.from('pointages').update({ depart: new Date().toISOString() })
+      .eq('owner_email', email).eq('equipe_id', personneOuverte.id).is('depart', null)
+      .then(function (res) {
+        if (res && res.error) { dire('personnePointageStatut', 'Tsy voasoratra : ' + res.error.message, true); if (b) b.disabled = false; return; }
+        dire('personnePointageStatut', 'Voasoratra ny fotoana nialana.');
+        charger();
+      }, function () {
+        if (b) b.disabled = false;
+        dire('personnePointageStatut', 'Tsy tafita ny fangatahana.', true);
+      });
+  }
+
   // ---------- Branchement ----------
   document.addEventListener('DOMContentLoaded', function () {
     const ajouter = document.getElementById('equipeAjouterBtn');
@@ -333,6 +493,11 @@
 
     const ajouterL = document.getElementById('livraisonAjouterBtn');
     if (ajouterL) ajouterL.addEventListener('click', ajouterLivraison);
+
+    const tonga = document.getElementById('personneTongaBtn');
+    if (tonga) tonga.addEventListener('click', pointerArrivee);
+    const lasa = document.getElementById('personneLasaBtn');
+    if (lasa) lasa.addEventListener('click', pointerDepart);
 
     // On relit à l'ouverture de la page : une course a pu avancer pendant
     // qu'on regardait ailleurs.

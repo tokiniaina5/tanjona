@@ -2655,6 +2655,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
       'dash-accueil',
       'dash-articles', 'section-factures', 'section-inviter', 'section-contact',
       'section-live', 'section-appels', 'section-wallet', 'section-equipe',
+      'section-personne',
       'section-abonnement',
       'section-fond',
       'section-connexions', 'section-admin'
@@ -2812,6 +2813,14 @@ const STORAGE_ITEMS = 'stockmanager_items';
     let filFermeExpres = false;
 
     function fermerFenetre(el){
+      // La fenêtre d'une personne s'est ouverte depuis l'équipe : c'est là
+      // qu'on revient, et non au fil, d'où l'on ne venait pas.
+      if(el && el.id === 'section-personne'){
+        el.classList.remove('active');
+        const equipe = document.querySelector('.nav-item[data-section="equipe"]');
+        if(equipe) equipe.click();
+        return;
+      }
       if(el && el.id === 'dash-accueil'){
         filFermeExpres = true;
         el.classList.remove('active');
