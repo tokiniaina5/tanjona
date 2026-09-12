@@ -149,6 +149,32 @@
     if (pos) poserLaCarte(pos, d.livreur);
   }
 
+  // ---------- Dire pourquoi ----------
+  // « Tsy mety ny rohy » ne se répare pas : il faut savoir si le lien est
+  // inconnu, suspendu, ou si c'est le serveur qui n'a pas répondu. Le
+  // serveur le dit déjà ; il ne restait qu'à l'écouter.
+  const RAISONS = {
+    'lien invalide': 'Tsy fantatra ity rohy ity. Mety nesorina ilay fandefasana, na nataovy rohy vaovao ka lany andro ity.',
+    'lien suspendu': 'Naato ity rohy ity. Ny tompon\'ny fivarotana no afaka mamelona azy indray.',
+    'méthode refusée': 'Tsy nety ny fangatahana.',
+    'configuration incomplète': 'Tsy vita ny fandaminana ny serveur.'
+  };
+
+  // Le corps de la réponse d'erreur n'arrive pas tout seul : supabase-js
+  // tend la réponse brute, et c'est à nous de l'ouvrir.
+  function pourquoi(err, repli) {
+    try {
+      const ctx = err && err.context;
+      if (ctx && typeof ctx.json === 'function') {
+        return ctx.json().then(function (b) {
+          const m = b && b.error ? String(b.error) : '';
+          return RAISONS[m] || (m ? repli + ' (' + m + ')' : repli);
+        }, function () { return repli; });
+      }
+    } catch (e) {}
+    return Promise.resolve(repli);
+  }
+
   function erreur(message) {
     const ecran = poserLEcran();
     ecran.innerHTML =
@@ -166,7 +192,10 @@
       return;
     }
     client.functions.invoke('suivi', { body: { jeton: jeton } }).then(function (res) {
-      if (res && res.error) { erreur('Tsy mahazo alalana ity rohy ity.'); return; }
+      if (res && res.error) {
+        pourquoi(res.error, 'Tsy mahazo alalana ity rohy ity.').then(erreur);
+        return;
+      }
       const d = res && res.data;
       if (!d || d.error) { erreur('Tsy mahazo alalana ity rohy ity.'); return; }
       dessiner(d);
