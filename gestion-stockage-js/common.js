@@ -337,6 +337,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
     });
     saveNotifications(list.slice(0, 50));
     renderNotifications();
+    // La copie du stock que regardent les employes : on la depose quand
+    // l'application s'ouvre, moment ou elle est fraiche.
+    if(typeof deposerLeStockPartage === 'function') deposerLeStockPartage();
   }
   function notifIcon(type){
     if(type === 'sortie') return '📤';
@@ -504,6 +507,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
     setupInviteLink();
     majPageAbonnement();
     renderNotifications();
+    // La copie du stock que regardent les employes : on la depose quand
+    // l'application s'ouvre, moment ou elle est fraiche.
+    if(typeof deposerLeStockPartage === 'function') deposerLeStockPartage();
     // Demandes de déblocage en attente : le propriétaire l'apprend en ouvrant
     // l'application, pas seulement en passant par Paramètres.
     if(typeof checkPendingUnlockRequests === 'function') checkPendingUnlockRequests();
@@ -4116,6 +4122,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
         list.forEach(function(n){ n.read = true; });
         saveNotifications(list);
         renderNotifications();
+    // La copie du stock que regardent les employes : on la depose quand
+    // l'application s'ouvre, moment ou elle est fraiche.
+    if(typeof deposerLeStockPartage === 'function') deposerLeStockPartage();
       }
     });
     document.addEventListener('click', function(e){
@@ -4175,6 +4184,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
       e.stopPropagation();
       saveNotifications([]);
       renderNotifications();
+    // La copie du stock que regardent les employes : on la depose quand
+    // l'application s'ouvre, moment ou elle est fraiche.
+    if(typeof deposerLeStockPartage === 'function') deposerLeStockPartage();
     });
   }
 

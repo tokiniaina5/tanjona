@@ -48,6 +48,75 @@
     return (typeof escapeHtml === 'function') ? escapeHtml(String(v ?? '')) : String(v ?? '');
   }
 
+  // ---------- La copie du stock ----------
+  // Les articles vivent dans le téléphone du patron. L'employé, qui n'a pas
+  // de compte, ne les verrait jamais : on en dépose une copie à chaque
+  // ouverture, et c'est elle qu'il regarde. Il ne peut rien y changer — il
+  // n'écrit nulle part.
+  function deposerLeStock() {
+    const client = sb();
+    const email = monEmail();
+    if (!client || !email || typeof loadItems !== 'function') return;
+    let articles = [];
+    try { articles = loadItems() || []; } catch (e) { return; }
+    client.from('stock_partage').upsert({
+      owner_email: email,
+      articles: articles,
+      maj: new Date().toISOString()
+    }, { onConflict: 'owner_email' }).then(function () {}, function () {});
+  }
+
+  // ---------- Le lien d'un employé ----------
+  // Un jeton long et tiré au hasard : c'est la seule chose qui ouvre la
+  // porte, il ne doit pas se deviner. On le pose la première fois qu'on
+  // demande le lien, et il ne change plus.
+  function nouveauJeton() {
+    const octets = new Uint8Array(24);
+    (window.crypto || window.msCrypto).getRandomValues(octets);
+    let sortie = '';
+    for (let i = 0; i < octets.length; i++) sortie += ('0' + octets[i].toString(16)).slice(-2);
+    return sortie;
+  }
+
+  function lienDe(jeton) {
+    return location.origin + location.pathname + '?mpiasa=' + jeton;
+  }
+
+  function donnerLeLien(personne, bouton) {
+    const client = sb();
+    if (!client) return;
+    if (personne.jeton) { montrerLeLien(personne, personne.jeton); return; }
+
+    if (bouton) bouton.disabled = true;
+    const jeton = nouveauJeton();
+    client.from('equipe').update({ jeton: jeton }).eq('id', personne.id)
+      .then(function (res) {
+        if (bouton) bouton.disabled = false;
+        if (res && res.error) { dire('equipeStatut', 'Tsy voaforona ny rohy : ' + res.error.message, true); return; }
+        personne.jeton = jeton;
+        montrerLeLien(personne, jeton);
+        charger();
+      }, function () {
+        if (bouton) bouton.disabled = false;
+        dire('equipeStatut', 'Tsy tafita ny fangatahana.', true);
+      });
+  }
+
+  function montrerLeLien(personne, jeton) {
+    const lien = lienDe(jeton);
+    // Le presse-papier d'abord, la lecture ensuite : sur un téléphone on
+    // veut coller le lien dans un message, pas le recopier à la main.
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(lien).then(function () {
+        dire('equipeStatut', 'Voadika ny rohin\'i ' + personne.nom + ' : ' + lien);
+      }, function () {
+        dire('equipeStatut', 'Rohin\'i ' + personne.nom + ' : ' + lien);
+      });
+    } else {
+      dire('equipeStatut', 'Rohin\'i ' + personne.nom + ' : ' + lien);
+    }
+  }
+
   // ---------- Lire ----------
   function charger() {
     const client = sb();
@@ -105,6 +174,14 @@
       ouvrir.textContent = 'Sokafy';
       ouvrir.addEventListener('click', function () { ouvrirPersonne(p); });
       actions.appendChild(ouvrir);
+
+      const rohy = document.createElement('button');
+      rohy.type = 'button';
+      rohy.className = 'btn btn-sm';
+      rohy.textContent = p.jeton ? 'Rohy' : 'Hamorona rohy';
+      rohy.title = 'Ny rohy hasehoana azy ny stock — tsy azony ovaina';
+      rohy.addEventListener('click', function () { donnerLeLien(p, rohy); });
+      actions.appendChild(rohy);
 
       const bascule = document.createElement('button');
       bascule.type = 'button';
@@ -505,6 +582,11 @@
     if (nav) nav.addEventListener('click', charger);
   });
 
-  // L'application appelle ceci quand elle s'ouvre.
-  window.renderEquipe = charger;
+  // L'application appelle ceci quand elle s'ouvre : on en profite pour
+  // déposer la copie du stock, puisque c'est le moment où elle est fraîche.
+  window.renderEquipe = function () {
+    deposerLeStock();
+    return charger();
+  };
+  window.deposerLeStockPartage = deposerLeStock;
 })();
