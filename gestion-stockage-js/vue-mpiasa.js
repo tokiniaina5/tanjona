@@ -216,7 +216,7 @@
     'lien invalide': 'Tsy fantatra ity rohy ity. Mety nesorina ilay olona, na nataovy rohy vaovao ka lany andro ity.',
     'lien suspendu': 'Naato ity rohy ity. Ny tompon\'ny fivarotana no afaka mamelona azy indray.',
     'méthode refusée': 'Tsy nety ny fangatahana.',
-    'configuration incomplète': 'Tsy vita ny fandaminana ny serveur.'
+    'configuration incomplète': 'Tsy vita ny fandaminana ao amin\'ny Supabase.'
   };
 
   // Le corps de la réponse d'erreur n'arrive pas tout seul : supabase-js
@@ -247,7 +247,7 @@
   function demander() {
     const client = window.__sb;
     if (!client || !client.functions || !client.functions.invoke) {
-      erreur('Tsy tafaraka amin\'ny serveur. Andramo indray.');
+      erreur('Tsy tafaraka amin\'ny Supabase. Andramo indray.');
       return;
     }
     client.functions.invoke('mpiasa', { body: { jeton: jeton } }).then(function (res) {

@@ -67,7 +67,7 @@
     }, function () { return false; });
   }
 
-  const REENTRER = 'Tsy misy fidirana amin\'ny serveur. Mivoaha (Hivoaka) dia midira indray amin\'ny email sy tenimiafina — avy eo dia handeha ny fanoratana.';
+  const REENTRER = 'Mbola tsy tafiditra ao amin\'ny Supabase ianao. Mivoaha (Hivoaka) dia midira indray amin\'ny email sy tenimiafina — avy eo dia handeha ny fanoratana.';
 
   // Un refus de la base est presque toujours le même refus. On regarde une
   // fois de plus avant d'accuser : session perdue, ou email qui ne correspond
@@ -80,7 +80,7 @@
     }
     sessionServeur().then(function (ouvert) {
       dire(msgId, ouvert
-        ? 'Nolavin\'ny serveur : tsy mifanaraka amin\'ny kaonty misokatra ny email. Mivoaha dia midira indray.'
+        ? 'Nolavina : tsy mifanaraka amin\'ny kaonty misokatra ny email. Mivoaha dia midira indray.'
         : REENTRER, true);
     });
   }
