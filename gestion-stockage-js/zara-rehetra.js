@@ -206,6 +206,21 @@
           '</label>' +
         '</div>' +
 
+        // 4) Le soir : tout ce qui a paru dans la journée part tout seul par
+        //    email, à 18 h (fonction « fandefasana-hariva », tâche du soir).
+        //    Le bouton fait la même chose tout de suite.
+        '<div class="panel">' +
+          '<h3>⏰ Fandefasana ho azy — isak\'andro amin\'ny 18:00</h3>' +
+          '<p style="font-size:0.78rem; color:var(--muted); line-height:1.6; margin:0 0 0.9rem;">' +
+            'Isaky ny 6 ora hariva, ny publication rehetra nivoaka androany ao amin\'ny Botika dia ' +
+            '<strong style="color:var(--text);">alefa ho azy amin\'ny mailaka</strong> any amin\'ny client rehetra, ' +
+            'tsy misy tsindriana. Ny WhatsApp sy ny tambajotra kosa tsy mety mandeha ho azy : ' +
+            'tsy avelan\'izy ireo hisy site handefa ho anao.' +
+          '</p>' +
+          '<button type="button" class="btn btn-sm" data-hariva style="width:auto;">📧 Alefa izao ny publication androany</button>' +
+          '<p data-hariva-statut style="font-size:0.78rem; color:var(--muted); margin:0.6rem 0 0; min-height:1.1em;"></p>' +
+        '</div>' +
+
         '<button type="button" class="btn btn-primary" data-alefa>📨 Alefa</button>' +
 
         // La file : un envoi à la fois, un appui par envoi.
@@ -235,6 +250,26 @@
 
     var fermer = function () { page.remove(); };
     page.querySelector('[data-hidio]').addEventListener('click', fermer);
+
+    // Ce que la tâche du soir fera à 18 h, tout de suite.
+    var bHariva = page.querySelector('[data-hariva]');
+    var statutHariva = page.querySelector('[data-hariva-statut]');
+    bHariva.addEventListener('click', function () {
+      if (!window.__sb || !window.__sb.functions) { statutHariva.textContent = 'Tsy tafiditra ny serveur.'; return; }
+      if (!confirm('Halefa amin\'ny client rehetra manana email ny publication rehetra androany. Tsy azo averina. Hitohy?')) return;
+      bHariva.disabled = true;
+      statutHariva.textContent = 'Mandefa…';
+      window.__sb.functions.invoke('fandefasana-hariva', { body: {} }).then(function (res) {
+        var d = (res && res.data) || {};
+        bHariva.disabled = false;
+        statutHariva.textContent = d.sent
+          ? '✓ Publication ' + d.billets + ' lasa any amin\'ny client ' + d.sent + (d.error ? ' (' + d.error + ')' : '') + '.'
+          : 'Tsy lasa : ' + (d.error || (res && res.error && res.error.message) || 'antony tsy fantatra');
+      }, function (err) {
+        bHariva.disabled = false;
+        statutHariva.textContent = 'Tsy tratra ny fonction : ' + ((err && err.message) || 'réseau');
+      });
+    });
 
     var boite = page.querySelector('[data-liste]');
     var vide = page.querySelector('[data-vide]');
