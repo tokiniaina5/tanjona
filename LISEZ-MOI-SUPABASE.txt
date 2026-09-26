@@ -1074,3 +1074,12 @@ retrait, page et fonction "wallet". Restent : dépôt par Papi (Mobile
 Money, carte BRED) ; retrait vers Wise, Payoneer, Skrill, Mobile Money
 ou banque, envoyé par le propriétaire. Les secrets PAYPAL_* ne servent
 plus au portefeuille. Redéployer : supabase functions deploy wallet
+
+MISE À JOUR (même soir) : DÉPÔT PAPI + RETRAIT MOBILE MONEY
+------------------------------
+Le dépôt par Papi revient. Le retrait ne va plus que vers le Mobile
+Money (MVola, Orange Money, Airtel Money), en ariary : les parrainages
+y sortent en vrai argent, comme les dépôts payés. Papi n'a pas d'API
+d'envoi (il encaisse seulement) : VOUS envoyez depuis votre Mobile
+Money, puis « Efa nalefako an-tanana » dans « Retraits à envoyer ».
+Redéployer : supabase functions deploy wallet

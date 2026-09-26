@@ -983,7 +983,7 @@
     if(retirableEl){
       const r = walletState.retirableAr;
       retirableEl.innerHTML = (r === undefined || r === null) ? '' :
-        '💵 Azo alaina (tena vola) : <strong style="color:var(--text);">' + formatWalletAr(r) + '</strong>' +
+        '💵 Azo alaina (dépôt + parrainage) : <strong style="color:var(--text);">' + formatWalletAr(r) + '</strong>' +
         (r < (walletState.balanceAr || 0)
           ? '<br><span style="font-size:0.72rem;">Ny vola nampidirin\'ny appli ho azy dia ampiasaina ato anatiny ihany (abonnement, déblocage…).</span>'
           : '');
@@ -1347,10 +1347,14 @@
     payoutRequestBtn.addEventListener('click', function(){
       const statusEl = document.getElementById('payoutStatus');
       const amount = Number(document.getElementById('payoutAmount').value) || 0;
-      const method = document.getElementById('payoutMethod').value;
-      const currency = document.getElementById('payoutCurrency').value;
-      const destination = document.getElementById('payoutDestination').value.trim();
-      if(!destination){ statusEl.textContent = 'Indiquez où envoyer l\'argent.'; return; }
+      // Seul le Mobile Money reste ouvert, en ariary. L'opérateur voyage
+      // avec le numéro : c'est ce que le propriétaire lira pour envoyer.
+      const method = 'mobile';
+      const currency = 'MGA';
+      const numero = document.getElementById('payoutDestination').value.trim();
+      const operateurEl = document.getElementById('payoutOperateur');
+      const destination = numero ? ((operateurEl ? operateurEl.value + ' · ' : '') + numero) : '';
+      if(!destination){ statusEl.textContent = 'Indiquez votre numéro Mobile Money.'; return; }
       if(!(amount > 0)){ statusEl.textContent = 'Indiquez le montant à retirer.'; return; }
 
       payoutRequestBtn.disabled = true;

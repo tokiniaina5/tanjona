@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="f9330ae1">
+<meta name="ny-asako-version" content="2794c693">
 <title>Ny asako — Tanjona</title>
 <!-- Application installable : le manifeste décrit le nom, l'icône et la façon
      de s'ouvrir ; le reste est affaire de service worker, enregistré plus bas. -->
@@ -2120,7 +2120,7 @@
         <div class="section-head">
           <div>
             <h2>Portefeuille électronique</h2>
-            <p>Votre solde en ariary, à dépenser dans l'application.</p>
+            <p>Votre solde en ariary : déposez par Papi, retirez vers votre Mobile Money.</p>
           </div>
         </div>
 
@@ -2160,6 +2160,8 @@
                 <div class="plan-note">Solde disponible</div>
                 <div class="plan-price" id="walletBalance" style="font-size:1.4rem; color:var(--cyan);">0 Ar</div>
                 <div class="plan-note" id="walletBalanceCredits" style="margin-top:0.2rem;">—</div>
+                <!-- Ce qui peut sortir : dépôts payés et parrainages (wallet, « retirableFor »). -->
+                <div class="plan-note" id="walletRetirable" style="margin-top:0.2rem;"></div>
               </div>
             </div>
 
@@ -2182,6 +2184,74 @@
             </div>
 
             <button type="button" class="btn btn-sm" id="walletSignOutBtn" style="margin-top:1rem;">Se déconnecter du portefeuille</button>
+          </div>
+
+          <!-- ---- DÉPOSER : l'argent qui ENTRE ----
+               Par Papi, vérifié par le serveur : rien n'est crédité avant que
+               Papi ne confirme le paiement. -->
+          <div class="panel" id="walletDepotPanel">
+            <h3>📥 Déposer de l'argent</h3>
+            <p style="font-size:0.82rem; color:var(--muted); line-height:1.6; margin-bottom:1rem;">
+              Payez avec MVola, Orange Money, Airtel Money ou une carte bancaire, par Papi. La somme
+              s'ajoute à votre solde dès que Papi confirme le paiement, et peut être retirée ensuite.
+              Frais de dépôt : <strong id="depotFraisPct" style="color:var(--text);">5 %</strong>.
+            </p>
+            <div class="form-grid">
+              <div class="field" style="margin-bottom:0;">
+                <label for="papiAmount">Montant (Ar)</label>
+                <input id="papiAmount" type="number" min="300" step="1000" value="15000">
+              </div>
+              <div class="field" style="margin-bottom:0;">
+                <label for="papiProvider">Payer avec</label>
+                <select id="papiProvider">
+                  <option value="">Choisir sur la page Papi</option>
+                  <option value="MVOLA">MVola</option>
+                  <option value="ORANGE_MONEY">Orange Money</option>
+                  <option value="AIRTEL_MONEY">Airtel Money</option>
+                  <option value="BRED">Carte bancaire</option>
+                </select>
+              </div>
+              <div class="field" style="margin-bottom:0;">
+                <label for="papiPhone">Téléphone (facultatif)</label>
+                <input id="papiPhone" type="tel" placeholder="034 00 000 00">
+              </div>
+            </div>
+            <p id="papiFrais" style="font-size:0.78rem; color:var(--muted); margin-top:0.6rem; line-height:1.5;"></p>
+            <button type="button" class="btn btn-primary btn-sm" id="papiPayBtn" style="width:auto; margin-top:0.6rem;">Payer avec Papi</button>
+            <p id="papiStatus" style="font-size:0.8rem; color:var(--cyan); margin-top:0.8rem; line-height:1.5;"></p>
+          </div>
+
+          <!-- ---- RETIRER : l'argent qui SORT, en Mobile Money ----
+               Papi n'envoie pas d'argent (il n'encaisse que) : le propriétaire
+               envoie lui-même, puis marque la demande comme envoyée. -->
+          <div class="panel" id="walletPayoutPanel">
+            <h3>💸 Retirer vers mon Mobile Money</h3>
+            <p style="font-size:0.82rem; color:var(--muted); line-height:1.6; margin-bottom:1rem;">
+              Votre argent — les dépôts et ce que vos parrainages ont rapporté — part vers votre
+              MVola, Orange Money ou Airtel Money. La somme quitte votre solde dès la demande ; le
+              propriétaire l'envoie et vous êtes prévenu. Si elle ne part pas, elle vous est rendue.
+            </p>
+            <div class="form-grid">
+              <div class="field" style="margin-bottom:0;">
+                <label for="payoutAmount">Montant à recevoir (Ar)</label>
+                <input id="payoutAmount" type="number" min="0" step="1000" placeholder="20000">
+              </div>
+              <div class="field" style="margin-bottom:0;">
+                <label for="payoutOperateur">Vers</label>
+                <select id="payoutOperateur">
+                  <option value="MVola">MVola</option>
+                  <option value="Orange Money">Orange Money</option>
+                  <option value="Airtel Money">Airtel Money</option>
+                </select>
+              </div>
+            </div>
+            <div class="field" style="margin-top:1rem;">
+              <label for="payoutDestination">Votre numéro et le nom du titulaire</label>
+              <input id="payoutDestination" type="text" placeholder="034 00 000 00 — RABE Koto">
+            </div>
+            <p id="payoutFrais" style="font-size:0.78rem; color:var(--muted); margin-bottom:0.6rem; line-height:1.5;"></p>
+            <button type="button" class="btn btn-primary btn-sm" id="payoutRequestBtn" style="width:auto;">Retirer</button>
+            <p id="payoutStatus" style="font-size:0.8rem; color:var(--cyan); margin-top:0.8rem; line-height:1.5;"></p>
           </div>
 
           <!-- ---- HISTORIQUE ---- -->
@@ -2852,7 +2922,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=a8de564b"></script>
+<script src="gestion-stockage-js/common.js?v=44463e3f"></script>
 <script src="gestion-stockage-js/stock.js?v=ae755b14"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=7204c861"></script>
@@ -2884,6 +2954,7 @@
 <script src="gestion-stockage-js/adidy.js?v=7925663f"></script>
 <script src="gestion-stockage-js/theme.js?v=096262fd"></script>
 <script src="gestion-stockage-js/securite.js?v=e38535e6"></script>
+<script src="gestion-stockage-js/papi-paiement.js?v=e09c26f4"></script>
 
 
 

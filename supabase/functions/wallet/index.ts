@@ -61,7 +61,10 @@ function fraisRetrait(montant: number): number {
 // PayPal est retiré (26/09/2026 : il ne fonctionnait pas), comme les
 // anciennes sorties « cash », « wallet », « merchant » : leurs lignes
 // passées gardent leur nom à l'affichage, rien de neuf ne s'y ouvre.
-const METHODS = new Set(["wise", "payoneer", "skrill", "mobile", "card"]);
+// Depuis le 26/09/2026 au soir, seul le Mobile Money reste ouvert : c'est
+// là que partent les dépôts et les parrainages (Papi n'envoie pas d'argent,
+// le propriétaire exécute). Wise, Payoneer, Skrill et banque sont fermés.
+const METHODS = new Set(["mobile"]);
 // Les portefeuilles internationaux ne connaissent pas l'ariary.
 const METHODES_EN_DEVISE = new Set(["wise", "payoneer", "skrill"]);
 const PURCHASE_METHODS = new Set<string>();
