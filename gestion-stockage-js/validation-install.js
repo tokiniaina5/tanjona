@@ -71,8 +71,9 @@
   // et on le dit.
   //
   // Le Fokontany s'installe pour un fokontany précis : sa validation vient
-  // d'abord (validerAvantInstall, une page comme la porte), le lien ensuite. Le Commun est à l'admin
-  // seul : pas de validation, le lien tout de suite.
+  // d'abord (validerAvantInstall, une page comme la porte), le lien ensuite.
+  // Le Commun passe par la même page (« karazana » = 'commun') : la même
+  // lettre sans le fokontany, le même code, puis son lien.
   window.__versLInstallation = function(chemin, suffixe){
     const adresse = chemin + (suffixe || '');
     let installee = false;
@@ -87,8 +88,11 @@
   const MARQUE = document.documentElement.classList.contains('app-commun')
     ? '🏛️ Administratif <span>Commun</span>'
     : '🗂️ Administratif <span>Fokontany</span>';
-  window.__validerAvantInstall = function(ensuite){
+  window.__validerAvantInstall = function(ensuite, karazana){
     const sb = window.__sb;
+    const pourCommun = karazana === 'commun';
+    const marque = pourCommun ? '🏛️ Administratif <span>Commun</span>' : MARQUE;
+    const ANY = pourCommun ? 'commun' : 'fokontany';
     const ancien = document.getElementById('pageValidationInstall');
     if(ancien) ancien.remove();
     const u = currentUser || {};
@@ -99,7 +103,7 @@
     page.innerHTML =
       '<div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; ' +
         'padding:0.9rem 1rem; border-bottom:1px solid var(--line); background:var(--panel); position:sticky; top:0;">' +
-        '<div class="brand">' + MARQUE + '</div>' +
+        '<div class="brand">' + marque + '</div>' +
         '<div style="display:flex; align-items:center; gap:0.8rem;">' +
           '<div style="font-size:0.76rem; color:var(--muted); text-align:right; line-height:1.4;">' +
             '<strong data-nom style="color:var(--text); display:block; font-size:0.84rem;"></strong><span data-email></span></div>' +
@@ -130,7 +134,7 @@
                 '<input type="text" id="pvAnarana" data-f-anarana placeholder="RAKOTO" autocomplete="off" style="background:#f3f6f8; color:#12181d; border-color:#c9d4da;"></div>' +
               '<div class="field"><label for="pvFanampiny" style="color:#3d4b53;">Fanampin\'anarana (prénom) *</label>' +
                 '<input type="text" id="pvFanampiny" data-f-prenom placeholder="Jean" autocomplete="off" style="background:#f3f6f8; color:#12181d; border-color:#c9d4da;"></div>' +
-              '<div class="field"><label for="pvFokontany" style="color:#3d4b53;">Anaran\'ny fokontany *</label>' +
+              '<div class="field"' + (pourCommun ? ' style="display:none;"' : '') + '><label for="pvFokontany" style="color:#3d4b53;">Anaran\'ny fokontany *</label>' +
                 '<input type="text" id="pvFokontany" data-f-fokontany list="pvFokontanyListe" placeholder="Ambohimanarina" autocomplete="off" style="background:#f3f6f8; color:#12181d; border-color:#c9d4da;">' +
                 '<datalist id="pvFokontanyListe" data-liste-fokontany></datalist></div>' +
               '<div class="field"><label for="pvCommun" style="color:#3d4b53;">Anaran\'ny commun *</label>' +
@@ -138,8 +142,8 @@
                 '<datalist id="pvCommunListe" data-liste-commun></datalist>' +
                 '<span data-commun-auto style="display:none; font-size:0.72rem; color:#2a7f62; margin-top:0.25rem;">Feno ho azy : avy amin\'ny listra.</span></div>' +
               '<div class="field"><label for="pvMail" style="color:#3d4b53;">Email hanokafana ny site *</label>' +
-                '<input type="email" id="pvMail" data-f-email placeholder="fokontany@exemple.com" autocomplete="off" style="background:#f3f6f8; color:#12181d; border-color:#c9d4da;"></div>' +
-              '<div class="field"><label for="pvAsa" style="color:#3d4b53;">Asa eo anivon\'ny fokontany *</label>' +
+                '<input type="email" id="pvMail" data-f-email placeholder="' + ANY + '@exemple.com" autocomplete="off" style="background:#f3f6f8; color:#12181d; border-color:#c9d4da;"></div>' +
+              '<div class="field"><label for="pvAsa" style="color:#3d4b53;">Asa eo anivon\'ny ' + ANY + ' *</label>' +
                 '<input type="text" id="pvAsa" data-f-asa placeholder="Ohatra : sekretera" autocomplete="off" style="background:#f3f6f8; color:#12181d; border-color:#c9d4da;"></div>' +
             '</div>' +
           '</div>' +
@@ -314,7 +318,11 @@
       const mail = String(email || '').trim().toLowerCase();
       const nom = nomDuFokontany(texteAnarana);
       return installes.filter(function (i) {
+        // Seulement les installations de la même sorte : un même email peut
+        // avoir son Fokontany et son Commun.
+        if ((i.karazana === 'commun') !== pourCommun) return false;
         if (String(i.email || '').trim().toLowerCase() === mail) return true;
+        if (pourCommun) return false;
         return !!nom && String(i.fokontany || '').trim().toLowerCase() === nom;
       })[0] || null;
     }
@@ -348,15 +356,16 @@
       const commun = lire('[data-f-commun]');
       const email = lire('[data-f-email]').toLowerCase();
       const asa = lire('[data-f-asa]');
-      if(!anarana || !prenom || !fokontany || !commun || !email || !asa){
+      if(!anarana || !prenom || (!fokontany && !pourCommun) || !commun || !email || !asa){
         dire('Fenoy daholo ireo saha rehetra ao amin\'ny taratasy.', true); return;
       }
       if(email.indexOf('@') < 0){ dire('Tsy mety ny email hanokafana ny site.', true); return; }
       if(!sb || !sb.functions || !sb.functions.invoke){ dire('Tsy tafiditra ny serveur : havaozy ny pejy.', true); return; }
       // Le nom du commun voyage avec celui du fokontany : c'est de lui que le
       // fokontany relève, et l'Administratif Commun le retrouve ainsi.
-      const nomComplet = anarana + ' ' + prenom + ' — Fokontany ' + fokontany +
-        ' / Commun ' + commun + ' (' + asa + ')';
+      const nomComplet = anarana + ' ' + prenom + (pourCommun
+        ? ' — Commun ' + commun
+        : ' — Fokontany ' + fokontany + ' / Commun ' + commun) + ' (' + asa + ')';
       dire('Mandefa ny fangatahana…');
       // La lettre part chez l'admin, et chez lui seul : c'est lui qui donnera
       // le code au fokontany. La fonction pose l'accès comme d'habitude.
@@ -364,11 +373,11 @@
         'Ireto tompoko ny mombamomba ahy, ary ekeo ny fangatahako ilay code :',
         'Anarana : ' + anarana,
         'Fanampin\'anarana : ' + prenom,
-        'Fokontany : ' + fokontany,
+        pourCommun ? null : 'Fokontany : ' + fokontany,
         'Commun : ' + commun,
         'Email hanokafana ny site : ' + email,
-        'Asa eo anivon\'ny fokontany : ' + asa
-      ].join('\n');
+        'Asa eo anivon\'ny ' + ANY + ' : ' + asa
+      ].filter(Boolean).join('\n');
       sb.functions.invoke('commun-code', {
         body: { email: email, anarana: nomComplet, pour_le_proprietaire: true, lettre: lettre }
       }).then(function(res){
@@ -382,13 +391,14 @@
         emailDemande = email;
         champ.value = data.code;
         // Le Commun l'apprend : le fokontany y est inscrit, sous son nom.
-        ajouterNotificationLocale('fangatahana',
-          'Voasoratra ao amin\'ny Commun « ' + commun + ' » ny Fokontany « ' + fokontany + ' » (' + email + ').');
+        ajouterNotificationLocale('fangatahana', pourCommun
+          ? 'Voasoratra ny Commun « ' + commun + ' » (' + email + ').'
+          : 'Voasoratra ao amin\'ny Commun « ' + commun + ' » ny Fokontany « ' + fokontany + ' » (' + email + ').');
         // Un fokontany nouveau vaut 500 000 Ar au portefeuille (commun-code).
         if(data.credite){
           ajouterNotificationLocale('parrainage',
             '💰 ' + Number(data.montant || 0).toLocaleString('fr-FR') + ' Ar tafiditra ao amin\'ny portefeuillenao : ' +
-            'Fokontany vaovao « ' + fokontany + ' ».');
+            (pourCommun ? 'Commun vaovao « ' + commun + ' ».' : 'Fokontany vaovao « ' + fokontany + ' ».'));
           if(typeof renderWallet === 'function') renderWallet();
         }
         dire(data.sent

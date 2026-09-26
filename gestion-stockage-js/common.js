@@ -5845,12 +5845,13 @@
   if(menuCommun) menuCommun.addEventListener('click', function(){ ouvrirDepuisLeMenu('commun'); });
   const menuCommunAdmin = document.getElementById('menuCommunAdmin');
   if(menuCommunAdmin) menuCommunAdmin.addEventListener('click', function(){ ouvrirDepuisLeMenu('communadmin'); });
-  [['menuInstallFokontany', '/fokontany/', true], ['menuInstallCommun', '/commun/', false]].forEach(function(p){
+  // Les deux s'installent de la même façon : la page de validation (lettre
+  // et code), puis le lien.
+  [['menuInstallFokontany', '/fokontany/', 'fokontany'], ['menuInstallCommun', '/commun/', 'commun']].forEach(function(p){
     const el = document.getElementById(p[0]);
     if(el) el.addEventListener('click', function(){
       if(!(currentUser && currentUser.email && isOwnerEmail(currentUser.email))) return;
-      if(p[2]) window.__validerAvantInstall(function(suffixe){ window.__versLInstallation(p[1], suffixe); });
-      else window.__versLInstallation(p[1]);
+      window.__validerAvantInstall(function(suffixe){ window.__versLInstallation(p[1], suffixe); }, p[2]);
     });
   });
 
