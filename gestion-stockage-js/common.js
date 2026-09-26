@@ -862,7 +862,6 @@
 
   // ---------------- PORTEFEUILLE : vérification par correspondance nom/email ----------------
   const WALLET_SESSION_KEY = 'wallet_session_v1';
-  const WALLET_PAYPAL_KEY = 'wallet_paypal_v1';
   let walletSession = null;
 
   function loadWalletSession(){
@@ -876,16 +875,6 @@
     }catch(e){}
   }
 
-  function loadWalletPaypal(){
-    try{ return JSON.parse(localStorage.getItem(WALLET_PAYPAL_KEY) || 'null'); }
-    catch(e){ return null; }
-  }
-  function saveWalletPaypal(data){
-    try{
-      if(data) localStorage.setItem(WALLET_PAYPAL_KEY, JSON.stringify(data));
-      else localStorage.removeItem(WALLET_PAYPAL_KEY);
-    }catch(e){}
-  }
 
   function initWalletAuth(){
     walletSession = loadWalletSession();
@@ -918,17 +907,6 @@
     renderWallet();
   });
 
-  document.getElementById('paypalConnectForm').addEventListener('submit', function(e){
-    e.preventDefault();
-    const statusEl = document.getElementById('paypalConnectStatus');
-    const email = document.getElementById('paypalEmailInput').value.trim();
-    if(!email){ return; }
-    saveWalletPaypal({ email: email, connectedAt: new Date().toISOString() });
-    document.getElementById('paypalEmailInput').value = '';
-    if(statusEl) statusEl.textContent = 'Compte PayPal relié (' + email + ') ✓';
-    renderWallet();
-  });
-
   // ---------------- PORTEFEUILLE EN ARIARY : SOLDE ET RETRAITS ----------------
   // Le solde, le taux de change et les retraits sont l'affaire du serveur.
   // Une page peut être modifiée par celui qui la regarde : un solde qu'elle
@@ -937,25 +915,15 @@
   // Chaque canal demande autre chose : une adresse email, un compte, un nom
   // de bénéficiaire, une référence de commande. Un seul champ « destination »
   // au libellé figé les mélangerait tous.
+  // « devise » : ce que le compte d'arrivée sait recevoir. Les portefeuilles
+  // internationaux ne tiennent pas d'ariary ; le Mobile Money, que de l'ariary.
   const PAYOUT_DESTINATION_LABELS = {
-    paypal: { label: 'Votre email PayPal', placeholder: 'vous@paypal.com' },
-    card: { label: 'Votre compte bancaire (IBAN ou banque / agence / compte / clé)', placeholder: '00008 03016 05001514368 86' },
-    mobile: { label: 'Votre numéro Mobile Money', placeholder: '034 00 000 00' },
-    cash: {
-      label: 'Nom exact sur votre pièce d\'identité, et où retirer',
-      placeholder: 'RABE Koto — point Western Union, Antananarivo Analakely',
-      link: 'Lien du point cash (facultatif)', needs: true
-    },
-    wallet: {
-      label: 'Votre identifiant sur ce portefeuille',
-      placeholder: 'Wise : vous@email.com · Payoneer : n° de compte',
-      link: 'Lien du portefeuille', needs: true
-    },
-    merchant: {
-      label: 'Le marchand et votre commande',
-      placeholder: 'Ex : AliExpress — commande n° 812345, au nom de RABE Koto',
-      link: 'Lien de la page à payer', needs: true
-    }
+    paypal: { label: 'Votre email PayPal', placeholder: 'vous@email.com', devise: 'etrangere' },
+    wise: { label: 'Email de votre compte Wise', placeholder: 'vous@email.com', devise: 'etrangere' },
+    payoneer: { label: 'Email de votre compte Payoneer', placeholder: 'vous@email.com', devise: 'etrangere' },
+    skrill: { label: 'Email de votre compte Skrill', placeholder: 'vous@email.com', devise: 'etrangere' },
+    mobile: { label: 'Votre numéro Mobile Money et le nom du titulaire', placeholder: '034 00 000 00 — RABE Koto', devise: 'MGA' },
+    card: { label: 'Votre compte bancaire (IBAN ou banque / agence / compte / clé) et le titulaire', placeholder: 'FR76 3000 … — RABE Koto', devise: 'libre' }
   };
 
   function formatWalletAr(amount){
@@ -1021,7 +989,28 @@
           ? '<br><span style="font-size:0.72rem;">Ny vola nampidirin\'ny appli ho azy dia ampiasaina ato anatiny ihany (abonnement, déblocage…).</span>'
           : '');
     }
+    renderWalletCanaux();
+    updatePayoutDestinationField();
     updateWalletConversion();
+  }
+
+  // Ce qui marche vraiment sur ce serveur : c'est lui qui le dit, selon les
+  // clefs posées. Un canal fermé ne doit pas avoir l'air ouvert.
+  function renderWalletCanaux(){
+    const el = document.getElementById('walletCanaux');
+    const c = (walletState && walletState.canaux) || {};
+    if(el){
+      el.innerHTML =
+        (c.depotPaypal ? '✅' : '⛔') + ' Dépôt PayPal / carte' + (c.paypalTest ? ' <em>(test)</em>' : '') + '<br>' +
+        (c.depotPapi ? '✅' : '⛔') + ' Dépôt Mobile Money<br>' +
+        (c.retraitPaypalAuto ? '⚡' : '👤') + ' Retrait PayPal ' + (c.retraitPaypalAuto ? 'automatique' : 'par le propriétaire');
+    }
+    const pct = document.getElementById('depotFraisPct');
+    if(pct && walletState && walletState.depositFeePct !== undefined) pct.textContent = walletState.depositFeePct + ' %';
+    const ppBtn = document.getElementById('ppDepotBtn');
+    if(ppBtn) ppBtn.disabled = !c.depotPaypal;
+    const papiBtn = document.getElementById('papiPayBtn');
+    if(papiBtn) papiBtn.disabled = !c.depotPapi;
   }
 
   // Le même solde, dans la devise du pays où l'argent doit arriver.
@@ -1064,20 +1053,35 @@
   const payoutMethodSelect = document.getElementById('payoutMethod');
   function updatePayoutDestinationField(){
     if(!payoutMethodSelect) return;
-    const conf = PAYOUT_DESTINATION_LABELS[payoutMethodSelect.value] || PAYOUT_DESTINATION_LABELS.paypal;
+    const methode = payoutMethodSelect.value;
+    const conf = PAYOUT_DESTINATION_LABELS[methode] || PAYOUT_DESTINATION_LABELS.paypal;
     const label = document.getElementById('payoutDestinationLabel');
     const input = document.getElementById('payoutDestination');
     if(label) label.textContent = conf.label;
     if(input) input.placeholder = conf.placeholder;
 
-    // Lien et marche à suivre n'apparaissent que pour les canaux que
-    // l'application ne sait pas exécuter d'elle-même.
-    const linkField = document.getElementById('payoutLinkField');
-    const linkLabel = document.getElementById('payoutLinkLabel');
-    const instructionsField = document.getElementById('payoutInstructionsField');
-    if(linkField) linkField.style.display = conf.needs ? 'block' : 'none';
-    if(linkLabel && conf.link) linkLabel.textContent = conf.link;
-    if(instructionsField) instructionsField.style.display = conf.needs ? 'block' : 'none';
+    // La devise suit le compte d'arrivée : proposer l'ariary pour PayPal,
+    // c'est une demande que le serveur refusera.
+    const devise = document.getElementById('payoutCurrency');
+    if(devise){
+      Array.prototype.forEach.call(devise.options, function(o){
+        o.disabled = (conf.devise === 'etrangere' && o.value === 'MGA') ||
+          (conf.devise === 'MGA' && o.value !== 'MGA');
+      });
+      if(devise.options[devise.selectedIndex].disabled){
+        devise.value = conf.devise === 'MGA' ? 'MGA' : 'EUR';
+      }
+    }
+
+    // Dire franchement qui envoie : l'application elle-même, ou le propriétaire.
+    const canal = document.getElementById('payoutCanal');
+    if(canal){
+      const auto = methode === 'paypal' && walletState && walletState.canaux && walletState.canaux.retraitPaypalAuto;
+      canal.textContent = auto
+        ? '⚡ Automatique : envoyé par PayPal dès la demande.'
+        : '👤 Envoyé par le propriétaire depuis son compte ' + payoutMethodLabel(methode) +
+          ' — vous êtes prévenu dès que c\'est parti.';
+    }
   }
   if(payoutMethodSelect){
     payoutMethodSelect.addEventListener('change', updatePayoutDestinationField);
@@ -1087,6 +1091,9 @@
   // Les canaux de sortie ont leurs propres noms : « wallet » veut dire
   // « un autre portefeuille » ici, pas « le portefeuille de l'application ».
   function payoutMethodLabel(method){
+    if(method === 'wise') return 'Wise';
+    if(method === 'payoneer') return 'Payoneer';
+    if(method === 'skrill') return 'Skrill';
     if(method === 'card') return 'Compte bancaire / carte';
     if(method === 'mobile') return 'Mobile Money';
     if(method === 'cash') return 'Espèces — point cash';
@@ -1219,7 +1226,7 @@
   };
   const DEPOT_CANAUX = {
     mvola: 'MVola', orange: 'Orange Money', airtel: 'Airtel Money',
-    paypal: 'PayPal', essai: 'Essai', visiteur: 'Personne nouvelle sur le site'
+    paypal: 'PayPal / carte internationale', papi: 'Mobile Money (Papi)', essai: 'Essai', visiteur: 'Personne nouvelle sur le site'
   };
 
   function renderDepositList(){
@@ -1260,9 +1267,7 @@
       statusEl.textContent = 'Envoi de la demande…';
       callWallet({
         action: 'payout', amountAr: amount, method: method, currency: currency,
-        destination: destination, name: (currentUser && currentUser.name) || '',
-        link: document.getElementById('payoutLink').value.trim(),
-        instructions: document.getElementById('payoutInstructions').value.trim()
+        destination: destination, name: (currentUser && currentUser.name) || ''
       }).then(function(res){
         payoutRequestBtn.disabled = false;
         document.getElementById('payoutAmount').value = '';
@@ -1362,6 +1367,26 @@
         settlePayout(r.id, 'refused', note, refuseBtn);
       });
 
+      // PayPal automatique : l'application envoie elle-même, depuis le compte
+      // marchand. Sans danger à rejouer — la clef est l'id de la ligne.
+      if(r.method === 'paypal' && walletState.canaux && walletState.canaux.retraitPaypalAuto){
+        const autoBtn = document.createElement('button');
+        autoBtn.type = 'button';
+        autoBtn.className = 'btn btn-primary btn-sm';
+        autoBtn.style.width = 'auto';
+        autoBtn.textContent = '📤 Alefa amin\'ny PayPal izao';
+        autoBtn.addEventListener('click', function(){
+          autoBtn.disabled = true;
+          callWallet({ action: 'envoyer', id: r.id }).then(function(res){
+            alert(res.message || 'Lasa ny baiko.');
+            refreshWalletFromServer();
+          }, function(err){
+            autoBtn.disabled = false;
+            alert(err.message);
+          });
+        });
+        actions.appendChild(autoBtn);
+      }
       actions.appendChild(sentBtn);
       actions.appendChild(refuseBtn);
       card.appendChild(actions);
@@ -1454,23 +1479,6 @@
         .then(function(){ refreshWalletFromServer(); }, function(){});
     });
   });
-
-  // « Acheter hors du site » mène au formulaire de retrait, déjà réglé sur le
-  // paiement d'un marchand : c'est la même sortie d'argent, pas une autre.
-  const goToPayoutBtn = document.getElementById('goToPayoutBtn');
-  if(goToPayoutBtn){
-    goToPayoutBtn.addEventListener('click', function(){
-      const method = document.getElementById('payoutMethod');
-      if(method){
-        method.value = 'merchant';
-        method.dispatchEvent(new Event('change'));
-      }
-      const panel = document.getElementById('walletPayoutPanel');
-      if(panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      const dest = document.getElementById('payoutDestination');
-      if(dest) dest.focus();
-    });
-  }
 
   const paywallWalletBtn = document.getElementById('paywallWalletBtn');
   if(paywallWalletBtn){
@@ -1633,11 +1641,6 @@
     // attendant sa réponse, l'estimation locale évite un écran vide.
     refreshWalletFromServer();
 
-    const paypal = loadWalletPaypal();
-    const paypalStatusEl = document.getElementById('walletPaypalStatus');
-    if(paypalStatusEl){
-      paypalStatusEl.textContent = paypal && paypal.email ? paypal.email : 'Non relié';
-    }
 
     const boosterPanel = document.getElementById('walletBoosterPanel');
     const boosterActive = sub.boosterActiveUntil && new Date(sub.boosterActiveUntil) > new Date();

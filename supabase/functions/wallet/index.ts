@@ -53,13 +53,30 @@ function fraisRetrait(montant: number): number {
   return PAYOUT_FEE_PCT > 0 ? Math.ceil(montant * PAYOUT_FEE_PCT / 100) : 0;
 }
 
-// L'argent sort par le canal que la personne indique. La liste n'a pas à être
-// fermée : elle le serait pour rien, puisque c'est un humain qui exécute
-// l'envoi et qu'un canal inconnu s'accompagne de ses consignes.
-const METHODS = new Set(["paypal", "card", "mobile", "cash", "wallet", "merchant"]);
-// Payer un achat, c'est envoyer chez un marchand plutôt que chez le client :
-// seule la destination change, la somme sort du solde de la même façon.
-const PURCHASE_METHODS = new Set(["merchant"]);
+// L'argent sort vers un vrai compte, et seulement vers ceux-là :
+//   paypal    automatique (PayPal Payouts) dès que les clefs sont posées ;
+//   wise, payoneer, skrill   portefeuilles internationaux, envoyés par le
+//             propriétaire depuis son propre compte sur ces services ;
+//   mobile    MVola / Orange Money / Airtel Money, en ariary ;
+//   card      virement vers un compte bancaire.
+// Les anciennes sorties (« cash », « wallet », « merchant ») ne s'ouvrent
+// plus : leurs lignes passées gardent leur nom à l'affichage.
+const METHODS = new Set(["paypal", "wise", "payoneer", "skrill", "mobile", "card"]);
+// Les portefeuilles internationaux ne connaissent pas l'ariary.
+const METHODES_EN_DEVISE = new Set(["paypal", "wise", "payoneer", "skrill"]);
+const PURCHASE_METHODS = new Set<string>();
+
+// Frais de dépôt, retirés de ce qui est crédité — le même taux que Papi.
+const DEPOSIT_FEE_PCT = Number(Deno.env.get("DEPOSIT_FEE_PCT") ?? "5");
+function fraisDepot(brut: number): number {
+  return DEPOSIT_FEE_PCT > 0 ? Math.ceil(brut * DEPOSIT_FEE_PCT / 100) : 0;
+}
+
+// Devises dans lesquelles on peut verser par PayPal. Toutes sont acceptées
+// par PayPal Checkout ; l'ariary, lui, ne l'est pas.
+const DEVISES_DEPOT = new Set(["USD", "EUR", "GBP", "CAD", "AUD", "CHF"]);
+const DEPOT_MIN_AR = Number(Deno.env.get("DEPOT_MIN_AR") ?? "5000");
+const DEPOT_MAX_AR = Number(Deno.env.get("DEPOT_MAX_AR") ?? "5000000");
 
 // Ce qui s'achète à l'intérieur de l'application, et à quel prix. Les prix
 // vivent ici et nulle part ailleurs : dans la page, chacun pourrait décider
@@ -305,6 +322,133 @@ async function paypalEtat(refLot: string): Promise<EtatLot> {
   return { etat: "en_cours", detail: etatItem || etatLot || "sans état", brut };
 }
 
+// ============================================================
+// LE DÉPÔT INTERNATIONAL — PayPal Checkout
+//
+// La personne paie chez PayPal, avec son compte ou une carte Visa /
+// Mastercard sans compte. Rien n'est crédité sur la foi du retour dans la
+// page : c'est la CAPTURE, faite ici avec nos clefs, qui encaisse, et l'on
+// ne crédite que si PayPal dit COMPLETED pour exactement la somme et la
+// devise commandées.
+//
+// La commande porte l'identifiant de notre ligne (custom_id) : une commande
+// ne peut créditer que la ligne qui l'a créée, et la ligne ne se confirme
+// qu'une fois (filtre sur « en_attente »).
+// ============================================================
+
+type Ligne = { id: string; email: string; amount_ar: number; status: string; raw: unknown };
+
+async function paypalAppel(
+  methode: "GET" | "POST",
+  chemin: string,
+  corps?: unknown,
+  clef?: string,
+): Promise<{ status: number; data: Record<string, unknown> | null }> {
+  const jeton = await paypalJeton();
+  if (!jeton) return { status: 0, data: null };
+  try {
+    const res = await fetch(paypalBase() + chemin, {
+      method: methode,
+      headers: {
+        "Authorization": "Bearer " + jeton,
+        "Content-Type": "application/json",
+        ...(clef ? { "PayPal-Request-Id": clef } : {}),
+      },
+      body: corps === undefined ? undefined : JSON.stringify(corps),
+    });
+    let data: Record<string, unknown> | null = null;
+    try { data = await res.json(); } catch { data = null; }
+    return { status: res.status, data };
+  } catch {
+    return { status: 0, data: null };
+  }
+}
+
+// Lit une commande PayPal et en tire ce qui compte : est-elle encaissée,
+// pour combien, et dans quelle devise.
+function lireCommande(cmd: Record<string, unknown> | null) {
+  const unite = ((cmd?.purchase_units ?? []) as Array<Record<string, unknown>>)[0] ?? {};
+  const captures = (((unite.payments ?? {}) as Record<string, unknown>).captures ?? []) as Array<Record<string, unknown>>;
+  const capture = captures[0] ?? {};
+  const montant = (capture.amount ?? unite.amount ?? {}) as Record<string, unknown>;
+  return {
+    etatCommande: String(cmd?.status ?? "").toUpperCase(),
+    etatCapture: String(capture.status ?? "").toUpperCase(),
+    captureId: String(capture.id ?? ""),
+    valeur: String(montant.value ?? ""),
+    devise: String(montant.currency_code ?? "").toUpperCase(),
+    customId: String(unite.custom_id ?? ""),
+  };
+}
+
+// Encaisse la commande si elle est approuvée, puis tranche. Sans danger à
+// rejouer : la capture porte une clef tirée de notre ligne, et une commande
+// déjà encaissée est relue au lieu d'être encaissée deux fois.
+async function paypalConfirmerDepot(admin: Admin, ligne: Ligne): Promise<string> {
+  if (ligne.status === "confirme") return "confirme";
+  const raw = (ligne.raw ?? {}) as Record<string, unknown>;
+  const orderId = String(raw.orderId ?? "");
+  if (!orderId) return ligne.status;
+
+  let cmd = (await paypalAppel("GET", "/v2/checkout/orders/" + encodeURIComponent(orderId))).data;
+  let lu = lireCommande(cmd);
+
+  if (lu.etatCommande === "APPROVED") {
+    const cap = await paypalAppel("POST", "/v2/checkout/orders/" + encodeURIComponent(orderId) + "/capture",
+      {}, "cap-" + ligne.id);
+    if (cap.data) cmd = cap.data;
+    else cmd = (await paypalAppel("GET", "/v2/checkout/orders/" + encodeURIComponent(orderId))).data;
+    lu = lireCommande(cmd);
+  }
+
+  const attendu = String(raw.valeur ?? "");
+  const deviseAttendue = String(raw.devise ?? "");
+  const bonneSomme = lu.valeur === attendu && lu.devise === deviseAttendue;
+  const bonneLigne = !lu.customId || lu.customId === ligne.id;
+  const nouveauRaw = { ...raw, dernierEtat: cmd };
+
+  if (lu.etatCapture === "COMPLETED" && bonneSomme && bonneLigne) {
+    // Le filtre sur « en_attente » : deux confirmations simultanées ne
+    // créditent qu'une fois.
+    await admin.from("wallet_deposits").update({
+      status: "confirme",
+      confirmed_at: new Date().toISOString(),
+      note: "PayPal — payé " + lu.valeur + " " + lu.devise + ", crédité " +
+        Number(ligne.amount_ar).toLocaleString("fr-FR") + " Ar — capture " + lu.captureId,
+      raw: nouveauRaw,
+    }).eq("id", ligne.id).eq("status", "en_attente");
+    return "confirme";
+  }
+
+  if (lu.etatCapture === "COMPLETED" && !(bonneSomme && bonneLigne)) {
+    // Encaissé, mais pas ce qui était commandé : on ne crédite rien au
+    // hasard, le propriétaire regarde.
+    await admin.from("wallet_deposits").update({
+      raw: nouveauRaw,
+      note: "Encaissé chez PayPal (" + lu.valeur + " " + lu.devise + ") mais différent de la commande : à vérifier",
+    }).eq("id", ligne.id);
+    return "a_verifier";
+  }
+
+  if (lu.etatCapture === "PENDING") {
+    await admin.from("wallet_deposits").update({
+      raw: nouveauRaw, note: "PayPal retient le paiement (vérification de son côté) : crédité dès qu'il le libère",
+    }).eq("id", ligne.id);
+    return "en_attente";
+  }
+
+  if (["DECLINED", "FAILED", "REFUNDED", "REVERSED"].indexOf(lu.etatCapture) >= 0 ||
+      lu.etatCommande === "VOIDED") {
+    await admin.from("wallet_deposits").update({
+      status: "refuse", raw: nouveauRaw, note: "PayPal : paiement " + (lu.etatCapture || lu.etatCommande),
+    }).eq("id", ligne.id).eq("status", "en_attente");
+    return "refuse";
+  }
+
+  // CREATED / PAYER_ACTION_REQUIRED : la personne n'a pas encore payé.
+  return "en_attente";
+}
+
 // ---- L'aiguillage ----
 // Rendre null, c'est dire « ce canal n'est pas automatique » : la demande
 // suit alors l'ancien chemin, sans rien tenter.
@@ -476,8 +620,108 @@ Deno.serve(async (req: Request) => {
     const retirable = await retirableFor(admin, email, balance);
     return json({
       balanceAr: balance, retirableAr: retirable, arPerReferral: tarifParrainage(email), minPayoutAr: MIN_PAYOUT_AR, payoutFeePct: PAYOUT_FEE_PCT,
+      depositFeePct: DEPOSIT_FEE_PCT, depotMinAr: DEPOT_MIN_AR,
+      // Ce qui marche vraiment sur ce serveur, pour que la page ne propose
+      // pas un canal dont les clefs manquent.
+      canaux: {
+        depotPapi: !!Deno.env.get("PAPI_TOKEN"),
+        depotPaypal: paypalConfigure(),
+        retraitPaypalAuto: paypalConfigure(),
+        paypalTest: paypalConfigure() && paypalBase().indexOf("sandbox") >= 0,
+      },
       payouts: mine ?? [], deposits: depots ?? [], queue, isOwner, items: SITE_ITEMS,
     });
+  }
+
+  // ---- Déposer depuis l'étranger, par PayPal ----
+  // Crée la commande chez PayPal et rend le lien où payer. Rien n'est encore
+  // crédité : la ligne naît « en_attente », et c'est « depot_paypal_check »
+  // (au retour de PayPal, ou à la prochaine ouverture) qui encaisse.
+  if (action === "depot_paypal") {
+    if (!paypalConfigure()) {
+      return json({ error: "Le dépôt PayPal n'est pas encore ouvert : clefs PAYPAL_CLIENT_ID / PAYPAL_SECRET absentes." }, 503);
+    }
+    const devise = String(body.currency ?? "").toUpperCase();
+    const montant = Math.round(Number(body.amount ?? 0) * 100) / 100;
+    const retour = String(body.returnUrl ?? "").trim();
+    if (!DEVISES_DEPOT.has(devise)) return json({ error: "devise non acceptée par PayPal" }, 400);
+    if (!(montant > 0)) return json({ error: "montant invalide" }, 400);
+    if (!/^https?:\/\//i.test(retour)) return json({ error: "adresse de retour invalide" }, 400);
+
+    const taux = await rateFromAr(devise);
+    if (!(taux > 0)) return json({ error: "Taux du jour indisponible pour " + devise + ", réessayez plus tard." }, 503);
+    const brutAr = Math.floor(montant / taux);
+    if (brutAr < DEPOT_MIN_AR) {
+      return json({ error: "Dépôt minimum : " + DEPOT_MIN_AR.toLocaleString("fr-FR") + " Ar (≈ " +
+        (DEPOT_MIN_AR * taux).toFixed(2) + " " + devise + ")." }, 400);
+    }
+    if (brutAr > DEPOT_MAX_AR) {
+      return json({ error: "Dépôt maximum : " + DEPOT_MAX_AR.toLocaleString("fr-FR") + " Ar." }, 400);
+    }
+    const frais = fraisDepot(brutAr);
+    const net = brutAr - frais;
+    const valeur = montant.toFixed(2);
+
+    // La ligne d'abord : si PayPal répond et que notre réponse se perd, la
+    // trace existe déjà. La référence définitive (l'id de commande) la
+    // remplace juste après.
+    const { data: ligne, error } = await admin.from("wallet_deposits").insert({
+      email, amount_ar: net, provider: "paypal", provider_ref: "PP-" + crypto.randomUUID(),
+      status: "en_attente", note: "Commande PayPal en cours de création",
+      raw: { valeur, devise, taux, brutAr, frais, fraisPct: DEPOSIT_FEE_PCT },
+    }).select("id").single();
+    if (error) return json({ error: error.message }, 500);
+
+    const sep = retour.includes("?") ? "&" : "?";
+    const cmd = await paypalAppel("POST", "/v2/checkout/orders", {
+      intent: "CAPTURE",
+      purchase_units: [{
+        reference_id: ligne.id,
+        custom_id: ligne.id,
+        description: "Rechargement portefeuille Ny asako",
+        amount: { currency_code: devise, value: valeur },
+      }],
+      payment_source: {
+        paypal: {
+          experience_context: {
+            brand_name: "Ny asako",
+            user_action: "PAY_NOW",
+            shipping_preference: "NO_SHIPPING",
+            return_url: retour + sep + "paypal=ok&depot=" + ligne.id,
+            cancel_url: retour + sep + "paypal=annule&depot=" + ligne.id,
+          },
+        },
+      },
+    }, "ord-" + ligne.id);
+
+    const orderId = String(cmd.data?.id ?? "");
+    const liens = (cmd.data?.links ?? []) as Array<{ rel: string; href: string }>;
+    const lien = (liens.find((l) => l.rel === "payer-action") ?? liens.find((l) => l.rel === "approve"))?.href;
+    if (!orderId || !lien) {
+      const msg = String(cmd.data?.message ?? cmd.data?.name ?? ("PayPal HTTP " + cmd.status));
+      await admin.from("wallet_deposits").update({ status: "refuse", note: "PayPal : " + msg })
+        .eq("id", ligne.id);
+      return json({ error: "PayPal a refusé la commande : " + msg }, 502);
+    }
+
+    await admin.from("wallet_deposits").update({
+      provider_ref: orderId,
+      note: "En attente du paiement PayPal",
+      raw: { valeur, devise, taux, brutAr, frais, fraisPct: DEPOSIT_FEE_PCT, orderId },
+    }).eq("id", ligne.id);
+
+    return json({ depot: ligne.id, orderId, paymentLink: lien, montant: valeur, devise, brutAr, frais, creditAr: net });
+  }
+
+  // ---- Le dépôt PayPal est-il payé ? On encaisse. ----
+  if (action === "depot_paypal_check") {
+    const id = String(body.id ?? "").trim();
+    if (!id) return json({ error: "dépôt manquant" }, 400);
+    const { data: ligne } = await admin.from("wallet_deposits")
+      .select("id,email,amount_ar,status,raw").eq("id", id).eq("provider", "paypal").maybeSingle();
+    if (!ligne || norm(ligne.email) !== email) return json({ error: "dépôt introuvable" }, 404);
+    const etat = await paypalConfirmerDepot(admin, ligne as Ligne);
+    return json({ etat, creditAr: ligne.amount_ar, balanceAr: await balanceFor(admin, email) });
   }
 
   // ---- Acheter à l'intérieur de l'application ----
@@ -532,10 +776,16 @@ Deno.serve(async (req: Request) => {
 
     if (!METHODS.has(method)) return json({ error: "moyen de retrait inconnu" }, 400);
     if (!destination) return json({ error: "indiquez où envoyer l'argent" }, 400);
-    // Un canal que l'application ne connaît pas ne se devine pas : sans la
-    // marche à suivre, la somme partirait au hasard.
-    if ((method === "wallet" || method === "merchant" || method === "cash") && !instructions) {
-      return json({ error: "expliquez comment procéder : sans consigne, l'envoi ne peut pas se faire." }, 400);
+    // PayPal, Wise, Payoneer et Skrill ne tiennent pas de compte en ariary :
+    // une somme annoncée en MGA n'y arriverait jamais telle quelle.
+    if (METHODES_EN_DEVISE.has(method) && (currency === "MGA" || !currency)) {
+      return json({ error: "Ce portefeuille ne reçoit pas d'ariary : choisissez EUR, USD…" }, 400);
+    }
+    if (METHODES_EN_DEVISE.has(method) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(destination)) {
+      return json({ error: "Indiquez l'email du compte " + method + "." }, 400);
+    }
+    if (method === "mobile" && currency !== "MGA") {
+      return json({ error: "Le Mobile Money reçoit en ariary (MGA)." }, 400);
     }
     if (!(amount > 0)) return json({ error: "montant invalide" }, 400);
     if (amount < MIN_PAYOUT_AR) {
@@ -757,7 +1007,20 @@ Deno.serve(async (req: Request) => {
       // « en_cours » : on ne touche à rien, on redemandera.
     }
 
-    return json({ verifies: (lignes ?? []).length, arrivees: arrivees.length, echecs: echecs.length });
+    // Les dépôts PayPal payés dont la page n'est jamais revenue (onglet
+    // fermé, réseau coupé) s'encaissent ici, à la prochaine ouverture.
+    let depotsConfirmes = 0;
+    if (paypalConfigure()) {
+      const depuis = new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString();
+      const { data: depots } = await admin.from("wallet_deposits")
+        .select("id,email,amount_ar,status,raw").eq("provider", "paypal").eq("status", "en_attente")
+        .eq("email", email).gte("created_at", depuis).limit(10);
+      for (const d of depots ?? []) {
+        if ((await paypalConfirmerDepot(admin, d as Ligne)) === "confirme") depotsConfirmes++;
+      }
+    }
+
+    return json({ verifies: (lignes ?? []).length, arrivees: arrivees.length, echecs: echecs.length, depotsConfirmes });
   }
 
   // ---- Reprendre une demande qui n'est jamais partie ----

@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="57060874">
+<meta name="ny-asako-version" content="9dcc3397">
 <title>Ny asako — Tanjona</title>
 <!-- Application installable : le manifeste décrit le nom, l'icône et la façon
      de s'ouvrir ; le reste est affaire de service worker, enregistré plus bas. -->
@@ -2120,7 +2120,7 @@
         <div class="section-head">
           <div>
             <h2>Portefeuille électronique</h2>
-            <p>Votre solde en ariary, à dépenser ou à retirer vers votre compte.</p>
+            <p>Votre solde en ariary : déposez depuis Madagascar ou l'étranger, retirez vers PayPal, Wise, Payoneer, Skrill ou Mobile Money.</p>
           </div>
         </div>
 
@@ -2145,28 +2145,6 @@
             </button>
           </form>
           <p id="walletAuthStatus" style="font-size:0.8rem; color:var(--cyan); margin-top:0.8rem;"></p>
-
-          <div style="margin-top:1.4rem; padding-top:1.2rem; border-top:1px solid var(--line);">
-            <h3 style="font-size:0.95rem;">Paiement en ligne — PayPal</h3>
-            <p style="font-size:0.82rem; color:var(--muted); line-height:1.6; margin:0.4rem 0 1rem;">
-              Reliez un compte PayPal pour pouvoir payer en ligne depuis votre portefeuille.
-            </p>
-            <div id="paypalNoAccountBlock">
-              <a class="btn btn-sm" href="https://www.paypal.com/signup" target="_blank" rel="noopener">
-                Je n'ai pas de compte PayPal — Créer un compte
-              </a>
-            </div>
-            <div style="margin-top:0.8rem;">
-              <form id="paypalConnectForm" style="display:flex; gap:0.6rem; flex-wrap:wrap; align-items:flex-end;">
-                <div class="field" style="margin-bottom:0; flex:1; min-width:200px;">
-                  <label for="paypalEmailInput">J'ai déjà un compte — email PayPal</label>
-                  <input id="paypalEmailInput" type="email" placeholder="votre-email@paypal.com" required>
-                </div>
-                <button type="submit" class="btn btn-sm" id="paypalConnectBtn">Connecter</button>
-              </form>
-              <p id="paypalConnectStatus" style="font-size:0.8rem; color:var(--cyan); margin-top:0.6rem;"></p>
-            </div>
-          </div>
         </div>
 
         <!-- vue connectée -->
@@ -2187,8 +2165,8 @@
                 <div class="plan-note" id="walletRetirable" style="margin-top:0.2rem;"></div>
               </div>
               <div>
-                <div class="plan-note">PayPal</div>
-                <div class="plan-price" id="walletPaypalStatus" style="font-size:1rem;">Non relié</div>
+                <div class="plan-note">Canaux ouverts</div>
+                <div class="plan-note" id="walletCanaux" style="color:var(--text); line-height:1.7;">—</div>
               </div>
             </div>
 
@@ -2213,28 +2191,101 @@
             <button type="button" class="btn btn-sm" id="walletSignOutBtn" style="margin-top:1rem;">Se déconnecter du portefeuille</button>
           </div>
 
-          <!-- ---- RETRAIT VERS UN COMPTE EXTÉRIEUR ---- -->
-          <div class="panel" id="walletPayoutPanel">
-            <h3>💸 Retirer vers mon compte</h3>
+          <!-- ---- DÉPOSER : l'argent qui ENTRE ----
+               Deux voies, toutes deux vérifiées par le serveur : rien n'est
+               crédité avant que le fournisseur ne confirme le paiement. -->
+          <div class="panel" id="walletDepotPanel">
+            <h3>📥 Déposer de l'argent</h3>
             <p style="font-size:0.82rem; color:var(--muted); line-height:1.6; margin-bottom:1rem;">
-              Indiquez où envoyer l'argent : votre compte PayPal, votre compte bancaire, ou votre
-              Mobile Money. La somme quitte votre solde dès la demande, et le propriétaire l'envoie
-              vers ce compte. Vous êtes prévenu tous les deux dès que c'est parti.
+              L'argent versé est du vrai argent : il s'ajoute à votre solde dès que le paiement est
+              confirmé, et peut être retiré à tout moment. Frais de dépôt :
+              <strong id="depotFraisPct" style="color:var(--text);">5 %</strong>.
+            </p>
+
+            <div class="actions-row" style="margin-bottom:1rem; gap:0.5rem;">
+              <button type="button" class="btn btn-sm depot-onglet" data-onglet="inter" style="width:auto;">🌍 International — PayPal / carte</button>
+              <button type="button" class="btn btn-sm depot-onglet" data-onglet="mg" style="width:auto;">🇲🇬 Madagascar — Mobile Money</button>
+            </div>
+
+            <!-- International : PayPal Checkout. Sans compte PayPal, la page
+                 PayPal propose de payer par carte Visa / Mastercard. -->
+            <div id="depotInter">
+              <div class="form-grid">
+                <div class="field" style="margin-bottom:0;">
+                  <label for="ppDepotAmount">Montant</label>
+                  <input id="ppDepotAmount" type="number" min="1" step="0.01" value="10">
+                </div>
+                <div class="field" style="margin-bottom:0;">
+                  <label for="ppDepotCurrency">Devise</label>
+                  <select id="ppDepotCurrency">
+                    <option value="EUR">Euro (EUR)</option>
+                    <option value="USD">Dollar (USD)</option>
+                    <option value="GBP">Livre sterling (GBP)</option>
+                    <option value="CAD">Dollar canadien (CAD)</option>
+                    <option value="AUD">Dollar australien (AUD)</option>
+                    <option value="CHF">Franc suisse (CHF)</option>
+                  </select>
+                </div>
+              </div>
+              <p id="ppDepotApercu" style="font-size:0.78rem; color:var(--muted); margin-top:0.6rem; line-height:1.5;"></p>
+              <button type="button" class="btn btn-primary btn-sm" id="ppDepotBtn" style="width:auto; margin-top:0.6rem;">Payer avec PayPal ou une carte</button>
+              <p style="font-size:0.72rem; color:var(--muted); margin-top:0.5rem; line-height:1.5;">
+                Sans compte PayPal : choisissez « Payer par carte » sur la page PayPal.
+                Converti en ariary au taux du jour.
+              </p>
+              <p id="ppDepotStatus" style="font-size:0.8rem; color:var(--cyan); margin-top:0.6rem; line-height:1.5;"></p>
+            </div>
+
+            <!-- Madagascar : Papi (MVola, Orange Money, Airtel Money, carte BRED). -->
+            <div id="depotMg" style="display:none;">
+              <div class="form-grid">
+                <div class="field" style="margin-bottom:0;">
+                  <label for="papiAmount">Montant (Ar)</label>
+                  <input id="papiAmount" type="number" min="300" step="1000" value="15000">
+                </div>
+                <div class="field" style="margin-bottom:0;">
+                  <label for="papiProvider">Payer avec</label>
+                  <select id="papiProvider">
+                    <option value="">Choisir sur la page Papi</option>
+                    <option value="MVOLA">MVola</option>
+                    <option value="ORANGE_MONEY">Orange Money</option>
+                    <option value="AIRTEL_MONEY">Airtel Money</option>
+                    <option value="BRED">Carte bancaire</option>
+                  </select>
+                </div>
+                <div class="field" style="margin-bottom:0;">
+                  <label for="papiPhone">Téléphone (facultatif)</label>
+                  <input id="papiPhone" type="tel" placeholder="034 00 000 00">
+                </div>
+              </div>
+              <p id="papiFrais" style="font-size:0.78rem; color:var(--muted); margin-top:0.6rem; line-height:1.5;"></p>
+              <button type="button" class="btn btn-primary btn-sm" id="papiPayBtn" style="width:auto; margin-top:0.6rem;">Payer avec Papi</button>
+              <p id="papiStatus" style="font-size:0.8rem; color:var(--cyan); margin-top:0.8rem; line-height:1.5;"></p>
+            </div>
+          </div>
+
+          <!-- ---- RETIRER : l'argent qui SORT ---- -->
+          <div class="panel" id="walletPayoutPanel">
+            <h3>💸 Retirer mon argent</h3>
+            <p style="font-size:0.82rem; color:var(--muted); line-height:1.6; margin-bottom:1rem;">
+              Vers votre portefeuille international (PayPal, Wise, Payoneer, Skrill), votre
+              Mobile Money ou votre banque. La somme quitte votre solde dès la demande ; si
+              l'envoi échoue, elle vous est rendue.
             </p>
             <div class="form-grid">
               <div class="field" style="margin-bottom:0;">
-                <label for="payoutAmount">Montant à retirer (Ar)</label>
+                <label for="payoutAmount">Montant à recevoir (Ar)</label>
                 <input id="payoutAmount" type="number" min="0" step="1000" placeholder="20000">
               </div>
               <div class="field" style="margin-bottom:0;">
-                <label for="payoutMethod">Où l'envoyer</label>
+                <label for="payoutMethod">Vers</label>
                 <select id="payoutMethod">
                   <option value="paypal">PayPal</option>
-                  <option value="card">Compte bancaire / carte</option>
-                  <option value="mobile">Mobile Money</option>
-                  <option value="cash">Espèces — point cash / Western Union</option>
-                  <option value="wallet">Autre portefeuille (Wise, Payoneer, Skrill…)</option>
-                  <option value="merchant">Payer un achat à l'étranger</option>
+                  <option value="wise">Wise</option>
+                  <option value="payoneer">Payoneer</option>
+                  <option value="skrill">Skrill</option>
+                  <option value="mobile">Mobile Money (MVola, Orange, Airtel)</option>
+                  <option value="card">Compte bancaire</option>
                 </select>
               </div>
               <div class="field" style="margin-bottom:0;">
@@ -2243,10 +2294,10 @@
                   <option value="MGA">Ariary (MGA)</option>
                   <option value="EUR">Euro (EUR)</option>
                   <option value="USD">Dollar (USD)</option>
-                  <option value="ZAR">Rand sud-africain (ZAR)</option>
-                  <option value="MUR">Roupie mauricienne (MUR)</option>
                   <option value="GBP">Livre sterling (GBP)</option>
                   <option value="CAD">Dollar canadien (CAD)</option>
+                  <option value="ZAR">Rand sud-africain (ZAR)</option>
+                  <option value="MUR">Roupie mauricienne (MUR)</option>
                 </select>
               </div>
             </div>
@@ -2254,70 +2305,23 @@
               <label for="payoutDestination" id="payoutDestinationLabel">Votre email PayPal</label>
               <input id="payoutDestination" type="text" placeholder="vous@paypal.com">
             </div>
-            <div class="field" id="payoutLinkField" style="display:none;">
-              <label for="payoutLink" id="payoutLinkLabel">Lien du service</label>
-              <input id="payoutLink" type="text" placeholder="https://…">
-              <p style="font-size:0.72rem; color:var(--muted); margin-top:0.4rem;">
-                L'adresse à ouvrir pour faire l'envoi : votre portefeuille, la page du marchand,
-                le point cash. Elle évite d'avoir à le chercher.
-              </p>
-            </div>
-            <div class="field" id="payoutInstructionsField" style="display:none;">
-              <label for="payoutInstructions">Marche à suivre</label>
-              <input id="payoutInstructions" type="text" placeholder="Ex : ouvrir le lien, choisir « Envoyer », mettre mon nom et mon numéro de pièce d'identité">
-              <p style="font-size:0.72rem; color:var(--muted); margin-top:0.4rem;">
-                Expliquez pas à pas ce qu'il faut faire. Un canal que l'application ne connaît pas
-                ne se devine pas : sans consigne, la somme partirait au hasard.
-              </p>
-            </div>
-            <button type="button" class="btn btn-primary btn-sm" id="payoutRequestBtn" style="width:auto;">Demander le retrait</button>
+            <p id="payoutCanal" style="font-size:0.74rem; color:var(--muted); margin:-0.4rem 0 0.6rem; line-height:1.5;"></p>
+            <p id="payoutFrais" style="font-size:0.78rem; color:var(--muted); margin-bottom:0.6rem; line-height:1.5;"></p>
+            <button type="button" class="btn btn-primary btn-sm" id="payoutRequestBtn" style="width:auto;">Retirer</button>
             <p id="payoutStatus" style="font-size:0.8rem; color:var(--cyan); margin-top:0.8rem; line-height:1.5;"></p>
-
-            <div style="margin-top:1.2rem; padding-top:1rem; border-top:1px solid var(--line);">
-              <h3 style="font-size:0.95rem;">Mes retraits</h3>
-              <div id="payoutList" style="margin-top:0.7rem;"></div>
-              <p class="empty-hint" id="payoutEmpty" style="display:none;">Aucun retrait demandé.</p>
-            </div>
-
-            <!-- Ce qui est ENTRÉ. Un versement annoncé et pas encore confirmé
-                 doit se voir : sans cela, la personne qui vient de payer croit
-                 que rien n'est arrivé et paie une seconde fois. -->
-            <div style="margin-top:1.2rem; padding-top:1rem; border-top:1px solid var(--line);">
-              <h3 style="font-size:0.95rem;">Mes versements</h3>
-              <div id="depositList" style="margin-top:0.7rem;"></div>
-              <p class="empty-hint" id="depositEmpty" style="display:none;">Aucun versement reçu.</p>
-            </div>
           </div>
 
-          <!-- ---- RECHARGER LE SOLDE VIA PAPI (MVola, Orange Money, Airtel Money, carte) ---- -->
-          <div class="panel" id="walletPapiPanel">
-            <h3>📲 Recharger mon solde</h3>
-            <p style="font-size:0.82rem; color:var(--muted); line-height:1.6; margin-bottom:1rem;">
-              Payez avec MVola, Orange Money, Airtel Money ou une carte bancaire. La somme est
-              ajoutée à votre solde dès que Papi confirme le paiement.
-            </p>
-            <div class="form-grid">
-              <div class="field" style="margin-bottom:0;">
-                <label for="papiAmount">Montant (Ar)</label>
-                <input id="papiAmount" type="number" min="300" step="1000" value="15000">
-              </div>
-              <div class="field" style="margin-bottom:0;">
-                <label for="papiProvider">Payer avec</label>
-                <select id="papiProvider">
-                  <option value="">Choisir sur la page Papi</option>
-                  <option value="MVOLA">MVola</option>
-                  <option value="ORANGE_MONEY">Orange Money</option>
-                  <option value="AIRTEL_MONEY">Airtel Money</option>
-                  <option value="BRED">Carte bancaire</option>
-                </select>
-              </div>
-              <div class="field" style="margin-bottom:0;">
-                <label for="papiPhone">Téléphone (facultatif)</label>
-                <input id="papiPhone" type="tel" placeholder="034 00 000 00">
-              </div>
-            </div>
-            <button type="button" class="btn btn-primary btn-sm" id="papiPayBtn" style="width:auto; margin-top:1rem;">Payer avec Papi</button>
-            <p id="papiStatus" style="font-size:0.8rem; color:var(--cyan); margin-top:0.8rem; line-height:1.5;"></p>
+          <!-- ---- HISTORIQUE ---- -->
+          <div class="panel" id="walletHistoriquePanel">
+            <h3>🧾 Historique</h3>
+            <!-- Un versement en attente doit se voir : sinon la personne qui
+                 vient de payer croit que rien n'est arrivé et paie deux fois. -->
+            <h3 style="font-size:0.95rem; margin-top:0.8rem;">Mes dépôts</h3>
+            <div id="depositList" style="margin-top:0.7rem;"></div>
+            <p class="empty-hint" id="depositEmpty" style="display:none;">Aucun dépôt.</p>
+            <h3 style="font-size:0.95rem; margin-top:1.2rem;">Mes retraits</h3>
+            <div id="payoutList" style="margin-top:0.7rem;"></div>
+            <p class="empty-hint" id="payoutEmpty" style="display:none;">Aucun retrait demandé.</p>
           </div>
 
           <!-- ---- FILE DES RETRAITS À ENVOYER (propriétaire uniquement) ---- -->
@@ -2332,11 +2336,8 @@
           </div>
 
           <!-- ---- DÉPENSER LE SOLDE ---- -->
-          <!-- Trois usages, dans l'ordre où ils se posent : l'abonnement qui
-               fait tourner l'application, ce qui s'achète dedans, et ce qui
-               s'achète dehors. -->
           <div class="panel" id="walletBuyPanel">
-            <h3>💳 Dépenser votre solde</h3>
+            <h3>💳 Payer l'abonnement avec mon solde</h3>
             <p style="font-size:0.82rem; color:var(--muted); line-height:1.6; margin-bottom:1.2rem;">
               Réglé depuis votre portefeuille, sans code à demander ni argent à envoyer.
             </p>
@@ -2362,14 +2363,6 @@
                 <button type="button" class="btn btn-sm buy-site-item" data-item="sub_days" style="width:100%; margin-top:0.7rem;">Payer</button>
               </div>
             </div>
-
-            <h3 style="font-size:0.95rem; margin-top:1.4rem;">Achat hors du site</h3>
-            <p style="font-size:0.82rem; color:var(--muted); line-height:1.6; margin:0.5rem 0 0.8rem;">
-              Payer un marchand à l'étranger, ou faire passer la somme par un autre portefeuille
-              international — Wise, Payoneer, Skrill, PayPal, un point cash. Vous donnez le lien et
-              la marche à suivre ; le propriétaire exécute et vous êtes prévenus tous les deux.
-            </p>
-            <button type="button" class="btn btn-sm" id="goToPayoutBtn" style="width:auto;">Choisir où envoyer l'argent</button>
 
             <p id="walletBuyStatus" style="font-size:0.8rem; color:var(--cyan); margin-top:1rem; line-height:1.5;"></p>
             <p id="walletRedeemStatus" style="display:none;"></p>
@@ -2986,7 +2979,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=65100471"></script>
+<script src="gestion-stockage-js/common.js?v=37051af2"></script>
 <script src="gestion-stockage-js/stock.js?v=ae755b14"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=7204c861"></script>
@@ -3019,6 +3012,7 @@
 <script src="gestion-stockage-js/theme.js?v=096262fd"></script>
 <script src="gestion-stockage-js/securite.js?v=e38535e6"></script>
 <script src="gestion-stockage-js/papi-paiement.js?v=6df8bf86"></script>
+<script src="gestion-stockage-js/depot-paypal.js?v=4665006e"></script>
 
 
 

@@ -1020,3 +1020,49 @@ faut descendre à deux ou trois par jour.
 Sans le secret, la fonction refuse tout et ne publie rien : un
 secret vide laisserait n'importe qui écrire dans le fil de tout le
 monde.
+
+
+PORTEFEUILLE — DÉPÔT ET RETRAIT EN VRAI ARGENT (26/09/2026)
+------------------------------
+Le portefeuille a deux portes, et plus aucune fausse :
+
+DÉPOSER
+  - International : PayPal Checkout. La personne paie avec son
+    compte PayPal, OU avec une carte Visa / Mastercard sans compte
+    (« Payer par carte » sur la page PayPal). Devises : EUR, USD,
+    GBP, CAD, AUD, CHF, converties en ariary au taux du jour.
+  - Madagascar : Papi (MVola, Orange Money, Airtel Money, carte BRED),
+    comme avant.
+  Frais de dépôt : DEPOSIT_FEE_PCT (5 % par défaut), retirés de ce
+  qui est crédité. Minimum PayPal : DEPOT_MIN_AR (5 000 Ar), maximum
+  DEPOT_MAX_AR (5 000 000 Ar).
+
+  Rien n'est crédité sur la foi du retour dans la page : au retour de
+  PayPal, la fonction "wallet" ENCAISSE la commande (capture) avec vos
+  clefs, et ne crédite que si PayPal répond COMPLETED pour exactement
+  la somme et la devise commandées. Un paiement dont la page ne
+  revient jamais (onglet fermé) est encaissé à la prochaine ouverture
+  de l'application.
+
+RETIRER
+  - PayPal : automatique (Payouts), déjà en place.
+  - Wise, Payoneer, Skrill : la personne donne l'email de son compte ;
+    VOUS envoyez depuis votre compte sur ce service, puis « Efa
+    nalefako an-tanana ». Ces trois-là n'ouvrent pas d'API d'envoi
+    à un petit marchand sans contrat : elles restent manuelles.
+  - Mobile Money (en ariary) et compte bancaire : manuels.
+  Retirés : « Espèces / point cash », « Autre portefeuille » et
+  « Payer un achat à l'étranger », ainsi que le faux bouton
+  « Connecter PayPal » qui ne faisait que noter un email.
+
+À FAIRE UNE FOIS :
+  1. Les mêmes clefs que le retrait PayPal suffisent au dépôt :
+       PAYPAL_CLIENT_ID, PAYPAL_SECRET, PAYPAL_ENV (sandbox → live).
+     Sur developer.paypal.com, l'application doit avoir « Accept
+     payments » (Checkout) ET « Payouts » cochés.
+  2. supabase functions deploy wallet   (AVEC vérification du jeton)
+  3. Éprouver en SANDBOX : un dépôt de 10 EUR avec un compte client
+     sandbox, puis un retrait. Ensuite seulement PAYPAL_ENV=live.
+
+  La page affiche dans « Canaux ouverts » ce qui marche vraiment sur
+  le serveur : un canal dont les clefs manquent a son bouton grisé.
