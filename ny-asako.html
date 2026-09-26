@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="5f3d4a40">
+<meta name="ny-asako-version" content="85bc3e0d">
 <title>Ny asako — Tanjona</title>
 <!-- Application installable : le manifeste décrit le nom, l'icône et la façon
      de s'ouvrir ; le reste est affaire de service worker, enregistré plus bas. -->
@@ -793,10 +793,6 @@
             <div>
               <h2>Botika</h2>
             </div>
-            <div class="actions-row">
-              <button class="btn btn-amber btn-sm" id="exportExcelBtn">Exporter en Excel</button>
-              <button class="btn btn-violet btn-sm" id="downloadJsonBtn">Télécharger les données</button>
-            </div>
           </div>
 
           <div class="community-grid">
@@ -917,6 +913,12 @@
           <div class="global-search" style="position:relative; margin:0 0 1.2rem;">
             <input type="text" id="globalSearchInput" placeholder="🔍 Rechercher un article, un mouvement..." autocomplete="off" style="width:100%; padding:0.6rem 0.8rem; border-radius:8px; border:1px solid var(--line); background:var(--bg); color:var(--text); font-size:0.82rem; box-sizing:border-box;">
             <div id="globalSearchResults" style="display:none; position:absolute; top:110%; left:0; right:0; background:var(--panel); border:1px solid var(--line); border-radius:10px; max-height:340px; overflow-y:auto; z-index:60; box-shadow:0 8px 24px rgba(0,0,0,0.35);"></div>
+          </div>
+          <!-- Les deux exports portent sur les articles : ils vivent avec eux,
+               et non plus sous le titre de la Botika. -->
+          <div class="actions-row" style="justify-content:flex-end; gap:0.8rem; margin:0 0 1rem;">
+            <button class="btn btn-amber btn-sm" id="exportExcelBtn">Exporter en Excel</button>
+            <button class="btn btn-violet btn-sm" id="downloadJsonBtn">Télécharger les données</button>
           </div>
           <div class="table-scroll">
             <table id="stockTable">
