@@ -1066,3 +1066,11 @@ RETIRER
 
   La page affiche dans « Canaux ouverts » ce qui marche vraiment sur
   le serveur : un canal dont les clefs manquent a son bouton grisé.
+
+MISE À JOUR (même jour) : PAYPAL RETIRÉ
+------------------------------
+PayPal ne fonctionnait pas : il est retiré du portefeuille, dépôt et
+retrait, page et fonction "wallet". Restent : dépôt par Papi (Mobile
+Money, carte BRED) ; retrait vers Wise, Payoneer, Skrill, Mobile Money
+ou banque, envoyé par le propriétaire. Les secrets PAYPAL_* ne servent
+plus au portefeuille. Redéployer : supabase functions deploy wallet

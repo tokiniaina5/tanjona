@@ -918,7 +918,6 @@
   // « devise » : ce que le compte d'arrivée sait recevoir. Les portefeuilles
   // internationaux ne tiennent pas d'ariary ; le Mobile Money, que de l'ariary.
   const PAYOUT_DESTINATION_LABELS = {
-    paypal: { label: 'Votre email PayPal', placeholder: 'vous@email.com', devise: 'etrangere' },
     wise: { label: 'Email de votre compte Wise', placeholder: 'vous@email.com', devise: 'etrangere' },
     payoneer: { label: 'Email de votre compte Payoneer', placeholder: 'vous@email.com', devise: 'etrangere' },
     skrill: { label: 'Email de votre compte Skrill', placeholder: 'vous@email.com', devise: 'etrangere' },
@@ -1001,14 +1000,11 @@
     const c = (walletState && walletState.canaux) || {};
     if(el){
       el.innerHTML =
-        (c.depotPaypal ? '✅' : '⛔') + ' Dépôt PayPal / carte' + (c.paypalTest ? ' <em>(test)</em>' : '') + '<br>' +
         (c.depotPapi ? '✅' : '⛔') + ' Dépôt Mobile Money<br>' +
-        (c.retraitPaypalAuto ? '⚡' : '👤') + ' Retrait PayPal ' + (c.retraitPaypalAuto ? 'automatique' : 'par le propriétaire');
+        '👤 Retraits envoyés par le propriétaire';
     }
     const pct = document.getElementById('depotFraisPct');
     if(pct && walletState && walletState.depositFeePct !== undefined) pct.textContent = walletState.depositFeePct + ' %';
-    const ppBtn = document.getElementById('ppDepotBtn');
-    if(ppBtn) ppBtn.disabled = !c.depotPaypal;
     const papiBtn = document.getElementById('papiPayBtn');
     if(papiBtn) papiBtn.disabled = !c.depotPapi;
   }
@@ -1049,18 +1045,18 @@
   if(walletCurrencySelect) walletCurrencySelect.addEventListener('change', updateWalletConversion);
 
   // Le champ « où envoyer » change de sens selon le moyen choisi : un email
-  // PayPal, un compte bancaire et un numéro Mobile Money ne se ressemblent pas.
+  // Wise, un compte bancaire et un numéro Mobile Money ne se ressemblent pas.
   const payoutMethodSelect = document.getElementById('payoutMethod');
   function updatePayoutDestinationField(){
     if(!payoutMethodSelect) return;
     const methode = payoutMethodSelect.value;
-    const conf = PAYOUT_DESTINATION_LABELS[methode] || PAYOUT_DESTINATION_LABELS.paypal;
+    const conf = PAYOUT_DESTINATION_LABELS[methode] || PAYOUT_DESTINATION_LABELS.wise;
     const label = document.getElementById('payoutDestinationLabel');
     const input = document.getElementById('payoutDestination');
     if(label) label.textContent = conf.label;
     if(input) input.placeholder = conf.placeholder;
 
-    // La devise suit le compte d'arrivée : proposer l'ariary pour PayPal,
+    // La devise suit le compte d'arrivée : proposer l'ariary pour Wise,
     // c'est une demande que le serveur refusera.
     const devise = document.getElementById('payoutCurrency');
     if(devise){
@@ -1076,10 +1072,7 @@
     // Dire franchement qui envoie : l'application elle-même, ou le propriétaire.
     const canal = document.getElementById('payoutCanal');
     if(canal){
-      const auto = methode === 'paypal' && walletState && walletState.canaux && walletState.canaux.retraitPaypalAuto;
-      canal.textContent = auto
-        ? '⚡ Automatique : envoyé par PayPal dès la demande.'
-        : '👤 Envoyé par le propriétaire depuis son compte ' + payoutMethodLabel(methode) +
+      canal.textContent = '👤 Envoyé par le propriétaire depuis son compte ' + payoutMethodLabel(methode) +
           ' — vous êtes prévenu dès que c\'est parti.';
     }
   }
@@ -1276,48 +1269,6 @@
       // parvienne ; la rendre reviendrait à la payer deux fois. Le serveur le
       // refuse aussi de son côté — le bouton n'est que la porte fermée
       // d'avance.
-      // Déposer l'ordre chez le fournisseur, maintenant. C'est l'acte du
-      // propriétaire : son compte marchand se vide. Le serveur le refuse à
-      // quiconque d'autre — le bouton n'est que la porte fermée d'avance.
-      //
-      // Le rejouer est sans danger : la clef présentée au fournisseur est
-      // l'identifiant de la ligne, et c'est lui qui refuse le doublon.
-      // C'est le serveur qui dit qui est le propriétaire — il compare le
-      // jeton, pas un email que la page aurait sous la main.
-      if(r.status === 'pending' && r.method === 'paypal' && walletState.isOwner){
-        const envoi = document.createElement('button');
-        envoi.type = 'button';
-        envoi.className = 'btn btn-primary btn-sm';
-        envoi.style.cssText = 'width:auto; margin-top:0.6rem; margin-right:0.5rem;';
-        envoi.textContent = r.auto_ref ? '🔁 Andramo indray ny PayPal' : '📤 Alefa amin\'ny PayPal izao';
-        const dire = function(texte, couleur){
-          const ligne = document.createElement('div');
-          ligne.style.cssText = 'color:' + couleur + '; margin-top:0.4rem; line-height:1.5;';
-          ligne.textContent = texte;
-          div.appendChild(ligne);
-        };
-        envoi.addEventListener('click', function(){
-          envoi.disabled = true;
-          envoi.textContent = 'Mandefa…';
-          callWallet({ action: 'envoyer', id: r.id }).then(function(res){
-            envoi.disabled = false;
-            envoi.textContent = '🔁 Andramo indray ny PayPal';
-            // « Déposé » n'est pas « arrivé » : PayPal traite ensuite. La
-            // ligne reste en attente, et c'est la vérification qui la fera
-            // passer — avec l'avis qui va avec.
-            dire(res.message || 'Lasa ny baiko.', res.etat === 'refuse' ? 'var(--red, #e66)' : 'var(--cyan)');
-            pushNotification('parrainage', '📤 Nalefa tany amin\'ny PayPal ny baiko : ' +
-              formatWalletAr(r.amount_ar) + '. Andrasana ny fanamarinana.');
-            refreshWalletFromServer();
-          }, function(err){
-            envoi.disabled = false;
-            envoi.textContent = '📤 Alefa amin\'ny PayPal izao';
-            dire(err.message, 'var(--amber)');
-          });
-        });
-        div.appendChild(envoi);
-      }
-
       if(r.status === 'pending' && !r.auto_provider){
         const bouton = document.createElement('button');
         bouton.type = 'button';
@@ -1490,8 +1441,7 @@
       sentBtn.textContent = '✅ Efa nalefako an-tanana';
       sentBtn.addEventListener('click', function(){
         if(!confirm('Efa nalefanao TENA ve ny ' + arrivee + ' ho any amin\'ny ' + r.destination + ' ?\n\n' +
-          'Ity bokotra ity dia tsy mandefa vola : manamarina fotsiny izy fa efa nataonao. ' +
-          'Raha te-hampandeha azy amin\'ny PayPal dia « 📤 Alefa amin\'ny PayPal izao » no tsindrio.')) return;
+          'Ity bokotra ity dia tsy mandefa vola : manamarina fotsiny izy fa efa nataonao.')) return;
         settlePayout(r.id, 'sent', '', sentBtn);
       });
 
@@ -1506,26 +1456,6 @@
         settlePayout(r.id, 'refused', note, refuseBtn);
       });
 
-      // PayPal automatique : l'application envoie elle-même, depuis le compte
-      // marchand. Sans danger à rejouer — la clef est l'id de la ligne.
-      if(r.method === 'paypal' && walletState.canaux && walletState.canaux.retraitPaypalAuto){
-        const autoBtn = document.createElement('button');
-        autoBtn.type = 'button';
-        autoBtn.className = 'btn btn-primary btn-sm';
-        autoBtn.style.width = 'auto';
-        autoBtn.textContent = '📤 Alefa amin\'ny PayPal izao';
-        autoBtn.addEventListener('click', function(){
-          autoBtn.disabled = true;
-          callWallet({ action: 'envoyer', id: r.id }).then(function(res){
-            alert(res.message || 'Lasa ny baiko.');
-            refreshWalletFromServer();
-          }, function(err){
-            autoBtn.disabled = false;
-            alert(err.message);
-          });
-        });
-        actions.appendChild(autoBtn);
-      }
       actions.appendChild(sentBtn);
       actions.appendChild(refuseBtn);
       card.appendChild(actions);
@@ -1703,9 +1633,6 @@
   function verifierLePortefeuille(){
     if(!(currentUser && currentUser.email)) return;
     const sub = ensureInstallDate();
-    // D'abord demander au fournisseur où en sont les ordres déposés. Sans
-    // cela, l'état qu'on lit juste après serait celui d'avant, et l'argent
-    // arrivé cette nuit ne se dirait qu'à la prochaine ouverture.
     const lireLEtat = function(){
       callWallet({ action: 'state', installId: sub.id }).then(function(state){
         walletState = state;
@@ -1716,9 +1643,7 @@
         }
       }, function(){});
     };
-    // Qu'elle aboutisse ou non, on lit l'état ensuite : une vérification
-    // impossible ne doit pas empêcher de voir ce qu'on sait déjà.
-    callWallet({ action: 'verifier' }).then(lireLEtat, lireLEtat);
+    lireLEtat();
   }
 
   const PAYOUT_SEEN_KEY = 'stockmanager_payouts_seen';
