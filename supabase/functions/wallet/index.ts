@@ -189,6 +189,39 @@ async function retirableFor(admin: Admin, email: string, balance: number): Promi
   return Math.max(0, Math.min(balance, entre - sorti));
 }
 
+// ---- L'argent vraiment payé qui reste, pour l'abonnement ----
+// Depuis le 26/09/2026, l'abonnement ne se paie plus avec les parrainages :
+// seulement avec de l'argent vraiment entré (dépôts Papi confirmés).
+//
+//   dépôts réels
+//   − abonnements déjà payés AVEC cet argent (method « papi » ; les achats
+//     d'avant, réglés avec n'importe quel solde, ne comptent pas contre lui)
+//   − les retraits, pour la part que les parrainages n'ont pas couverte
+//     (un retrait puise d'abord dans les parrainages, qui ne servent qu'à ça)
+// Jamais plus que le solde lui-même.
+async function argentPapiFor(admin: Admin, email: string, balance: number): Promise<number> {
+  const { data: depots } = await admin.from("wallet_deposits")
+    .select("amount_ar").eq("email", email).eq("status", "confirme").in("provider", PROVIDERS_REELS);
+  const entre = (depots ?? []).reduce(
+    (sum: number, d: { amount_ar: number }) => sum + (Number(d.amount_ar) || 0), 0);
+
+  const { data: sorties } = await admin.from("wallet_payouts")
+    .select("amount_ar,fee_ar,kind,method").eq("email", email).in("status", ["pending", "sent"]);
+  let abonnements = 0;
+  let retraits = 0;
+  for (const p of (sorties ?? []) as Array<{ amount_ar: number; fee_ar: number; kind: string; method: string }>) {
+    const somme = (Number(p.amount_ar) || 0) + (Number(p.fee_ar) || 0);
+    if (p.kind === "insite") {
+      if (p.method === "papi") abonnements += somme;
+    } else {
+      retraits += somme;
+    }
+  }
+  const parrainage = await gainsParrainage(admin, email);
+  const reste = entre - abonnements - Math.max(0, retraits - parrainage);
+  return Math.max(0, Math.min(balance, reste));
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ error: "méthode refusée" }, 405);
@@ -252,7 +285,7 @@ Deno.serve(async (req: Request) => {
 
     const retirable = await retirableFor(admin, email, balance);
     return json({
-      balanceAr: balance, retirableAr: retirable, arPerReferral: tarifParrainage(email), minPayoutAr: MIN_PAYOUT_AR, payoutFeePct: PAYOUT_FEE_PCT,
+      balanceAr: balance, retirableAr: retirable, papiAr: await argentPapiFor(admin, email, balance), arPerReferral: tarifParrainage(email), minPayoutAr: MIN_PAYOUT_AR, payoutFeePct: PAYOUT_FEE_PCT,
       depositFeePct: DEPOSIT_FEE_PCT,
       // Ce qui marche vraiment sur ce serveur, pour que la page ne propose
       // pas un canal dont les clefs manquent.
@@ -271,16 +304,21 @@ Deno.serve(async (req: Request) => {
     if (!item) return json({ error: "article inconnu" }, 400);
 
     const balance = await balanceFor(admin, email);
-    if (item.priceAr > balance) {
+    // Seulement l'argent vraiment payé par Papi : les parrainages ne paient
+    // plus l'abonnement (ils se retirent en Mobile Money).
+    const papi = await argentPapiFor(admin, email, balance);
+    if (item.priceAr > papi) {
       return json({
-        error: `Votre solde est de ${balance.toLocaleString("fr-FR")} Ar, il en faut ` +
-          `${item.priceAr.toLocaleString("fr-FR")} Ar.`,
+        error: `Vola avy amin'ny Papi : ${papi.toLocaleString("fr-FR")} Ar, ilaina ` +
+          `${item.priceAr.toLocaleString("fr-FR")} Ar. Tsy aloa amin'ny parrainage intsony ny abonnement : ` +
+          `mandoava amin'ny Papi.`,
+        papiAr: papi, manque: item.priceAr - papi,
       }, 400);
     }
 
     const { data, error } = await admin.from("wallet_payouts").insert({
       email: email, name: String(body.name ?? "").trim(),
-      amount_ar: item.priceAr, method: "site", kind: "insite",
+      amount_ar: item.priceAr, method: "papi", kind: "insite",
       destination: item.label, currency: "MGA", amount_out: item.priceAr, rate: 1,
       status: "sent", settled_at: new Date().toISOString(),
     }).select("id").single();
@@ -289,7 +327,7 @@ Deno.serve(async (req: Request) => {
     return json({
       bought: itemId, label: item.label, priceAr: item.priceAr, days: item.days ?? 0,
       grant: item.grant ?? null,
-      balanceAr: balance - item.priceAr, receipt: data.id,
+      balanceAr: balance - item.priceAr, papiAr: papi - item.priceAr, receipt: data.id,
     });
   }
 

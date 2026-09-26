@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="cd6856b5">
+<meta name="ny-asako-version" content="e4eb2864">
 <title>Ny asako — Tanjona</title>
 <!-- Application installable : le manifeste décrit le nom, l'icône et la façon
      de s'ouvrir ; le reste est affaire de service worker, enregistré plus bas. -->
@@ -421,17 +421,18 @@
       </div>
     </div>
 
-    <!-- Payer avec le portefeuille : rien ne sort de l'application, l'abonnement
-         est actif dans la seconde. C'est la voie la plus courte, donc la première. -->
+    <!-- Payer en vrai argent, par Papi : l'argent déjà versé s'il suffit, sinon
+         Papi s'ouvre pour la somme qui manque. Les parrainages ne paient plus. -->
     <div style="border:1px solid var(--cyan); border-radius:10px; padding:0.9rem 1rem; margin-bottom:1rem; background:var(--panel-2);">
       <div style="display:flex; justify-content:space-between; align-items:baseline; gap:0.8rem;">
-        <strong style="font-size:0.9rem;">💰 Payer avec mon portefeuille</strong>
+        <strong style="font-size:0.9rem;">📲 Payer par Papi</strong>
         <span id="paywallWalletBalance" style="font-family:var(--font-mono); font-size:0.9rem; color:var(--cyan);">—</span>
       </div>
       <p style="font-size:0.78rem; color:var(--muted); line-height:1.6; margin:0.5rem 0 0.8rem;">
-        Immédiat, sans code à demander : la somme quitte votre solde et votre abonnement démarre.
+        MVola, Orange Money, Airtel Money ou carte. L'argent déjà versé par Papi sert d'abord ;
+        l'abonnement démarre dès que Papi confirme. Les parrainages ne paient pas l'abonnement.
       </p>
-      <button type="button" class="btn btn-primary btn-sm" id="paywallWalletBtn" style="width:100%;">Payer avec mon solde</button>
+      <button type="button" class="btn btn-primary btn-sm" id="paywallWalletBtn" style="width:100%;">📲 Payer par Papi</button>
       <p id="paywallWalletStatus" style="font-size:0.78rem; color:var(--cyan); margin-top:0.6rem; line-height:1.5;"></p>
     </div>
 
@@ -2280,9 +2281,10 @@
 
           <!-- ---- DÉPENSER LE SOLDE ---- -->
           <div class="panel" id="walletBuyPanel">
-            <h3>💳 Payer l'abonnement avec mon solde</h3>
+            <h3>💳 Payer l'abonnement par Papi</h3>
             <p style="font-size:0.82rem; color:var(--muted); line-height:1.6; margin-bottom:1.2rem;">
-              Réglé depuis votre portefeuille, sans code à demander ni argent à envoyer.
+              Réglé avec l'argent versé par Papi ; s'il manque, Papi s'ouvre pour la différence.
+              Les parrainages ne paient pas l'abonnement : ils se retirent vers votre Mobile Money.
             </p>
 
             <h3 style="font-size:0.95rem;">Abonnement</h3>
@@ -2922,7 +2924,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=d9e3e69f"></script>
+<script src="gestion-stockage-js/common.js?v=d7ac3f15"></script>
 <script src="gestion-stockage-js/stock.js?v=ae755b14"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=7204c861"></script>
@@ -2954,7 +2956,7 @@
 <script src="gestion-stockage-js/adidy.js?v=7925663f"></script>
 <script src="gestion-stockage-js/theme.js?v=096262fd"></script>
 <script src="gestion-stockage-js/securite.js?v=e38535e6"></script>
-<script src="gestion-stockage-js/papi-paiement.js?v=e09c26f4"></script>
+<script src="gestion-stockage-js/papi-paiement.js?v=2a6ff200"></script>
 
 
 

@@ -5,11 +5,58 @@
 // elle vit dans les secrets Supabase (PAPI_TOKEN).
 
 (function () {
+  // Le message va au panneau du portefeuille ET à l'écran d'abonnement : au
+  // retour de Papi, on ne sait pas lequel des deux est à l'écran.
   function msg(texte, couleur) {
-    const el = document.getElementById('papiStatus');
-    if (!el) return;
-    el.textContent = texte;
-    el.style.color = couleur || 'var(--cyan)';
+    ['papiStatus', 'paywallWalletStatus'].forEach(function (id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = texte;
+      el.style.color = couleur || 'var(--cyan)';
+    });
+  }
+
+  // ---- Payer l'abonnement par Papi ----
+  // common.js calcule la somme qui manque (frais compris) ; on crée le lien,
+  // et l'on retient quel abonnement acheter au retour. Rien n'est accordé
+  // ici : au retour, le serveur vérifie le paiement, puis l'achat passe par
+  // la fonction « wallet » qui ne puise que dans l'argent Papi.
+  window.papiPayerAbonnement = function (item, brut, statusEl, siEchec) {
+    if (statusEl) statusEl.textContent = 'Création du lien de paiement Papi…';
+    appeler({
+      action: 'create',
+      amountAr: brut,
+      provider: '',
+      phone: '',
+      returnUrl: location.href.split('?')[0].split('#')[0]
+    }).then(function (r) {
+      try {
+        localStorage.setItem('papi_ref', r.reference);
+        localStorage.setItem('papi_abonnement', item);
+      } catch (e) {}
+      if (statusEl) statusEl.textContent = 'Ouverture de Papi…';
+      location.href = r.paymentLink;
+    }, function (err) {
+      if (statusEl) statusEl.textContent = err.message;
+      if (siEchec) siEchec();
+    });
+  };
+
+  // Après un paiement confirmé : si c'était pour l'abonnement, on l'achète.
+  async function acheterAbonnementEnAttente() {
+    let item = null;
+    try { item = localStorage.getItem('papi_abonnement'); } catch (e) {}
+    if (!item || typeof window.buySiteItem !== 'function') return false;
+    try {
+      await window.buySiteItem(item, null, null);
+      try { localStorage.removeItem('papi_abonnement'); } catch (e) {}
+      msg('Paiement reçu : votre abonnement est actif.');
+      return true;
+    } catch (err) {
+      msg('Paiement reçu, mais l\'abonnement n\'a pas pu être réglé : ' + err.message +
+        ' — réessayez depuis Portefeuille.', 'var(--amber)');
+      return false;
+    }
   }
 
   function appeler(corps) {
@@ -73,6 +120,7 @@
         if (r.etat === 'confirme') {
           try { localStorage.removeItem('papi_ref'); } catch (e) {}
           msg('Paiement reçu ! Votre solde a été crédité.');
+          await acheterAbonnementEnAttente();
           await attendre(1500);
           location.replace(location.pathname);
           return;

@@ -1491,7 +1491,8 @@
     const sub = ensureInstallDate();
     callWallet({ action: 'state', installId: sub.id }).then(function(state){
       walletState = state;
-      soldeEl.textContent = 'Solde : ' + formatWalletAr(state.balanceAr);
+      soldeEl.textContent = 'Vola Papi : ' + formatWalletAr(state.papiAr || 0);
+      majBoutonAbonnement();
     }, function(err){
       soldeEl.textContent = '—';
       const st = document.getElementById('paywallWalletStatus');
@@ -1548,17 +1549,57 @@
   document.querySelectorAll('.buy-site-item').forEach(function(btn){
     btn.addEventListener('click', function(){
       const statusEl = document.getElementById('walletBuyStatus');
-      buySiteItem(btn.getAttribute('data-item'), statusEl, btn)
-        .then(function(){ refreshWalletFromServer(); }, function(){});
+      payerAbonnement(btn.getAttribute('data-item'), statusEl, btn, function(){ refreshWalletFromServer(); });
     });
   });
+
+  // ---- L'abonnement se paie en vrai argent, par Papi ----
+  // Plus avec les parrainages (ils se retirent en Mobile Money). Si l'argent
+  // déjà versé par Papi suffit, l'abonnement part de là ; sinon on ouvre Papi
+  // pour la somme qui manque, et l'abonnement se règle tout seul au retour
+  // (papi-paiement.js). Les prix ne sont ici que pour l'affichage : c'est le
+  // serveur qui les tient.
+  const PRIX_ABONNEMENT = { sub_month: 15000, sub_year: 150000, sub_days: 20000 };
+  const FRAIS_DEPOT_PCT = 5;
+  // Ce qu'il faut payer chez Papi pour que, frais ôtés, « net » arrive au solde.
+  function brutPourNet(net){
+    let b = Math.max(300, Math.ceil(net * 100 / (100 - FRAIS_DEPOT_PCT)));
+    while(b - Math.ceil(b * FRAIS_DEPOT_PCT / 100) < net) b++;
+    return b;
+  }
+  function manquePour(item){
+    const papi = (walletState && walletState.papiAr) || 0;
+    return Math.max(0, (PRIX_ABONNEMENT[item] || 0) - papi);
+  }
+  function majBoutonAbonnement(){
+    const btn = document.getElementById('paywallWalletBtn');
+    if(!btn) return;
+    const item = selectedPlan === 'annuel' ? 'sub_year' : 'sub_month';
+    const manque = manquePour(item);
+    btn.textContent = manque > 0
+      ? '📲 Payer ' + formatWalletAr(brutPourNet(manque)) + ' par Papi'
+      : '💰 Payer avec mon argent Papi';
+  }
+  function payerAbonnement(item, statusEl, btn, apres){
+    const manque = manquePour(item);
+    if(manque > 0){
+      if(typeof window.papiPayerAbonnement !== 'function'){
+        if(statusEl) statusEl.textContent = 'Papi indisponible : rechargez la page.';
+        return;
+      }
+      if(btn) btn.disabled = true;
+      window.papiPayerAbonnement(item, brutPourNet(manque), statusEl, function(){ if(btn) btn.disabled = false; });
+      return;
+    }
+    buySiteItem(item, statusEl, btn).then(apres || function(){}, function(){});
+  }
 
   const paywallWalletBtn = document.getElementById('paywallWalletBtn');
   if(paywallWalletBtn){
     paywallWalletBtn.addEventListener('click', function(){
       const statusEl = document.getElementById('paywallWalletStatus');
       const item = selectedPlan === 'annuel' ? 'sub_year' : 'sub_month';
-      buySiteItem(item, statusEl, paywallWalletBtn).then(function(){ openApp(); }, function(){});
+      payerAbonnement(item, statusEl, paywallWalletBtn, function(){ openApp(); });
     });
   }
 
@@ -2997,11 +3038,13 @@
     selectedPlan = 'mensuel';
     document.getElementById('planMensuel').classList.add('selected');
     document.getElementById('planAnnuel').classList.remove('selected');
+    majBoutonAbonnement();
   });
   document.getElementById('planAnnuel').addEventListener('click', function(){
     selectedPlan = 'annuel';
     document.getElementById('planAnnuel').classList.add('selected');
     document.getElementById('planMensuel').classList.remove('selected');
+    majBoutonAbonnement();
   });
 
   document.getElementById('sendCodeBtn').addEventListener('click', function(){
