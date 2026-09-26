@@ -1137,7 +1137,9 @@
     list.appendChild(a);
   }
 
-  function glisserPourMasquer(div, id){
+  // « agir », quand il est donné, remplace le simple masquage : il reçoit de
+  // quoi remettre la carte en place si l'action n'aboutit pas.
+  function glisserPourMasquer(div, id, agir){
     div.style.touchAction = 'pan-y';
     div.style.cursor = 'grab';
     div.title = 'Glisser à gauche ou à droite pour masquer';
@@ -1172,7 +1174,9 @@
       depart = null;
       if(!glisse) return;
       glisse = false;
-      if(Math.abs(dx) >= (div.offsetWidth || 1) * 0.35){
+      if(Math.abs(dx) >= (div.offsetWidth || 1) * 0.35 && agir){
+        agir(remettre);
+      } else if(Math.abs(dx) >= (div.offsetWidth || 1) * 0.35){
         div.style.transition = 'transform 0.22s ease, opacity 0.22s ease';
         div.style.transform = 'translateX(' + (dx < 0 ? -1 : 1) * (div.offsetWidth + 40) + 'px)';
         div.style.opacity = '0';
@@ -1221,7 +1225,34 @@
     if(empty) empty.style.display = rows.length ? 'none' : 'block';
     rows.forEach(function(r){
       const div = document.createElement('div');
-      if(r.status !== 'pending') glisserPourMasquer(div, r.id);
+      // Un retrait réglé se masque ; un retrait encore en attente, glissé,
+      // s'annule — la somme revient au solde. Celui qu'un envoi automatique a
+      // déjà touché ne s'annule pas : il a pu partir (voir « annuler »).
+      if(r.status !== 'pending'){
+        glisserPourMasquer(div, r.id);
+      } else {
+        glisserPourMasquer(div, r.id, function(remettre){
+          if(r.auto_provider){
+            remettre();
+            alert('Tsy azo foanana intsony : efa nalefa tany amin\'ny ' + r.auto_provider +
+              ' ny baiko. Andraso ny valiny, na jereo any aminy.');
+            return;
+          }
+          if(!confirm('Hofoanana ity retrait ity, dia hiverina ao amin\'ny soldenao ny ' +
+            formatWalletAr(r.amount_ar) + '. Hitohy?')){ remettre(); return; }
+          div.style.transition = 'transform 0.22s ease, opacity 0.22s ease';
+          div.style.opacity = '0.4';
+          callWallet({ action: 'annuler', id: r.id }).then(function(){
+            pushNotification('parrainage', '↩️ Nofoanana ny retrait : ' +
+              formatWalletAr(r.amount_ar) + ' naverina ao amin\'ny soldenao.');
+            masquerDansHistorique(r.id);
+            refreshWalletFromServer();
+          }, function(err){
+            remettre();
+            alert(err.message);
+          });
+        });
+      }
       div.style.cssText = 'border:1px solid var(--line); border-radius:8px; padding:0.7rem 0.9rem; margin-bottom:0.6rem; font-size:0.8rem; color:var(--muted); line-height:1.7;';
       const arrivee = r.amount_out && r.currency && r.currency !== 'MGA'
         ? ' → ' + Number(r.amount_out).toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' ' + r.currency
