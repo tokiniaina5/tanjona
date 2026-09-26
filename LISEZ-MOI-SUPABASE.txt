@@ -1092,3 +1092,33 @@ S'il n'y en a pas assez, l'écran d'abonnement ouvre Papi pour la
 somme qui manque (frais de 5 % compris) ; au retour, le paiement est
 vérifié puis l'abonnement se règle tout seul. Les parrainages se
 retirent vers le Mobile Money. Redéployer : supabase functions deploy wallet
+
+
+TAMBAJOTRA HO AZY — Telegram, Facebook (Page), Threads, X
+------------------------------
+Le serveur publie tout seul, sur la page « Zarao amin'ny rehetra »
+(bouton « Alefa ») ET chaque soir à 18 h (résumé du jour), sur chaque
+réseau dont les clefs sont posées. Un réseau sans clefs reste à la
+main. WhatsApp, Instagram, TikTok et WeChat n'ont pas d'API qui le
+permette : ils restent à la main.
+
+Secrets (Supabase > Edge Functions > Secrets), réseau par réseau :
+  Telegram   TELEGRAM_BOT_TOKEN   (@BotFather > /newbot)
+             TELEGRAM_CHAT_ID     (@nomducanal, le bot ADMIN du canal)
+  Facebook   FB_PAGE_ID, FB_PAGE_TOKEN
+             Une PAGE, pas un profil. developers.facebook.com > app >
+             Graph API Explorer : droits pages_manage_posts +
+             pages_read_engagement, puis jeton de page longue durée.
+  Threads    THREADS_USER_ID, THREADS_TOKEN
+             developers.facebook.com > app « Threads » : droits
+             threads_basic + threads_content_publish. Jeton de 60 jours
+             à renouveler.
+  X          X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_SECRET
+             developer.x.com > app > User authentication : « Read and
+             write », PUIS régénérer Access Token et Secret.
+
+Déploiement :
+  1. SQL Editor : repasser "supabase/sql/supabase-fandefasana-tantara.sql"
+     (ajoute la colonne « tambajotra » au carnet).
+  2. supabase functions deploy tambajotra --no-verify-jwt
+  3. supabase functions deploy fandefasana-hariva --no-verify-jwt

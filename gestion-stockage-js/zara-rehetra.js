@@ -41,6 +41,11 @@
 //   — Instagram, TikTok, WeChat n'offrent aucune adresse qui écrive le
 //     message d'avance : on le copie, l'application s'ouvre, on colle.
 //
+// Telegram, Facebook (Page), Threads et X peuvent aussi partir TOUT SEULS :
+// quand leurs clefs sont posées côté serveur (fonction « tambajotra »), ils
+// sont marqués « ⚡ ho azy » et publiés par le serveur au lieu d'ouvrir une
+// fenêtre. Sans clefs, ils restent à la main, comme avant.
+//
 // wa.me et les autres liens ne portent que du texte. Une annonce avec photo
 // part donc sans sa photo ; le lien, lui, la montre. C'est écrit dans la
 // fenêtre pour qu'on ne le découvre pas après coup.
@@ -187,8 +192,9 @@
           '<h3>🌐 Tambajotra</h3>' +
           '<p style="font-size:0.78rem; color:var(--muted); line-height:1.6; margin:0 0 0.9rem;">' +
             'Ireto dia <strong style="color:var(--text);">indray mandeha ihany</strong> : mamoaka ho hitan\'ny olona rehetra izy, ' +
-            'fa tsy mandefa isaky ny client. Ny Instagram, TikTok ary WeChat tsy mandray hafatra voasoratra mialoha : ' +
-            'adika ny hafatra, dia apetakao ao.' +
+            'fa tsy mandefa isaky ny client. Ireo misy <strong style="color:var(--text);">⚡ ho azy</strong> dia ' +
+            'ny serveur no mamoaka azy, tsy misy tsindriana. Ny Instagram, TikTok ary WeChat tsy mandray hafatra ' +
+            'voasoratra mialoha : adika ny hafatra, dia apetakao ao.' +
           '</p>' +
           '<div style="display:flex; align-items:center; justify-content:space-between; gap:0.8rem; flex-wrap:wrap; ' +
             'padding:0.5rem 0; border-bottom:1px solid var(--line); margin-bottom:0.4rem;">' +
@@ -197,6 +203,7 @@
             '<span data-reseaux-isa style="font-size:0.78rem; color:var(--muted);"></span>' +
           '</div>' +
           '<div data-reseaux></div>' +
+          '<p data-auto-statut style="font-size:0.78rem; color:var(--muted); margin:0.6rem 0 0; line-height:1.6;"></p>' +
         '</div>' +
 
         // 3) L'email : le seul qui parte vraiment, sans que personne
@@ -298,6 +305,12 @@
             (tsy.length ? ' · <span style="color:var(--amber);">tsy lasa ' + tsy.length + '</span>' : '') +
           '</summary>' +
           '<div style="margin-top:0.4rem; max-height:30vh; overflow-y:auto;">' +
+            (l.tambajotra && Object.keys(l.tambajotra).length
+              ? '<div style="margin-bottom:0.4rem;">' + Object.keys(l.tambajotra).map(function (k) {
+                  var r = l.tambajotra[k] || {};
+                  return (r.ok ? '✅ ' : '⚠ ') + echapper(k) + (r.ok ? '' : ' (' + echapper(r.detail) + ')');
+                }).join(' · ') + '</div>'
+              : '') +
             (voaray.length ? listeClients(voaray) : 'Tsy nisy client.') +
             (tsy.length ? '<div style="color:var(--amber); margin-top:0.4rem;">Tsy lasa' +
               (l.fahadisoana ? ' (' + echapper(l.fahadisoana) + ')' : '') + ' :</div>' + listeClients(tsy) : '') +
@@ -406,7 +419,7 @@
             '<input type="checkbox" data-r="' + i + '"' + (r.coche ? ' checked' : '') + '>' +
             '<span style="color:' + r.couleur + ';">' + echap(r.nom) + '</span></span>' +
           '<span style="color:var(--muted); font-size:0.74rem; white-space:nowrap;">' +
-            (r.copie ? 'adika ny hafatra' : 'indray mandeha') + '</span>' +
+            (r.auto ? '<span style="color:var(--cyan);">⚡ ho azy</span>' : (r.copie ? 'adika ny hafatra' : 'indray mandeha')) + '</span>' +
         '</label>';
       }).join('');
       boiteR.querySelectorAll('input[type="checkbox"]').forEach(function (b) {
@@ -441,6 +454,32 @@
     mailaka.addEventListener('change', direLIsa);
 
     dessinerReseaux();
+    var statutAuto = page.querySelector('[data-auto-statut]');
+    if (window.__sb && window.__sb.functions) {
+      window.__sb.functions.invoke('tambajotra', { body: { action: 'canaux' } }).then(function (res) {
+        var c = (res && res.data && res.data.canaux) || {};
+        reseaux.forEach(function (r) { r.auto = !!c[r.cle]; });
+        dessinerReseaux();
+      }, function () { /* fonction absente : tout reste à la main */ });
+    }
+
+    // Les réseaux « ⚡ ho azy » partent du serveur, d'un seul appel.
+    var NOMS = { telegram: 'Telegram', facebook: 'Facebook', threads: 'Threads', x: 'X' };
+    function publierAuto(liste) {
+      statutAuto.textContent = '⚡ Mamoaka amin\'ny ' + liste.map(function (r) { return r.nom; }).join(', ') + '…';
+      window.__sb.functions.invoke('tambajotra', {
+        body: { action: 'alefa', texte: texte, rohy: rohy, reseaux: liste.map(function (r) { return r.cle; }) }
+      }).then(function (res) {
+        var v = (res && res.data && res.data.vokatra) || {};
+        var lignes = Object.keys(v).map(function (k) {
+          return (v[k].ok ? '✅ ' : '⚠ ') + (NOMS[k] || k) + (v[k].ok ? ' : lasa' : ' : ' + echap(v[k].detail));
+        });
+        statutAuto.innerHTML = lignes.length ? lignes.join('<br>') : 'Tsy nisy lasa.';
+      }, function (err) {
+        statutAuto.textContent = 'Tsy tratra ny serveur : ' + ((err && err.message) || 'réseau');
+      });
+    }
+
     lireLesClients().then(function (res) {
       mailakaIsa.textContent = res.mails + ' email';
       var liste = res.clients;
@@ -657,10 +696,15 @@
     }
 
     page.querySelector('[data-alefa]').addEventListener('click', function () {
+      var autos = cochesR().filter(function (r) { return r.auto; });
       attente = cochesC().map(function (c) { return { client: c }; })
-        .concat(cochesR().map(function (r) { return { reseau: r }; }))
+        .concat(cochesR().filter(function (r) { return !r.auto; }).map(function (r) { return { reseau: r }; }))
         .concat(mailaka.checked ? [{ mail: true }] : []);
-      if (!attente.length) { alert('Tsy misy voamarika.'); return; }
+      if (autos.length) publierAuto(autos);
+      if (!attente.length) {
+        if (!autos.length) alert('Tsy misy voamarika.');
+        return;
+      }
       attente.forEach(function (e) { e.coche = true; e.fait = false; });
       rang = 0;
       nalefa = 0;

@@ -43,3 +43,7 @@ select column_name, data_type
 from information_schema.columns
 where table_schema = 'public' and table_name = 'fandefasana_tantara'
 order by ordinal_position;
+
+-- ---------- Ajout : ce que les réseaux ont répondu ----------
+-- { "telegram": { "ok": true, "detail": "lasa" }, "x": { "ok": false, ... } }
+alter table public.fandefasana_tantara add column if not exists tambajotra jsonb;

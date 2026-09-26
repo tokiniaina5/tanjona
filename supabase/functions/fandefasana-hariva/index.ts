@@ -30,9 +30,13 @@
 // Chaque envoi s'inscrit dans « fandefasana_tantara »
 // (supabase-fandefasana-tantara.sql) avec la liste des clients servis.
 // « action: "tantara" » rend les derniers envois au propriétaire connecté.
+//
+// Les réseaux dont les clefs sont posées (Telegram, Facebook Page, Threads,
+// X — voir _shared/tambajotra.ts) reçoivent aussi le résumé du jour.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+import { publier } from "../_shared/tambajotra.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -125,7 +129,7 @@ Deno.serve(async (req: Request) => {
   // ---- Le carnet : à qui sont partis les derniers envois ----
   if (action === "tantara") {
     const { data, error } = await admin.from("fandefasana_tantara")
-      .select("id,created_at,loharano,billets,sujet,voaray,tsy_lasa,fahadisoana")
+      .select("*")
       .order("created_at", { ascending: false }).limit(15);
     if (error) {
       return json({ error: "Tsy hita ny tantara : alefaso ao amin'ny SQL Editor ny supabase-fandefasana-tantara.sql. (" + error.message + ")" }, 500);
@@ -176,7 +180,22 @@ Deno.serve(async (req: Request) => {
   const sujet = "Vaovao " + billets.length + " ao amin'ny Botika androany";
 
   if (essai) return json({ essai: true, billets: billets.length, clients: adresses.length, sujet, corps });
-  if (!adresses.length) return json({ billets: billets.length, sent: 0, error: "tsy misy client manana email" });
+
+  // Les réseaux d'abord : ils ne dépendent pas des adresses email.
+  const resume = sujet + " :\n\n" + billets.map(leBillet).join("\n");
+  const tambajotra = await publier(resume, appUrl ? appUrl + "/botika/" : "");
+
+  // Le carnet ne doit jamais empêcher l'envoi : une table ou une colonne
+  // absente se tait (la colonne « tambajotra » vient d'un second passage du SQL).
+  const noter = async (ligne: Record<string, unknown>) => {
+    const r = await admin.from("fandefasana_tantara").insert({ ...ligne, tambajotra });
+    if (r.error) await admin.from("fandefasana_tantara").insert(ligne);
+  };
+
+  if (!adresses.length) {
+    await noter({ loharano, billets: billets.length, sujet, voaray: [], tsy_lasa: [], fahadisoana: "tsy misy client manana email" });
+    return json({ billets: billets.length, sent: 0, error: "tsy misy client manana email", tambajotra });
+  }
 
   const client = new SMTPClient({
     connection: { hostname: "smtp.gmail.com", port: 465, tls: true, auth: { username: gmail, password: motDePasse } },
@@ -197,12 +216,9 @@ Deno.serve(async (req: Request) => {
   // Les paquets partent dans l'ordre : les « envoyes » premiers sont servis.
   const voaray = adresses.slice(0, envoyes).map(qui);
   const tsyLasa = adresses.slice(envoyes).map(qui);
-  // Le carnet ne doit jamais empêcher l'envoi : une table absente se tait.
   try {
-    await admin.from("fandefasana_tantara").insert({
-      loharano, billets: billets.length, sujet, voaray, tsy_lasa: tsyLasa, fahadisoana: erreur || null,
-    });
+    await noter({ loharano, billets: billets.length, sujet, voaray, tsy_lasa: tsyLasa, fahadisoana: erreur || null });
   } catch { /* supabase-fandefasana-tantara.sql pas encore passé */ }
 
-  return json({ billets: billets.length, total: adresses.length, sent: envoyes, error: erreur, voaray, tsyLasa });
+  return json({ billets: billets.length, total: adresses.length, sent: envoyes, error: erreur, voaray, tsyLasa, tambajotra });
 });
