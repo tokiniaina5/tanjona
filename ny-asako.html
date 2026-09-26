@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="62316597">
+<meta name="ny-asako-version" content="38a2e04d">
 <title>Ny asako — Tanjona</title>
 <!-- Application installable : le manifeste décrit le nom, l'icône et la façon
      de s'ouvrir ; le reste est affaire de service worker, enregistré plus bas. -->
@@ -589,9 +589,6 @@
              (theme.js). L'icône montre le mode en cours. -->
         <button type="button" class="nav-action" id="menuTheme" aria-label="Mode andro / alina" aria-expanded="false">🌙 Andro / Alina</button>
         <button type="button" class="nav-action" id="menuArticles">📋 Articles</button>
-        <!-- Le tableau de bord du stock, en page à lui : il n'était qu'un
-             onglet des Articles, posé à nu dans la page. -->
-        <button type="button" class="nav-action" id="menuTableauBord">📊 Tableau de bord</button>
         <button type="button" class="nav-action" id="menuCommun">🗂️ Administratif Fokontany</button>
         <button type="button" class="nav-action" id="menuCommunAdmin">🏛️ Administratif Commun</button>
         <!-- Installer les deux applications : le propriétaire seul, et d'ici
@@ -1485,18 +1482,6 @@
 
         <!-- ===== DASHBOARD ===== -->
         <div class="dash-view" id="dash-dashboard">
-          <!-- Une fenêtre comme les Articles : son titre, et les onglets pour
-               passer aux autres vues du stock sans repasser par le menu. -->
-          <div class="section-head" style="margin-bottom:0.6rem;">
-            <div><h2>📊 Tableau de bord</h2></div>
-          </div>
-          <div class="dash-tabs">
-            <div class="dash-tab" data-dash="articles">📋 Articles</div>
-            <div class="dash-tab" data-dash="dashboard">📊 Tableau de bord</div>
-            <div class="dash-tab" data-dash="historique">📜 Historique des mouvements</div>
-            <div class="dash-tab" data-dash="ajouter">➕ Ajouter</div>
-            <div class="dash-tab" data-dash="comptes">👥 Gestion de compte</div>
-          </div>
 
           <div class="filters-panel">
             <div class="filter-group">
@@ -2966,7 +2951,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=908f1355"></script>
+<script src="gestion-stockage-js/common.js?v=2ac14ecd"></script>
 <script src="gestion-stockage-js/stock.js?v=fe9a5898"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=7204c861"></script>

@@ -3360,7 +3360,7 @@
     // « Ny asako », la bannière d'essai et la rangée du bas.
     const PAGES = [
       'dash-accueil',
-      'dash-articles', 'dash-dashboard', 'dash-commun', 'dash-communadmin', 'section-factures', 'section-inviter', 'section-contact',
+      'dash-articles', 'dash-commun', 'dash-communadmin', 'section-factures', 'section-inviter', 'section-contact',
       // Les outils de bureau (fitaovana.js).
       'section-word', 'section-excel', 'section-notes', 'section-kajy',
       'section-calendrier', 'section-horaire',
@@ -5588,8 +5588,7 @@
   // à l'autre. Avec l'Accueil ou les Articles, qui s'ouvrent en fenêtre, elle
   // restait seule derrière elles, à nu sur le fond d'écran. Les Articles
   // portent maintenant leurs propres onglets, et la recherche.
-  // Le tableau de bord n'en est plus : il s'ouvre en fenêtre, avec ses onglets.
-  const VUES_DANS_LA_PAGE = ['historique', 'ajouter', 'comptes', 'acheter'];
+  const VUES_DANS_LA_PAGE = ['dashboard', 'historique', 'ajouter', 'comptes', 'acheter'];
   function updateSubTabsVisibility(){
     const subTabs = document.getElementById('stockSubTabs');
     if(subTabs) subTabs.style.display = VUES_DANS_LA_PAGE.indexOf(vueAffichee()) >= 0 ? '' : 'none';
@@ -5813,8 +5812,6 @@
   });
   const menuArticles = document.getElementById('menuArticles');
   if(menuArticles) menuArticles.addEventListener('click', function(){ ouvrirDepuisLeMenu('articles'); });
-  const menuTableauBord = document.getElementById('menuTableauBord');
-  if(menuTableauBord) menuTableauBord.addEventListener('click', function(){ ouvrirDepuisLeMenu('dashboard'); });
   const menuCommun = document.getElementById('menuCommun');
   if(menuCommun) menuCommun.addEventListener('click', function(){ ouvrirDepuisLeMenu('commun'); });
   const menuCommunAdmin = document.getElementById('menuCommunAdmin');
