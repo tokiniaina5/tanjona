@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="bfa3b95c">
+<meta name="ny-asako-version" content="57060874">
 <title>Ny asako — Tanjona</title>
 <!-- Application installable : le manifeste décrit le nom, l'icône et la façon
      de s'ouvrir ; le reste est affaire de service worker, enregistré plus bas. -->
@@ -2289,13 +2289,8 @@
             </div>
           </div>
 
-          <!-- ---- RECHARGER LE SOLDE VIA PAPI (MVola, Orange Money, Airtel Money, carte) ----
-               Débranché le 26/09/2026 à la demande du propriétaire : le site ne
-               parle plus à Papi pour l'instant. Le panneau reste, caché : son
-               bouton était la seule porte vers Papi. papi-paiement.js reste
-               chargé, pour l'affichage des frais de retrait. Pour rebrancher,
-               retirer le display:none. -->
-          <div class="panel" id="walletPapiPanel" style="display:none;">
+          <!-- ---- RECHARGER LE SOLDE VIA PAPI (MVola, Orange Money, Airtel Money, carte) ---- -->
+          <div class="panel" id="walletPapiPanel">
             <h3>📲 Recharger mon solde</h3>
             <p style="font-size:0.82rem; color:var(--muted); line-height:1.6; margin-bottom:1rem;">
               Payez avec MVola, Orange Money, Airtel Money ou une carte bancaire. La somme est
