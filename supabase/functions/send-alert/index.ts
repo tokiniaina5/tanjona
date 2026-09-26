@@ -127,7 +127,7 @@ Deno.serve(async (req: Request) => {
   const text = [
     "Bonjour,",
     "",
-    "Une tentative suspecte vient d'être détectée sur Gestion de Stockage.",
+    "Une tentative suspecte vient d'être détectée sur Ny asako.",
     "",
     line("Type", payload.kind),
     line("Détail", payload.detail),

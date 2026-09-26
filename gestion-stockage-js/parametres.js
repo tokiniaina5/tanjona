@@ -110,10 +110,10 @@
   // ---------------- CODES DE DÉVERROUILLAGE PAR CLIENT (admin) ----------------
   // Ouvre le client mail de l'admin, adressé au client, prérempli avec son code.
   function sendCodeToClientByMail(email, code){
-    const subject = encodeURIComponent('Votre code de déverrouillage — Gestion de Stockage');
+    const subject = encodeURIComponent('Votre code de déverrouillage — Ny asako');
     const body = encodeURIComponent(
       'Bonjour,\n\n' +
-      'Voici votre code de déverrouillage pour réactiver votre compte Gestion de Stockage :\n\n' +
+      'Voici votre code de déverrouillage pour réactiver votre compte Ny asako :\n\n' +
       'Code : ' + code + '\n\n' +
       'Ce code est valable 30 minutes et accepte 3 essais. Passé ce délai, contactez-nous pour en recevoir un nouveau.\n\n' +
       'Merci !'
@@ -268,12 +268,12 @@
     if(n.client_name) parts.push(n.client_name + ' :');
     if(n.message) parts.push(n.message);
     if(n.price) parts.push('(' + formatAr(n.price) + ')');
-    const text = parts.join(' ').trim() || 'Vaovao ao amin\'ny Gestion de Stockage';
+    const text = parts.join(' ').trim() || 'Vaovao ao amin\'ny Ny asako';
     const link = (n.link && /^https?:\/\//i.test(n.link)) ? n.link : appShareLink();
 
     function shareTextOnly(){
       if(typeof shareContent === 'function'){
-        shareContent({ title: 'Gestion de Stockage', text: text, url: link });
+        shareContent({ title: 'Ny asako', text: text, url: link });
       } else {
         copyToClipboardSilently(text + '\n' + link);
         alert('Voadika ny hafatra.');
@@ -1042,7 +1042,7 @@
         const seen = loadSeenSignupIds();
         const fresh = rows.filter(function(r){ return seen.indexOf(r.id) < 0; });
         if(fresh.length && seen.length){
-          pushNotification('info', fresh.length + ' nouvelle(s) inscription(s) à Gestion de Stockage.');
+          pushNotification('info', fresh.length + ' nouvelle(s) inscription(s) à Ny asako.');
         }
         if(fresh.length){
           saveSeenSignupIds(fresh.map(function(r){ return r.id; }).concat(seen));

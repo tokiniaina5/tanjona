@@ -247,7 +247,7 @@
       addMainButton('↗️ Partage', 'var(--cyan)', function(){
         if(typeof shareContent === 'function'){
           shareContent({
-            title: 'Gestion de Stockage',
+            title: 'Ny asako',
             text: 'Jereo ity appli fitantanana stock ity :'
           });
         }

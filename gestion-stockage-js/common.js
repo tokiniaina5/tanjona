@@ -101,7 +101,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
     const subject = encodeURIComponent('Paiement — ' + clientName);
     const body = encodeURIComponent(
       'Bonjour,\n\n' +
-      'Le client suivant signale avoir effectué le paiement de son abonnement Gestion de Stockage :\n\n' +
+      'Le client suivant signale avoir effectué le paiement de son abonnement Ny asako :\n\n' +
       'Nom (login) : ' + clientName + '\n' +
       'Email : ' + clientEmail + '\n' +
       'Téléphone : ' + (clientPhone || '—') + '\n' +
@@ -1223,7 +1223,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
         name: name + ' (nouvelle inscription)',
         email: normEmail(email),
         message: [
-          'Nouvelle inscription à Gestion de Stockage :',
+          'Nouvelle inscription à Ny asako :',
           '',
           'Nom : ' + name,
           'Email : ' + normEmail(email),

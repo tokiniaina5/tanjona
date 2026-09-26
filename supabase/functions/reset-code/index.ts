@@ -100,7 +100,7 @@ Deno.serve(async (req: Request) => {
     const text = [
       "Bonjour,",
       "",
-      "Votre accès à Gestion de Stockage a été rétabli.",
+      "Votre accès à Ny asako a été rétabli.",
       "",
       "Votre nouveau code de connexion : " + code,
       "",
@@ -116,7 +116,7 @@ Deno.serve(async (req: Request) => {
       body: JSON.stringify({
         from,
         to: [target],
-        subject: "Votre nouveau code — Gestion de Stockage",
+        subject: "Votre nouveau code — Ny asako",
         text,
       }),
     });

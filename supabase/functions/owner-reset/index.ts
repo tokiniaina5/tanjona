@@ -111,7 +111,7 @@ Deno.serve(async (req: Request) => {
   const text = [
     "Bonjour,",
     "",
-    "Voici votre lien pour choisir un nouveau mot de passe sur Gestion de Stockage :",
+    "Voici votre lien pour choisir un nouveau mot de passe sur Ny asako :",
     "",
     link,
     "",
@@ -133,7 +133,7 @@ Deno.serve(async (req: Request) => {
     body: JSON.stringify({
       from,
       to: [ownerEmail],
-      subject: "Votre lien de connexion — Gestion de Stockage",
+      subject: "Votre lien de connexion — Ny asako",
       text,
     }),
   });

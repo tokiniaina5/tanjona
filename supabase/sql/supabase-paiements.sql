@@ -1,5 +1,5 @@
 -- ============================================================
--- Moyens de paiement du déblocage — Gestion de Stockage
+-- Moyens de paiement du déblocage — Ny asako
 --
 -- À COLLER DANS : Supabase > SQL Editor > New query > Run.
 -- (Même façon de faire que supabase-schema.sql : ce projet n'utilise

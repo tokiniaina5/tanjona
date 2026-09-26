@@ -539,7 +539,7 @@
   function announceLiveOnNetworks(name){
     if(typeof shareContent !== 'function') return;
     shareContent({
-      title: 'Live direct — Gestion de Stockage',
+      title: 'Live direct — Ny asako',
       text: '🔴 ' + (name || 'Izahay') + ' dia manao LIVE DIRECT ankehitriny. Tsindrio ity rohy ity dia tafiditra avy hatrany ianao :',
       url: liveJoinLink()
     });
@@ -937,7 +937,7 @@
     shareCallLinkBtn.addEventListener('click', function(){
       if(typeof shareContent !== 'function') return;
       shareContent({
-        title: 'Antso video — Gestion de Stockage',
+        title: 'Antso video — Ny asako',
         text: '📹 Tsindrio ity rohy ity dia miantso ahy mivantana amin\'ny video ianao :',
         url: callInviteLink('video')
       });

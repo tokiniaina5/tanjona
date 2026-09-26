@@ -52,7 +52,7 @@
   function allShareLinksText(){
     const lines = [];
     const invite = document.getElementById('inviteLink').value;
-    lines.push('📦 Gestion de Stockage — rohy rehetra');
+    lines.push('📦 Ny asako — rohy rehetra');
     lines.push('');
     lines.push('🔗 Fanasana (invitation) :');
     lines.push(invite);
@@ -103,14 +103,14 @@
   document.getElementById('sendInviteBtn').addEventListener('click', function(){
     const email = document.getElementById('inviteEmail').value.trim();
     const link = document.getElementById('inviteLink').value;
-    const subject = encodeURIComponent('Invitation — Gestion de Stockage');
-    const body = encodeURIComponent('Salut,\n\nJe t\'invite à rejoindre l\'application de gestion de stockage : ' + link + '\n\nÀ bientôt !');
+    const subject = encodeURIComponent('Invitation — Ny asako');
+    const body = encodeURIComponent('Salut,\n\nJe t\'invite à rejoindre Ny asako : ' + link + '\n\nÀ bientôt !');
     window.location.href = 'mailto:' + email + '?subject=' + subject + '&body=' + body;
   });
 
   // ---------------- PARTAGE RÉSEAUX SOCIAUX ----------------
   function inviteMessage(link){
-    return 'Salut ! Je t\'invite à essayer cette application de gestion de stockage : ' + link;
+    return 'Salut ! Je t\'invite à essayer Ny asako : ' + link;
   }
   function copyToClipboardSilently(text){
     if(navigator.clipboard && navigator.clipboard.writeText){
@@ -169,7 +169,7 @@
     shareMoreBtn.addEventListener('click', function(){
       const link = document.getElementById('inviteLink').value;
       navigator.share({
-        title: 'Gestion de Stockage',
+        title: 'Ny asako',
         text: inviteMessage(link),
         url: link
       }).catch(function(){});
@@ -271,7 +271,7 @@
     const text = (opts && opts.text) || '';
     const link = (opts && opts.url) || appShareLink();
     if(navigator.share){
-      navigator.share({ title: (opts && opts.title) || 'Gestion de Stockage', text: text, url: link })
+      navigator.share({ title: (opts && opts.title) || 'Ny asako', text: text, url: link })
         .catch(function(){ openShareMenu(text, link); });
       return;
     }

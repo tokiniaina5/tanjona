@@ -120,7 +120,7 @@ create policy "only owner can read orders"
 --    /admin.html du site.
 --
 -- 2. ATTENTION — ne PAS désactiver "Allow new users to sign up" :
---    les clients de "Gestion de Stockage" créent eux-mêmes leur
+--    les clients de "Ny asako" créent eux-mêmes leur
 --    compte à leur première connexion. L'accès à /admin.html reste
 --    réservé par l'email du propriétaire, pas par ce réglage.
 --
@@ -131,7 +131,7 @@ create policy "only owner can read orders"
 
 
 -- ============================================================
--- Application "Gestion de Stockage" — tables partagées entre tous
+-- Application "Ny asako" — tables partagées entre tous
 -- les clients (canaux de contact, liens, actualités, parrainages).
 -- ============================================================
 
@@ -283,7 +283,7 @@ create policy "anyone can record a referral"
 
 
 -- ============================================================
--- Demandes de déblocage (mot de passe oublié) — Gestion de Stockage
+-- Demandes de déblocage (mot de passe oublié) — Ny asako
 -- Le client règle des frais de déblocage sur le PayPal du propriétaire,
 -- puis envoie sa demande. Le propriétaire la confirme depuis Paramètres :
 -- l'accès se rouvre alors tout seul sur l'appareil du client (aucun code).
@@ -347,7 +347,7 @@ create policy "anyone can update unlock requests"
 
 
 -- ============================================================
--- Inscriptions des clients — Gestion de Stockage
+-- Inscriptions des clients — Ny asako
 -- Chaque nouvelle inscription est envoyée automatiquement ici :
 -- le propriétaire la voit dans Paramètres > "Nouvelles inscriptions"
 -- (et dans /admin.html via contact_messages).
@@ -376,7 +376,7 @@ create policy "anyone can read signups"
 
 
 -- ============================================================
--- Sécurité — Gestion de Stockage
+-- Sécurité — Ny asako
 -- Journal des tentatives suspectes (second compte ouvert sous
 -- l'identité d'un client, entrées forcées) et comptes bloqués.
 -- Seul le propriétaire consulte tout cela, dans son espace admin.

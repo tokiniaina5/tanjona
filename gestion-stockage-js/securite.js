@@ -155,7 +155,7 @@
       'Bonjour,',
       '',
       'Une tentative suspecte a été détectée sur le compte ' + email +
-      ' de Gestion de Stockage :',
+      ' de Ny asako :',
       reason || '—',
       '',
       'Par précaution, l\'accès a été bloqué.',
@@ -165,7 +165,7 @@
       OWNER_NAME + ' — ' + OWNER_EMAIL
     ].join('\n');
     return 'mailto:' + email +
-      '?subject=' + encodeURIComponent('Alerte sécurité — Gestion de Stockage') +
+      '?subject=' + encodeURIComponent('Alerte sécurité — Ny asako') +
       '&body=' + encodeURIComponent(body);
   }
 
