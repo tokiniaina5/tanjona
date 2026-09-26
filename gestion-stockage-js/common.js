@@ -1108,17 +1108,120 @@
     return '<span style="color:var(--amber);">En attente d\'envoi</span>';
   }
 
+  // ---- Glisser une ligne de l'historique pour la masquer ----
+  // Ce sont des traces d'argent : elles ne s'effacent JAMAIS de la base, et
+  // le solde n'en dépend pas. Glisser à gauche ou à droite les retire
+  // seulement de CETTE liste, sur cet appareil ; « Tout réafficher » les
+  // ramène. Une ligne encore en attente ne se masque pas : on la perdrait de
+  // vue alors qu'elle n'est pas tranchée.
+  const HISTORIQUE_MASQUE_KEY = 'wallet_historique_masque';
+  function historiqueMasque(){
+    try { return JSON.parse(localStorage.getItem(HISTORIQUE_MASQUE_KEY)) || []; } catch(e){ return []; }
+  }
+  function masquerDansHistorique(id){
+    const ids = historiqueMasque();
+    if(ids.indexOf(id) < 0) ids.unshift(id);
+    try { localStorage.setItem(HISTORIQUE_MASQUE_KEY, JSON.stringify(ids.slice(0, 500))); } catch(e){}
+  }
+  function lienReafficher(list, combien){
+    if(!combien) return;
+    const a = document.createElement('button');
+    a.type = 'button';
+    a.className = 'btn btn-sm';
+    a.style.cssText = 'width:auto; margin-top:0.2rem;';
+    a.textContent = '↺ Tout réafficher (' + combien + ' masqué' + (combien > 1 ? 's' : '') + ')';
+    a.addEventListener('click', function(){
+      try { localStorage.removeItem(HISTORIQUE_MASQUE_KEY); } catch(e){}
+      renderPayoutList();
+    });
+    list.appendChild(a);
+  }
+
+  function glisserPourMasquer(div, id){
+    div.style.touchAction = 'pan-y';
+    div.style.cursor = 'grab';
+    div.title = 'Glisser à gauche ou à droite pour masquer';
+    let depart = null, glisse = false, dx = 0;
+    function debut(x, y, cible){
+      // Les boutons (annuler, envoyer) gardent leur clic.
+      if(cible && cible.closest && cible.closest('button, a, input, select')){ depart = null; return; }
+      depart = { x: x, y: y }; glisse = false; dx = 0;
+    }
+    function bouge(x, y){
+      if(!depart) return false;
+      dx = x - depart.x;
+      const dy = y - depart.y;
+      if(!glisse){
+        // Plus vertical qu'horizontal : c'est la liste qui défile.
+        if(Math.abs(dy) > 10 && Math.abs(dy) >= Math.abs(dx)){ depart = null; return false; }
+        if(Math.abs(dx) < 12) return false;
+        glisse = true;
+        div.style.transition = 'none';
+      }
+      div.style.transform = 'translateX(' + dx + 'px)';
+      div.style.opacity = String(Math.max(1 - Math.abs(dx) / (div.offsetWidth || 1), 0.25));
+      return true;
+    }
+    function remettre(){
+      div.style.transition = 'transform 0.2s, opacity 0.2s';
+      div.style.transform = '';
+      div.style.opacity = '';
+    }
+    function fin(){
+      if(!depart) return;
+      depart = null;
+      if(!glisse) return;
+      glisse = false;
+      if(Math.abs(dx) >= (div.offsetWidth || 1) * 0.35){
+        div.style.transition = 'transform 0.22s ease, opacity 0.22s ease';
+        div.style.transform = 'translateX(' + (dx < 0 ? -1 : 1) * (div.offsetWidth + 40) + 'px)';
+        div.style.opacity = '0';
+        masquerDansHistorique(id);
+        setTimeout(renderPayoutList, 230);
+      } else {
+        remettre();
+      }
+    }
+    div.addEventListener('dragstart', function(e){ e.preventDefault(); });
+    div.addEventListener('touchstart', function(e){
+      if(e.touches.length !== 1){ depart = null; remettre(); return; }
+      debut(e.touches[0].clientX, e.touches[0].clientY, e.target);
+    }, { passive: true });
+    div.addEventListener('touchmove', function(e){
+      if(!depart) return;
+      if(bouge(e.touches[0].clientX, e.touches[0].clientY) && e.cancelable) e.preventDefault();
+    }, { passive: false });
+    div.addEventListener('touchend', fin);
+    div.addEventListener('touchcancel', function(){ depart = null; glisse = false; remettre(); });
+    div.addEventListener('mousedown', function(e){
+      if(e.button !== 0) return;
+      debut(e.clientX, e.clientY, e.target);
+      if(!depart) return;
+      function suivre(ev){ bouge(ev.clientX, ev.clientY); }
+      function lacher(){
+        document.removeEventListener('mousemove', suivre);
+        document.removeEventListener('mouseup', lacher);
+        fin();
+      }
+      document.addEventListener('mousemove', suivre);
+      document.addEventListener('mouseup', lacher);
+    });
+  }
+
   // La liste des versements suit le même état que celle des retraits.
   function renderPayoutList(){
     renderDepositList();
     const list = document.getElementById('payoutList');
     const empty = document.getElementById('payoutEmpty');
     if(!list || !walletState) return;
-    const rows = walletState.payouts || [];
+    const masques = historiqueMasque();
+    const tous = walletState.payouts || [];
+    const rows = tous.filter(function(r){ return r.status === 'pending' || masques.indexOf(r.id) < 0; });
     list.innerHTML = '';
     if(empty) empty.style.display = rows.length ? 'none' : 'block';
     rows.forEach(function(r){
       const div = document.createElement('div');
+      if(r.status !== 'pending') glisserPourMasquer(div, r.id);
       div.style.cssText = 'border:1px solid var(--line); border-radius:8px; padding:0.7rem 0.9rem; margin-bottom:0.6rem; font-size:0.8rem; color:var(--muted); line-height:1.7;';
       const arrivee = r.amount_out && r.currency && r.currency !== 'MGA'
         ? ' → ' + Number(r.amount_out).toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' ' + r.currency
@@ -1214,6 +1317,7 @@
       }
       list.appendChild(div);
     });
+    lienReafficher(list, tous.length - rows.length);
   }
 
   // Ce qui est ENTRÉ dans le portefeuille. Le solde ne compte que les
@@ -1233,7 +1337,9 @@
     const list = document.getElementById('depositList');
     const empty = document.getElementById('depositEmpty');
     if(!list || !walletState) return;
-    const rows = walletState.deposits || [];
+    const masques = historiqueMasque();
+    const tous = walletState.deposits || [];
+    const rows = tous.filter(function(r){ return r.status === 'en_attente' || masques.indexOf(r.id) < 0; });
     list.innerHTML = '';
     if(empty) empty.style.display = rows.length ? 'none' : 'block';
     rows.forEach(function(r){
@@ -1248,8 +1354,10 @@
         ' · <span style="color:' + etat.couleur + ';">' + escapeHtml(etat.texte) + '</span>' +
         (r.provider_ref ? '<br>Référence : ' + escapeHtml(r.provider_ref) : '') +
         (r.note ? '<br>Note : ' + escapeHtml(r.note) : '');
+      if(r.status !== 'en_attente') glisserPourMasquer(div, r.id);
       list.appendChild(div);
     });
+    lienReafficher(list, tous.length - rows.length);
   }
 
     const payoutRequestBtn = document.getElementById('payoutRequestBtn');
