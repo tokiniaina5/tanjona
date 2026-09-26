@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="c87025a9">
+<meta name="ny-asako-version" content="f9330ae1">
 <title>Ny asako — Tanjona</title>
 <!-- Application installable : le manifeste décrit le nom, l'icône et la façon
      de s'ouvrir ; le reste est affaire de service worker, enregistré plus bas. -->
@@ -2120,7 +2120,7 @@
         <div class="section-head">
           <div>
             <h2>Portefeuille électronique</h2>
-            <p>Votre solde en ariary : déposez par Mobile Money, retirez vers Wise, Payoneer, Skrill, Mobile Money ou votre banque.</p>
+            <p>Votre solde en ariary, à dépenser dans l'application.</p>
           </div>
         </div>
 
@@ -2160,13 +2160,6 @@
                 <div class="plan-note">Solde disponible</div>
                 <div class="plan-price" id="walletBalance" style="font-size:1.4rem; color:var(--cyan);">0 Ar</div>
                 <div class="plan-note" id="walletBalanceCredits" style="margin-top:0.2rem;">—</div>
-                <!-- Seul l'argent vraiment payé sort en retrait (wallet, « retirableFor ») :
-                     les parrainages et les sommes inscrites par l'application se dépensent ici. -->
-                <div class="plan-note" id="walletRetirable" style="margin-top:0.2rem;"></div>
-              </div>
-              <div>
-                <div class="plan-note">Canaux ouverts</div>
-                <div class="plan-note" id="walletCanaux" style="color:var(--text); line-height:1.7;">—</div>
               </div>
             </div>
 
@@ -2189,91 +2182,6 @@
             </div>
 
             <button type="button" class="btn btn-sm" id="walletSignOutBtn" style="margin-top:1rem;">Se déconnecter du portefeuille</button>
-          </div>
-
-          <!-- ---- DÉPOSER : l'argent qui ENTRE ----
-               Par Papi, vérifié par le serveur : rien n'est crédité avant que
-               Papi ne confirme le paiement. -->
-          <div class="panel" id="walletDepotPanel">
-            <h3>📥 Déposer de l'argent</h3>
-            <p style="font-size:0.82rem; color:var(--muted); line-height:1.6; margin-bottom:1rem;">
-              L'argent versé est du vrai argent : il s'ajoute à votre solde dès que le paiement est
-              confirmé, et peut être retiré à tout moment. Frais de dépôt :
-              <strong id="depotFraisPct" style="color:var(--text);">5 %</strong>.
-            </p>
-
-            <!-- Madagascar : Papi (MVola, Orange Money, Airtel Money, carte BRED). -->
-            <div id="depotMg">
-              <div class="form-grid">
-                <div class="field" style="margin-bottom:0;">
-                  <label for="papiAmount">Montant (Ar)</label>
-                  <input id="papiAmount" type="number" min="300" step="1000" value="15000">
-                </div>
-                <div class="field" style="margin-bottom:0;">
-                  <label for="papiProvider">Payer avec</label>
-                  <select id="papiProvider">
-                    <option value="">Choisir sur la page Papi</option>
-                    <option value="MVOLA">MVola</option>
-                    <option value="ORANGE_MONEY">Orange Money</option>
-                    <option value="AIRTEL_MONEY">Airtel Money</option>
-                    <option value="BRED">Carte bancaire</option>
-                  </select>
-                </div>
-                <div class="field" style="margin-bottom:0;">
-                  <label for="papiPhone">Téléphone (facultatif)</label>
-                  <input id="papiPhone" type="tel" placeholder="034 00 000 00">
-                </div>
-              </div>
-              <p id="papiFrais" style="font-size:0.78rem; color:var(--muted); margin-top:0.6rem; line-height:1.5;"></p>
-              <button type="button" class="btn btn-primary btn-sm" id="papiPayBtn" style="width:auto; margin-top:0.6rem;">Payer avec Papi</button>
-              <p id="papiStatus" style="font-size:0.8rem; color:var(--cyan); margin-top:0.8rem; line-height:1.5;"></p>
-            </div>
-          </div>
-
-          <!-- ---- RETIRER : l'argent qui SORT ---- -->
-          <div class="panel" id="walletPayoutPanel">
-            <h3>💸 Retirer mon argent</h3>
-            <p style="font-size:0.82rem; color:var(--muted); line-height:1.6; margin-bottom:1rem;">
-              Vers votre portefeuille international (Wise, Payoneer, Skrill), votre
-              Mobile Money ou votre banque. La somme quitte votre solde dès la demande ; si
-              l'envoi échoue, elle vous est rendue.
-            </p>
-            <div class="form-grid">
-              <div class="field" style="margin-bottom:0;">
-                <label for="payoutAmount">Montant à recevoir (Ar)</label>
-                <input id="payoutAmount" type="number" min="0" step="1000" placeholder="20000">
-              </div>
-              <div class="field" style="margin-bottom:0;">
-                <label for="payoutMethod">Vers</label>
-                <select id="payoutMethod">
-                  <option value="wise">Wise</option>
-                  <option value="payoneer">Payoneer</option>
-                  <option value="skrill">Skrill</option>
-                  <option value="mobile">Mobile Money (MVola, Orange, Airtel)</option>
-                  <option value="card">Compte bancaire</option>
-                </select>
-              </div>
-              <div class="field" style="margin-bottom:0;">
-                <label for="payoutCurrency">Devise à l'arrivée</label>
-                <select id="payoutCurrency">
-                  <option value="MGA">Ariary (MGA)</option>
-                  <option value="EUR">Euro (EUR)</option>
-                  <option value="USD">Dollar (USD)</option>
-                  <option value="GBP">Livre sterling (GBP)</option>
-                  <option value="CAD">Dollar canadien (CAD)</option>
-                  <option value="ZAR">Rand sud-africain (ZAR)</option>
-                  <option value="MUR">Roupie mauricienne (MUR)</option>
-                </select>
-              </div>
-            </div>
-            <div class="field" style="margin-top:1rem;">
-              <label for="payoutDestination" id="payoutDestinationLabel">Email de votre compte Wise</label>
-              <input id="payoutDestination" type="text" placeholder="vous@email.com">
-            </div>
-            <p id="payoutCanal" style="font-size:0.74rem; color:var(--muted); margin:-0.4rem 0 0.6rem; line-height:1.5;"></p>
-            <p id="payoutFrais" style="font-size:0.78rem; color:var(--muted); margin-bottom:0.6rem; line-height:1.5;"></p>
-            <button type="button" class="btn btn-primary btn-sm" id="payoutRequestBtn" style="width:auto;">Retirer</button>
-            <p id="payoutStatus" style="font-size:0.8rem; color:var(--cyan); margin-top:0.8rem; line-height:1.5;"></p>
           </div>
 
           <!-- ---- HISTORIQUE ---- -->
@@ -2944,7 +2852,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=90cb9709"></script>
+<script src="gestion-stockage-js/common.js?v=a8de564b"></script>
 <script src="gestion-stockage-js/stock.js?v=ae755b14"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=7204c861"></script>
@@ -2976,7 +2884,6 @@
 <script src="gestion-stockage-js/adidy.js?v=7925663f"></script>
 <script src="gestion-stockage-js/theme.js?v=096262fd"></script>
 <script src="gestion-stockage-js/securite.js?v=e38535e6"></script>
-<script src="gestion-stockage-js/papi-paiement.js?v=6df8bf86"></script>
 
 
 

@@ -1033,7 +1033,7 @@
       if(note){
         note.textContent = 'Taux du jour : 1 ' + currency + ' ≈ ' +
           (1 / res.rate).toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' Ar. ' +
-          'Il bouge d\'un jour à l\'autre — c\'est celui du moment du retrait qui compte.';
+          'Il bouge d\'un jour à l\'autre.';
       }
     }, function(err){
       out.textContent = '—';
