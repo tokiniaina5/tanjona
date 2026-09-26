@@ -162,7 +162,6 @@
     color:var(--cyan); font-size:0.85rem;
   }
 
-  #paypal-button-container{ margin-bottom:0.6rem; }
 </style>
 </head>
 <body>
@@ -173,7 +172,7 @@
 <main>
   <div class="eyebrow">Tanjona · Boutique</div>
   <h1>Pièces mécaniques &amp; <span class="accent">composants électroniques</span>, livrés à Madagascar.</h1>
-  <p class="lead">Commandez des pièces automobiles et des composants électroniques (PIC, ESP32, capteurs...) — paiement par carte (PayPal) ou par mobile money (MVola, Orange Money, Airtel Money).</p>
+  <p class="lead">Commandez des pièces automobiles et des composants électroniques (PIC, ESP32, capteurs...) — paiement par mobile money (MVola, Orange Money, Airtel Money).</p>
 
   <div class="filter-row">
     <button class="filter-btn active" data-filter="all">Tout</button>
@@ -198,17 +197,12 @@
 
     <h3>Moyen de paiement</h3>
     <div class="pay-methods">
-      <div class="pay-method active" data-method="paypal">PayPal</div>
-      <div class="pay-method" data-method="mvola">MVola</div>
+      <div class="pay-method active" data-method="mvola">MVola</div>
       <div class="pay-method" data-method="orange">Orange Money</div>
       <div class="pay-method" data-method="airtel">Airtel Money</div>
     </div>
 
-    <div class="pay-detail active" id="detail-paypal">
-      <div id="paypal-button-container"></div>
-      <p style="color:var(--muted); font-size:0.75rem;">Paiement sécurisé par carte via PayPal.</p>
-    </div>
-    <div class="pay-detail" id="detail-mvola">
+    <div class="pay-detail active" id="detail-mvola">
       <div class="mobile-money-box">Envoyez le montant total au <strong>034 37 058 34</strong> (MVola), puis cliquez sur "Confirmer la commande" ci-dessous.</div>
     </div>
     <div class="pay-detail" id="detail-orange">
@@ -232,7 +226,6 @@
     window.__sb.from('site_visits').insert({ path: window.location.pathname, referrer: document.referrer || null, user_agent: navigator.userAgent }).then(function(){}, function(){});
   }catch(e){}
 </script>
-<script src="https://www.paypal.com/sdk/js?client-id=sb&currency=USD"></script>
 
 <script>
 (function(){
@@ -366,37 +359,6 @@
     cart = [];
     renderCart();
   });
-
-  // PayPal button (sandbox client-id 'sb' — remplacer par un vrai Client ID PayPal pour passer en production)
-  if(window.paypal){
-    paypal.Buttons({
-      createOrder: function(data, actions){
-        const totalAr = renderCart();
-        const totalUsd = Math.max(1, (totalAr / 4300)).toFixed(2); // conversion Ariary -> USD approximative
-        return actions.order.create({ purchase_units: [{ amount: { value: totalUsd } }] });
-      },
-      onApprove: async function(data, actions){
-        return actions.order.capture().then(async function(){
-          const name = document.getElementById('custName').value.trim() || 'Client PayPal';
-          const total = renderCart();
-          try{
-            if(window.__sb){
-              await window.__sb.from('orders').insert({
-                customer_name: name,
-                customer_phone: document.getElementById('custPhone').value.trim(),
-                payment_method: 'paypal',
-                items: JSON.stringify(cart),
-                total: total
-              });
-            }
-          }catch(e){}
-          document.getElementById('orderConfirm').style.display = 'block';
-          cart = [];
-          renderCart();
-        });
-      }
-    }).render('#paypal-button-container');
-  }
 
   renderProducts('all');
   renderCart();

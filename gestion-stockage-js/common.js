@@ -1092,7 +1092,7 @@
     if(method === 'cash') return 'Espèces — point cash';
     if(method === 'wallet') return 'Autre portefeuille';
     if(method === 'merchant') return 'Achat à l\'étranger';
-    return 'PayPal';
+    return 'Ancien moyen (retiré)';
   }
 
   function payoutStatusLabel(status){
@@ -1312,7 +1312,7 @@
   };
   const DEPOT_CANAUX = {
     mvola: 'MVola', orange: 'Orange Money', airtel: 'Airtel Money',
-    paypal: 'PayPal / carte internationale', papi: 'Mobile Money (Papi)', essai: 'Essai', visiteur: 'Personne nouvelle sur le site'
+    paypal: 'Ancien dépôt (moyen retiré)', papi: 'Mobile Money (Papi)', essai: 'Essai', visiteur: 'Personne nouvelle sur le site'
   };
 
   function renderDepositList(){
@@ -2374,7 +2374,7 @@
     if(method === 'card') return 'Carte Visa / Mastercard';
     if(method === 'bank') return 'Virement bancaire';
     if(method === 'mobile') return 'Mobile Money';
-    return 'PayPal';
+    return 'Ancien moyen de paiement';
   }
 
   // Le hash (jamais le code en clair) est ce qui transite et ce qui est stocké.

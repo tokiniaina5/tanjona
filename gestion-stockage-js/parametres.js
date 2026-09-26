@@ -2701,7 +2701,7 @@
     renderClientCodesAdmin();
   });
   // ---------------- DEMANDES DE DÉBLOCAGE (propriétaire) ----------------
-  // Un client qui a oublié son mot de passe règle 20 000 Ar sur le PayPal du
+  // Un client qui a oublié son mot de passe règle 20 000 Ar au
   // propriétaire puis envoie sa demande. Ici le propriétaire vérifie la
   // réception du paiement, confirme, et un code est généré : il le copie et
   // l'envoie au client, qui le saisit sur l'écran de connexion.
@@ -2730,7 +2730,7 @@
     saveSeenUnlockIds(fresh.map(function(r){ return r.id; }).concat(seen));
   }
 
-  // Encaissements que PayPal a confirmés tout seuls : le solde du propriétaire
+  // Encaissements confirmés tout seuls : le solde du propriétaire
   // a réellement monté. Il l'apprend sans avoir rien à vérifier.
   const UNLOCK_PAID_SEEN_KEY = 'stockmanager_unlock_paid_seen';
 
@@ -2763,7 +2763,7 @@
         : (Number(r.amount) || 20000).toLocaleString('fr-FR') + ' Ar';
       // « parrainage » : l'argent qui entre, que la boutique partage avec ses
       // employés (common.js), et non une simple information.
-      pushNotification('parrainage', '💰 Argent reçu sur votre PayPal : ' + recu.trim() + ' de ' +
+      pushNotification('parrainage', '💰 Argent reçu sur votre compte : ' + recu.trim() + ' de ' +
         (r.name || r.email) + '. Son accès a été rétabli automatiquement, il est prévenu de son côté.');
     });
     saveSeenPaidIds(fresh.map(function(r){ return r.id; }).concat(seen));
@@ -2826,9 +2826,9 @@
               'Payé par : <strong style="color:var(--text);">' + escapeAdminHtml(paymentMethodLabel(row.payment_method)) + '</strong><br>' +
               'Référence : ' + escapeAdminHtml(row.paypal_reference || '—') + '<br>' +
               'Reçue le : ' + new Date(row.created_at).toLocaleString('fr-FR') + '<br>' +
-              // Ce que PayPal a réellement fait entrer, quand il l'a annoncé.
+              // Ce qui est réellement entré, quand le fournisseur l'a annoncé.
               (row.paid_amount
-                ? 'Encaissé sur PayPal : <strong style="color:var(--cyan);">' +
+                ? 'Encaissé : <strong style="color:var(--cyan);">' +
                   Number(row.paid_amount).toLocaleString('fr-FR') + ' ' + escapeAdminHtml(row.paid_currency || '') +
                   '</strong>' +
                   // Converti en ariary, seule façon de le comparer aux 20 000 Ar.
@@ -2851,7 +2851,7 @@
             confirmBtn.addEventListener('click', function(){
               const comptes = { card: 'votre compte bancaire', bank: 'votre compte bancaire',
                 mobile: 'votre compte Mobile Money' };
-              const ou = comptes[row.payment_method] || 'votre compte PayPal';
+              const ou = comptes[row.payment_method] || 'votre compte';
               if(!confirm('Avez-vous bien vu les ' + (row.amount || 20000).toLocaleString('fr-FR') +
                 ' Ar arriver sur ' + ou + ' ?\n\nLe déblocage et les notifications partent immédiatement.')) return;
               confirmBtn.disabled = true;

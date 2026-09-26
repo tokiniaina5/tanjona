@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="c5ed2a2c">
+<meta name="ny-asako-version" content="c87025a9">
 <title>Ny asako — Tanjona</title>
 <!-- Application installable : le manifeste décrit le nom, l'icône et la façon
      de s'ouvrir ; le reste est affaire de service worker, enregistré plus bas. -->
@@ -2403,8 +2403,8 @@
         <div class="panel">
           <h3>💰 Vola miditra (déclaré)</h3>
           <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.8rem;">
-            Paiements annoncés par les clients (déblocages réglés sur PayPal). Le solde réel de votre
-            compte PayPal se consulte chez PayPal : l'application ne peut pas le lire.
+            Paiements annoncés par les clients pour un déblocage. Le solde réel de votre compte se
+            consulte chez votre banque ou votre Mobile Money : l'application ne peut pas le lire.
           </p>
           <div class="table-scroll">
             <table id="adminMoneyTable">
@@ -2884,7 +2884,7 @@
           <h3>🔓 Demandes de déblocage (admin — vous uniquement)</h3>
           <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.8rem;">
             Chaque client ayant oublié son mot de passe règle <strong style="color:var(--text);">20 000 Ar</strong>
-            sur votre PayPal puis envoie sa demande ici. Vérifiez la réception du paiement puis cliquez sur
+            depuis son portefeuille puis envoie sa demande ici. Vérifiez la réception du paiement puis cliquez sur
             <strong style="color:var(--text);">Confirmer le paiement</strong> : l'accès se rouvre tout seul
             sur l'appareil du client. Aucun code ne circule, rien à transmettre.
           </p>
@@ -2944,7 +2944,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=e6cc06ef"></script>
+<script src="gestion-stockage-js/common.js?v=90cb9709"></script>
 <script src="gestion-stockage-js/stock.js?v=ae755b14"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=7204c861"></script>
@@ -2957,7 +2957,7 @@
 <script src="gestion-stockage-js/zara-rehetra.js?v=46efb645"></script>
 <script src="gestion-stockage-js/live.js?v=accde37b"></script>
 <script src="gestion-stockage-js/traduction.js?v=8f5605bc"></script>
-<script src="gestion-stockage-js/parametres.js?v=bef220d0"></script>
+<script src="gestion-stockage-js/parametres.js?v=926baf76"></script>
 <!-- Le partage reçu du dehors remplit la boîte « Écrire », que parametres.js
      tient : il se charge après elle. -->
 <script src="gestion-stockage-js/zara-miditra.js?v=bfe2ae80"></script>
