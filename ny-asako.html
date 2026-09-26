@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="bfb8ea5c">
+<meta name="ny-asako-version" content="143689be">
 <title>Ny asako — Tanjona</title>
 <!-- Application installable : le manifeste décrit le nom, l'icône et la façon
      de s'ouvrir ; le reste est affaire de service worker, enregistré plus bas. -->
@@ -135,7 +135,7 @@
 <link rel="apple-touch-startup-image" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)" href="/demarrage/2732x2048.png">
 <!-- fin des écrans de démarrage iOS -->
 <link rel="icon" href="/icone-192.png" type="image/png">
-<link rel="stylesheet" href="gestion-stockage-css/base.css?v=3c7a1283">
+<link rel="stylesheet" href="gestion-stockage-css/base.css?v=059a4b85">
 <link rel="stylesheet" href="gestion-stockage-css/components.css?v=fff412af">
 </head>
 <body>
@@ -609,8 +609,8 @@
         <!-- Les deux navigateurs, pour chercher ailleurs sur Internet : leur
              application quand le téléphone l'a, leur moteur de recherche
              sinon (parametres.js, « ouvrirLeNavigateur »). -->
-        <button type="button" class="nav-action" id="menuChrome" data-navigateur="chrome">🌐 Chrome</button>
-        <button type="button" class="nav-action" id="menuEdge" data-navigateur="edge">🌊 Edge</button>
+        <button type="button" class="nav-action" id="menuChrome" data-navigateur="chrome"><svg class="nav-logo" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M4.95 13A22 22 0 0 1 43.05 13H24A11 11 0 0 0 14.47 29.5Z"/><path fill="#FBBC04" d="M43.05 13A22 22 0 0 1 24 46L33.53 29.5A11 11 0 0 0 24 13Z"/><path fill="#34A853" d="M24 46A22 22 0 0 1 4.95 13L14.47 29.5A11 11 0 0 0 33.53 29.5Z"/><circle cx="24" cy="24" r="11" fill="#fff"/><circle cx="24" cy="24" r="8.6" fill="#1A73E8"/></svg>Chrome</button>
+        <button type="button" class="nav-action" id="menuEdge" data-navigateur="edge"><svg class="nav-logo" viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="edgeVague" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0C59A4"/><stop offset="1" stop-color="#114A8B"/></linearGradient><linearGradient id="edgeCorps" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#35C1F1"/><stop offset=".6" stop-color="#3BD5A5"/><stop offset="1" stop-color="#5BE16B"/></linearGradient></defs><path fill="url(#edgeVague)" d="M21.86 17.86q.14 0 .25.12.1.13.1.25t-.11.33l-.32.46-.43.53-.44.5q-.21.25-.38.42l-.22.23q-.58.53-1.34 1.04-.76.51-1.6.91-.86.4-1.74.64t-1.67.24q-.9 0-1.69-.28-.8-.28-1.48-.78-.68-.5-1.22-1.17-.53-.66-.92-1.44-.38-.77-.58-1.6-.2-.83-.2-1.67 0-1 .32-1.96.33-.97.87-1.8.14.95.55 1.77.41.82 1.02 1.5.6.68 1.38 1.21.78.54 1.64.9.86.36 1.77.56.92.2 1.8.2 1.12 0 2.18-.24 1.06-.23 2.06-.72l.2-.1.2-.05z"/><path fill="url(#edgeCorps)" d="M6.36 16.59q0 1.1.27 2.15.27 1.06.78 2.03.51.96 1.24 1.77.74.82 1.66 1.4-1.47-.2-2.8-.74-1.33-.55-2.48-1.37-1.15-.83-2.08-1.9-.92-1.07-1.58-2.33T.36 14.94Q0 13.54 0 12.06q0-.81.32-1.49.31-.68.83-1.23.53-.55 1.2-.96.66-.4 1.35-.66.74-.27 1.5-.39.78-.12 1.55-.12.7 0 1.42.1.72.12 1.4.35.68.23 1.32.57.63.35 1.16.83-.35 0-.7.07-.33.07-.65.23v-.02q-.63.28-1.2.74-.57.46-1.05 1.04-.48.58-.87 1.26-.38.67-.65 1.39-.27.71-.42 1.44-.15.72-.15 1.38z"/><path fill="#1B9DE2" d="M11.96.06q1.7 0 3.33.39 1.63.38 3.07 1.15 1.43.77 2.62 1.93 1.18 1.16 1.98 2.7.49.94.76 1.96.28 1 .28 2.08 0 .89-.23 1.7-.24.8-.69 1.48-.45.68-1.1 1.22-.64.53-1.45.88-.54.24-1.11.36-.58.13-1.16.13-.42 0-.97-.03-.54-.03-1.1-.12-.55-.1-1.05-.28-.5-.19-.84-.5-.12-.09-.23-.24-.1-.16-.1-.33 0-.15.16-.35.16-.2.35-.5.2-.28.36-.68.16-.4.16-.95 0-1.06-.4-1.96-.4-.91-1.06-1.64-.66-.74-1.52-1.28-.86-.55-1.79-.89-.84-.3-1.72-.44-.87-.14-1.76-.14-1.55 0-3.06.45T.94 7.55q.71-1.74 1.81-3.13 1.1-1.38 2.52-2.35Q6.68 1.1 8.37.58q1.7-.52 3.58-.52Z"/></svg>Edge</button>
         <!-- « Stock » ne se montre plus : on y entre par Accueil ou Articles,
              qui sont ses deux vues. L'entrée reste pourtant là, masquée : c'est
              par elle que le code ouvre la section — l'Accueil et les Articles
