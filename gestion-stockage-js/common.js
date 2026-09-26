@@ -1406,9 +1406,10 @@
     const empty = document.getElementById('walletQueueEmpty');
     if(!panel || !list || !walletState) return;
     if(!walletState.isOwner){ panel.style.display = 'none'; return; }
-    panel.style.display = 'block';
 
+    // Vide, la file n'a rien à dire : elle ne paraît que s'il y a à envoyer.
     const rows = walletState.queue || [];
+    panel.style.display = rows.length ? 'block' : 'none';
     list.innerHTML = '';
     if(empty) empty.style.display = rows.length ? 'none' : 'block';
     notifyNewPayoutRequests(rows);
