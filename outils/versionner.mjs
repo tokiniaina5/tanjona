@@ -1,4 +1,4 @@
-// Estampille chaque feuille de style et chaque script de gestion-stockage.html
+// Estampille chaque feuille de style et chaque script de ny-asako.html
 // d'un « ?v=<empreinte du contenu> ».
 //
 // Les fichiers gardent leur nom d'un envoi à l'autre. Un téléphone qui a déjà
@@ -15,7 +15,7 @@ import path from 'path';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 
-const PAGE = 'gestion-stockage.html';
+const PAGE = 'ny-asako.html';
 // fileURLToPath et non l'URL brute : le chemin du projet contient une espace,
 // que l'URL code en « %20 » et qui ne désigne alors aucun dossier réel.
 const racine = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');

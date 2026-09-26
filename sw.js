@@ -8,12 +8,12 @@
 // Le nom porte l'empreinte du dernier envoi : outils/versionner.mjs le réécrit.
 // Chaque mise en ligne repart donc d'un cache neuf, et l'ancien est effacé —
 // sans quoi les fichiers de toutes les versions passées s'y empileraient.
-const CACHE = 'nyasako-5c1742d7';
+const CACHE = 'nyasako-b79d8412';
 
 // Fichiers demandés avant toute chose, pour que la première ouverture hors
 // réseau trouve déjà de quoi s'afficher.
 const SOCLE = [
-  '/gestion-stockage.html',
+  '/ny-asako.html',
   '/manifest.webmanifest',
   '/icone-192.png',
   '/icone-512.png'
@@ -69,7 +69,7 @@ self.addEventListener('fetch', function(e){
         return res;
       }).catch(function(){
         return caches.match(req).then(function(r){
-          return r || caches.match('/gestion-stockage.html');
+          return r || caches.match('/ny-asako.html');
         });
       })
     );

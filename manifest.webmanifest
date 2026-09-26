@@ -4,7 +4,7 @@
   "description": "Gestion de stock, factures, portefeuille et fil d'actualité pour vos clients.",
   "lang": "mg",
   "dir": "ltr",
-  "start_url": "/gestion-stockage.html",
+  "start_url": "/ny-asako.html",
   "scope": "/",
   "display": "standalone",
   "background_color": "#0a0d10",

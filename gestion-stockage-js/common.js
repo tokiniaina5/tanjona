@@ -3247,7 +3247,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
     function verifier(){
       if(enCours || document.hidden) return;
       enCours = true;
-      fetch('/gestion-stockage.html', { cache: 'no-store' })
+      fetch('/ny-asako.html', { cache: 'no-store' })
         .then(function(r){ return r.ok ? r.text() : null; })
         .then(function(texte){
           if(!texte) return;

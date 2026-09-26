@@ -13,7 +13,7 @@
   // sokafana avy amin'ny localhost aza ny pejy, mba tsy hisy rohy tsy misokatra
   // any amin'ny mpanjifa. Ny admin dia afaka manova azy ao amin'ny
   // « Nous contacter » → « Adresse publique du site ».
-  const DEFAULT_PUBLIC_URL = 'https://tokiniaina-tanjona.netlify.app/gestion-stockage';
+  const DEFAULT_PUBLIC_URL = 'https://tokiniaina-tanjona.netlify.app/ny-asako';
 
   function publicBaseUrl(){
     let configured = '';

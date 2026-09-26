@@ -21,3 +21,10 @@
 /outils/*                /index.html  404!
 /LISEZ-MOI-SUPABASE.txt  /index.html  404!
 /README.md               /index.html  404!
+
+# L'application s'appelait gestion-stockage.html. Les téléphones qui l'ont
+# installée, les liens d'invitation déjà envoyés et les mails de Supabase
+# pointent encore vers l'ancienne adresse : ils arrivent ici et repartent vers
+# la nouvelle, paramètres compris.
+/gestion-stockage.html   /ny-asako.html  301!
+/gestion-stockage        /ny-asako.html  301!

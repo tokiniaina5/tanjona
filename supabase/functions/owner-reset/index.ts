@@ -73,7 +73,7 @@ Deno.serve(async (req: Request) => {
   const from = Deno.env.get("ALERT_FROM") ?? "onboarding@resend.dev";
   // L'adresse de retour est fixée ici, jamais demandée par l'appelant.
   const appUrl = Deno.env.get("APP_URL") ??
-    "https://tokiniaina-tanjona.netlify.app/gestion-stockage.html";
+    "https://tokiniaina-tanjona.netlify.app/ny-asako.html";
 
   if (!supabaseUrl || !serviceKey || !ownerEmail) {
     return json({ error: "configuration incomplète (SUPABASE_SERVICE_ROLE_KEY / OWNER_EMAIL)" }, 500);

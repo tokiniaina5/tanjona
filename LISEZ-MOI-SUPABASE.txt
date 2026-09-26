@@ -74,7 +74,7 @@ aussi ce lien à jour.
 
 CONNEXION DE L'APPLICATION "NY ASAKO"
 ------------------------------
-La connexion à gestion-stockage.html utilise maintenant les vrais
+La connexion à ny-asako.html utilise maintenant les vrais
 comptes Supabase (Authentication) :
 - 1ère connexion : nom, email, téléphone, logo + un MOT DE PASSE
   (6 caractères minimum). Le compte est créé dans Supabase, le mot

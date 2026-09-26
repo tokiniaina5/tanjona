@@ -227,7 +227,7 @@ console.log('  — ' + balises.length + ' images, ' + (total / 1024).toFixed(0) 
 // ajoutée à la main d'un côté et oubliée de l'autre donnerait une image que
 // personne ne demande, ou une demande sans image. On les réécrit donc ici,
 // entre deux repères, comme versionner.mjs réécrit les empreintes.
-const PAGE = 'gestion-stockage.html';
+const PAGE = 'ny-asako.html';
 const DEBUT = '<!-- écrans de démarrage iOS : écrits par outils/icones.mjs -->';
 const FIN_REPERE = '<!-- fin des écrans de démarrage iOS -->';
 const cheminPage = path.join(racine, PAGE);
