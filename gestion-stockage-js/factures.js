@@ -1,4 +1,24 @@
   // ---------------- FACTURES ----------------
+
+  // Qui émet la facture. Le patron : son profil. L'employé entré par son
+  // lien : la boutique — société, logo, NIF, STAT, email et téléphone du
+  // patron, rendus par la fonction « mpiasa » (vue-mpiasa.js) —, et son nom à
+  // lui en « Établie par ». Son propre profil n'a ni société ni NIF, et son
+  // email, réservé aux appels (« …@ny-asako.invalid »), n'a rien à faire sur
+  // une facture.
+  function emetteurFacture(){
+    const u = currentUser || {};
+    if(typeof MODE_MPIASA === 'undefined' || !MODE_MPIASA){
+      return { name: u.name || '', company: u.company || '', email: u.email || '', phone: u.phone || '',
+               nif: u.nif || '', stat: u.stat || '', logo: u.logo || null, auteur: '' };
+    }
+    const b = window.__boutique || {};
+    return {
+      name: b.nom || '', company: b.societe || '', email: b.email || '', phone: b.telephone || '',
+      nif: b.nif || '', stat: b.stat || '', logo: b.logo || null, auteur: u.name || ''
+    };
+  }
+
   function renderInvoiceItems(){
     const list = document.getElementById('invoiceItemsList');
     list.innerHTML = '';
@@ -46,12 +66,13 @@
     const pageW = 210;
     const marginX = 14;
     const rightX = pageW - marginX;
-    const emissEmail = currentUser && currentUser.email ? currentUser.email : '—';
-    const emissName = currentUser && currentUser.name ? currentUser.name : '';
-    const emissCompany = currentUser && currentUser.company ? currentUser.company : '';
-    const emissPhone = currentUser && currentUser.phone ? currentUser.phone : '';
-    const emissNif = currentUser && currentUser.nif ? currentUser.nif : '';
-    const emissStat = currentUser && currentUser.stat ? currentUser.stat : '';
+    const emetteur = emetteurFacture();
+    const emissEmail = emetteur.email || '—';
+    const emissName = emetteur.name;
+    const emissCompany = emetteur.company;
+    const emissPhone = emetteur.phone;
+    const emissNif = emetteur.nif;
+    const emissStat = emetteur.stat;
     const invoiceNo = '#' + String(Date.now()).slice(-6);
     const today = new Date().toLocaleDateString('fr-FR');
 
@@ -76,10 +97,10 @@
     doc.text('Facture N° : ' + invoiceNo, rightX, 27, { align: 'right' });
     doc.text('Date : ' + today, rightX, 32, { align: 'right' });
 
-    if(currentUser && currentUser.logo){
-      try{ doc.addImage(currentUser.logo, marginX, 8, 20, 20); }catch(err){}
+    if(emetteur.logo){
+      try{ doc.addImage(emetteur.logo, marginX, 8, 20, 20); }catch(err){}
     }
-    const leftX = currentUser && currentUser.logo ? marginX + 24 : marginX;
+    const leftX = emetteur.logo ? marginX + 24 : marginX;
     const nifStatParts = [];
     if(emissNif) nifStatParts.push('NIF : ' + emissNif);
     if(emissStat) nifStatParts.push('STAT : ' + emissStat);
@@ -99,6 +120,8 @@
     headerLines.push({ text: emissEmail, bold: false, size: 9.5 });
     if(emissPhone) headerLines.push({ text: emissPhone, bold: false, size: 9 });
     if(nifStatParts.length) headerLines.push({ text: nifStatParts.join('   '), bold: false, size: 8.5 });
+    // Faite par un employé : la boutique en tête, et qui l'a établie dessous.
+    if(emetteur.auteur) headerLines.push({ text: 'Établie par : ' + emetteur.auteur, bold: false, size: 8.5 });
 
     let ly = 14;
     headerLines.forEach(function(line){
@@ -206,6 +229,7 @@
       lines += '- ' + s.name + ' x' + s.qty + ' : ' + formatAr(subtotal) + '\n';
     });
 
+    const e = emetteurFacture();
     const subject = encodeURIComponent('Facture');
     const body = encodeURIComponent(
       'Bonjour ' + customer + ',\n\n' +
@@ -215,13 +239,13 @@
       'Date : ' + new Date().toLocaleDateString('fr-FR') + '\n\n' +
       'Merci de votre confiance.\n\n' +
       // Même signature que sur le PDF : le nom y manquait aussi.
-      (currentUser && currentUser.company ? currentUser.company + '\n' : '') +
-      (currentUser && currentUser.name && currentUser.name !== (currentUser.company || '')
-        ? currentUser.name + '\n' : '') +
-      (currentUser && currentUser.email ? currentUser.email : '') +
-      (currentUser && currentUser.phone ? '\n' + currentUser.phone : '') +
-      (currentUser && currentUser.nif ? '\nNIF : ' + currentUser.nif : '') +
-      (currentUser && currentUser.stat ? '\nSTAT : ' + currentUser.stat : '')
+      (e.company ? e.company + '\n' : '') +
+      (e.name && e.name !== e.company ? e.name + '\n' : '') +
+      (e.email ? e.email : '') +
+      (e.phone ? '\n' + e.phone : '') +
+      (e.nif ? '\nNIF : ' + e.nif : '') +
+      (e.stat ? '\nSTAT : ' + e.stat : '') +
+      (e.auteur ? '\n\nÉtablie par : ' + e.auteur : '')
     );
     window.location.href = 'mailto:' + customerEmail + '?subject=' + subject + '&body=' + body;
     pushNotification('facture', 'Facture ho an\'i ' + customer + ' efa lasa (nalefa amin\'ny mail).');

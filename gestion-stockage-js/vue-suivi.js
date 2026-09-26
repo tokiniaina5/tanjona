@@ -4,10 +4,11 @@
 // pas, et ne verra qu'une chose : sa course. Où en est-elle, qui l'apporte,
 // et — tant qu'elle est en route — où se trouve le livreur.
 //
-// La carte se dessine avec la clé du commerçant, rendue par la fonction :
-// le téléphone du client ne la connaît pas autrement. Sans clé, la page
-// reste utile : le lieu s'écrit en toutes lettres et s'ouvre dans Google
-// Maps d'un doigt.
+// La carte se dessine avec la clé Google du commerçant, rendue par la
+// fonction : le téléphone du client ne la connaît pas autrement. Sans clé,
+// ou si elle est refusée, c'est la carte gratuite d'OpenStreetMap
+// (carte-libre.js). Et le lieu s'écrit toujours en toutes lettres, ouvrable
+// dans Google Maps d'un doigt.
 
 (function () {
   const jeton = (function () {
@@ -19,6 +20,17 @@
   // l'écran de l'employé qui est demandé, on lui laisse la place.
   if (!jeton) return;
   try { if (new URLSearchParams(location.search).get('mpiasa')) return; } catch (e) {}
+
+  // Ces appels passent toujours avec la clé publique du site, jamais avec la
+  // session d'un compte ouvert dans ce navigateur. Ouvert chez le patron,
+  // connecté, le lien envoyait le jeton de son compte : Supabase le refusait
+  // avant même la fonction, sans en-tête CORS, et le navigateur ne voyait
+  // qu'un « Failed to fetch » — « Tsy mety ny rohy ». Le jeton du lien suffit,
+  // la fonction n'attend rien d'autre.
+  function entetes() {
+    const cle = window.__sb && window.__sb.supabaseKey;
+    return cle ? { Authorization: 'Bearer ' + cle } : {};
+  }
 
   const STATUTS = {
     miandry: { texte: 'Miandry ny livreur', couleur: 'var(--muted)', note: 'Mbola tsy nalain’ny livreur ny entanao.' },
@@ -66,8 +78,33 @@
   let repere = null;
   let mapsDemandee = null;
   let cleConnue = '';
+  let carteLibre = null;
+  let repereLibre = null;
+  // La recherche « Tadiavo » en cours, et ce qu'elle a dit en dernier : la
+  // page se redessine pendant qu'elle cherche, le bouton et la phrase doivent
+  // survivre au redessin.
+  let dernierAt = null;
+  let recherche = null;
+  let messageRecherche = '';
+  // Google a refusé la clé du commerçant : la carte gratuite, jusqu'au
+  // rechargement. Et ce qu'on montrait, pour le remontrer sans attendre.
+  let googleRefuse = false;
+  let derniereCarte = null;
 
   function chargerGoogleMaps(cle) {
+    // Une clé refusée laisse le script se charger ; Google remplace ensuite la
+    // carte par un message d'erreur, et ne prévient que par gm_authFailure.
+    // On y reprend la carte gratuite, dans une boîte neuve.
+    window.gm_authFailure = function () {
+      googleRefuse = true;
+      carte = null;
+      repere = null;
+      const boite = document.getElementById('suiviCarte');
+      if (!boite || !boite.parentNode || !derniereCarte) return;
+      const neuve = boite.cloneNode(false);
+      boite.parentNode.replaceChild(neuve, boite);
+      poserLaCarteLibre(neuve, derniereCarte.pos, derniereCarte.nom);
+    };
     if (window.google && window.google.maps && window.google.maps.Map) return Promise.resolve(true);
     if (mapsDemandee) return mapsDemandee;
     if (!cle) return Promise.resolve(false);
@@ -87,22 +124,63 @@
 
   function poserLaCarte(pos, nom) {
     const boite = document.getElementById('suiviCarte');
-    if (!boite || !pos) return;
-    if (!cleConnue) { boite.style.display = 'none'; return; }
+    if (!boite) return;
     boite.style.display = 'block';
+    // La page se redessine toutes les 45 secondes, et la boîte avec elle :
+    // une carte restée accrochée à l'ancienne boîte ne se voyait plus.
+    if (carte && carte.getDiv() !== boite) { carte = null; repere = null; }
+    if (carteLibre && carteLibre.getContainer() !== boite) {
+      carteLibre.remove(); carteLibre = null; repereLibre = null;
+    }
+    derniereCarte = { pos: pos, nom: nom };
+    if (!cleConnue || googleRefuse) { poserLaCarteLibre(boite, pos, nom); return; }
     chargerGoogleMaps(cleConnue).then(function (prete) {
-      if (!prete) { boite.style.display = 'none'; return; }
+      if (!prete) { poserLaCarteLibre(boite, pos, nom); return; }
       const g = window.google.maps;
-      const point = { lat: Number(pos.lat), lng: Number(pos.lng) };
+      // Sans position encore : Antananarivo, sans repère.
+      const point = pos ? { lat: Number(pos.lat), lng: Number(pos.lng) } : centreParDefaut;
       if (!carte) {
         carte = new g.Map(boite, {
-          center: point, zoom: 15,
+          center: point, zoom: pos ? 15 : 12,
           mapTypeControl: false, streetViewControl: false, fullscreenControl: false
         });
       }
+      if (!pos) return;
       if (!repere) repere = new g.Marker({ map: carte, position: point, title: nom || '' });
       else { repere.setPosition(point); repere.setTitle(nom || ''); }
       carte.setCenter(point);
+    });
+  }
+
+  // OpenStreetMap, sans clé ni facturation (carte-libre.js).
+  function poserLaCarteLibre(boite, pos, nom) {
+    if (typeof chargerCarteLibre !== 'function') { boite.style.display = 'none'; return; }
+    chargerCarteLibre().then(function (prete) {
+      if (!prete) { boite.style.display = 'none'; return; }
+      // Redessinée pendant le chargement : cette boîte-ci n'est plus à l'écran.
+      if (!boite.isConnected) return;
+      const L = window.L;
+      if (!pos) {
+        // Sans position encore : Antananarivo, sans repère.
+        if (!carteLibre) {
+          carteLibre = L.map(boite).setView([centreParDefaut.lat, centreParDefaut.lng], 12);
+          fondCarteLibre(carteLibre);
+        }
+        return;
+      }
+      const point = [Number(pos.lat), Number(pos.lng)];
+      if (!carteLibre) {
+        carteLibre = L.map(boite).setView(point, 15);
+        fondCarteLibre(carteLibre);
+      } else {
+        carteLibre.setView(point, carteLibre.getZoom());
+      }
+      if (!repereLibre) {
+        repereLibre = repereCarteLibre(point).addTo(carteLibre);
+        if (nom) repereLibre.bindTooltip(html(nom), { permanent: true, direction: 'top', offset: [0, -10] });
+      } else {
+        repereLibre.setLatLng(point);
+      }
     });
   }
 
@@ -125,20 +203,31 @@
       '</div>';
 
     // ---- Où en est le livreur ----
-    if (pos) {
+    // La carte se montre tant que la course n'est pas finie, même avant la
+    // première position : le client voit où le livreur apparaîtra. Finie ou
+    // annulée, la fonction ne rend plus de position, et la carte s'en va.
+    const enCours = d.statut !== 'tonga' && d.statut !== 'foana';
+    if (pos || enCours) {
       sortie += '<div class="panel" style="margin-top:1rem;">' +
         '<div class="panneau-titre">Aiza izy izao</div>' +
-        '<div id="suiviCarte" style="height:300px; border-radius:10px; overflow:hidden; border:1px solid var(--line); display:none; margin-bottom:0.8rem;"></div>' +
-        '<p style="font-size:0.85rem; line-height:1.7; margin:0;">' +
+        '<div id="suiviCarte" style="height:300px; border-radius:10px; overflow:hidden; border:1px solid var(--line); display:none; margin-bottom:0.8rem;"></div>';
+    }
+    // Chercher n'a de sens que pour une course en route, confiée à quelqu'un.
+    if (enCours && d.livreur) {
+      sortie += '<div class="actions-row" style="margin:0 0 0.6rem;">' +
+        '<button type="button" class="btn btn-primary btn-sm" id="suiviTadiavoBtn" style="width:auto;">📍 Tadiavo</button>' +
+        '</div>' +
+        '<p id="suiviTadiavoStatut" style="font-size:0.8rem; color:var(--muted); line-height:1.5; margin:0 0 0.6rem;"></p>';
+    }
+    if (pos) {
+      sortie += '<p style="font-size:0.85rem; line-height:1.7; margin:0;">' +
         'Toerana farany : <strong style="color:var(--cyan);">' + html(depuis(pos.at)) + '</strong>' +
         (pos.precision_m ? ' <span style="color:var(--muted);">(± ' + Math.round(pos.precision_m) + ' m)</span>' : '') +
         '<br><span style="color:var(--muted);">' + new Date(pos.at).toLocaleString('fr-FR') + '</span>' +
         '<br><a href="https://www.google.com/maps?q=' + Number(pos.lat) + ',' + Number(pos.lng) + '" target="_blank" rel="noopener" style="color:var(--cyan);">Sokafy ao amin’ny Google Maps</a>' +
         '</p></div>';
-    } else if (d.statut !== 'tonga' && d.statut !== 'foana') {
-      sortie += '<div class="panel" style="margin-top:1rem;">' +
-        '<div class="panneau-titre">Aiza izy izao</div>' +
-        '<p class="empty-hint" style="margin:0;">Mbola tsy nandefa ny toerana misy azy ny livreur.</p>' +
+    } else if (enCours) {
+      sortie += '<p class="empty-hint" style="margin:0;">Mbola tsy nandefa ny toerana misy azy ny livreur.</p>' +
         '</div>';
     }
 
@@ -146,7 +235,64 @@
       'Havaozina ho azy isaky ny 45 segondra ity pejy ity.</p>';
 
     ecran.innerHTML = sortie;
-    if (pos) poserLaCarte(pos, d.livreur);
+    if (document.getElementById('suiviCarte')) poserLaCarte(pos, d.livreur);
+    dernierAt = pos ? pos.at : null;
+    const tadiavoBtn = document.getElementById('suiviTadiavoBtn');
+    if (tadiavoBtn) tadiavoBtn.addEventListener('click', tadiavo);
+    majRecherche();
+  }
+
+  // ---------- Chercher le livreur ----------
+  // La position ne vient que du téléphone du livreur, sa page ouverte et son
+  // accord donné. « Tadiavo » ne la devine pas : il lui demande d'en envoyer
+  // une tout de suite, puis relit toutes les cinq secondes. Au bout de 45
+  // secondes sans rien, on le dit, plutôt que de laisser croire qu'on cherche
+  // encore.
+  function majRecherche() {
+    const b = document.getElementById('suiviTadiavoBtn');
+    if (b) {
+      b.disabled = !!recherche;
+      b.textContent = recherche ? 'Mitady…' : '📍 Tadiavo';
+    }
+    const s = document.getElementById('suiviTadiavoStatut');
+    if (s) s.textContent = messageRecherche;
+  }
+
+  function tadiavo() {
+    const client = window.__sb;
+    if (recherche || !client || !client.functions) return;
+    const avant = dernierAt;
+    recherche = true;
+    messageRecherche = 'Angatahina ny toerana misy azy…';
+    majRecherche();
+
+    const fin = function (message) {
+      if (recherche && recherche !== true) clearInterval(recherche);
+      recherche = null;
+      messageRecherche = message;
+      majRecherche();
+    };
+
+    client.functions.invoke('suivi', { headers: entetes(), body: { jeton: jeton, action: 'tadiavo' } }).then(function (res) {
+      if (!res || res.error || !res.data || !res.data.ok) {
+        fin('Tsy azo nitadiavana izao. Andramo indray afaka kelikely.');
+        return;
+      }
+      let tours = 0;
+      recherche = setInterval(function () {
+        tours += 1;
+        Promise.resolve(demander()).then(function (d) {
+          const at = d && d.position ? d.position.at : null;
+          if (at && at !== avant) {
+            fin('Hita : ' + new Date(at).toLocaleTimeString('fr-FR') + '.');
+          } else if (tours >= 9) {
+            fin('Tsy namaly ny findain’ny livreur : mety tsy misokatra ny pejiny, na tsy misy internet. Andramo indray afaka kelikely.');
+          }
+        });
+      }, 5000);
+    }, function () {
+      fin('Tsy tafita ny fangatahana.');
+    });
   }
 
   // ---------- Dire pourquoi ----------
@@ -191,7 +337,7 @@
       erreur('Tsy tafaraka amin’ny Supabase. Andramo indray.');
       return;
     }
-    client.functions.invoke('suivi', { body: { jeton: jeton } }).then(function (res) {
+    return client.functions.invoke('suivi', { headers: entetes(), body: { jeton: jeton } }).then(function (res) {
       if (res && res.error) {
         pourquoi(res.error, 'Tsy mahazo alalana ity rohy ity.').then(erreur);
         return;
@@ -199,6 +345,7 @@
       const d = res && res.data;
       if (!d || d.error) { erreur('Tsy mahazo alalana ity rohy ity.'); return; }
       dessiner(d);
+      return d;
     }, function () {
       erreur('Tsy tafita ny fangatahana.');
     });

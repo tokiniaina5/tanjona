@@ -122,6 +122,45 @@ fabriquer('icone-512.png', 512);
 fabriquer('icone-512-masquable.png', 512, { rayonRelatif: 0 });
 
 // ---------------------------------------------------------------------------
+// LES ICÔNES DU FOKONTANY ET DU COMMUN
+// ---------------------------------------------------------------------------
+// Installées avec le « N » de Ny asako, les trois applications se
+// confondaient dans la barre des tâches : impossible de savoir laquelle
+// désinstaller. Même fond, même dessin en bâtons, mais leur lettre et leur
+// couleur : « F » ambre pour le Fokontany, « C » violet pour le Commun.
+function dansLeF(u, v, e){
+  const g = 0.32, d = 0.70, h = 0.28, b = 0.72;
+  if(u >= g && u <= g + e && v >= h && v <= b) return true;          // le montant
+  if(v >= h && v <= h + e && u >= g && u <= d) return true;          // la barre du haut
+  const m = (h + b) / 2 - e / 2;                                     // la barre du milieu
+  return v >= m && v <= m + e && u >= g && u <= d - 0.08;
+}
+function dansLeC(u, v, e){
+  const g = 0.30, d = 0.70, h = 0.28, b = 0.72;
+  if(u >= g && u <= g + e && v >= h && v <= b) return true;          // le dos
+  if(v >= h && v <= h + e && u >= g && u <= d) return true;          // le haut
+  return v >= b - e && v <= b && u >= g && u <= d;                   // le bas
+}
+function fabriquerLettre(fichier, taille, dessin, encre, { rayonRelatif = 0.22 } = {}){
+  const rayon = taille * rayonRelatif;
+  const poids = ecrirePng(fichier, taille, taille, (x, y) => {
+    const dedans = couvertureRond(x, y, taille, rayon, 0);
+    if(dedans <= 0) return [0, 0, 0, 0];
+    const u = (x + 0.5) / taille, v = (y + 0.5) / taille;
+    const c = dessin(u, v, 0.11) ? encre : FOND;
+    return [c[0], c[1], c[2], Math.round(255 * dedans)];
+  });
+  console.log('  ' + fichier + ' — ' + taille + '×' + taille + ', ' + (poids / 1024).toFixed(1) + ' Ko');
+}
+const AMBRE = [0xf2, 0xa3, 0x3c];
+const VIOLET = [0x8b, 0x93, 0xff];
+[['fokontany', dansLeF, AMBRE], ['commun', dansLeC, VIOLET]].forEach(function([dossier, dessin, encre]){
+  fabriquerLettre(dossier + '/icone-192.png', 192, dessin, encre);
+  fabriquerLettre(dossier + '/icone-512.png', 512, dessin, encre);
+  fabriquerLettre(dossier + '/icone-512-masquable.png', 512, dessin, encre, { rayonRelatif: 0 });
+});
+
+// ---------------------------------------------------------------------------
 // LES ÉCRANS DE DÉMARRAGE D'iOS
 // ---------------------------------------------------------------------------
 // Android fabrique le sien tout seul : le manifeste lui donne le nom, l'icône

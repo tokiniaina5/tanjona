@@ -28,3 +28,12 @@
 # la nouvelle, paramètres compris.
 /gestion-stockage.html   /ny-asako.html  301!
 /gestion-stockage        /ny-asako.html  301!
+
+# Les liens d'invitation et d'employé finissent par « /confirmation?… » : ils
+# ouvrent l'application, qui lit ses paramètres puis efface le mot.
+/confirmation            /ny-asako.html  200
+/confirmation/           /ny-asako.html  200
+
+# L'Administratif Commun est la page du Fokontany, sous une autre adresse.
+/commun                  /fokontany/index.html  200
+/commun/                 /fokontany/index.html  200

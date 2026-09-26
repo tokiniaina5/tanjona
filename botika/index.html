@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="mg">
+<head>
+<meta charset="UTF-8">
+<!-- La boutique, ouverte à qui n'a pas de compte.
+     Un lien partagé sur Facebook ou WhatsApp tombait sur « Connexion » : on
+     demandait un mot de passe à quelqu'un qui ne savait pas encore ce qu'on
+     vendait. Ici, la marchandise d'abord ; le compte ensuite, et seulement
+     pour qui veut entrer.
+     Les annonces (client_news) se lisent sans être connecté — c'est la règle
+     « anyone can read client news » (supabase-schema.sql) qui l'accorde. Rien
+     d'autre ne se lit ici : ni stock, ni comptes, ni registre. -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ny asako — Ny botika</title>
+<meta name="description" content="Ireo entana sy vaovao farany. Jereo aloha, dia midira raha tianao.">
+<meta name="theme-color" content="#0a0d10">
+<!-- Ce que Facebook et WhatsApp montrent du lien. -->
+<meta property="og:title" content="Ny asako — Ny botika">
+<meta property="og:description" content="Ireo entana sy vaovao farany. Jereo aloha, dia midira raha tianao.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/icone-192.png">
+<link rel="stylesheet" href="/gestion-stockage-css/base.css?v=3c7a1283">
+<link rel="stylesheet" href="/gestion-stockage-css/components.css?v=d696317b">
+<style>
+  .bk-entete{
+    display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;
+    padding:0.9rem 1rem; border-bottom:1px solid var(--line); background:var(--panel);
+    position:sticky; top:0; z-index:20;
+  }
+  .bk-corps{ max-width:680px; margin:0 auto; padding:1.2rem 16px 3rem; }
+  /* L'annonce qu'on est venu voir (…?a=12) : on la retrouve d'un coup d'œil. */
+  .fb-post.bk-visee{ border-color:var(--cyan); box-shadow:0 0 0 1px rgba(45,212,191,0.25); }
+  /* La vitrine : les articles en vente, à part du fil où ils se perdaient
+     entre les directs et les nouvelles. */
+  .bk-vitrine{ display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:0.7rem; }
+  .bk-carte{
+    display:flex; flex-direction:column; border:1px solid var(--line); border-radius:12px;
+    overflow:hidden; background:var(--panel-2); cursor:pointer; text-align:left; padding:0;
+    color:inherit; font:inherit;
+  }
+  .bk-carte:hover{ border-color:var(--cyan); }
+  .bk-carte-image{ width:100%; aspect-ratio:1 / 1; object-fit:cover; display:block; background:var(--bg); }
+  .bk-carte-sans{ display:flex; align-items:center; justify-content:center; font-size:2rem; }
+  .bk-carte-corps{ padding:0.55rem 0.65rem 0.7rem; display:flex; flex-direction:column; gap:0.25rem; flex:1; }
+  .bk-carte-nom{ font-size:0.82rem; font-weight:600; line-height:1.3; overflow:hidden;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+  .bk-carte-prix{ font-size:0.85rem; font-weight:700; color:var(--cyan); margin-top:auto; }
+</style>
+</head>
+<body>
+
+<header class="bk-entete">
+  <div class="brand">🛒 Ny <span>asako</span></div>
+  <div style="display:flex; align-items:center; gap:0.6rem;">
+    <a class="btn btn-sm btn-primary" id="bkHiditra" href="/ny-asako.html" style="width:auto; text-decoration:none;">🔐 Hiditra</a>
+  </div>
+</header>
+
+<main class="bk-corps">
+  <div class="panel">
+    <h3>Tongasoa</h3>
+    <p style="font-size:0.82rem; color:var(--muted); line-height:1.6; margin:0;">
+      Ireto ny entana sy ny vaovao farany. Azonao jerena eto avokoa, tsy mila kaonty.
+      Raha te hividy na hanoratra ianao, dia <strong style="color:var(--text);">mamorona kaonty</strong> eo
+      amin'ny « Hiditra » ambony.
+    </p>
+  </div>
+
+  <!-- Les articles en vente, en vitrine. Un appui mène à leur annonce dans
+       le fil, où sont la fiche entière et le bouton pour acheter. -->
+  <div class="panel" id="bkVitrineBoite" style="display:none;">
+    <h3 style="margin-top:0;">🛒 Entana amidy</h3>
+    <div class="bk-vitrine" id="bkVitrine"></div>
+  </div>
+
+  <div class="fb-feed" id="bkFil"></div>
+  <p class="empty-hint" id="bkVide" style="display:none;">Mbola tsy misy vaovao navoaka.</p>
+
+  <div class="panel" style="text-align:center;">
+    <p style="font-size:0.84rem; margin:0 0 0.9rem;">Te hividy na hanoratra ao amin'ny Ny asako?</p>
+    <a class="btn btn-primary" id="bkHiditra2" href="/ny-asako.html" style="text-decoration:none;">📝 Hamorona kaonty / Hiditra</a>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" crossorigin="anonymous"></script>
+<script src="/gestion-stockage-js/supabase-init.js?v=94f3c704"></script>
+<script>
+(function () {
+  'use strict';
+
+  function $(id) { return document.getElementById(id); }
+  function echap(t) {
+    return String(t == null ? '' : t).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+  function ariary(n) {
+    var v = Number(n || 0);
+    return (isFinite(v) ? v.toLocaleString('fr-FR') : '0') + ' Ar';
+  }
+
+  // Le parrainage voyage avec le lien : celui qui a partagé l'annonce doit
+  // garder son filleul, même si le chemin passe maintenant par la boutique.
+  // « /confirmation » est l'adresse que Ny asako reconnaît (_redirects).
+  var params = new URLSearchParams(location.search);
+  var ref = String(params.get('ref') || '').trim();
+  var vise = String(params.get('a') || '').trim();
+  var entree = ref ? '/confirmation?invite=1&ref=' + encodeURIComponent(ref) : '/ny-asako.html';
+  $('bkHiditra').href = entree;
+  $('bkHiditra2').href = entree;
+
+  // Les images d'une annonce : une seule en texte brut autrefois, un tableau
+  // JSON depuis (parametres.js écrit les deux formes).
+  function imagesDe(brut) {
+    if (!brut) return [];
+    try {
+      var lu = JSON.parse(brut);
+      return Array.isArray(lu) ? lu : [brut];
+    } catch (e) { return [brut]; }
+  }
+
+  // Un billet du fil. Il porte son numéro : la vitrine le retrouve par là.
+  function carteBillet(n) {
+      var type = n.type || 'vaovao';
+      var div = document.createElement('div');
+      div.id = 'bk-' + n.id;
+      div.className = 'fb-post' + (type === 'live' ? ' fb-post-live' : (type === 'entana' ? ' fb-post-entana' : '')) +
+        (vise && String(n.id) === vise ? ' bk-visee' : '');
+      var badge = type === 'live'
+        ? '<span class="fb-type-badge live">🔴 LIVE DIRECT</span>'
+        : (type === 'entana' ? '<span class="fb-type-badge entana">🛒 Entana amidy</span>' : '');
+      var images = imagesDe(n.image);
+      var sary = '';
+      if (images.length === 1) {
+        sary = '<img src="' + echap(images[0]) + '" alt="" style="max-width:100%; border-radius:10px; margin-top:0.6rem; display:block;">';
+      } else if (images.length > 1) {
+        var col = images.length === 3 ? '1fr 1fr 1fr' : '1fr 1fr';
+        sary = '<div style="display:grid; grid-template-columns:' + col + '; gap:4px; margin-top:0.6rem;">' +
+          images.map(function (s) {
+            return '<img src="' + echap(s) + '" alt="" style="width:100%; height:140px; object-fit:cover; border-radius:8px; display:block;">';
+          }).join('') + '</div>';
+      }
+      var quand = n.created_at ? new Date(n.created_at).toLocaleString('fr-FR') : '';
+      div.innerHTML =
+        '<div class="fb-post-head">' +
+          '<div style="flex:1; min-width:0;">' +
+            '<div class="fb-post-name">' + echap(n.client_name || 'Ny asako') + '</div>' +
+            '<div class="fb-post-meta">' + echap(quand) + (badge ? ' ' + badge : '') + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="fb-post-body">' + echap(n.message || '') + '</div>' +
+        sary +
+        (n.price ? '<div class="fb-post-price">' + ariary(n.price) + '</div>' : '') +
+        (n.link && /^https?:\/\//i.test(n.link)
+          ? '<a href="' + echap(n.link) + '" target="_blank" rel="noopener" class="fb-post-link">🔗 ' + echap(n.link) + '</a>'
+          : '') +
+        // Acheter demande un compte : c'est une commande, elle doit porter un
+        // nom. Le bouton mène donc à l'entrée, et non à un panier anonyme.
+        '<div class="fb-post-actions">' +
+          '<a href="' + echap(entree) + '" class="fb-share-action" style="color:var(--cyan); text-decoration:none;">' +
+            (type === 'entana' ? '🛒 Hividy' : '➡️ Hiditra') + '</a>' +
+        '</div>';
+      return div;
+  }
+
+  function dessiner(lignes) {
+    var fil = $('bkFil');
+    $('bkVide').style.display = lignes.length ? 'none' : '';
+    fil.innerHTML = '';
+    lignes.forEach(function (n) { fil.appendChild(carteBillet(n)); });
+    if (vise) {
+      var el = fil.querySelector('.bk-visee');
+      if (el && el.scrollIntoView) el.scrollIntoView({ block: 'center' });
+    }
+  }
+
+  // La colonne author_photo peut manquer tant que le SQL n'est pas passé :
+  // la demander ferait échouer la lecture entière (parametres.js fait de même).
+  var COLONNES = 'id,client_name,message,link,type,price,image,created_at';
+  // Trente jours, et c'est aussi toute la vie d'un billet : passé ce délai la
+  // base l'efface d'elle-même, chaque nuit (supabase-menage-publications.sql).
+  // Demander plus ne donnerait rien de plus ; demander moins cacherait ce qui
+  // existe encore. Les deux chiffres changent ensemble, ou aucun.
+  var depuis = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+  // Un billet à la corbeille ne se montre pas ici, même à son auteur connecté
+  // (supabase-corbeille.sql). Tant que la colonne n'existe pas, le filtre
+  // ferait échouer la lecture : on le retire alors.
+  function requete(enLigne, entanaSeuls) {
+    var q = window.__sb.from('client_news').select(COLONNES).gte('created_at', depuis);
+    if (enLigne) q = q.is('deleted_at', null);
+    if (entanaSeuls) q = q.eq('type', 'entana');
+    return q.order('created_at', { ascending: false }).limit(entanaSeuls ? 60 : 30);
+  }
+  function demander(entanaSeuls) {
+    return requete(true, entanaSeuls)
+      .then(function (res) { return (res && res.error) ? requete(false, entanaSeuls) : res; });
+  }
+
+  // ---- La vitrine ----
+  // Le fil ne montre que les trente derniers billets : les directs et les
+  // nouvelles y poussaient les articles dehors. La vitrine, elle, ne montre
+  // qu'eux, tous ceux qui sont en vente.
+  var VIDEO = /\.(mp4|webm|mov|m4v|ogv)(\?|$)/i;
+
+  // Le nom de l'article : la ligne « 📦 … » de sa fiche (parametres.js), et
+  // à défaut la première ligne de l'annonce.
+  function nomDeLArticle(n) {
+    var lignes = String(n.message || '').split('\n').map(function (l) { return l.trim(); }).filter(Boolean);
+    for (var i = 0; i < lignes.length; i++) {
+      if (lignes[i].indexOf('📦') === 0) return lignes[i].replace(/^📦\s*/, '');
+    }
+    return lignes[0] || 'Entana';
+  }
+
+  // Un appui sur la vitrine mène à l'annonce : là sont la fiche entière et le
+  // bouton pour acheter. Absente du fil (trop ancienne pour les trente
+  // derniers), elle y est posée en tête.
+  function montrerLAnnonce(n) {
+    var fil = $('bkFil');
+    var el = document.getElementById('bk-' + n.id);
+    if (!el) {
+      el = carteBillet(n);
+      fil.insertBefore(el, fil.firstChild);
+      $('bkVide').style.display = 'none';
+    }
+    [].forEach.call(fil.querySelectorAll('.bk-visee'), function (x) { x.classList.remove('bk-visee'); });
+    el.classList.add('bk-visee');
+    if (el.scrollIntoView) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
+
+  function dessinerLaVitrine(lignes) {
+    var boite = $('bkVitrineBoite'), vitrine = $('bkVitrine');
+    vitrine.innerHTML = '';
+    boite.style.display = lignes.length ? '' : 'none';
+    lignes.forEach(function (n) {
+      var image = imagesDe(n.image).filter(function (s) { return !VIDEO.test(s); })[0];
+      var carte = document.createElement('button');
+      carte.type = 'button';
+      carte.className = 'bk-carte';
+      carte.innerHTML =
+        (image
+          ? '<img class="bk-carte-image" src="' + echap(image) + '" alt="" loading="lazy">'
+          : '<div class="bk-carte-image bk-carte-sans">🛒</div>') +
+        '<div class="bk-carte-corps">' +
+          '<div class="bk-carte-nom">' + echap(nomDeLArticle(n)) + '</div>' +
+          (n.price ? '<div class="bk-carte-prix">' + ariary(n.price) + '</div>' : '') +
+        '</div>';
+      carte.addEventListener('click', function () { montrerLAnnonce(n); });
+      vitrine.appendChild(carte);
+    });
+  }
+
+  function lire() {
+    if (!window.__sb) { $('bkVide').style.display = ''; return; }
+    demander(false)
+      .then(function (res) {
+        if (res && res.error) { $('bkVide').style.display = ''; return; }
+        dessiner((res && res.data) || []);
+      }, function () { $('bkVide').style.display = ''; });
+    demander(true)
+      .then(function (res) {
+        if (res && !res.error) dessinerLaVitrine(res.data || []);
+      }, function () {});
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', lire);
+  else lire();
+})();
+</script>
+</body>
+</html>

@@ -73,7 +73,7 @@ Deno.serve(async (req: Request) => {
   const from = Deno.env.get("ALERT_FROM") ?? "onboarding@resend.dev";
   // L'adresse de retour est fixée ici, jamais demandée par l'appelant.
   const appUrl = Deno.env.get("APP_URL") ??
-    "https://tokiniaina-tanjona.netlify.app/ny-asako.html";
+    "https://ny-asako.netlify.app/";
 
   if (!supabaseUrl || !serviceKey || !ownerEmail) {
     return json({ error: "configuration incomplète (SUPABASE_SERVICE_ROLE_KEY / OWNER_EMAIL)" }, 500);
@@ -103,23 +103,28 @@ Deno.serve(async (req: Request) => {
     options: { redirectTo: appUrl },
   });
 
-  const link = data?.properties?.action_link ?? "";
-  if (error || !link) {
-    return json({ sent: false, error: error?.message ?? "lien non généré" }, 500);
+  // Le code, et non le lien : un lien s'ouvre dans le navigateur de la
+  // messagerie, souvent un autre que celui de l'application installée, et la
+  // personne se retrouvait connectée ailleurs que là où elle attendait. Le code
+  // se recopie dans l'écran même où il a été demandé.
+  const code = data?.properties?.email_otp ?? "";
+  if (error || !code) {
+    return json({ sent: false, error: error?.message ?? "code non généré" }, 500);
   }
 
   const text = [
     "Bonjour,",
     "",
-    "Voici votre lien pour choisir un nouveau mot de passe sur Ny asako :",
+    "Voici votre code pour choisir un nouveau mot de passe sur Ny asako :",
     "",
-    link,
+    "    " + code,
     "",
-    "Ce lien ne vaut qu'une heure et ne sert qu'une fois. Si vous en avez demandé",
-    "plusieurs, seul le dernier reçu fonctionne.",
+    "Recopiez-le dans l'écran « Mot de passe oublié ». Il ne vaut qu'une heure et",
+    "ne sert qu'une fois. Si vous en avez demandé plusieurs, seul le dernier reçu",
+    "fonctionne.",
     "",
-    "Vous n'avez rien demandé ? Ne cliquez pas : votre mot de passe actuel reste",
-    "valable tant que ce lien n'est pas ouvert.",
+    "Vous n'avez rien demandé ? Ne donnez ce code à personne : votre mot de passe",
+    "actuel reste valable tant qu'il n'est pas utilisé.",
     "",
     Deno.env.get("OWNER_NAME") ?? "",
   ].join("\n");
@@ -133,7 +138,9 @@ Deno.serve(async (req: Request) => {
     body: JSON.stringify({
       from,
       to: [ownerEmail],
-      subject: "Votre lien de connexion — Ny asako",
+      // Un sujet distinct de l'ancien « lien de connexion » : la messagerie
+      // rangeait sinon le code dans la même conversation que les vieux liens.
+      subject: "Votre code de connexion — Ny asako",
       text,
     }),
   });

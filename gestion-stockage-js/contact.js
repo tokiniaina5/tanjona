@@ -173,7 +173,10 @@
         video.push({ label: '💬 WhatsApp', color: '#25D366', run: openUrl(wa) });
       }
 
-      const fb = (channels.facebook || '').trim();
+      // Une adresse qui n'est pas un profil n'est pas montrée : elle ouvrirait
+      // le compte du client lui-même (voir verifierLAdresse). L'admin, lui, le
+      // lit en toutes lettres dans son formulaire.
+      const fb = adresseDeProfil('facebook', channels.facebook);
       const messenger = fb ? facebookToMessenger(fb) : null;
       if(messenger){
         voice.push({ label: '📘 Messenger', color: '#1877F2', run: openUrl(messenger) });
@@ -191,7 +194,7 @@
         { key: 'threads', label: '🧵 Threads', color: '#e7e9ea' },
         { key: 'twitter', label: '✖️ X (Twitter)', color: '#e7e9ea' }
       ].forEach(function(f){
-        const url = (channels[f.key] || '').trim();
+        const url = adresseDeProfil(f.key, channels[f.key]);
         if(url) voice.push({ label: f.label, color: f.color, run: openUrl(url) });
       });
       const wechat = (channels.wechat || '').trim();
@@ -203,7 +206,10 @@
         if(!item || !item.name) return;
         const value = (item.url || '').trim();
         if(/^https?:\/\//i.test(value)){
-          voice.push({ label: item.name, color: 'var(--cyan)', run: openUrl(value) });
+          // Même règle pour un canal ajouté à la main : « web.telegram.org »
+          // ouvre le Telegram du client, pas le vôtre.
+          const propre = adresseDeProfil('', value);
+          if(propre) voice.push({ label: item.name, color: 'var(--cyan)', run: openUrl(propre) });
           return;
         }
         const digits = value.replace(/[^\d]/g, '');
@@ -276,6 +282,166 @@
     return d;
   }
 
+  // ---------------- L'ADRESSE D'UN PROFIL, ET CE QUI N'EN EST PAS UN ----------------
+  //
+  // Ce qu'on attend dans ces cases, c'est l'adresse publique d'un profil :
+  // celle qu'on donne à quelqu'un pour qu'il vous trouve. Ce qu'on y colle,
+  // c'est ce que la barre d'adresse affichait quand on est allé chercher —
+  // « facebook.com/home.php », « instagram.com/direct/inbox/ »,
+  // « tiktok.com/live », « web.telegram.org/a/ ». Ces adresses s'ouvrent très
+  // bien, et c'est le piège : elles ouvrent le compte de CELUI QUI CLIQUE.
+  // Le client arrive sur son propre fil, ne comprend pas, et referme.
+  //
+  // On les reconnaît à leur première tranche de chemin : ce sont des pages de
+  // l'application, jamais le nom de quelqu'un. La liste ne dit que ce dont on
+  // est sûr — une adresse inconnue passe, il vaut mieux laisser entrer une
+  // adresse étrange que refuser un vrai profil.
+  //
+  // Et puisque le nom suffit — c'est lui qu'on connaît de soi, pas l'adresse
+  // — on l'accepte tout court : « tanjona » ou « @tanjona » devient l'adresse
+  // du réseau où on l'a écrit.
+  const PROFILS_RESEAUX = {
+    facebook: {
+      nom: 'Facebook',
+      hotes: ['facebook.com', 'fb.com', 'fb.me'],
+      refusees: ['home.php', 'home', 'feed', 'login.php', 'login', 'me', 'friends',
+        'notifications', 'messages', 'marketplace', 'watch', 'settings', 'search',
+        'sharer.php', 'share.php', 'bookmarks', 'events', 'reels', 'pages', 'people'],
+      // « profile.php?id=… » n'est pas une page de l'application : c'est bien
+      // quelqu'un, désigné par son numéro faute de nom choisi.
+      exception: function(u){ return /[?&]id=\d+/.test(u.search); },
+      depuisLeNom: function(n){ return 'https://www.facebook.com/' + n; },
+      modele: 'https://www.facebook.com/votrenom'
+    },
+    instagram: {
+      nom: 'Instagram',
+      hotes: ['instagram.com'],
+      refusees: ['direct', 'explore', 'accounts', 'reels', 'stories', 'p', 'tv', 'inbox'],
+      depuisLeNom: function(n){ return 'https://www.instagram.com/' + n; },
+      modele: 'https://www.instagram.com/votrenom'
+    },
+    tiktok: {
+      nom: 'TikTok',
+      hotes: ['tiktok.com'],
+      refusees: ['live', 'foryou', 'following', 'explore', 'search', 'upload', 'messages'],
+      depuisLeNom: function(n){ return 'https://www.tiktok.com/@' + n; },
+      modele: 'https://www.tiktok.com/@votrenom'
+    },
+    threads: {
+      nom: 'Threads',
+      hotes: ['threads.net', 'threads.com'],
+      refusees: ['search', 'activity'],
+      depuisLeNom: function(n){ return 'https://www.threads.net/@' + n; },
+      modele: 'https://www.threads.net/@votrenom'
+    },
+    twitter: {
+      nom: 'X (Twitter)',
+      hotes: ['x.com', 'twitter.com'],
+      refusees: ['home', 'explore', 'notifications', 'messages', 'i', 'search',
+        'settings', 'compose'],
+      depuisLeNom: function(n){ return 'https://x.com/' + n; },
+      modele: 'https://x.com/votrenom'
+    }
+  };
+
+  // Les applications web des autres réseaux : elles n'ont même pas de première
+  // tranche à examiner — l'adresse entière ouvre le compte de qui clique.
+  const APPLICATIONS_WEB = [
+    { hotes: ['web.telegram.org', 'desktop.telegram.org'], nom: 'Telegram', modele: 'https://t.me/votrenom' },
+    { hotes: ['web.whatsapp.com'], nom: 'WhatsApp', modele: 'https://wa.me/261340000000' },
+    { hotes: ['web.facebook.com'], nom: 'Facebook', modele: 'https://www.facebook.com/votrenom' }
+  ];
+
+  function hoteNu(hote){
+    return String(hote || '').toLowerCase().replace(/^(www|m|mobile|web)\./, '');
+  }
+
+  // Les hôtes qu'on sait reconnaître : ils disent qu'on a affaire à une
+  // adresse et non à un nom.
+  const HOTES_CONNUS = ['facebook.com', 'fb.com', 'fb.me', 'm.me', 'messenger.com',
+    'instagram.com', 'tiktok.com', 'threads.net', 'threads.com', 'x.com', 'twitter.com',
+    't.me', 'telegram.org', 'wa.me', 'whatsapp.com'];
+
+  // « tanjona », « @tanjona », « jean.dupont » : un nom, et non une adresse.
+  // Le point ne tranche pas — un nom Facebook en porte presque toujours un.
+  // Ce qui tranche, c'est la barre oblique, le « https:// », ou un hôte qu'on
+  // reconnaît.
+  function estUnNomSeul(valeur){
+    const v = String(valeur || '').trim();
+    if(!v) return false;
+    if(v.charAt(0) === '@') return true;
+    if(/^https?:\/\//i.test(v)) return false;
+    if(v.indexOf('/') >= 0 || v.indexOf(' ') >= 0) return false;
+    const bas = v.toLowerCase();
+    for(let i = 0; i < HOTES_CONNUS.length; i++){
+      const h = HOTES_CONNUS[i];
+      if(bas === h || bas.slice(-(h.length + 1)) === '.' + h) return false;
+    }
+    return true;
+  }
+
+  // Renvoie { valeur, souci } : l'adresse telle qu'il faut l'enregistrer, et
+  // ce qui cloche s'il y a lieu. La clef est celle du réseau (« facebook »…) ;
+  // sans clef — un canal ajouté à la main — on reconnaît le réseau à son hôte.
+  function verifierLAdresse(cle, brut){
+    const v = String(brut || '').trim();
+    if(!v) return { valeur: '', souci: '' };
+
+    const reseau = PROFILS_RESEAUX[cle] || null;
+    if(reseau && estUnNomSeul(v)){
+      return { valeur: reseau.depuisLeNom(v.replace(/^@/, '')), souci: '' };
+    }
+
+    let u;
+    try { u = new URL(/^https?:\/\//i.test(v) ? v : 'https://' + v); }
+    catch(e){ return { valeur: v, souci: '' }; }
+
+    // « www.facebook.com/tanjona », sans le « https:// », n'est pas une adresse
+    // pour le navigateur : il la chercherait dans notre propre site, où elle
+    // n'existe pas. On le remet.
+    const propre = /^https?:\/\//i.test(v) ? v : 'https://' + v;
+    const hote = hoteNu(u.hostname);
+    for(let i = 0; i < APPLICATIONS_WEB.length; i++){
+      const app = APPLICATIONS_WEB[i];
+      if(app.hotes.indexOf(String(u.hostname).toLowerCase()) >= 0){
+        return { valeur: v, souci: 'cette adresse est l\'application web de ' + app.nom +
+          ' : elle ouvre le compte de celui qui clique, pas le vôtre. Écrivez votre nom, ' +
+          'ou l\'adresse de votre profil (' + app.modele + ').' };
+      }
+    }
+
+    // Sans clef, on cherche le réseau à qui appartient l'hôte.
+    let ref = reseau;
+    if(!ref){
+      const cles = Object.keys(PROFILS_RESEAUX);
+      for(let i = 0; i < cles.length && !ref; i++){
+        if(PROFILS_RESEAUX[cles[i]].hotes.indexOf(hote) >= 0) ref = PROFILS_RESEAUX[cles[i]];
+      }
+    }
+    if(!ref) return { valeur: propre, souci: '' };
+
+    const premiere = decodeURIComponent(u.pathname.split('/').filter(Boolean)[0] || '')
+      .replace(/^@/, '').toLowerCase();
+    if(!premiere){
+      return { valeur: v, souci: 'cette adresse est l\'accueil de ' + ref.nom +
+        ', sans nom de profil. Écrivez votre nom, ou l\'adresse de votre profil (' +
+        ref.modele + ').' };
+    }
+    if(ref.refusees.indexOf(premiere) >= 0 && !(ref.exception && ref.exception(u))){
+      return { valeur: v, souci: '« ' + premiere + ' » est une page de ' + ref.nom +
+        ', pas un profil : elle ouvre le compte de celui qui clique, pas le vôtre. ' +
+        'Écrivez votre nom, ou l\'adresse de votre profil (' + ref.modele + ').' };
+    }
+    return { valeur: propre, souci: '' };
+  }
+
+  // L'adresse à montrer au client, ou rien. Un lien qui ne mène pas à vous ne
+  // vaut pas mieux qu'un lien absent : il vaut moins, car on l'a suivi.
+  function adresseDeProfil(cle, brut){
+    const examen = verifierLAdresse(cle, brut);
+    return examen.souci ? '' : examen.valeur;
+  }
+
   // Ny URL Facebook dia ovaina ho rohy Messenger (m.me) raha azo atao, mba
   // hisokatra mivantana ilay resaka fa tsy ny pejy fotsiny.
   function facebookToMessenger(url){
@@ -283,15 +449,55 @@
     if(!m || !m[1]) return null;
     const slug = m[1].replace(/^@/, '');
     if(!slug || slug === 'people' || slug === 'pages') return null;
+    // « m.me/home.php » ouvrait le Messenger de celui qui clique : les pages
+    // de l'application n'ont pas de conversation derrière elles.
+    if(PROFILS_RESEAUX.facebook.refusees.indexOf(slug.toLowerCase()) >= 0) return null;
     return 'https://m.me/' + slug;
   }
 
+  // Passe les cases en revue. « corriger » réécrit ce qui peut l'être — un nom
+  // seul devient l'adresse du réseau, sous les yeux de qui l'a écrit — et
+  // renvoie ce qui reste à reprendre à la main.
+  function examinerLesCanaux(corriger){
+    const soucis = [];
+    CONTACT_FIELD_MAP.forEach(function(field){
+      const reseau = PROFILS_RESEAUX[field.key];
+      if(!reseau) return;
+      const input = document.getElementById(field.inputId);
+      if(!input || !input.value.trim()) return;
+      const examen = verifierLAdresse(field.key, input.value);
+      if(corriger && !examen.souci && examen.valeur !== input.value.trim()) input.value = examen.valeur;
+      if(examen.souci) soucis.push(reseau.nom + ' : ' + examen.souci);
+    });
+    return soucis;
+  }
+
   function loadContactAdminForm(){
-    fetchContactChannels(function(channels){
+    fetchContactChannels(function(channels, extra){
       CONTACT_FIELD_MAP.forEach(function(field){
         const input = document.getElementById(field.inputId);
         if(input) input.value = channels[field.key] || '';
       });
+      // Ce qui est déjà enregistré et ne mène pas à vous se dit à l'ouverture
+      // du formulaire, et non à l'enregistrement suivant : ces adresses-là
+      // sont en ligne depuis un moment, et personne ne les a vues échouer.
+      const soucis = examinerLesCanaux(false);
+      // Les canaux ajoutés à la main n'ont pas de case à reprendre : on les
+      // remet, tout simplement. L'ancienne ligne n'est plus montrée à
+      // personne, et la nouvelle prend sa place dans la liste.
+      (extra || []).forEach(function(item){
+        if(!item || !item.url) return;
+        const examen = verifierLAdresse('', item.url);
+        if(examen.souci){
+          soucis.push((item.name || 'Canal') + ' : ' + examen.souci +
+            ' Ajoutez-le à nouveau ci-dessous avec la bonne adresse.');
+        }
+      });
+      const status = document.getElementById('contactChannelsStatus');
+      if(status && soucis.length){
+        status.textContent = '⚠️ ' + soucis.length + ' adresse' + (soucis.length > 1 ? 's' : '') +
+          ' à reprendre (vos clients ne les voient pas) — ' + soucis.join(' · ');
+      }
     });
   }
 
@@ -299,12 +505,19 @@
   if(saveContactChannelsBtn){
     loadContactAdminForm();
     saveContactChannelsBtn.addEventListener('click', function(){
+      const status = document.getElementById('contactChannelsStatus');
+      // On refuse avant d'écrire, et non après : enregistrée, l'adresse
+      // paraîtrait acceptée et ne serait montrée à personne.
+      const soucis = examinerLesCanaux(true);
+      if(soucis.length){
+        status.textContent = '⚠️ Rien n\'est enregistré — ' + soucis.join(' · ');
+        return;
+      }
       const channels = { id: 1 };
       CONTACT_FIELD_MAP.forEach(function(field){
         const input = document.getElementById(field.inputId);
         channels[field.key] = input ? input.value.trim() : '';
       });
-      const status = document.getElementById('contactChannelsStatus');
       saveContactChannelsLocal(channels);
       if(!window.__sb){
         renderContactButtons();
@@ -334,6 +547,13 @@
       const name = document.getElementById('newContactName').value.trim();
       const url = document.getElementById('newContactUrl').value.trim();
       if(!name) return;
+      // Même règle que pour les cases au-dessus : « web.telegram.org » ouvre
+      // le Telegram du client, et le canal ne servirait à rien.
+      const examen = verifierLAdresse('', url);
+      if(examen.souci){
+        alert(name + ' : ' + examen.souci);
+        return;
+      }
       if(!window.__sb){
         const list = loadContactExtraLocal();
         list.push({ name: name, url: url });

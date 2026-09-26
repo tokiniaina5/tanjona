@@ -13,6 +13,28 @@
     --font-body: 'Inter', sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
   }
+  /* Le mode jour. Tout le site lit ses couleurs dans ces variables : les
+     changer ici suffit à éclairer chaque page. Le mode nuit reste celui
+     d'origine — c'est lui qu'on trouve sans rien avoir choisi.
+     Le cyan, l'ambre et le rouge sont foncés d'un cran : clairs, ils se
+     perdaient sur le blanc. */
+  :root{ color-scheme: dark; }
+  :root[data-theme="jour"]{
+    color-scheme: light;
+    --bg: #eef2f5;
+    --panel: #ffffff;
+    --panel-2: #f3f6f8;
+    --line: #d4dce1;
+    --cyan: #0e858e;
+    --amber: #b0650a;
+    --violet: #555dd0;
+    --red: #c43a3a;
+    --text: #15212b;
+    --muted: #5a6a72;
+  }
+  /* Le texte sombre sur le cyan foncé ne se lisait plus : blanc, en jour. */
+  :root[data-theme="jour"] .btn-primary{ color: #ffffff; }
+
   *{ box-sizing:border-box; margin:0; padding:0; }
   html,body{ background:var(--bg); color:var(--text); font-family:var(--font-body); min-height:100vh; }
   button, input, select{ font-family: inherit; }
@@ -75,6 +97,26 @@
     font-size: 0.95rem;
   }
   .field input:focus, .field select:focus{ outline:none; border-color: var(--cyan); }
+  /* Les noms complets : un nom malgache tient rarement dans une case d'une
+     ligne. La zone prend toute la largeur du formulaire, passe à la ligne et
+     grandit avec le texte (common.js) — le nom se lit en entier. */
+  .field:has(> .champ-anarana){ grid-column: 1 / -1; }
+  .field textarea.champ-anarana{
+    width:100%;
+    padding: 0.7rem 0.85rem;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    color: var(--text);
+    font: inherit;
+    font-size: 0.95rem;
+    line-height: 1.2;
+    resize: none;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    display: block;
+  }
+  .field textarea.champ-anarana:focus{ outline:none; border-color: var(--cyan); }
 
   /* ---------- abonnement / paywall ---------- */
   .paywall-plans{ display:flex; gap:0.8rem; margin-bottom:1.2rem; }
@@ -291,6 +333,23 @@
 
   /* touch-action:none : sans cela le doigt fait défiler la page au lieu de
      déplacer le bouton, et rien ne bouge. */
+  /* « Actualiser », qui paraît à côté du menu (common.js). Au-dessus de tout :
+     le menu flottant et la rangée du bas le sont déjà. */
+  .bouton-actualiser{
+    position: fixed; z-index: 10050;
+    width: 44px; height: 44px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 12px;
+    border: 1px solid var(--cyan);
+    background: var(--panel);
+    color: var(--text);
+    font-size: 1.25rem; line-height: 1;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+    cursor: pointer;
+    animation: actualiser-parait 0.15s ease-out;
+  }
+  .bouton-actualiser[hidden]{ display: none; }
+  @keyframes actualiser-parait{ from{ transform: scale(0.7); opacity: 0; } to{ transform: none; opacity: 1; } }
   .menu-toggle.floating{
     position: fixed;
     z-index: 120;
@@ -303,25 +362,18 @@
     transform: scale(1.06);
   }
 
-  /* La rangée du bas est partout : elle portait les icônes sous le pouce d'un
-     téléphone, elle les porte aussi sous la souris. Le hamburger reste — les
-     deux ne se gênent pas, l'un est posé où l'on veut, l'autre tient le bas de
-     l'écran.
+  /* La rangée du bas vaut partout, téléphone comme ordinateur. Cachée au
+     large, elle obligeait à rouvrir le menu pour chaque page déjà épinglée :
+     les icônes qu'on retrouvait d'un geste sur le téléphone étaient à trois
+     clics sur l'écran le plus grand.
 
-     Le champ de recherche du menu, lui, ne sert qu'aux écrans étroits : au
-     large, la liste tient sous les yeux. */
+     Le champ de recherche du menu est partout : taper deux lettres trouve une
+     page plus vite que de parcourir la liste. */
 
-  /* Une seule porte pour le menu, et c'est le hamburger. La loupe faisait
-     double emploi avec lui et prenait une place dans la rangée ; elle s'en va.
-     Le hamburger paraît donc partout — sans quoi un téléphone se retrouverait
-     sans aucun moyen d'ouvrir le menu. */
-  #stockMainTabs #menuToggle{ display:none; }
+  /* Deux portes pour le menu, partout : le ☰ du bord gauche de la rangée, et
+     le hamburger flottant qu'on pose où l'on veut. La rangée s'efface quand
+     on descend dans la page ; le bouton flottant, lui, reste à portée. */
   #menuFlottant{ display:flex; }
-  /* 768 pixels : une tablette debout en fait 768 ou 810. C'est la largeur qui
-     décide, pas l'appareil. */
-  @media (min-width: 768px){
-    .menu-recherche, .menu-vide{ display:none !important; }
-  }
 
   /* Le champ de recherche du menu : il tient la première ligne, là où le
      pouce arrive après avoir touché la loupe. */
@@ -388,7 +440,11 @@
     border-top: 1px solid var(--line);
     border-bottom: none;
     margin-bottom: 0;
-    padding: 0.3rem 3vw;
+    /* Pas de marge sur les côtés : le ☰ et les réglages s'y collent aux bords
+       (position:sticky), et une marge les en décollait d'autant. Les icônes
+       qui défilaient passaient alors dans cet écart — une croix à gauche du
+       ☰, une icône à moitié à droite des réglages. */
+    padding: 0.3rem 0;
     /* La barre d'accueil du téléphone mange le bas de l'écran : sans cette
        réserve, la rangée se retrouve dessous et ne répond plus au doigt. */
     padding-bottom: calc(0.3rem + env(safe-area-inset-bottom, 0px));

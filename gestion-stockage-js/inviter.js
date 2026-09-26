@@ -13,8 +13,13 @@
   // sokafana avy amin'ny localhost aza ny pejy, mba tsy hisy rohy tsy misokatra
   // any amin'ny mpanjifa. Ny admin dia afaka manova azy ao amin'ny
   // « Nous contacter » → « Adresse publique du site ».
-  const DEFAULT_PUBLIC_URL = 'https://tokiniaina-tanjona.netlify.app/ny-asako';
+  const DEFAULT_PUBLIC_URL = 'https://ny-asako.netlify.app';
 
+  // Toujours terminée par « / » : les liens s'y collent en « ?mpiasa=… »,
+  // « ?suivi=… », « ?invite=… ». Sans la barre, « ny-asako.netlify.app?mpiasa=… »
+  // ne ressemble plus à une adresse : collé dans la barre de recherche de
+  // Google sur un téléphone, il était cherché comme un mot au lieu d'être
+  // ouvert.
   function publicBaseUrl(){
     let configured = '';
     try {
@@ -22,8 +27,8 @@
         configured = (loadContactChannelsLocal().site_url || '').trim();
       }
     } catch(e){}
-    if(configured && /^https?:\/\//i.test(configured)) return configured.replace(/\/+$/, '');
-    return DEFAULT_PUBLIC_URL;
+    const base = (configured && /^https?:\/\//i.test(configured)) ? configured : DEFAULT_PUBLIC_URL;
+    return base.replace(/\/+$/, '') + '/';
   }
 
   function renderLocalLinkWarning(link){
@@ -41,7 +46,12 @@
 
   function setupInviteLink(){
     const sub = ensureInstallDate();
-    const link = publicBaseUrl() + '?invite=1&ref=' + encodeURIComponent(sub.id);
+    // « /confirmation » : le mot se lit dans le lien lui-même. Seulement sur
+    // Netlify, qui sait servir cette adresse (_redirects) ; une adresse
+    // publique réglée ailleurs garde la racine.
+    const base = publicBaseUrl();
+    const chemin = /^https:\/\/ny-asako\.netlify\.app\/$/i.test(base) ? 'confirmation' : '';
+    const link = base + chemin + '?invite=1&ref=' + encodeURIComponent(sub.id);
     document.getElementById('inviteLink').value = link;
     renderLocalLinkWarning(link);
     refreshReferralProgress();
@@ -103,14 +113,17 @@
   document.getElementById('sendInviteBtn').addEventListener('click', function(){
     const email = document.getElementById('inviteEmail').value.trim();
     const link = document.getElementById('inviteLink').value;
-    const subject = encodeURIComponent('Invitation — Ny asako');
-    const body = encodeURIComponent('Salut,\n\nJe t\'invite à rejoindre Ny asako : ' + link + '\n\nÀ bientôt !');
+    const subject = encodeURIComponent('Confirmer ton invitation — Ny asako');
+    const body = encodeURIComponent('Salut,\n\nJe t\'invite à rejoindre Ny asako. Clique sur le lien de confirmation pour confirmer ton inscription.\n\nConfirmation : ' + link + '\n\nÀ bientôt !');
     window.location.href = 'mailto:' + email + '?subject=' + subject + '&body=' + body;
   });
 
   // ---------------- PARTAGE RÉSEAUX SOCIAUX ----------------
+  // Comme le lien de l'employé (equipe.js) : on demande de confirmer, et le
+  // lien vient juste après « Confirmer ».
   function inviteMessage(link){
-    return 'Salut ! Je t\'invite à essayer Ny asako : ' + link;
+    // Sans émoji : le ✅ arrivait en « � » dans WhatsApp.
+    return 'Salut ! Je t\'invite à rejoindre Ny asako. Clique sur le lien de confirmation pour confirmer ton inscription.\n\nConfirmation : ' + link;
   }
   function copyToClipboardSilently(text){
     if(navigator.clipboard && navigator.clipboard.writeText){
@@ -170,7 +183,9 @@
       const link = document.getElementById('inviteLink').value;
       navigator.share({
         title: 'Ny asako',
-        text: inviteMessage(link),
+        // Le lien part dans « url » : le laisser aussi dans le texte le
+        // faisait apparaître deux fois dans le message.
+        text: inviteMessage('').trim(),
         url: link
       }).catch(function(){});
     });

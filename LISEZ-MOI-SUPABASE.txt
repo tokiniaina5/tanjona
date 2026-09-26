@@ -74,7 +74,7 @@ aussi ce lien à jour.
 
 CONNEXION DE L'APPLICATION "NY ASAKO"
 ------------------------------
-La connexion à ny-asako.html utilise maintenant les vrais
+La connexion à l'application utilise maintenant les vrais
 comptes Supabase (Authentication) :
 - 1ère connexion : nom, email, téléphone, logo + un MOT DE PASSE
   (6 caractères minimum). Le compte est créé dans Supabase, le mot
@@ -461,3 +461,562 @@ gratuite : 500 000 caractères/mois) puis :
    supabase secrets set DEEPL_API_KEY=xxxxxxxx:fx
 La fonction prend alors DeepL, et retombe sur MyMemory en cas de
 problème.
+
+
+LE LIEN D'UN EMPLOYÉ : L'APPLICATION ENTIÈRE
+------------------------------
+Le lien d'un employé (Mpiasa > Sokafy > "Ny rohiny") ouvre
+l'application entière, sans mot de passe.
+
+- Son stock est à lui. La première fois, il part d'une copie du vôtre
+  (celle déposée à votre dernière ouverture). Ensuite il ajoute,
+  modifie, efface chez lui : votre stock n'est pas touché. Vous suivez
+  le sien dans sa fenêtre (Mpiasa > Sokafy > "Tableau de bord") : son
+  application vous l'envoie après chaque changement.
+- Votre équipe est commune. Il peut inscrire des mpiasa et des
+  livreurs, leur faire des liens, pointer, confier des courses, les
+  suspendre ou les retirer — vous voyez tout dans vos pages.
+- Ce qui demande un vrai compte ne marche pas par un lien : changer de
+  mot de passe, le portefeuille (retraits), aimer une publication.
+  L'abonnement ne lui est jamais demandé.
+
+Le lien vaut une clé : quiconque l'a entre dans votre équipe. En cas
+de doute, "Hampiato" le coupe aussitôt.
+
+À FAIRE UNE FOIS :
+1. Dans Supabase (SQL Editor) : "supabase/sql/supabase-mpiasa-copie.sql"
+   puis "supabase/sql/supabase-mpiasa-tableau.sql"
+   (après "supabase-mpiasa-lien.sql").
+2. Dans le Terminal :
+     supabase functions deploy mpiasa --no-verify-jwt
+Sans l'étape 2, ses pages Mpiasa et Livreur restent vides, avec un
+message qui le dit.
+
+
+« TADIAVO » : CHERCHER UN LIVREUR MAINTENANT
+------------------------------
+Sur la page Livreur (et sur la page du client qui suit sa livraison),
+le bouton "📍 Tadiavo" demande tout de suite une position fraîche au
+livreur, au lieu d'attendre la minute suivante. Réponse en 15 à 30
+secondes.
+
+Ça ne marche que si la page du livreur est ouverte sur son téléphone
+et qu'il a accepté la localisation : une position ne peut venir que
+de lui. Sinon, l'application le dit au bout de 45 secondes.
+
+À FAIRE UNE FOIS :
+1. Dans Supabase (SQL Editor) : "supabase/sql/supabase-livreur-tadiavo.sql".
+2. Dans le Terminal :
+     supabase functions deploy mpiasa --no-verify-jwt
+     supabase functions deploy suivi --no-verify-jwt
+
+
+QUI A OUVERT LE SITE — ET CE QUE CHACUN RAPPORTE
+------------------------------
+L'espace admin montrait les clients INSCRITS. Depuis que
+l'application s'ouvre sans compte les premiers jours, la plupart
+des gens n'y figuraient nulle part : ils essayaient l'outil sans
+laisser de trace que vous puissiez lire.
+
+Le panneau "👣 Tout le monde qui a ouvert le site" les montre
+tous — celui qui essaie sans compte comme celui qui revient
+depuis deux ans — et chaque personne verse 1 000 Ar à votre
+portefeuille, UNE SEULE FOIS, le jour où elle vient.
+
+Ce versement ne retire rien à personne. L'argent qu'une
+invitation rapporte à celui qui a invité reste le sien : une
+personne arrivée par un lien produit les deux écritures.
+
+La table ne se lit pas depuis le navigateur — elle porte les noms
+et les emails de tous vos clients. C'est la fonction qui vérifie
+que celui qui demande la liste est bien vous.
+
+À FAIRE UNE FOIS :
+1. Dans Supabase (SQL Editor) : "supabase/sql/supabase-visiteurs.sql".
+2. Dans le Terminal :
+     supabase functions deploy visiteur --no-verify-jwt
+Le --no-verify-jwt n'est PAS un oubli : quelqu'un qui découvre
+l'application le premier jour n'a pas encore de compte, et c'est
+justement lui qu'il s'agit de compter. L'action qui rend la liste
+vérifie le jeton elle-même.
+
+Secrets attendus (déjà posés si le portefeuille fonctionne) :
+SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OWNER_EMAIL.
+Pour changer le montant sans toucher au code :
+     supabase secrets set AR_PER_VISITEUR=1000
+
+Sans l'étape 2, le panneau reste vide avec un message qui le dit,
+et aucun versement n'a lieu.
+
+
+LA VIDÉO D'UNE ANNONCE
+------------------------------
+Le composeur du fil accepte maintenant une vidéo (bouton 🎬), en
+plus des photos.
+
+Les photos voyagent DANS la ligne de l'annonce, en "data:" :
+réduites à 900 px, elles pèsent cent kilo-octets. Une vidéo, non.
+Dix secondes filmées au téléphone font quinze méga-octets, vingt en
+base64 — et le fil charge trente billets d'un coup. Il ne
+s'ouvrirait plus.
+
+La vidéo va donc dans un bucket, et l'annonce ne garde que son
+adresse. Le navigateur ne la télécharge que si on la regarde.
+
+Une seule vidéo par annonce, 25 Mo au plus. Ce plafond est tenu par
+le bucket lui-même, et pas seulement par la page : une page peut
+être modifiée par celui qui la regarde. Le bucket n'accepte en plus
+que des types vidéo.
+
+Il est public : une annonce est faite pour être vue, et ses
+lecteurs n'ont pas tous un compte — celui qui essaie l'application
+les premiers jours n'en a pas encore.
+
+À FAIRE UNE FOIS :
+1. Dans Supabase (SQL Editor) : "supabase/sql/supabase-annonce-video.sql".
+Rien d'autre : aucune fonction à déployer.
+
+Sans cette étape, le bouton 🎬 répond "Bucket not found" et le dit
+en clair, avec le nom du fichier à passer. Les photos, elles,
+continuent comme avant.
+
+Le ménage (effacer une vidéo) se fait depuis le tableau de bord
+Supabase : le navigateur n'a le droit ni d'effacer ni de remplacer,
+sans quoi il suffirait de connaître une adresse pour supprimer la
+vidéo de quelqu'un d'autre.
+
+
+LE RETRAIT ENVOYÉ PAR LA MACHINE
+------------------------------
+Un retrait était une demande : la ligne entrait en attente, vous
+alliez envoyer l'argent vous-même, puis vous la marquiez "envoyé".
+
+Un canal dont les clefs sont posées en secrets s'exécute maintenant
+tout seul, à la seconde où la demande est faite. Un canal SANS
+clefs ne change pas d'un iota : il reste une demande que vous
+exécutez. C'est le défaut, et il le reste.
+
+Ce qui est fait : PayPal (Payouts).
+Ce qui ne l'est pas : MVola, Orange Money, Airtel Money. Leurs
+interfaces existent, mais elles répondent "reçu" et se concluent
+plus tard, par une seconde question. Les écrire sans pouvoir les
+éprouver sur un compte marchand réel reviendrait à confier de
+l'argent à du code que personne n'a jamais vu fonctionner. Elles
+restent manuelles.
+
+À FAIRE UNE FOIS :
+1. Dans Supabase (SQL Editor) :
+     "supabase/sql/supabase-retrait-automatique.sql"
+2. Les clefs, en SANDBOX d'abord — jamais dans le code :
+     supabase secrets set PAYPAL_CLIENT_ID=...
+     supabase secrets set PAYPAL_SECRET=...
+     supabase secrets set PAYPAL_ENV=sandbox
+3. Dans le Terminal :
+     supabase functions deploy wallet
+   (AVEC vérification du jeton, comme avant : pas de --no-verify-jwt)
+
+ÉPROUVEZ-LE EN SANDBOX AVANT TOUT. Créez un compte marchand et un
+compte client sur developer.paypal.com, faites un retrait de
+quelques euros, et vérifiez qu'il arrive. Ce n'est qu'ensuite que
+PAYPAL_ENV=live a un sens.
+
+PayPal n'accepte pas l'ariary : le retrait doit choisir une devise
+d'arrivée (EUR, USD…), sans quoi il est refusé avec ce motif.
+
+TROIS RÈGLES, ÉCRITES DANS LE CODE :
+  1. On n'invente jamais un succès. Si la réponse ne dit pas
+     clairement que l'argent est parti, la ligne reste EN ATTENTE
+     et c'est vous qui tranchez. Marquer "envoyé" à tort, c'est
+     perdre la somme ; marquer "refusé" à tort, c'est la rendre
+     deux fois.
+  2. L'identifiant de la ligne sert de clef chez PayPal
+     (sender_batch_id). Rejouer le même retrait lui présente la
+     même clef, et c'est LUI qui refuse le doublon.
+  3. La ligne existe en base AVANT tout envoi. Si l'argent part et
+     que la réponse se perd, la trace est déjà là.
+
+
+DEUX TARIFS POUR LE PARRAINAGE
+------------------------------
+Une invitation rapportait 1 000 Ar à tout le monde. Celles du
+propriétaire en rapportent maintenant 5 000 : il invite pour faire
+venir des clients à l'application entière, pas pour se faire un
+pécule. Les clients restent à 1 000 Ar.
+
+C'est l'email qui départage, et c'est OWNER_EMAIL — le même secret
+qui sert déjà partout ailleurs. Rien à configurer de plus.
+
+Le tarif ne sert QU'À CE QUE LES INVITATIONS RAPPORTENT. Un
+déblocage, lui, coûte toujours 20 000 Ar : il se compte en crédits
+au tarif de BASE, sans quoi il coûterait cent mille ariary au seul
+qui n'en paie jamais.
+
+La page « Inviter des amis » écrit le tarif que le serveur lui
+donne, et ce qu'il paie avec : 3 invitations font le mois chez le
+propriétaire, 15 chez un client. Elle ne décide de rien — le
+chiffre vient du serveur, comme le solde.
+
+Pour changer les montants sans toucher au code :
+     supabase secrets set AR_PER_REFERRAL=1000
+     supabase secrets set AR_PER_REFERRAL_OWNER=5000
+
+À FAIRE UNE FOIS :
+     supabase functions deploy wallet
+(AVEC vérification du jeton, comme toujours pour "wallet".)
+
+Sans ce déploiement, tout reste à 1 000 Ar.
+
+
+LE COMMENTAIRE QUI ARRIVE TOUT DE SUITE
+------------------------------
+Un fil de commentaires ouvert se relit tout seul toutes les quatre
+secondes. C'est déjà autre chose que de ne rien voir arriver — le
+fil n'était lu qu'à l'ouverture de la boîte — mais ce sont quand
+même quatre secondes, et une requête par personne qui lit.
+
+Le temps réel remplace les deux : le serveur prévient les pages
+ouvertes dès que la ligne entre. Il faut pour cela que la table
+soit dans la publication que Supabase écoute.
+
+À FAIRE UNE FOIS :
+1. Dans Supabase (SQL Editor) :
+     "supabase/sql/supabase-commentaires-realtime.sql"
+Rien d'autre : aucune fonction à déployer.
+
+SI VOUS NE LE FAITES PAS, rien ne se casse et rien ne ralentit : la
+page garde ses quatre secondes. C'est voulu — et c'est plus subtil
+qu'il n'y paraît.
+
+Un canal s'ouvre très bien sur une table ABSENTE de la publication.
+Il dit "SUBSCRIBED", tout a l'air de marcher, et il ne délivre
+jamais rien. Une page qui ralentirait sa relecture sur cette
+promesse-là rendrait le fil PLUS LENT qu'avant, en silence.
+
+C'est donc le premier message REÇU qui autorise le ralentissement,
+et non l'abonnement. Tant qu'aucun n'arrive, les quatre secondes
+tiennent. Une fois la preuve faite, la relecture passe à vingt-cinq
+secondes et ne sert plus que de filet, au cas où le canal tombe.
+
+Le temps réel passe par les mêmes règles de lecture (RLS) que le
+reste : ce que quelqu'un n'a pas le droit de lire, il ne le reçoit
+pas davantage par ce chemin. Les commentaires, eux, sont lisibles
+de tous — c'est un fil public.
+
+
+REPRENDRE UNE DEMANDE QUI N'EST JAMAIS PARTIE
+------------------------------
+Une demande en attente est DÉJÀ retirée du solde : c'est ce qui
+empêche de demander deux fois la même somme. Mais si elle ne part
+jamais — canal manuel laissé dormir, destination fautive, envie
+changée — la somme reste dehors sans être arrivée nulle part. Elle
+est perdue pour celui qui la possède.
+
+Un bouton la rend maintenant : "↩️ Hanafoana, averina ao amin'ny
+solde", sous la demande, dans "Mes retraits".
+
+UNE SEULE RÈGLE, ET ELLE EST ABSOLUE : on ne rend une somme que si
+l'on est SÛR qu'elle n'est pas partie. Une ligne qu'un canal
+automatique a touchée a pu partir sans que la réponse nous
+parvienne — la rendre reviendrait à la payer deux fois.
+
+Le bouton ne paraît donc pas sur ces lignes-là, et le serveur le
+refuse aussi de son côté : le bouton n'est que la porte fermée
+d'avance. Il faut alors aller voir chez le fournisseur si la somme
+est partie, puis trancher depuis la file des retraits.
+
+À FAIRE UNE FOIS :
+     supabase functions deploy wallet
+(AVEC vérification du jeton, comme toujours pour "wallet".)
+
+
+LE MÉNAGE DES VIDÉOS, CHAQUE NUIT
+------------------------------
+Le billet qui porte une vidéo vit trente jours, puis s'efface. Une
+vidéo plus vieille que cela n'est affichée nulle part : elle occupe
+de la place et ne sert plus à personne. Rien ne l'effaçait — le
+navigateur n'a pas le droit de supprimer dans ce bucket, et c'est
+voulu : connaître une adresse ne doit pas donner le droit
+d'effacer la vidéo d'un autre.
+
+La fonction "menage-video" l'a, ce droit, parce qu'elle tient la
+clef de service et qu'elle ne s'appelle pas depuis une page.
+
+LE MÊME ÂGE QUE LE BILLET, et non celui du fil. Trente jours ici,
+trente jours pour la publication : si la vidéo part la première,
+l'annonce reste affichée avec une vidéo qui ne charge plus ; si
+elle part la dernière, on garde pour rien.
+
+À FAIRE UNE FOIS :
+1. Choisissez un mot de passe pour la porte, et posez-le :
+     supabase secrets set MENAGE_SECRET=<un long mot au hasard>
+   (RETENTION_JOURS=30 par défaut ; posez-le pour changer. S'il a
+   été posé à 7 du temps où le fil ne gardait qu'une semaine,
+   reposez-le à 30 : le secret prime sur le défaut.)
+
+2. Déployez, SANS vérification du jeton — c'est une machine qui
+   appelle, jamais une personne connectée :
+     supabase functions deploy menage-video --no-verify-jwt
+   C'est le secret partagé qui tient la porte, pas le jeton.
+
+3. ESSAYEZ À BLANC avant de la laisser courir. "essai: true" dit
+   ce qu'elle effacerait, sans rien effacer :
+     curl -X POST \
+       https://ezpsapvthujkhttbfhlr.supabase.co/functions/v1/menage-video \
+       -H "Content-Type: application/json" \
+       -H "x-secret-menage: <votre secret>" \
+       -d '{"essai":true}'
+
+4. Quand le compte vous paraît juste, posez la tâche de nuit :
+   "supabase/sql/supabase-menage-video.sql" (remplacez d'abord
+   VOTRE_SECRET_ICI dedans).
+
+Sans le secret, la fonction refuse tout et n'efface rien : un
+secret vide accepterait le monde entier, et celle-ci supprime.
+
+
+LES PUBLICATIONS S'EFFACENT AU BOUT D'UN MOIS
+------------------------------
+Rien n'effaçait les billets du fil. Ils restaient en base pour
+toujours, avec leurs commentaires et leurs « j'aime », longtemps
+après que plus personne ne les regarde — la page « botika » n'en
+montre que le dernier mois, l'Accueil que la dernière semaine.
+Ils s'entassaient sans fin.
+
+Maintenant ils s'en vont pour de bon au bout de trente jours : ce
+qui n'est plus montré n'est plus gardé.
+
+CE QUI PART AVEC LE BILLET : ses commentaires et ses « j'aime »
+suivent tout seuls (« on delete cascade »), et sa vidéo est
+emportée au même âge par le ménage des vidéos, juste au-dessus.
+
+UN MOIS COMPTÉ EN TRENTE JOURS, et non en mois du calendrier :
+c'est la fenêtre exacte que demande la page « botika ». Un mois
+« vrai » durerait 31 jours en janvier et 28 en février, et la page
+réclamerait alors des billets déjà effacés — des trous dans le fil.
+
+PAS DE FONCTION NI DE SECRET ICI : c'est la base qui efface
+elle-même, la nuit. Il n'y a qu'un script à passer.
+
+À FAIRE UNE FOIS :
+1. Collez "supabase/sql/supabase-menage-publications.sql" dans
+   SQL Editor et exécutez-le. Il pose la fonction
+   "menage_publications" et la tâche de nuit qui l'appelle, chaque
+   nuit à 3 h 10 UTC (6 h 10 à Antananarivo), dix minutes après le
+   ménage des vidéos.
+
+2. Redéployez le ménage des vidéos pour qu'il connaisse les trente
+   jours (le défaut a changé) :
+     supabase functions deploy menage-video --no-verify-jwt
+
+3. AVANT DE LE LAISSER COURIR, regardez ce qui partirait. Le
+   fichier porte la requête en commentaire ; elle compte sans rien
+   effacer. Pour passer le ménage tout de suite :
+     select public.menage_publications();
+   Elle renvoie le nombre de billets effacés.
+
+La fonction n'est ouverte à personne depuis le navigateur : son
+droit d'exécution est retiré à "anon" et à "authenticated". Elle
+efface, et la table refuse par ailleurs toute suppression venue
+d'une page — personne ne doit pouvoir effacer le billet d'un autre.
+
+Un billet sans date (created_at vide) n'est jamais effacé : on ne
+supprime pas ce qu'on ne sait pas dater. Le fichier dit comment
+les retrouver, s'il en existe ; cela se regarde à la main.
+
+Pour changer la durée, le chiffre est en trois endroits, et les
+trois vont ensemble : la fonction du script SQL,
+"botika/index.html", et RETENTION_JOURS du ménage des vidéos.
+
+
+L'ANNONCE S'EN VA AVEC LA MARCHANDISE
+------------------------------
+Une annonce "🛒 Entana amidy" ne disait que ce que son auteur
+avait tapé : un texte, un prix, et rien qui la relie à la
+marchandise qu'elle vend. Le jour où celle-ci était épuisée,
+l'annonce restait — et l'on proposait à la vente ce qu'on n'avait
+plus. Le client écrivait, on répondait qu'il n'y en avait plus.
+
+Un bouton "📢" paraît maintenant sur chaque ligne de la page des
+articles. Il publie la marchandise dans le fil — son nom, son
+rayon, son prix — et le billet garde le numéro de l'article. Le
+jour où la dernière unité sort, où l'on ramène la quantité à zéro
+à la main, ou où l'on retire l'article du registre, son annonce
+part avec lui.
+
+UNE ANNONCE ÉCRITE À LA MAIN dans le fil n'est pas concernée :
+elle ne porte aucun numéro d'article, et rien ne l'efface. C'est
+voulu — elle ne vend la marchandise de personne.
+
+IL FAUT UN COMPTE pour publier ainsi. La base n'accorde d'effacer
+qu'à l'auteur du billet, reconnu par l'adresse de son jeton. Une
+annonce publiée sans compte n'aurait pas d'auteur, et plus
+personne ne pourrait la retirer — ni à la rupture, ni à la main.
+
+LE STOCK RESTE DANS L'APPAREIL. La base ne sait pas ce qu'il reste
+d'un article : c'est le navigateur du propriétaire qui le sait, et
+c'est donc lui qui efface, au moment où la vente se fait. Une
+annonce publiée depuis un téléphone dont le stock vit ailleurs ne
+s'effacera pas toute seule — aucun autre appareil ne sait qu'elle
+le devrait.
+
+À FAIRE UNE FOIS :
+   Collez "supabase/sql/supabase-entana-lany.sql" dans SQL Editor
+   et exécutez-le. Il ajoute la colonne "item_id" à client_news,
+   son index, et la règle qui permet d'effacer SON PROPRE billet.
+
+Tant que ce script n'est pas passé, le bouton "📢" le dit et ne
+publie rien : la colonne n'existe pas, et le billet serait refusé.
+
+LA RÈGLE NE S'OUVRE QUE D'UN CRAN. La table n'accordait d'effacer
+à personne : ce qui est dit reste dit, et nul ne doit pouvoir
+effacer le billet d'un autre. C'était juste, mais trop large — on
+ne pouvait plus retirer le sien. Maintenant : on n'efface que ce
+qu'on a écrit, connecté, et un billet sans adresse d'auteur n'est
+effaçable par personne.
+
+
+« DÉPOSÉ » N'EST PAS « ARRIVÉ »
+------------------------------
+PayPal répond 201 quand il PREND l'ordre, pas quand l'argent est
+chez le destinataire. Il le traite ensuite, et cela peut échouer :
+adresse inconnue, versement retourné, compte bloqué.
+
+Le code disait "envoyé" sur ce 201. C'était trop tôt, et le client
+recevait un avis pour un argent qui pouvait ne jamais arriver.
+
+Maintenant :
+  — le dépôt laisse la ligne EN ATTENTE, avec la référence du lot
+    et la note "Ordre déposé — en cours d'acheminement" ;
+  — l'action "verifier" redemande à PayPal où en est chaque lot
+    déposé, à chaque ouverture de l'application ;
+  — SUCCESS fait passer la ligne à "envoyé", et c'est là que l'avis
+    part : "✅ Tonga ny vola" ;
+  — FAILED, RETURNED, BLOCKED, REFUNDED, REVERSED rendent la somme
+    au solde, avec le motif ;
+  — UNCLAIMED n'est pas un échec : le destinataire n'a pas encore
+    de compte PayPal et a trente jours pour en ouvrir un. On
+    attend, on ne rend rien.
+
+DEUX BOUTONS, dans "Mes retraits", pour le propriétaire seul :
+  "📤 Alefa amin'ny PayPal izao"  dépose l'ordre maintenant
+  "🔁 Andramo indray ny PayPal"   le rejoue
+
+Rejouer est sans danger : la clef présentée à PayPal est
+l'identifiant de la ligne, et c'est LUI qui refuse le doublon. Un
+ordre déjà déposé revient en "déjà vu", jamais en second versement.
+
+Le bouton n'apparaît que sur les lignes PayPal en attente. Envoyer
+de l'argent est l'acte du propriétaire — son compte marchand se
+vide — et le serveur le refuse à quiconque d'autre.
+
+À FAIRE UNE FOIS :
+     supabase functions deploy wallet
+
+
+L'APERÇU D'UN LIEN PARTAGÉ
+------------------------------
+Un billet qui ne porte qu'une adresse ne dit rien de ce qu'il y a
+au bout. "https://www.alibaba.com/" — et puis ? Personne ne touche
+une adresse nue ; on touche une image.
+
+Le fil montre donc, sous le billet, ce que le site publie pour être
+partagé : son image, son titre, sa phrase. C'est exactement ce
+qu'affichent WhatsApp et Facebook, et cela vient du site lui-même.
+
+CE QUE CE N'EST PAS : la liste des marchandises d'une boutique. Les
+grands sites ne la publient pas de cette façon — ils la construisent
+dans le navigateur de leur visiteur, et refusent qui n'est pas une
+personne. Pour une vraie liste de produits, il faut l'API officielle
+du site (compte développeur et clé chez Alibaba ou AliExpress) ;
+dites-le si vous en ouvrez une.
+
+Pourquoi une fonction, et pas la page elle-même : le navigateur
+INTERDIT de lire une page d'un autre domaine (c'est la règle CORS).
+Le serveur, lui, le peut. Il ne rapporte que quatre lignes, et ne
+télécharge jamais plus que l'en-tête de la page.
+
+À FAIRE UNE FOIS :
+     supabase functions deploy apercu --no-verify-jwt
+
+SI VOUS NE LE FAITES PAS, rien ne se casse : le billet montre le
+nom du site (alibaba.com) à la place de la carte, et le lien s'ouvre
+comme avant.
+
+L'aperçu est gardé une semaine sur l'appareil de chacun : un lien
+déjà vu ne redemande rien. Sans cela, trente billets redemanderaient
+trente aperçus chaque fois que le fil se redessine.
+
+
+LE FIL PARLE AU NOM DE LA MAISON
+------------------------------
+Vos billets ne paraissent plus sous votre nom et vos initiales,
+mais sous « Ny asako » et le logo du site. Le fil est la vitrine
+de l'application : celui qui le lit vient chez Ny asako, pas chez
+quelqu'un.
+
+Les billets des autres clients gardent leur nom et leur photo :
+c'est une communauté, et non une seule voix.
+
+Ce qui vous reconnaît, c'est l'ADRESSE de votre compte, et non le
+nom affiché — un nom se retape, une adresse non. Vos billets déjà
+partis avec l'adresse prennent donc la marque tout de suite ; les
+plus anciens, qui n'en portent pas, gardent le nom sous lequel ils
+sont partis. On ne réécrit pas le passé de quelqu'un.
+
+RIEN À DÉPLOYER : c'est la page qui le fait.
+
+
+LES QUATRE PUBLICATIONS DU JOUR, TOUTES SEULES
+------------------------------
+Le fil ne vivait que de ce que les gens y écrivaient. Les jours où
+personne n'écrivait, il ne disait rien, et l'on n'y revenait plus.
+
+La fonction "vaovao-boutique" y publie maintenant QUATRE BILLETS
+PAR JOUR, un par passage, tirés des boutiques d'achats
+internationaux — les mêmes que celles de la fenêtre « Boutiques ».
+Chaque billet porte le nom de la boutique, son rayon, la phrase que
+le site publie lui-même pour être partagé, et son adresse. Le fil
+en tire ensuite la carte aux images, comme pour n'importe quel lien.
+
+UNE BOUTIQUE NE REVIENT PAS avant sept jours : c'est la fenêtre du
+fil, et la remontrer ferait deux fois la même carte dans la même
+page. Trente boutiques et quatre billets par jour font le tour en
+sept jours et demi.
+
+CE QUE CE N'EST PAS : un catalogue. Aucun de ces sites ne publie sa
+liste de marchandises à qui n'est pas une personne — voir plus haut,
+"L'APERÇU D'UN LIEN PARTAGÉ".
+
+À FAIRE UNE FOIS :
+1. Choisissez un mot de passe pour la porte, et posez-le :
+     supabase secrets set VAOVAO_SECRET=<un long mot au hasard>
+
+2. Déployez, SANS vérification du jeton — c'est une machine qui
+   appelle, jamais une personne connectée :
+     supabase functions deploy vaovao-boutique --no-verify-jwt
+
+3. ESSAYEZ À BLANC. "essai: true" dit quel billet elle écrirait,
+   sans rien écrire :
+     curl -X POST \
+       https://ezpsapvthujkhttbfhlr.supabase.co/functions/v1/vaovao-boutique \
+       -H "Content-Type: application/json" \
+       -H "x-secret-vaovao: <votre secret>" \
+       -d '{"essai":true}'
+
+4. Quand le billet vous paraît juste, posez l'horaire :
+   "supabase/sql/supabase-vaovao-boutique.sql" (remplacez d'abord
+   VOTRE_SECRET_ICI dedans).
+
+L'HORAIRE est en UTC, et Madagascar est en avance de trois heures :
+5, 9, 13 et 17 h UTC font 8 h, midi, 16 h et 20 h à Antananarivo.
+Pour en faire moins, laissez moins d'heures dans la ligne de la
+tâche et repassez le script.
+
+À SAVOIR : le fil ne montre que les trente derniers billets de la
+semaine. Quatre par jour en occupent vingt-huit — s'il vous semble
+que les billets de vos clients passent trop vite, c'est là qu'il
+faut descendre à deux ou trois par jour.
+
+Sans le secret, la fonction refuse tout et ne publie rien : un
+secret vide laisserait n'importe qui écrire dans le fil de tout le
+monde.

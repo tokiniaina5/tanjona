@@ -1,7 +1,23 @@
-const STORAGE_ITEMS = 'stockmanager_items';
-  const STORAGE_LOGINS = 'stockmanager_logins';
-  const STORAGE_MOVEMENTS = 'stockmanager_movements';
-  const STORAGE_SUBSCRIPTION = 'stockmanager_subscription';
+// ---------------- L'EMPLOYÉ ENTRÉ PAR SON LIEN ----------------
+  // « ?mpiasa=<jeton> » : ce n'est pas le patron qui ouvre la page, c'est
+  // quelqu'un de son équipe, sans compte (vue-mpiasa.js). Il reçoit
+  // l'application entière, avec un stock à lui. Ce stock se range sous des
+  // clés à son nom : si ce navigateur est aussi celui du patron, les deux ne
+  // se mélangent jamais.
+  const MODE_MPIASA = (function(){
+    try { return !!new URLSearchParams(window.location.search).get('mpiasa'); }
+    catch(e){ return false; }
+  })();
+  const SUFFIXE_MPIASA = MODE_MPIASA
+    ? '_mpiasa_' + String(new URLSearchParams(window.location.search).get('mpiasa')).slice(0, 16)
+    : '';
+  // Le style s'en sert : sans compte, il n'y a rien dont se déconnecter.
+  if(MODE_MPIASA) document.body.classList.add('mode-mpiasa');
+
+  const STORAGE_ITEMS = 'stockmanager_items' + SUFFIXE_MPIASA;
+  const STORAGE_LOGINS = 'stockmanager_logins' + SUFFIXE_MPIASA;
+  const STORAGE_MOVEMENTS = 'stockmanager_movements' + SUFFIXE_MPIASA;
+  const STORAGE_SUBSCRIPTION = 'stockmanager_subscription' + SUFFIXE_MPIASA;
   const STORAGE_PROFILES = 'stockmanager_profiles';
   const STORAGE_CLIENT_CODES = 'stockmanager_client_codes';
   const CODE_VALID_MS = 30 * 60 * 1000; // 30 minutes
@@ -20,8 +36,22 @@ const STORAGE_ITEMS = 'stockmanager_items';
     });
   }
   renderOwnerIdentity();
-  const TRIAL_DAYS = 7;
-  const REFERRALS_PER_BONUS_DAY = 10; // 10 olona nampiasa ny lien = +1 andro essai gratuit
+  const TRIAL_DAYS = 15;
+  // ---- LES PREMIERS JOURS, SANS COMPTE ----
+  // On n'ouvre pas un compte pour essayer un outil qu'on ne connaît pas encore.
+  // Les FREE_ENTRY_DAYS premiers jours, l'application s'ouvre telle quelle : ni
+  // nom, ni email, ni mot de passe — on entre. Le compte n'est réclamé qu'après,
+  // et rien n'est perdu : ce qui a été saisi pendant ces jours-là est rangé sous
+  // les mêmes clés que le reste, sur le même navigateur.
+  const FREE_ENTRY_DAYS = 7;
+  // ---- CE QUE RAPPORTE UNE INVITATION ----
+  // Chaque personne qui ouvre l'application avec le lien verse 1 000 Ar au
+  // portefeuille de celui qui l'a invitée : quinze invitations font le mois
+  // d'abonnement, cent cinquante font l'année. Le chiffre ne fait pas foi ici —
+  // c'est AR_PER_REFERRAL, dans la fonction « wallet », qui calcule le solde,
+  // parce qu'une page peut être modifiée par celui qui la regarde. Celui-ci ne
+  // sert qu'à écrire des sommes lisibles, et doit lui rester égal.
+  const AR_PER_CREDIT = 1000;
 
   function genInstallId(){
     if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
@@ -222,6 +252,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
   }
   // renvoie { status: 'trial'|'active'|'expired', daysLeft, bonusDays }
   function getSubscriptionStatus(){
+    // L'employé entré par son lien travaille pour un patron : ce n'est pas à
+    // lui de s'abonner, ni d'être arrêté par la fin d'un essai.
+    if(MODE_MPIASA) return { status: 'active', daysLeft: 0, bonusDays: 0 };
     const sub = ensureInstallDate();
     // Le propriétaire ne s'abonne pas à sa propre application. L'essai avait
     // fini par expirer sur son appareil et le mettait à la porte de son propre
@@ -243,6 +276,51 @@ const STORAGE_ITEMS = 'stockmanager_items';
       return { status: 'trial', daysLeft: daysLeft, bonusDays: bonusDays };
     }
     return { status: 'expired', daysLeft: 0, bonusDays: bonusDays };
+  }
+
+  // Jours restants avant que le compte soit réclamé. Les jours offerts par le
+  // parrainage allongent l'essai, pas cette fenêtre-ci : ils repoussent le
+  // paiement, pas le moment de se présenter.
+  function freeEntryDaysLeft(){
+    if(MODE_MPIASA) return 0;
+    const sub = ensureInstallDate();
+    const fin = new Date(new Date(sub.installDate).getTime() + FREE_ENTRY_DAYS * 24 * 60 * 60 * 1000);
+    const reste = Math.ceil((fin - new Date()) / (24 * 60 * 60 * 1000));
+    return reste > 0 ? reste : 0;
+  }
+  function inFreeEntryWindow(){ return freeEntryDaysLeft() > 0; }
+
+  // ---------------- QUI A OUVERT L'APPLICATION ----------------
+  // Une ligne par personne côté serveur, et un versement au portefeuille du
+  // propriétaire la première fois qu'on la voit. Le navigateur ne décide de
+  // rien : il dit « me voici », et la fonction « visiteur » fait le reste —
+  // c'est elle qui tient le montant, et elle qui refuse de compter deux fois
+  // la même personne.
+  //
+  // L'employé entré par le lien de son patron ne compte pas : il n'est pas
+  // venu au site, il travaille dans celui d'un autre.
+  //
+  // Rien n'est retiré à personne : ce versement et celui du parrainage sont
+  // deux écritures distinctes. Quelqu'un arrivé par un lien d'invitation les
+  // produit toutes les deux.
+  let visiteSignalee = null;
+  function signalerLaVisite(){
+    if(MODE_MPIASA) return;
+    if(!window.__sb || !window.__sb.functions || !window.__sb.functions.invoke) return;
+    const qui = (currentUser && currentUser.email) || '';
+    // Une fois par ouverture, et une fois de plus si la personne se présente
+    // entre-temps : c'est ce second appel qui pose son nom sur sa ligne.
+    if(visiteSignalee === qui) return;
+    visiteSignalee = qui;
+    const sub = ensureInstallDate();
+    window.__sb.functions.invoke('visiteur', { body: {
+      action: 'vu',
+      installId: sub.id,
+      nom: (currentUser && currentUser.name) || null,
+      email: qui || null,
+      invitePar: sub.referredBy || null,
+      appareil: typeof shortUserAgent === 'function' ? shortUserAgent(navigator.userAgent) : null
+    } }).then(function(){}, function(){});
   }
 
   // ---------------- PARRAINAGE (fizarana lien) ----------------
@@ -275,8 +353,19 @@ const STORAGE_ITEMS = 'stockmanager_items';
       .eq('inviter_id', sub.id)
       .then(function(res){
         const count = (res && typeof res.count === 'number') ? res.count : 0;
+        const avant = sub.referralCount || 0;
         sub.referralCount = count;
         saveSubscription(sub);
+        // L'argent entrait en silence : le compte montait, et il fallait aller
+        // regarder la page pour s'en apercevoir. Une installation neuve part de
+        // zéro parrainage et de zéro connu — rien ne s'annonce à tort.
+        if(count > avant){
+          const gagnants = count - avant;
+          pushNotification('parrainage',
+            gagnants + ' personne' + (gagnants > 1 ? 's' : '') +
+            ' de plus ' + (gagnants > 1 ? 'ont' : 'a') + ' ouvert l\'application avec votre lien : ' +
+            formatWalletAr(gagnants * AR_PER_CREDIT) + ' dans votre portefeuille.');
+        }
         if(callback) callback(sub);
       }, function(){ if(callback) callback(sub); });
   }
@@ -294,7 +383,11 @@ const STORAGE_ITEMS = 'stockmanager_items';
     try { return JSON.parse(localStorage.getItem(STORAGE_ITEMS)) || []; }
     catch(e){ return []; }
   }
-  function saveItems(items){ localStorage.setItem(STORAGE_ITEMS, JSON.stringify(items)); }
+  function saveItems(items){
+    localStorage.setItem(STORAGE_ITEMS, JSON.stringify(items));
+    // L'employé entré par son lien : son patron suit ce stock (vue-mpiasa.js).
+    if(MODE_MPIASA && typeof deposerStockMpiasa === 'function') deposerStockMpiasa();
+  }
 
   function loadLogins(){
     try { return JSON.parse(localStorage.getItem(STORAGE_LOGINS)) || []; }
@@ -306,11 +399,14 @@ const STORAGE_ITEMS = 'stockmanager_items';
     try { return JSON.parse(localStorage.getItem(STORAGE_MOVEMENTS)) || []; }
     catch(e){ return []; }
   }
-  function saveMovements(movements){ localStorage.setItem(STORAGE_MOVEMENTS, JSON.stringify(movements)); }
+  function saveMovements(movements){
+    localStorage.setItem(STORAGE_MOVEMENTS, JSON.stringify(movements));
+    if(MODE_MPIASA && typeof deposerStockMpiasa === 'function') deposerStockMpiasa();
+  }
 
   // ---------------- GESTION DE COMPTE : clients & ventes à crédit ----------------
-  const STORAGE_CLIENTS = 'stockmanager_clients';
-  const STORAGE_CREDIT_SALES = 'stockmanager_credit_sales';
+  const STORAGE_CLIENTS = 'stockmanager_clients' + SUFFIXE_MPIASA;
+  const STORAGE_CREDIT_SALES = 'stockmanager_credit_sales' + SUFFIXE_MPIASA;
   function loadClients(){
     try { return JSON.parse(localStorage.getItem(STORAGE_CLIENTS)) || []; }
     catch(e){ return []; }
@@ -322,25 +418,123 @@ const STORAGE_ITEMS = 'stockmanager_items';
   }
   function saveCreditSales(list){ localStorage.setItem(STORAGE_CREDIT_SALES, JSON.stringify(list)); }
 
-  const STORAGE_NOTIFICATIONS = 'stockmanager_notifications';
+  const STORAGE_NOTIFICATIONS = 'stockmanager_notifications' + SUFFIXE_MPIASA;
   function loadNotifications(){
     try { return JSON.parse(localStorage.getItem(STORAGE_NOTIFICATIONS)) || []; }
     catch(e){ return []; }
   }
   function saveNotifications(list){ localStorage.setItem(STORAGE_NOTIFICATIONS, JSON.stringify(list)); }
-  function pushNotification(type, message){
+  // Ajoute une notification à la liste de ce téléphone, sans rien envoyer.
+  // action : un bouton dans la notification (ex. accepter une demande
+  // d'accès). { cle, libelle } — ce qu'il fait est enregistré à part, par
+  // window.__notifActions[cle] : une fonction ne se range pas en localStorage.
+  function ajouterNotificationLocale(type, message, date, action){
     const list = loadNotifications();
     list.unshift({
       type: type, message: message,
-      date: new Date().toLocaleString('fr-FR'),
-      read: false
+      date: date || new Date().toLocaleString('fr-FR'),
+      read: false,
+      action: action || null
     });
     saveNotifications(list.slice(0, 50));
     renderNotifications();
+  }
+  function pushNotification(type, message){
+    ajouterNotificationLocale(type, message);
+    partagerNotification(type, message);
     // La copie du stock que regardent les employes : on la depose quand
     // l'application s'ouvre, moment ou elle est fraiche.
     if(typeof deposerLeStockPartage === 'function') deposerLeStockPartage();
   }
+
+  // ---------------- NOTIFICATIONS PARTAGÉES ----------------
+  // Chaque téléphone garde ses notifications. Quatre sortes, pourtant,
+  // regardent toute la boutique : une sortie de stock, un article épuisé,
+  // l'argent qui entre ou sort du portefeuille, un direct qui commence. Ce
+  // qui arrive chez le patron se sait chez ses employés, et l'inverse.
+  //
+  // Elles passent par la table notifications_boutique
+  // (supabase-notifications.sql). Le patron y écrit et y lit avec son compte ;
+  // l'employé, qui n'en a pas, passe par la fonction « mpiasa »
+  // (vue-mpiasa.js). Chacun relit toutes les minutes, et en revenant sur la
+  // page. Sans la table, rien ne se partage et rien ne casse.
+  const TYPES_PARTAGES = ['sortie', 'rupture', 'parrainage', 'live'];
+  const STORAGE_NOTIF_VU = 'stockmanager_notif_partage_vu' + SUFFIXE_MPIASA;
+
+  function partagerNotification(type, message){
+    if(TYPES_PARTAGES.indexOf(type) < 0 || !currentUser) return;
+    const texte = String(message || '').slice(0, 500);
+    if(!texte) return;
+    if(MODE_MPIASA){
+      if(window.__mpiasaNotif) window.__mpiasaNotif.envoyer(type, texte);
+      return;
+    }
+    const email = String(currentUser.email || '').trim().toLowerCase();
+    if(!window.__sb || !email) return;
+    window.__sb.from('notifications_boutique').insert({
+      owner_email: email, auteur_nom: currentUser.name || null, type: type, message: texte
+    }).then(function(){}, function(){});
+  }
+
+  // Un direct arrive deux fois à qui a l'application ouverte : par le canal,
+  // et par la table. Même sorte, même texte, parmi les dernières : c'est la
+  // même.
+  function notificationDejaLa(type, message){
+    return loadNotifications().slice(0, 10).some(function(n){
+      return n.type === type && n.message === message;
+    });
+  }
+
+  let lectureNotifEnCours = false;
+  function lireNotificationsPartagees(){
+    if(!currentUser || lectureNotifEnCours) return;
+    let vu = '';
+    try{ vu = localStorage.getItem(STORAGE_NOTIF_VU) || ''; }catch(e){}
+    // La première fois sur ce téléphone, on part de maintenant : remonter
+    // tout l'historique noierait la liste sous des nouvelles d'hier.
+    if(!vu){
+      try{ localStorage.setItem(STORAGE_NOTIF_VU, new Date().toISOString()); }catch(e){}
+      return;
+    }
+    let lecture;
+    if(MODE_MPIASA){
+      if(!window.__mpiasaNotif) return;
+      lecture = window.__mpiasaNotif.lire(vu);
+    } else {
+      const email = String(currentUser.email || '').trim().toLowerCase();
+      if(!window.__sb || !email) return;
+      lecture = window.__sb.from('notifications_boutique')
+        .select('id,type,message,auteur_id,auteur_nom,created_at')
+        .eq('owner_email', email).gt('created_at', vu)
+        .order('created_at', { ascending: true }).limit(50)
+        .then(function(res){ return (res && !res.error && res.data) || []; }, function(){ return []; });
+    }
+    lectureNotifEnCours = true;
+    Promise.resolve(lecture).then(function(rows){
+      lectureNotifEnCours = false;
+      if(!rows || !rows.length) return;
+      const moi = MODE_MPIASA && window.__mpiasaNotif ? window.__mpiasaNotif.id : null;
+      rows.forEach(function(r){
+        // Les siennes, on les a déjà : celles du patron n'ont pas d'auteur,
+        // celles d'un employé portent le sien.
+        const deMoi = MODE_MPIASA ? (r.auteur_id && r.auteur_id === moi) : !r.auteur_id;
+        if(deMoi) return;
+        // Un direct dit déjà qui le fait ; le reste, on le signe.
+        const texte = r.type === 'live' ? r.message : (r.auteur_nom || 'Patron') + ' : ' + r.message;
+        if(notificationDejaLa(r.type, texte) || notificationDejaLa(r.type, r.message)) return;
+        ajouterNotificationLocale(r.type, texte, new Date(r.created_at).toLocaleString('fr-FR'));
+      });
+      try{ localStorage.setItem(STORAGE_NOTIF_VU, rows[rows.length - 1].created_at); }catch(e){}
+      // Cinquante d'un coup : il en reste peut-être.
+      if(rows.length === 50) lireNotificationsPartagees();
+    }, function(){ lectureNotifEnCours = false; });
+  }
+
+  setTimeout(lireNotificationsPartagees, 5000);
+  setInterval(function(){ if(!document.hidden) lireNotificationsPartagees(); }, 60000);
+  document.addEventListener('visibilitychange', function(){
+    if(!document.hidden) lireNotificationsPartagees();
+  });
   function notifIcon(type){
     if(type === 'sortie') return '📤';
     // 'vente' n'est plus produit, mais les anciennes notifications le portent
@@ -353,8 +547,39 @@ const STORAGE_ITEMS = 'stockmanager_items';
     if(type === 'modification') return '✏️';
     if(type === 'live') return '🔴';
     if(type === 'antso') return '📞';
+    if(type === 'fangatahana') return '🔐';
     return '🔔';
   }
+  window.__notifActions = window.__notifActions || {};
+  // Pour les autres fichiers (commun-alalana.js) : une notification avec bouton.
+  window.__ajouterNotificationAction = function(type, message, action){
+    ajouterNotificationLocale(type, message, null, action);
+  };
+  window.__marquerNotificationFaite = function(cle){
+    const list = loadNotifications();
+    list.forEach(function(n){ if(n.action && n.action.cle === cle){ n.action.fait = true; n.read = true; } });
+    saveNotifications(list);
+    renderNotifications();
+  };
+  // Le bouton d'une notification : l'action enregistrée, puis la notification
+  // marquée faite pour que le bouton ne se représente pas.
+  (function(){
+    const listEl = document.getElementById('notifList');
+    if(!listEl) return;
+    listEl.addEventListener('click', function(e){
+      const bouton = e.target.closest ? e.target.closest('[data-notif-action]') : null;
+      if(!bouton) return;
+      const cle = bouton.dataset.notifAction;
+      const faire = window.__notifActions[cle];
+      if(typeof faire !== 'function'){ bouton.textContent = 'Tsy azo atao eto'; return; }
+      bouton.disabled = true;
+      bouton.textContent = '…';
+      Promise.resolve(faire()).then(function(ok){
+        if(ok === false){ bouton.disabled = false; bouton.textContent = 'Andramo indray'; return; }
+        window.__marquerNotificationFaite(cle);
+      }, function(){ bouton.disabled = false; bouton.textContent = 'Andramo indray'; });
+    });
+  })();
   function renderNotifications(){
     const list = loadNotifications();
     const listEl = document.getElementById('notifList');
@@ -372,8 +597,13 @@ const STORAGE_ITEMS = 'stockmanager_items';
       return;
     }
     listEl.innerHTML = list.map(function(n){
+      const a = n.action;
+      const bouton = !a ? '' : (a.fait
+        ? '<span class="notif-date" style="color:var(--cyan);">✅ Vita</span>'
+        : '<button type="button" class="btn btn-primary btn-sm" style="width:auto; margin-top:0.35rem;" data-notif-action="' +
+            escapeHtml(a.cle) + '">' + escapeHtml(a.libelle || 'Ekena') + '</button>');
       return '<div class="notif-item"><span class="notif-icon">' + notifIcon(n.type) + '</span>' +
-        escapeHtml(n.message) + '<span class="notif-date">' + n.date + '</span></div>';
+        escapeHtml(n.message) + '<span class="notif-date">' + n.date + '</span>' + bouton + '</div>';
     }).join('');
   }
 
@@ -394,6 +624,10 @@ const STORAGE_ITEMS = 'stockmanager_items';
 
   let movements = loadMovements();
   let currentUser = null;
+  // Vrai quand l'application a été ouverte sans compte, pendant la fenêtre
+  // d'entrée libre. Personne n'est connecté : il n'y a rien dont se déconnecter,
+  // et le menu propose de créer le compte plutôt que de le quitter.
+  let modeVisiteur = false;
 
   // ---------------- SESSION (rester connecté après actualisation) ----------------
   // La session et la vue en cours sont mémorisées : actualiser la page ne
@@ -513,6 +747,8 @@ const STORAGE_ITEMS = 'stockmanager_items';
     // Demandes de déblocage en attente : le propriétaire l'apprend en ouvrant
     // l'application, pas seulement en passant par Paramètres.
     if(typeof checkPendingUnlockRequests === 'function') checkPendingUnlockRequests();
+    // Le portefeuille : ce qui est parti, ce qui est entré, ce qu'on attend.
+    verifierLePortefeuille();
     renderWallet();
     initPresence();
     initCallSignaling();
@@ -521,12 +757,19 @@ const STORAGE_ITEMS = 'stockmanager_items';
     // ny appli ny mpanjifa — ny fanokafana ny rohy no ampy.
     if(typeof runPendingLinkAction === 'function') runPendingLinkAction();
     // étape 2 : pièce d'identité, réclamée tant qu'elle n'est pas renseignée
-    if(typeof requireIdentity === 'function') requireIdentity();
+    // L'employé, le patron le connaît déjà : c'est lui qui l'a inscrit.
+    if(!MODE_MPIASA && typeof requireIdentity === 'function') requireIdentity();
     // le propriétaire est prévenu des alertes enregistrées depuis sa dernière visite
     if(typeof notifyOwnerOfNewAlerts === 'function') notifyOwnerOfNewAlerts();
+    // Le propriétaire voit passer tout le monde : celui qui essaie sans compte
+    // les premiers jours comme celui qui revient depuis deux ans.
+    signalerLaVisite();
   }
 
   function openPaywall(){
+    // Sans compte, il n'y a personne à qui envoyer le code de déverrouillage :
+    // le paiement commence par la création du compte.
+    if(modeVisiteur){ quitterLEssaiLibre(); return; }
     closeWelcome(false);
     loginScreen.style.display = 'none';
     appScreen.style.display = 'none';
@@ -555,21 +798,64 @@ const STORAGE_ITEMS = 'stockmanager_items';
     if(st.status === 'trial'){
       ligne.textContent = 'Essai gratuit : ' + st.daysLeft + ' jour' + (st.daysLeft > 1 ? 's' : '') + ' restant' +
         (st.daysLeft > 1 ? 's' : '') +
-        (st.bonusDays > 0 ? ' (dont ' + st.bonusDays + ' offert' + (st.bonusDays > 1 ? 's' : '') + ' par le parrainage).' : '.');
+        (st.bonusDays > 0 ? ' (dont ' + st.bonusDays + ' payé' + (st.bonusDays > 1 ? 's' : '') + ' avec le portefeuille).' : '.');
       return;
     }
     ligne.textContent = 'Essai terminé. Un abonnement est nécessaire pour continuer.';
+  }
+
+  // La page « Inviter des amis » annonce un tarif et ce qu'il paie. Les deux
+  // changent avec la personne : le propriétaire n'a pas le même que ses
+  // clients, et il ne doit pas lire le leur.
+  function majTarifInvitation(tarif){
+    const par = Number(tarif) || AR_PER_CREDIT;
+    const el = document.getElementById('inviteTarif');
+    if(el) el.textContent = formatWalletAr(par);
+    const mois = document.getElementById('inviteMois');
+    if(mois) mois.textContent = Math.ceil(15000 / par);
+    const an = document.getElementById('inviteAn');
+    if(an) an.textContent = Math.ceil(150000 / par);
   }
 
   function refreshReferralProgress(){
     syncReferralBonus(function(sub){
       majPageAbonnement();
       const countEl = document.getElementById('referralCount');
-      const availEl = document.getElementById('referralBonusDays');
-      const spentEl = document.getElementById('referralNextIn');
-      if(countEl) countEl.textContent = sub.referralCount || 0;
-      if(availEl) availEl.textContent = getAvailableCredits(sub);
-      if(spentEl) spentEl.textContent = sub.creditsSpent || 0;
+      const gagneEl = document.getElementById('referralBonusDays');
+      const soldeEl = document.getElementById('referralNextIn');
+      const invitations = sub.referralCount || 0;
+      if(countEl) countEl.textContent = invitations;
+      // Le tarif n'est pas le même pour tout le monde : celui du propriétaire
+      // vaut davantage. C'est le serveur qui le dit — la page ne fait que
+      // l'écrire, et retombe sur le tarif ordinaire tant qu'elle l'ignore.
+      const tarif = (walletState && walletState.arPerReferral) || AR_PER_CREDIT;
+      // Ce que les invitations ont rapporté : le nombre de personnes, au tarif
+      // de l'invitation. C'est un gain cumulé et non un solde — ce qui a déjà
+      // servi à payer n'en est pas retranché.
+      if(gagneEl) gagneEl.textContent = formatWalletAr(invitations * tarif);
+      // Le solde, lui, vient du serveur : lui seul tient compte des versements
+      // et de ce qui a déjà été dépensé. L'appel rattache au passage cette
+      // installation au compte — c'est ce qui fait que les invitations
+      // partagées avant qu'il existe rejoignent le portefeuille.
+      if(soldeEl){
+        if(!currentUser){
+          // Sans compte, il n'y a pas encore de portefeuille où verser. Le
+          // gain, lui, est déjà compté : il attend.
+          soldeEl.textContent = '—';
+        } else {
+          soldeEl.textContent = '…';
+          callWallet({ action: 'state', installId: sub.id }).then(function(state){
+            walletState = state;
+            soldeEl.textContent = formatWalletAr(state.balanceAr);
+            // Le serveur vient de dire le tarif : on réécrit le gain avec, au
+            // cas où l'on avait affiché celui d'avant.
+            if(gagneEl && state.arPerReferral){
+              gagneEl.textContent = formatWalletAr(invitations * state.arPerReferral);
+            }
+            majTarifInvitation(state.arPerReferral);
+          }, function(){ soldeEl.textContent = '—'; });
+        }
+      }
       renderWallet();
     });
   }
@@ -705,6 +991,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
       renderPayoutList();
       renderPayoutQueue();
       notifySettledPayouts(state.payouts);
+      annoncerLesVisiteurs(state);
     }, function(err){
       balanceEl.textContent = '—';
       const note = document.getElementById('walletRateNote');
@@ -826,6 +1113,87 @@ const STORAGE_ITEMS = 'stockmanager_items';
         (r.instructions ? 'Consigne : ' + escapeHtml(r.instructions) + '<br>' : '') +
         new Date(r.created_at).toLocaleString('fr-FR') + ' · ' + payoutStatusLabel(r.status) +
         (r.note ? '<br>Note : ' + escapeHtml(r.note) : '');
+
+      // Une demande en attente est déjà retirée du solde : c'est ce qui
+      // empêche de demander deux fois la même somme. Si elle ne part jamais,
+      // la somme reste dehors sans être arrivée nulle part — perdue pour son
+      // propriétaire. Ce bouton la lui rend.
+      //
+      // Il ne paraît QUE si aucun envoi automatique n'a été tenté. Une ligne
+      // qu'un fournisseur a touchée a pu partir sans que la réponse nous
+      // parvienne ; la rendre reviendrait à la payer deux fois. Le serveur le
+      // refuse aussi de son côté — le bouton n'est que la porte fermée
+      // d'avance.
+      // Déposer l'ordre chez le fournisseur, maintenant. C'est l'acte du
+      // propriétaire : son compte marchand se vide. Le serveur le refuse à
+      // quiconque d'autre — le bouton n'est que la porte fermée d'avance.
+      //
+      // Le rejouer est sans danger : la clef présentée au fournisseur est
+      // l'identifiant de la ligne, et c'est lui qui refuse le doublon.
+      // C'est le serveur qui dit qui est le propriétaire — il compare le
+      // jeton, pas un email que la page aurait sous la main.
+      if(r.status === 'pending' && r.method === 'paypal' && walletState.isOwner){
+        const envoi = document.createElement('button');
+        envoi.type = 'button';
+        envoi.className = 'btn btn-primary btn-sm';
+        envoi.style.cssText = 'width:auto; margin-top:0.6rem; margin-right:0.5rem;';
+        envoi.textContent = r.auto_ref ? '🔁 Andramo indray ny PayPal' : '📤 Alefa amin\'ny PayPal izao';
+        const dire = function(texte, couleur){
+          const ligne = document.createElement('div');
+          ligne.style.cssText = 'color:' + couleur + '; margin-top:0.4rem; line-height:1.5;';
+          ligne.textContent = texte;
+          div.appendChild(ligne);
+        };
+        envoi.addEventListener('click', function(){
+          envoi.disabled = true;
+          envoi.textContent = 'Mandefa…';
+          callWallet({ action: 'envoyer', id: r.id }).then(function(res){
+            envoi.disabled = false;
+            envoi.textContent = '🔁 Andramo indray ny PayPal';
+            // « Déposé » n'est pas « arrivé » : PayPal traite ensuite. La
+            // ligne reste en attente, et c'est la vérification qui la fera
+            // passer — avec l'avis qui va avec.
+            dire(res.message || 'Lasa ny baiko.', res.etat === 'refuse' ? 'var(--red, #e66)' : 'var(--cyan)');
+            pushNotification('parrainage', '📤 Nalefa tany amin\'ny PayPal ny baiko : ' +
+              formatWalletAr(r.amount_ar) + '. Andrasana ny fanamarinana.');
+            refreshWalletFromServer();
+          }, function(err){
+            envoi.disabled = false;
+            envoi.textContent = '📤 Alefa amin\'ny PayPal izao';
+            dire(err.message, 'var(--amber)');
+          });
+        });
+        div.appendChild(envoi);
+      }
+
+      if(r.status === 'pending' && !r.auto_provider){
+        const bouton = document.createElement('button');
+        bouton.type = 'button';
+        bouton.className = 'btn btn-sm';
+        bouton.style.cssText = 'width:auto; margin-top:0.6rem;';
+        bouton.textContent = '↩️ Hanafoana, averina ao amin\'ny solde';
+        bouton.addEventListener('click', function(){
+          if(!confirm('Hofoanana ity fangatahana ity, dia hiverina ao amin\'ny soldenao ny ' +
+            formatWalletAr(r.amount_ar) + '. Hitohy?')) return;
+          bouton.disabled = true;
+          bouton.textContent = 'Manafoana…';
+          callWallet({ action: 'annuler', id: r.id }).then(function(){
+            pushNotification('parrainage', '↩️ Nofoanana ny retrait : ' +
+              formatWalletAr(r.amount_ar) + ' naverina ao amin\'ny soldenao.');
+            refreshWalletFromServer();
+          }, function(err){
+            bouton.disabled = false;
+            bouton.textContent = '↩️ Hanafoana, averina ao amin\'ny solde';
+            // Le refus du serveur porte sa raison : elle en dit plus que le
+            // bouton n'en sait, et c'est elle qu'il faut lire.
+            const ligne = document.createElement('div');
+            ligne.style.cssText = 'color:var(--amber); margin-top:0.4rem; line-height:1.5;';
+            ligne.textContent = err.message;
+            div.appendChild(ligne);
+          });
+        });
+        div.appendChild(bouton);
+      }
       list.appendChild(div);
     });
   }
@@ -840,7 +1208,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
   };
   const DEPOT_CANAUX = {
     mvola: 'MVola', orange: 'Orange Money', airtel: 'Airtel Money',
-    paypal: 'PayPal', essai: 'Essai'
+    paypal: 'PayPal', essai: 'Essai', visiteur: 'Personne nouvelle sur le site'
   };
 
   function renderDepositList(){
@@ -891,10 +1259,28 @@ const STORAGE_ITEMS = 'stockmanager_items';
         const arrivee = p.amount_out && p.currency && p.currency !== 'MGA'
           ? ' (environ ' + Number(p.amount_out).toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' ' + p.currency + ')'
           : '';
-        statusEl.textContent = 'Demande enregistrée : ' + formatWalletAr(amount) + arrivee +
-          '. Le propriétaire est prévenu ; vous le serez dès que l\'argent est parti.';
-        pushNotification('parrainage', 'Retrait demandé : ' + formatWalletAr(amount) + ' · ' +
-          payoutMethodLabel(method) + '.');
+        // Le serveur dit ce qu'il est advenu : un canal automatique a pu
+        // envoyer l'argent sur-le-champ, ou le refuser avec son motif. Sans
+        // clefs, rien ne change — c'est une demande, et le mot le dit.
+        // Le propriétaire est celui qui exécute les retraits. Quand c'est lui
+        // qui en demande un, lui annoncer qu'il sera prévenu revient à lui
+        // dire qu'il s'écrira à lui-même : la demande l'attend, lui, dans sa
+        // propre file.
+        const cestMoiQuiEnvoie = !!(currentUser && currentUser.email && isOwnerEmail(currentUser.email));
+        const suite = res.etat === 'sent'
+          ? '. ' + (res.message || 'Lasa ho azy ny vola.') +
+            ' Ho hitanao ao amin\'ny lisitry ny retraits ny référence.'
+          : (res.etat === 'refused'
+            ? '. ' + (res.message || 'Tsy lasa.') + ' Naverina ny solde.'
+            : (cestMoiQuiEnvoie
+              ? '. Anao ny mandefa azy : miandry anao ao amin\'ny « Retraits à envoyer » etsy ambany izy.'
+              : '. Le propriétaire est prévenu ; vous le serez dès que l\'argent est parti.'));
+        statusEl.textContent = (res.etat === 'sent'
+            ? 'Retrait envoyé : '
+            : (cestMoiQuiEnvoie ? 'Retrait à envoyer : ' : 'Demande enregistrée : ')) +
+          formatWalletAr(amount) + arrivee + suite;
+        pushNotification('parrainage', (res.etat === 'sent' ? 'Retrait envoyé : ' : 'Retrait demandé : ') +
+          formatWalletAr(amount) + ' · ' + payoutMethodLabel(method) + '.');
         refreshWalletFromServer();
       }, function(err){
         payoutRequestBtn.disabled = false;
@@ -942,9 +1328,15 @@ const STORAGE_ITEMS = 'stockmanager_items';
       sentBtn.type = 'button';
       sentBtn.className = 'btn btn-primary btn-sm';
       sentBtn.style.width = 'auto';
-      sentBtn.textContent = '✅ Argent envoyé';
+      // Au premier coup d'œil, « Argent envoyé » se lit comme un ordre — et
+      // l'on croit que l'application va envoyer. Elle n'envoie rien : ce
+      // bouton ne fait que consigner ce que la personne a fait de ses mains.
+      // À la première personne, il ne peut plus se lire autrement.
+      sentBtn.textContent = '✅ Efa nalefako an-tanana';
       sentBtn.addEventListener('click', function(){
-        if(!confirm('Avez-vous bien envoyé ' + arrivee + ' vers ' + r.destination + ' ?')) return;
+        if(!confirm('Efa nalefanao TENA ve ny ' + arrivee + ' ho any amin\'ny ' + r.destination + ' ?\n\n' +
+          'Ity bokotra ity dia tsy mandefa vola : manamarina fotsiny izy fa efa nataonao. ' +
+          'Raha te-hampandeha azy amin\'ny PayPal dia « 📤 Alefa amin\'ny PayPal izao » no tsindrio.')) return;
         settlePayout(r.id, 'sent', '', sentBtn);
       });
 
@@ -1087,8 +1479,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
     const fresh = (rows || []).filter(function(r){ return seen.indexOf(r.id) < 0; });
     if(!fresh.length) return;
     fresh.forEach(function(r){
-      pushNotification('parrainage', '💸 ' + (r.name || r.email) + ' demande un retrait de ' +
-        formatWalletAr(r.amount_ar) + ' · ' + payoutMethodLabel(r.method) + '.');
+      pushNotification('parrainage', '💸 ' + (r.name || r.email) + ' nanao retrait : ' +
+        formatWalletAr(r.amount_ar) + ' · ' + payoutMethodLabel(r.method) +
+        ' — miandry anao.');
     });
     try {
       localStorage.setItem(PAYOUT_QUEUE_SEEN_KEY,
@@ -1098,21 +1491,104 @@ const STORAGE_ITEMS = 'stockmanager_items';
 
   // Le client peut avoir fermé la page entre la demande et l'envoi : à la
   // réouverture, on lui dit ce qui s'est passé pendant son absence.
+  // ---- L'ARGENT QUI ENTRE PENDANT QU'ON DORT ----
+  // Les personnes qui découvrent le site créditent le portefeuille du
+  // propriétaire depuis LEUR téléphone : il n'est pas là pour le voir passer.
+  // Il l'apprend donc en ouvrant l'application, comme il apprend les demandes
+  // de déblocage et les alertes de sécurité.
+  //
+  // Le nombre annoncé vient des vingt derniers versements que le serveur
+  // renvoie ; le solde, lui, est toujours juste. Entre deux ouvertures très
+  // espacées, le premier peut donc dire moins que le second — c'est pourquoi
+  // le message porte les deux.
+  const VISITEURS_VUS_KEY = 'stockmanager_depots_visiteurs_vus';
+  const VISITEURS_AMORCE_KEY = 'stockmanager_depots_visiteurs_amorce';
+
+  function annoncerLesVisiteurs(state){
+    const rows = ((state && state.deposits) || []).filter(function(d){
+      return d.provider === 'visiteur';
+    });
+    let vus = [];
+    try { vus = JSON.parse(localStorage.getItem(VISITEURS_VUS_KEY)) || []; } catch(e){}
+    let amorce = false;
+    try { amorce = localStorage.getItem(VISITEURS_AMORCE_KEY) === '1'; } catch(e){}
+    const frais = rows.filter(function(d){ return vus.indexOf(d.id) < 0; });
+
+    // Au tout premier passage on ne remonte pas l'historique : on note
+    // seulement où l'on en est. C'est le passage suivant qui annonce — et si
+    // ce premier passage ne trouve rien, la toute première personne comptera.
+    if(amorce && frais.length){
+      const somme = frais.reduce(function(t, d){ return t + (Number(d.amount_ar) || 0); }, 0);
+      ajouterNotificationLocale('parrainage',
+        frais.length + ' personne' + (frais.length > 1 ? 's' : '') +
+        ' de plus ' + (frais.length > 1 ? 'ont' : 'a') + ' ouvert le site : ' + formatWalletAr(somme) +
+        ' dans votre portefeuille. Solde : ' + formatWalletAr(state.balanceAr) + '.');
+    }
+    try {
+      localStorage.setItem(VISITEURS_AMORCE_KEY, '1');
+      if(frais.length){
+        localStorage.setItem(VISITEURS_VUS_KEY, JSON.stringify(
+          frais.map(function(d){ return d.id; }).concat(vus).slice(0, 200)));
+      }
+    } catch(e){}
+  }
+
+  // Ce qui est arrivé au portefeuille pendant l'absence, demandé une fois à
+  // l'ouverture de l'application — et non quand on passe par la page
+  // Portefeuille, où l'on ne va justement que si l'on se doute de quelque
+  // chose.
+  //
+  // Les deux côtés y trouvent leur compte, dans le même appel :
+  //   — celui qui a demandé un retrait apprend qu'il est parti, ou refusé ;
+  //   — le propriétaire apprend qu'on lui en demande un, et ce que les
+  //     nouveaux venus ont versé.
+  function verifierLePortefeuille(){
+    if(!(currentUser && currentUser.email)) return;
+    const sub = ensureInstallDate();
+    // D'abord demander au fournisseur où en sont les ordres déposés. Sans
+    // cela, l'état qu'on lit juste après serait celui d'avant, et l'argent
+    // arrivé cette nuit ne se dirait qu'à la prochaine ouverture.
+    const lireLEtat = function(){
+      callWallet({ action: 'state', installId: sub.id }).then(function(state){
+        walletState = state;
+        notifySettledPayouts(state.payouts);
+        if(state.isOwner){
+          annoncerLesVisiteurs(state);
+          notifyNewPayoutRequests(state.queue || []);
+        }
+      }, function(){});
+    };
+    // Qu'elle aboutisse ou non, on lit l'état ensuite : une vérification
+    // impossible ne doit pas empêcher de voir ce qu'on sait déjà.
+    callWallet({ action: 'verifier' }).then(lireLEtat, lireLEtat);
+  }
+
   const PAYOUT_SEEN_KEY = 'stockmanager_payouts_seen';
+  const PAYOUT_AMORCE_KEY = 'stockmanager_payouts_amorce';
   function notifySettledPayouts(rows){
     let seen = [];
     try { seen = JSON.parse(localStorage.getItem(PAYOUT_SEEN_KEY)) || []; } catch(e){}
+    let amorce = false;
+    try { amorce = localStorage.getItem(PAYOUT_AMORCE_KEY) === '1'; } catch(e){}
+    try { localStorage.setItem(PAYOUT_AMORCE_KEY, '1'); } catch(e){}
     const fresh = (rows || []).filter(function(r){
       return r.status !== 'pending' && seen.indexOf(r.id) < 0;
     });
     if(!fresh.length) return;
-    // Au tout premier passage on ne remonte pas l'historique entier.
-    if(seen.length){
+    // Au tout premier passage on ne remonte pas l'historique entier. C'est un
+    // drapeau à part qui le retient, et non la liste des retraits vus : sans
+    // lui, une première ouverture sans aucun retrait aurait fait manquer le
+    // tout premier — celui qui compte.
+    if(amorce){
       fresh.forEach(function(r){
+        // « sent » ne veut plus dire « l'ordre est parti » mais « la somme est
+        // arrivée » : c'est la vérification chez le fournisseur qui le pose.
+        // Le mot doit dire cela, et pas autre chose.
         pushNotification('parrainage', r.status === 'sent'
-          ? '💸 Votre retrait de ' + formatWalletAr(r.amount_ar) + ' a été envoyé vers ' + r.destination + '.'
-          : 'Votre retrait de ' + formatWalletAr(r.amount_ar) + ' a été refusé' +
-            (r.note ? ' : ' + r.note : '') + '. Le solde vous a été rendu.');
+          ? '✅ Tonga ny vola : ' + formatWalletAr(r.amount_ar) +
+            ' tafapetraka tao amin\'ny ' + r.destination + '.'
+          : '💸 Tsy lasa ny retrait nataonao : ' + formatWalletAr(r.amount_ar) +
+            (r.note ? ' — ' + r.note : '') + '. Naverina ny solde.');
       });
     }
     try {
@@ -1215,6 +1691,11 @@ const STORAGE_ITEMS = 'stockmanager_items';
   // il la retrouve dans Paramètres > « Nouvelles inscriptions » et dans son
   // admin du site. Le client, lui, entre directement, sans rien attendre.
   function recordNewSignup(name, email, phone){
+    // C'est ici, et nulle part ailleurs, qu'on sait qu'un compte est neuf.
+    // La marque dit à serasera-voalohany.js de montrer à ce client-là, à son
+    // entrée, par où joindre le propriétaire. Elle est posée avant tout appel
+    // au serveur : sans réseau, le compte est neuf quand même.
+    try { localStorage.setItem('stockmanager_client_nouveau', normEmail(email)); } catch(e){}
     if(!window.__sb) return;
     const row = { name: name, email: normEmail(email), phone: phone || '' };
     try{
@@ -1247,6 +1728,8 @@ const STORAGE_ITEMS = 'stockmanager_items';
   const RESCUE_VALID_MS = 30 * 60 * 1000;
 
   function isOwnerEmail(email){
+    // L'espace du propriétaire ne s'ouvre jamais par un lien d'employé.
+    if(MODE_MPIASA) return false;
     return normEmail(email) === normEmail(OWNER_EMAIL);
   }
   function markOwnerDevice(){
@@ -1324,12 +1807,14 @@ const STORAGE_ITEMS = 'stockmanager_items';
     };
   }
 
-  // Le logo voyage dans les informations du compte : quelques kilo-octets une
-  // fois réduit. Au-delà, on s'abstient plutôt que de faire échouer tout
-  // l'enregistrement du profil — la copie locale, elle, reste en place.
-  const LOGO_MAX_SERVER_CHARS = 200000;
-  function logoForServer(logo){
-    return (logo && logo.length <= LOGO_MAX_SERVER_CHARS) ? logo : null;
+  // Le logo ne va plus dans les informations du compte. Supabase recopie ces
+  // informations dans le jeton de connexion, et ce jeton part dans l'en-tête
+  // de chaque requête : avec un logo dedans, il atteignait 33 000 caractères,
+  // et la passerelle des fonctions refusait la requête avant même de
+  // l'exécuter — la demande d'accès à l'Administratif ne partait jamais. Le
+  // logo reste sur l'appareil (profil local) ; null efface l'ancienne copie.
+  function logoForServer(){
+    return null;
   }
 
   // Ouvre l'application pour un utilisateur authentifié par Supabase.
@@ -1381,13 +1866,16 @@ const STORAGE_ITEMS = 'stockmanager_items';
   function openAppForAuthUserNow(user, opts){
     currentUser = profileFromAuthUser(user);
     saveLastEmail(currentUser.email);
-    // Compte créé avant que le logo ne suive le compte : cet appareil est le
-    // seul à l'avoir, on en dépose la copie pour les suivants.
+    // Un logo encore rangé dans le compte alourdit le jeton de chaque requête
+    // (voir logoForServer). On l'a déjà pris dans currentUser — il sera gardé
+    // sur l'appareil juste en dessous — puis on le retire du compte et on
+    // demande un jeton neuf, allégé.
     const serverLogo = ((user && user.user_metadata) || {}).logo;
-    if(currentUser.logo && !serverLogo){
+    if(serverLogo){
       const auth = sbAuth();
-      const copy = logoForServer(currentUser.logo);
-      if(auth && copy) auth.updateUser({ data: { logo: copy } }).then(function(){}, function(){});
+      if(auth) auth.updateUser({ data: { logo: null } }).then(function(res){
+        if(res && !res.error && auth.refreshSession) return auth.refreshSession();
+      }).then(function(){}, function(){});
     }
     if(isOwnerEmail(currentUser.email)) markOwnerDevice();
     // cache local (le logo reste sur l'appareil, il n'est pas envoyé au serveur)
@@ -1489,9 +1977,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
       auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + window.location.pathname })
         .then(function(res){
           if(!status) return;
-          status.textContent = (res && res.error)
-            ? authErrorText(res.error)
-            : 'Lien envoyé à ' + email + '. Regardez aussi dans les indésirables.';
+          if(res && res.error){ status.textContent = authErrorText(res.error); return; }
+          status.textContent = codeSentText(email);
+          showResetCodeBox();
         }, function(){
           if(status) status.textContent = 'Envoi impossible : vérifiez votre réseau.';
         });
@@ -1539,8 +2027,8 @@ const STORAGE_ITEMS = 'stockmanager_items';
             (data.detail ? ' — ' + String(data.detail).slice(0, 300) : '');
           return;
         }
-        if(status) status.textContent = 'Lien envoyé à ' + email + '. Ouvrez le plus récent de vos emails : ' +
-          'il ne vaut qu\'une heure et ne sert qu\'une fois. Regardez aussi dans les indésirables.';
+        if(status) status.textContent = codeSentText(email);
+        showResetCodeBox();
       }, function(err){
         fallback((err && err.message) || 'réseau');
       });
@@ -1554,7 +2042,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
       const auth = sbAuth();
       if(!email){ if(status) status.textContent = 'Indiquez d\'abord votre email.'; return; }
       if(!auth){ if(status) status.textContent = 'Serveur injoignable : réessayez une fois connecté à Internet.'; return; }
-      if(status) status.textContent = 'Envoi du lien…';
+      if(status) status.textContent = 'Envoi du code…';
 
       // Le propriétaire passe par son propre service d'envoi : l'envoi intégré
       // de Supabase est trop limité pour être sûr, et lui, il ne peut pas se
@@ -1567,11 +2055,61 @@ const STORAGE_ITEMS = 'stockmanager_items';
       auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + window.location.pathname })
         .then(function(res){
           if(res && res.error){ if(status) status.textContent = authErrorText(res.error); return; }
-          if(status) status.textContent = 'Lien envoyé à ' + email + '. Ouvrez le plus récent de vos emails : ' +
-            'le lien ne vaut qu\'une heure et ne sert qu\'une fois. Regardez aussi dans les indésirables.';
+          if(status) status.textContent = codeSentText(email);
+          showResetCodeBox();
         }, function(){
           if(status) status.textContent = 'Envoi impossible : vérifiez votre réseau.';
         });
+    });
+  }
+
+  function codeSentText(email){
+    return 'Code envoyé à ' + email + '. Recopiez ci-dessous celui du plus récent de vos emails : ' +
+      'il ne vaut qu\'une heure et ne sert qu\'une fois. Regardez aussi dans les indésirables.';
+  }
+
+  function showResetCodeBox(){
+    const box = document.getElementById('resetCodeBox');
+    if(!box) return;
+    box.style.display = 'block';
+    const field = document.getElementById('resetCode');
+    if(field){ field.value = ''; field.focus(); }
+  }
+
+  // Le code reçu vaut une connexion le temps de changer le mot de passe :
+  // verifyOtp ouvre la session, updateUser pose le nouveau mot de passe.
+  let resetByCode = false;
+  const resetCodeSaveBtn = document.getElementById('resetCodeSaveBtn');
+  if(resetCodeSaveBtn){
+    resetCodeSaveBtn.addEventListener('click', function(){
+      const status = document.getElementById('resetCodeStatus');
+      const email = document.getElementById('resetEmail').value.trim();
+      // Les messageries glissent parfois des espaces dans le code copié.
+      const token = document.getElementById('resetCode').value.replace(/\s+/g, '');
+      const password = document.getElementById('resetNewPassword').value;
+      const auth = sbAuth();
+      if(!auth){ status.textContent = 'Serveur injoignable.'; return; }
+      if(!email){ status.textContent = 'Indiquez d\'abord votre email.'; return; }
+      if(!/^\d{6,10}$/.test(token)){ status.textContent = 'Recopiez le code à chiffres reçu par email.'; return; }
+      if(password.length < 6){ status.textContent = 'Le mot de passe doit contenir au moins 6 caractères.'; return; }
+      status.textContent = 'Vérification du code…';
+      resetByCode = true;
+      auth.verifyOtp({ email: email, token: token, type: 'recovery' }).then(function(res){
+        if(res && res.error){
+          const code = res.error.code || '';
+          status.textContent = (code === 'otp_expired' || /expired|invalid/i.test(res.error.message || ''))
+            ? 'Ce code est faux, a expiré ou a déjà servi. Vérifiez le plus récent de vos emails, ou redemandez-en un.'
+            : authErrorText(res.error);
+          return;
+        }
+        status.textContent = 'Enregistrement…';
+        auth.updateUser({ password: password }).then(function(up){
+          if(up && up.error){ status.textContent = authErrorText(up.error); return; }
+          const user = (up && up.data && up.data.user) || (res.data && res.data.user);
+          saveLastEmail(email);
+          if(user){ openAppForAuthUser(user); } else { showLoginMode('quick'); }
+        }, function(){ status.textContent = 'Enregistrement impossible : vérifiez votre réseau.'; });
+      }, function(){ status.textContent = 'Vérification impossible : vérifiez votre réseau.'; });
     });
   }
 
@@ -1623,7 +2161,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
 
   if(sbAuth() && sbAuth().onAuthStateChange){
     sbAuth().onAuthStateChange(function(event){
-      if(event === 'PASSWORD_RECOVERY') showRecoveryBox();
+      // Un code recopié à la main émet aussi PASSWORD_RECOVERY : le mot de passe
+      // a déjà été tapé à côté du code, inutile de le redemander.
+      if(event === 'PASSWORD_RECOVERY' && !resetByCode) showRecoveryBox();
     });
   }
 
@@ -1741,22 +2281,18 @@ const STORAGE_ITEMS = 'stockmanager_items';
   // Pour un compte fermé (abonnement à régler ou compte suspendu), pas pour un
   // mot de passe perdu : celui-ci se règle seul avec le lien envoyé par email.
   //
-  // Le déblocage se paie avec les crédits de parrainage du portefeuille. Rien
-  // ne sort de l'application : les crédits passent du portefeuille du client à
-  // celui du propriétaire, et l'accès se rouvre dans la foulée. Plus de somme
-  // à envoyer au dehors, plus de référence à recopier, plus d'attente qu'un
-  // humain constate l'arrivée de l'argent.
+  // Le déblocage se paie sur le solde du portefeuille — celui que les
+  // invitations remplissent. Rien ne sort de l'application : la somme passe du
+  // portefeuille du client à celui du propriétaire, et l'accès se rouvre dans
+  // la foulée. Plus de somme à envoyer au dehors, plus de référence à
+  // recopier, plus d'attente qu'un humain constate l'arrivée de l'argent.
+  // Vingt invitations, et le compte se rouvre tout seul.
   const UNLOCK_COST_CREDITS = 20;
-  // Valeur d'un parrainage en ariary. Le serveur a la sienne (AR_PER_REFERRAL) :
-  // c'est celle-là qui fait foi pour le portefeuille. Ici, elle ne sert qu'à
-  // écrire des sommes lisibles sur l'écran de connexion, où l'on ne peut pas
-  // interroger le serveur — la personne n'est pas encore connectée.
-  const AR_PER_CREDIT = 1000;
 
   // Les demandes d'avant ce changement portent encore leur ancien moyen de
   // paiement : le propriétaire doit pouvoir relire son historique.
   function paymentMethodLabel(method){
-    if(method === 'wallet') return 'Crédits du portefeuille';
+    if(method === 'wallet') return 'Solde du portefeuille';
     if(method === 'card') return 'Carte Visa / Mastercard';
     if(method === 'bank') return 'Virement bancaire';
     if(method === 'mobile') return 'Mobile Money';
@@ -1793,7 +2329,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
   function recordWalletUnlock(name, email){
     if(!window.__sb) return;
     window.__sb.from('unlock_requests').insert({
-      name: name, email: normEmail(email), phone: '', message: 'Payé avec les crédits du portefeuille',
+      name: name, email: normEmail(email), phone: '', message: 'Payé avec le solde du portefeuille',
       amount: UNLOCK_COST_CREDITS, paypal_reference: '', payment_method: 'wallet',
       status: 'confirmed', auto_confirmed: true,
       confirmed_at: new Date().toISOString()
@@ -2147,8 +2683,76 @@ const STORAGE_ITEMS = 'stockmanager_items';
     if(!welcomeOpen) return;
     welcomeOpen = false;
     const pending = noticeWaitsForWelcome;
+    const entree = entreeLibreAttendBienvenue;
     noticeWaitsForWelcome = false;
+    entreeLibreAttendBienvenue = false;
+    // « Entrer » entre vraiment : pendant la fenêtre d'entrée libre, c'est
+    // l'application qui s'ouvre derrière, et non l'écran de connexion.
+    if(entree && showPending){ ouvrirEnVisiteur(); return; }
     if(pending && showPending) showAutoNotice();
+  }
+
+  // ---------------- L'ENTRÉE LIBRE (sans compte) ----------------
+  // Comme l'avis d'abonnement, l'ouverture attend que le mot de bienvenue soit
+  // refermé : openApp() le referme au passage, et l'emporterait avant qu'il ait
+  // été lu.
+  let entreeLibreAttendBienvenue = false;
+
+  function ouvrirEnVisiteur(){
+    // Il n'y a rien à remplir : l'écran de connexion s'efface tout de suite,
+    // même s'il faut encore attendre que le mot de bienvenue soit lu. Sinon on
+    // le devine derrière, et il dit le contraire de ce qu'on est en train de
+    // lire.
+    loginScreen.style.display = 'none';
+    if(welcomeOpen){ entreeLibreAttendBienvenue = true; return; }
+    modeVisiteur = true;
+    document.body.classList.add('mode-visiteur');
+    // La place du menu où s'affiche d'habitude le titulaire du compte dit ici
+    // ce qui en tient lieu, et pour combien de temps encore.
+    const reste = freeEntryDaysLeft();
+    document.getElementById('currentUserName').textContent = 'Essai libre';
+    document.getElementById('currentUserEmail').textContent =
+      'Sans compte — encore ' + reste + ' jour' + (reste > 1 ? 's' : '');
+    const ouvrir = function(){
+      openApp();
+      // Arrivé par un lien de direct ou d'appel (live.js), on n'a rien à faire
+      // sur l'Accueil : openApp vient d'ouvrir la page qu'il fallait, et
+      // l'Accueil la refermerait aussitôt. L'avis d'essai libre attend aussi
+      // son tour — il recouvrirait le direct pour lequel on vient d'entrer, et
+      // il se redira à la prochaine ouverture.
+      const parUnLien = (typeof pendingLinkAction === 'function') && pendingLinkAction();
+      if(parUnLien) return;
+      ouvrirSurLAccueil();
+      // L'avis dit la règle : ce qui est offert, jusqu'à quand, et à partir de
+      // quand il faudra un compte puis un abonnement.
+      showAutoNotice();
+    };
+    // les autres fichiers (stock.js, ventes-achats.js...) ne sont chargés
+    // qu'après common.js : on attend qu'ils le soient pour ouvrir l'appli.
+    if(document.readyState === 'loading'){
+      window.addEventListener('DOMContentLoaded', ouvrir);
+    } else {
+      setTimeout(ouvrir, 0);
+    }
+  }
+
+  // Personne n'est connecté : on entre sans compte tant que la fenêtre est
+  // ouverte ; après, l'écran de connexion reprend sa place.
+  function entrerSansCompte(){
+    if(inFreeEntryWindow()){ ouvrirEnVisiteur(); return; }
+    showAutoNotice();
+  }
+
+  // Quitter l'essai libre pour créer le compte. Rien n'est effacé : le stock,
+  // les mouvements et les factures saisis sans compte sont rangés sous les
+  // mêmes clés, et se retrouvent tels quels une fois le compte créé ici.
+  function quitterLEssaiLibre(){
+    modeVisiteur = false;
+    document.body.classList.remove('mode-visiteur');
+    appScreen.style.display = 'none';
+    paywallScreen.style.display = 'none';
+    loginScreen.style.display = 'flex';
+    showLoginMode('full');
   }
 
   ['welcomeClose', 'welcomeEnterBtn'].forEach(function(id){
@@ -2174,14 +2778,22 @@ const STORAGE_ITEMS = 'stockmanager_items';
 
     if(st.status === 'expired'){
       title.textContent = 'Abonnement requis';
-      text.innerHTML = 'Votre essai gratuit de <strong>7 jours</strong> est terminé. L\'accès est <strong>bloqué</strong> ' +
+      text.innerHTML = 'Votre essai gratuit de <strong>15 jours</strong> est terminé. L\'accès est <strong>bloqué</strong> ' +
         'tant que le paiement (mensuel ou annuel) n\'est pas confirmé par le <strong>code de déverrouillage</strong> ' +
         'envoyé par email. Connectez-vous pour recevoir votre code.';
       closeBtn.style.display = 'none';
       loginBtn.style.display = 'block';
     } else {
       title.textContent = 'Essai gratuit & abonnement';
-      text.innerHTML = 'L\'application est <strong>gratuite pendant 7 jours</strong>. Passé ce délai, un abonnement ' +
+      // Tant que la fenêtre est ouverte, l'avis commence par ce qui vient de se
+      // passer sous les yeux : on est entré sans rien remplir, et voilà pourquoi.
+      const sansCompte = inFreeEntryWindow()
+        ? 'Les <strong>' + FREE_ENTRY_DAYS + ' premiers jours</strong>, l\'application s\'ouvre ' +
+          '<strong>sans compte</strong> : rien à remplir, on entre. Passé ce délai, un ' +
+          '<strong>compte</strong> est demandé — l\'essai, lui, continue jusqu\'au 15<sup>e</sup> jour, ' +
+          'et ce qui a été saisi reste en place. '
+        : '';
+      text.innerHTML = sansCompte + 'L\'application est <strong>gratuite pendant 15 jours</strong>. Passé ce délai, un abonnement ' +
         '<strong>mensuel</strong> ou <strong>annuel</strong> sera demandé pour continuer à l\'utiliser. ' +
         'En cas de non-paiement, l\'accès sera bloqué ; un <strong>code de déverrouillage</strong> vous sera ' +
         'alors envoyé par email pour réactiver votre compte.';
@@ -2200,6 +2812,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
     const firstField = document.getElementById(quickVisible ? 'quickEmail' : 'loginName');
     if(firstField) firstField.focus();
   });
+
+  const creerCompteBtn = document.getElementById('creerCompteBtn');
+  if(creerCompteBtn) creerCompteBtn.addEventListener('click', function(){ quitterLEssaiLibre(); });
 
   document.getElementById('logoutBtn').addEventListener('click', function(){
     teardownRealtimeFeatures();
@@ -2239,8 +2854,11 @@ const STORAGE_ITEMS = 'stockmanager_items';
 
   // Au chargement : si une session est enregistrée, on rouvre directement
   // l'application (et la vue précédente) ; sinon on affiche l'écran de connexion.
-  const savedSession = loadSession();
-  if(savedSession && savedSession.name && savedSession.email){
+  const savedSession = MODE_MPIASA ? null : loadSession();
+  if(MODE_MPIASA){
+    // L'employé n'entre pas par un compte : vue-mpiasa.js ouvre l'application
+    // pour lui. Ni session du patron à rouvrir, ni écran de connexion.
+  } else if(savedSession && savedSession.name && savedSession.email){
     currentUser = savedSession;
     loginScreen.style.display = 'none';
     document.getElementById('currentUserName').textContent = currentUser.name;
@@ -2274,12 +2892,11 @@ const STORAGE_ITEMS = 'stockmanager_items';
           if(notice) notice.style.display = 'none';
           openAppForAuthUser(session.user, { restoreView: true });
         } else {
-          showAutoNotice();
+          entrerSansCompte();
         }
-      }, function(){ showAutoNotice(); });
+      }, function(){ entrerSansCompte(); });
     } else {
-      // affichage automatique dès l'ouverture de la page (écran de connexion)
-      showAutoNotice();
+      entrerSansCompte();
     }
   }
   // Un lien de réinitialisation l'emporte sur tout le reste : la personne
@@ -2468,9 +3085,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
         filtrer();
         requestAnimationFrame(function(){
           placerPanneau();
-          // Le clavier ne s'ouvre que là où l'on cherche : sur ordinateur, la
-          // liste tient sous les yeux et le champ est masqué.
-          if(champ && !flottantVisible()) champ.focus({ preventScroll: true });
+          // Le curseur attend dans le champ : on tape le nom de la page aussitôt
+          // le menu ouvert, au doigt comme au clavier.
+          if(champ) champ.focus({ preventScroll: true });
         });
       }
       updateTopbarHeight();
@@ -2482,6 +3099,90 @@ const STORAGE_ITEMS = 'stockmanager_items';
         ouvrirMenu(!navList.classList.contains('open'));
       });
     }
+
+    // ---- « Actualiser », caché derrière le menu ----
+    // Recharger la page, c'est ce qu'on fait quand une nouvelle version tarde
+    // à venir ; mais une application installée n'a pas de barre d'adresse, ni
+    // de bouton pour cela. Il se tient donc derrière le menu, sans prendre de
+    // place : clic droit sur ordinateur, deux appuis rapides au téléphone. Il
+    // paraît à côté du bouton du menu, et s'en va de lui-même.
+    (function(){
+      const bouton = document.createElement('button');
+      bouton.type = 'button';
+      bouton.className = 'bouton-actualiser';
+      bouton.textContent = '🔄';
+      bouton.title = 'Actualiser';
+      bouton.setAttribute('aria-label', 'Actualiser la page');
+      bouton.hidden = true;
+      document.body.appendChild(bouton);
+      let minuteur = null;
+
+      function cacher(){
+        bouton.hidden = true;
+        clearTimeout(minuteur);
+      }
+      function montrerPres(porte){
+        const r = porte.getBoundingClientRect();
+        bouton.hidden = false;
+        const l = bouton.offsetWidth || 44, h = bouton.offsetHeight || 44;
+        // À droite du menu s'il y a la place, à gauche sinon ; à sa hauteur,
+        // ramené dans l'écran.
+        let x = r.right + 6;
+        if(x + l > window.innerWidth - 4) x = r.left - l - 6;
+        let y = r.top + (r.height - h) / 2;
+        y = Math.max(4, Math.min(y, window.innerHeight - h - 4));
+        bouton.style.left = Math.max(4, Math.round(x)) + 'px';
+        bouton.style.top = Math.round(y) + 'px';
+        clearTimeout(minuteur);
+        minuteur = setTimeout(cacher, 6000);
+      }
+
+      bouton.addEventListener('click', function(e){
+        e.stopPropagation();
+        bouton.textContent = '⏳';
+        // Le service worker va d'abord voir s'il y a plus récent : la page
+        // rechargée prend alors la nouvelle version, pas la copie gardée.
+        const recharger = function(){ location.reload(); };
+        try {
+          if(navigator.serviceWorker && navigator.serviceWorker.getRegistration){
+            navigator.serviceWorker.getRegistration()
+              .then(function(reg){ return reg ? reg.update() : null; })
+              .then(recharger, recharger);
+            setTimeout(recharger, 2500);
+            return;
+          }
+        } catch(err){}
+        recharger();
+      });
+
+      portesDuMenu.forEach(function(porte){
+        // Ordinateur : le clic droit, à la place du menu du navigateur.
+        porte.addEventListener('contextmenu', function(e){
+          e.preventDefault();
+          montrerPres(porte);
+        });
+        // Téléphone : deux appuis en moins d'un tiers de seconde. Le menu
+        // s'ouvre au premier et se referme au second ; reste le bouton.
+        let dernier = 0;
+        porte.addEventListener('pointerup', function(e){
+          if(e.pointerType === 'mouse') return;
+          const maintenant = Date.now();
+          if(maintenant - dernier < 350){
+            dernier = 0;
+            setTimeout(function(){ montrerPres(porte); }, 0);
+          } else {
+            dernier = maintenant;
+          }
+        });
+      });
+
+      document.addEventListener('click', function(e){
+        if(bouton.hidden || bouton.contains(e.target)) return;
+        if(portesDuMenu.some(function(p){ return p.contains(e.target); })) return;
+        cacher();
+      });
+      window.addEventListener('resize', cacher);
+    })();
 
     if(champ){
       champ.addEventListener('input', filtrer);
@@ -2649,7 +3350,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
     const MIN_L = 170, MIN_H = 110;
     const MARGE = 8;
     // Le menu, et les panneaux qu'il ouvre.
-    const IDS = ['navList', 'notifPanel', 'marketPanel', 'barReglages', 'fbComposer'];
+    const IDS = ['navList', 'notifPanel', 'marketPanel', 'livraisonPanel', 'barReglages', 'fbComposer'];
     // Les pages qu'il ouvre. Elles remplaçaient le fil ; elles se posent
     // maintenant par-dessus, dans une fenêtre qu'on tire par les coins. Le fil
     // reste dessous : on n'ouvre pas une page pour perdre de vue d'où l'on
@@ -2659,11 +3360,20 @@ const STORAGE_ITEMS = 'stockmanager_items';
     // « Ny asako », la bannière d'essai et la rangée du bas.
     const PAGES = [
       'dash-accueil',
-      'dash-articles', 'section-factures', 'section-inviter', 'section-contact',
+      'dash-articles', 'dash-dashboard', 'dash-commun', 'dash-communadmin', 'section-factures', 'section-inviter', 'section-contact',
+      // Les outils de bureau (fitaovana.js).
+      'section-word', 'section-excel', 'section-notes', 'section-kajy',
+      'section-calendrier', 'section-horaire',
+      // Scan, photos, photocopies (photocopie.js).
+      'section-photocopie',
       'section-live', 'section-appels', 'section-wallet',
       'section-mpiasa', 'section-livreur', 'section-personne',
+      // « Ny momba ahy », la page de l'employé entré par son lien : posée
+      // sous l'Accueil, sa carte s'ouvrait derrière le fil.
+      'section-moi',
       'section-abonnement',
       'section-fond',
+      'section-corbeille',
       'section-connexions', 'section-admin'
     ];
     const COINS = [
@@ -2836,6 +3546,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
         if(typeof saveLastView === 'function') saveLastView();
         return;
       }
+      // En automatique, fermer une page, c'est en avoir fini avec elle : son
+      // icône quitte la rangée du même geste (la rangée, plus bas, en décide).
+      if(el && typeof window.__pageFermee === 'function') window.__pageFermee(el.id);
       const navStock = document.querySelector('.nav-item[data-section="stock"]');
       if(navStock) navStock.click();
       if(typeof showDashView === 'function') showDashView('accueil');
@@ -3176,21 +3889,13 @@ const STORAGE_ITEMS = 'stockmanager_items';
       fermerComposer();
     });
 
-    const publier = document.getElementById('postNewsBtn');
-    if(publier){
-      publier.addEventListener('click', function(){
-        setTimeout(function(){
-          const champ = document.getElementById('newsMessage');
-          // Le champ vidé est le signe que l'envoi a réussi ; en cas d'échec le
-          // message est encore là, et la boîte doit le rester aussi.
-          if(champ && !champ.value.trim()){
-            fermerComposer();
-            // On montre le fil : sans cela, rien ne dit que le message est parti.
-            if(typeof ouvrirDepuisLeMenu === 'function') ouvrirDepuisLeMenu('accueil');
-          }
-        }, 600);
-      });
-    }
+    // L'envoi réussi le dit lui-même (parametres.js) ; en cas d'échec ou de
+    // fiche incomplète, rien ne vient, et la boîte reste ouverte.
+    document.addEventListener('billet-publie', function(){
+      fermerComposer();
+      // On montre le fil : sans cela, rien ne dit que le message est parti.
+      if(typeof ouvrirDepuisLeMenu === 'function') ouvrirDepuisLeMenu('accueil');
+    });
   }
 
   // ---------------- LA VERSION AFFICHÉE ----------------
@@ -3201,10 +3906,16 @@ const STORAGE_ITEMS = 'stockmanager_items';
   // Elle n'est écrite nulle part à la main — ce serait un chiffre de plus à
   // oublier. On la lit sur l'adresse du script, que le versionneur estampille
   // à chaque envoi avec l'empreinte de son contenu.
-  // L'empreinte de la version qui tourne, lue sur l'adresse du script — le
-  // versionneur l'y met à chaque envoi. Elle sert deux fois : à l'afficher, et
-  // à savoir si celle du serveur a changé.
-  const VERSION = (function(){
+  // L'empreinte de la version qui tourne. D'abord celle du site entier, que le
+  // versionneur écrit dans la page (meta « ny-asako-version ») : elle change dès
+  // que change un fichier, ou la page elle-même. À défaut — une page d'avant
+  // cette meta —, celle de common.js, lue sur l'adresse du script. Elle sert
+  // deux fois : à l'afficher, et à savoir si celle du serveur a changé.
+  const VERSION_DU_SITE = (function(){
+    const meta = document.querySelector('meta[name="ny-asako-version"]');
+    return meta ? (meta.getAttribute('content') || '').trim() : '';
+  })();
+  const VERSION = VERSION_DU_SITE || (function(){
     const script = document.querySelector('script[src*="common.js"]');
     const src = script ? script.getAttribute('src') || '' : '';
     return (src.split('?v=')[1] || '').trim();
@@ -3225,14 +3936,20 @@ const STORAGE_ITEMS = 'stockmanager_items';
   // aucun cache, et on lit l'empreinte qu'elle annonce. Différente de celle qui
   // tourne : on vide les caches et on recharge — c'est ce « vider » qui fait
   // que la mise à jour est entière, et non à moitié.
+  //
+  // On compare la version du site entier, et non plus celle de common.js
+  // seule : un changement de style, d'un autre script ou de la page ne touche
+  // pas common.js, et le téléphone restait sur l'ancienne sans que rien ne le
+  // voie.
   (function(){
     if(!VERSION || !window.fetch) return;
     // Une fois par version, et pas davantage : si le rechargement ne suffit
     // pas, on n'y revient pas en boucle — mieux vaut une version en retard
     // qu'une page qui se recharge sans fin.
     const MARQUE = 'stockmanager_version_rechargee';
-    const DELAI = 10 * 60 * 1000;
+    const DELAI = 5 * 60 * 1000;
     let enCours = false;
+    let enAttente = '';
 
     function dejaTentee(v){
       try{ return sessionStorage.getItem(MARQUE) === v; }catch(e){ return false; }
@@ -3244,6 +3961,53 @@ const STORAGE_ITEMS = 'stockmanager_items';
       try{ sessionStorage.removeItem(MARQUE); }catch(e){}
     }
 
+    // La version annoncée par le serveur, lue comme on lit la sienne.
+    function versionEnLigne(texte){
+      if(VERSION_DU_SITE){
+        const meta = texte.match(/<meta name="ny-asako-version" content="([a-f0-9]+)"/);
+        if(meta) return meta[1];
+      }
+      const script = texte.match(/common\.js\?v=([a-f0-9]+)/);
+      return script ? script[1] : '';
+    }
+
+    // Quelqu'un écrit — une note, une lettre, une case d'Excel : recharger
+    // maintenant emporterait ce qu'il tape.
+    function occupe(){
+      const a = document.activeElement;
+      return !!(a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable));
+    }
+
+    function appliquer(v){
+      noterTentative(v);
+      // Les caches d'abord : sans cela le rechargement retrouverait les
+      // mêmes fichiers, et l'on aurait tourné pour rien.
+      const vider = window.caches
+        ? caches.keys().then(function(noms){ return Promise.all(noms.map(function(n){ return caches.delete(n); })); })
+        : Promise.resolve();
+      return vider.catch(function(){}).then(function(){ location.reload(); });
+    }
+
+    // On le dit plutôt que de recharger sous ses doigts. Le bouton applique
+    // tout de suite ; sinon, la mise à jour se fait au prochain retour sur
+    // l'application, quand plus rien n'est en cours d'écriture.
+    function proposer(v){
+      enAttente = v;
+      let b = document.getElementById('bandeauVersion');
+      if(!b){
+        b = document.createElement('div');
+        b.id = 'bandeauVersion';
+        b.className = 'bandeau-install';
+        b.innerHTML = '<span class="bandeau-install-icone" aria-hidden="true">🔄</span>' +
+          '<div class="bandeau-install-texte"><strong>Misy version vaovao</strong>' +
+          '<span>Tsindrio « Havaozina » rehefa vita ny soratanao.</span></div>' +
+          '<button type="button" class="btn btn-sm btn-primary">Havaozina</button>';
+        b.querySelector('button').addEventListener('click', function(){ appliquer(enAttente); });
+        document.body.appendChild(b);
+      }
+      b.hidden = false;
+    }
+
     function verifier(){
       if(enCours || document.hidden) return;
       enCours = true;
@@ -3251,18 +4015,12 @@ const STORAGE_ITEMS = 'stockmanager_items';
         .then(function(r){ return r.ok ? r.text() : null; })
         .then(function(texte){
           if(!texte) return;
-          const trouve = texte.match(/common\.js\?v=([a-f0-9]+)/);
-          if(!trouve) return;
-          const enLigne = trouve[1];
+          const enLigne = versionEnLigne(texte);
+          if(!enLigne) return;
           if(enLigne === VERSION){ oublierTentative(); return; }
           if(dejaTentee(enLigne)) return;
-          noterTentative(enLigne);
-          // Les caches d'abord : sans cela le rechargement retrouverait les
-          // mêmes fichiers, et l'on aurait tourné pour rien.
-          const vider = window.caches
-            ? caches.keys().then(function(noms){ return Promise.all(noms.map(function(n){ return caches.delete(n); })); })
-            : Promise.resolve();
-          return vider.catch(function(){}).then(function(){ location.reload(); });
+          if(occupe()){ proposer(enLigne); return; }
+          return appliquer(enLigne);
         })
         .catch(function(){})
         .then(function(){ enCours = false; });
@@ -3470,8 +4228,13 @@ const STORAGE_ITEMS = 'stockmanager_items';
       // Les premières versions n'enregistraient que la clé.
       return brut.map(function(x){
         return (typeof x === 'string') ? { cle: x, vu: 0 } : x;
-      }).filter(function(x){ return x && x.cle; });
+      }).filter(function(x){ return x && x.cle && JAMAIS_EPINGLEES.indexOf(x.cle) < 0; });
     }
+    // Télécharger Fokontany / Commun : une action faite une fois, comme
+    // « Installer l'application ». Les deux icônes 📲, pareilles, restaient
+    // dans la rangée sans qu'on sache laquelle était laquelle. Écartées ici,
+    // elles disparaissent aussi des rangées où elles étaient déjà posées.
+    const JAMAIS_EPINGLEES = ['id:menuInstallFokontany', 'id:menuInstallCommun'];
     function ecrireEpingles(liste){
       try{ localStorage.setItem(CLE, JSON.stringify(liste)); }catch(e){}
     }
@@ -3498,11 +4261,11 @@ const STORAGE_ITEMS = 'stockmanager_items';
     function fermerLesFenetres(){
       const nav = document.getElementById('navList');
       if(nav) nav.classList.remove('open');
-      ['notifPanel', 'marketPanel', 'fbComposer', 'barReglages'].forEach(function(id){
+      ['notifPanel', 'marketPanel', 'livraisonPanel', 'recherchePanel', 'fbComposer', 'barReglages'].forEach(function(id){
         const el = document.getElementById(id);
         if(el) el.style.display = 'none';
       });
-      ['menuToggle', 'menuFlottant', 'notifToggle', 'marketToggle',
+      ['menuToggle', 'menuFlottant', 'notifToggle', 'marketToggle', 'livraisonToggle', 'barRecherche',
        'composerToggle', 'barComposer', 'barReglagesBtn'].forEach(function(id){
         const el = document.getElementById(id);
         if(el) el.setAttribute('aria-expanded', 'false');
@@ -3555,6 +4318,30 @@ const STORAGE_ITEMS = 'stockmanager_items';
       if(bouton) bouton.style.display = 'none';
     });
 
+    // Une page fermée à sa croix. En automatique, son icône s'en va avec elle :
+    // la rangée garde ce dont on se sert, et une page qu'on vient de fermer
+    // n'en fait plus partie. En manuel, rien ne part sans la croix de l'icône.
+    //
+    // Botika et Écrire ne sont pas concernés : ce sont les deux entrées fixes,
+    // le chemin du retour, et ils n'ont pas de clé d'épingle.
+    function cleDeLaPage(id){
+      if(!id) return '';
+      if(id.indexOf('section-') === 0) return 'section:' + id.slice(8);
+      if(id === 'dash-articles') return 'id:menuArticles';
+      if(id === 'dash-commun') return 'id:menuCommun';
+      if(id === 'dash-communadmin') return 'id:menuCommunAdmin';
+      return '';
+    }
+    window.__pageFermee = function(id){
+      if(lireMode() !== 'auto') return;
+      const cle = cleDeLaPage(id);
+      if(!cle) return;
+      ecrireEpingles(lireEpingles().filter(function(e){ return e.cle !== cle; }));
+      const bouton = rangee.querySelector('[data-epingle="' + cle + '"]');
+      if(bouton) bouton.remove();
+      mesurer();
+    };
+
     function retirer(cle){
       ecrireEpingles(lireEpingles().filter(function(e){ return e.cle !== cle; }));
       const bouton = rangee.querySelector('[data-epingle="' + cle + '"]');
@@ -3566,7 +4353,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
       // venait de disparaître.
       const cible = cle.indexOf('section:') === 0
         ? document.getElementById('section-' + cle.slice(8))
-        : (cle === 'id:menuArticles' ? document.getElementById('dash-articles') : null);
+        : (cle === 'id:menuArticles' ? document.getElementById('dash-articles')
+          : (cle === 'id:menuCommun' ? document.getElementById('dash-commun')
+            : (cle === 'id:menuCommunAdmin' ? document.getElementById('dash-communadmin') : null)));
       if(cible && cible.classList.contains('active')){
         const navStock = document.querySelector('.nav-item[data-section="stock"]');
         if(navStock) navStock.click();
@@ -3618,10 +4407,26 @@ const STORAGE_ITEMS = 'stockmanager_items';
       });
       // Les pages épinglées se rangent après les entrées fixes et avant les
       // réglages, qui ferment la rangée. La loupe, elle, l'ouvre.
+      //
+      // Et entre elles, dans l'ordre du menu — non dans celui où on les a
+      // ouvertes. Posées à la suite, les icônes changeaient de place d'un jour
+      // à l'autre, et le doigt ne les retrouvait jamais au même endroit.
+      const rang = rangDansLeMenu(cle);
+      const suivant = [].slice.call(rangee.querySelectorAll('[data-epingle]')).filter(function(b){
+        return b !== bouton && rangDansLeMenu(b.dataset.epingle) > rang;
+      })[0];
       const reglages = document.getElementById('barReglagesBtn');
-      if(reglages && reglages.parentElement === rangee) rangee.insertBefore(bouton, reglages);
+      if(suivant) rangee.insertBefore(bouton, suivant);
+      else if(reglages && reglages.parentElement === rangee) rangee.insertBefore(bouton, reglages);
       else rangee.appendChild(bouton);
     };
+
+    // La place d'une entrée dans le menu. Une entrée que le menu ne connaît
+    // plus passe au bout, plutôt que de s'intercaler n'importe où.
+    function rangDansLeMenu(cle){
+      const i = entreesEpinglables().indexOf(entreeDe(cle));
+      return i < 0 ? 9999 : i;
+    }
 
     function mesurer(){
       const deborde = rangee.scrollWidth > rangee.clientWidth;
@@ -3632,13 +4437,34 @@ const STORAGE_ITEMS = 'stockmanager_items';
       rangee.classList.toggle('reste-a-gauche', rangee.scrollLeft > 4);
     }
 
-    // En automatique, la rangée se tient à six : la plus anciennement ouverte
-    // s'efface pour la nouvelle. En manuel, rien ne part sans qu'on le dise.
+    // Quand chaque entrée a vraiment servi. Pas « vu » : celui-ci se posait
+    // aussi au premier remplissage de la rangée, une entrée après l'autre dans
+    // l'ordre du menu. Passer en automatique gardait alors les six dernières
+    // du menu — Portefeuille, Fond d'écran, Paramètres — et renvoyait les
+    // Articles et les Notifications dont on se sert tous les jours.
+    const CLE_UTILISE = 'stockmanager_barre_utilise';
+    function lireUsages(){
+      try{ return JSON.parse(localStorage.getItem(CLE_UTILISE)) || {}; }catch(e){ return {}; }
+    }
+    function noterUsage(cle){
+      const u = lireUsages();
+      u[cle] = Date.now();
+      try{ localStorage.setItem(CLE_UTILISE, JSON.stringify(u)); }catch(e){}
+    }
+
+    // En automatique, la rangée se tient à six : celles qui ont servi le plus
+    // récemment restent. À égalité — jamais servies —, l'ordre du menu
+    // départage : ce qui y vient en tête est ce qui compte le plus.
+    // En manuel, rien ne part sans qu'on le dise.
     function elaguer(){
       if(lireMode() !== 'auto') return;
       let liste = lireEpingles();
       if(liste.length <= GARDEES) return;
-      liste.sort(function(a, b){ return (b.vu || 0) - (a.vu || 0); });
+      const usages = lireUsages();
+      liste.sort(function(a, b){
+        const ecart = (usages[b.cle] || 0) - (usages[a.cle] || 0);
+        return ecart !== 0 ? ecart : rangDansLeMenu(a.cle) - rangDansLeMenu(b.cle);
+      });
       liste.slice(GARDEES).forEach(function(e){
         const bouton = rangee.querySelector('[data-epingle="' + e.cle + '"]');
         if(bouton) bouton.remove();
@@ -3652,7 +4478,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
     // poser un second exemplaire à côté du premier.
     const JUMEAUX = { menuAccueil: 'barAccueil', composerToggle: 'barComposer' };
 
-    function epingler(entree){
+    // remplissage : l'entrée est posée par « Averina ny sary rehetra » ou le
+    // premier démarrage, et non choisie. Elle n'a donc pas servi.
+    function epingler(entree, remplissage){
       const jumeau = JUMEAUX[entree.id];
       if(jumeau){
         // Déjà posée sur le fond : la rappeler du menu la remettrait aussi
@@ -3666,6 +4494,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
       }
       const cle = cleDe(entree);
       if(surLeFond(cle)) return;
+      if(!remplissage) noterUsage(cle);
       const liste = lireEpingles();
       const connue = liste.filter(function(e){ return e.cle === cle; })[0];
       if(connue) connue.vu = Date.now();
@@ -3690,7 +4519,9 @@ const STORAGE_ITEMS = 'stockmanager_items';
     // il reste dehors, et c'est aussi bien — une sortie n'a rien à faire dans
     // une rangée où le doigt passe.
     function entreesEpinglables(){
-      const hors = ['navStock'];
+      // « Ny momba ahy » n'existe que pour l'employé : ouvert dans le
+      // navigateur du patron, il y laisserait une icône vers une page vide.
+      const hors = ['navStock', 'navMoi', 'menuInstallFokontany', 'menuInstallCommun'];
       return [].slice.call(document.querySelectorAll('#navList .nav-action, #navList .nav-item[data-section]'))
         .filter(function(e){ return hors.indexOf(e.id) < 0; });
     }
@@ -3980,7 +4811,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
       const bouton = e.target.closest ? e.target.closest('.dash-tab') : null;
       if(!bouton || !rangee.contains(bouton)) return;
       // La loupe et les réglages tiennent la rangée : ils n'en sortent pas.
-      if(bouton.id === 'menuToggle' || bouton.id === 'barReglagesBtn') return;
+      if(bouton.id === 'menuToggle' || bouton.id === 'barReglagesBtn' || bouton.id === 'barRecherche') return;
       if(e.target.closest && e.target.closest('.epingle-retirer')) return;
       const cle = bouton.dataset.epingle || (bouton.id ? 'fixe:' + bouton.id : null);
       if(!cle) return;
@@ -4114,7 +4945,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
         // « Espace admin » est masqué pour les clients : la rangée n'a pas à
         // montrer ce que le menu cache.
         if(getComputedStyle(entree).display === 'none') return;
-        epingler(entree);
+        epingler(entree, true);
       });
       mesurer();
     }
@@ -4237,12 +5068,15 @@ const STORAGE_ITEMS = 'stockmanager_items';
           if(menuToggle) menuToggle.setAttribute('aria-expanded','false');
         }
         placerNotif();
-        var mp = document.getElementById('marketPanel');
-        if(mp){
+        // Les panneaux du menu et la loupe se referment : une seule à la fois.
+        [['marketPanel', 'marketToggle'], ['livraisonPanel', 'livraisonToggle'],
+         ['recherchePanel', 'barRecherche']].forEach(function(paire){
+          var mp = document.getElementById(paire[0]);
+          if(!mp) return;
           mp.style.display = 'none';
-          var mt = document.getElementById('marketToggle');
+          var mt = document.getElementById(paire[1]);
           if(mt) mt.setAttribute('aria-expanded', 'false');
-        }
+        });
         // marque tout comme lu à l'ouverture
         var list = loadNotifications();
         list.forEach(function(n){ n.read = true; });
@@ -4262,47 +5096,413 @@ const STORAGE_ITEMS = 'stockmanager_items';
       }
     });
   }
-  // Achats internationaux : panneau déroulant de la barre du haut (icône 🌍),
-  // même comportement que la cloche de notifications.
-  var marketToggle = document.getElementById('marketToggle');
-  var marketPanel = document.getElementById('marketPanel');
-  if(marketToggle && marketPanel){
+  // Achats internationaux (🌍) et Livraison international (🚚) : deux panneaux
+  // déroulants du menu, même comportement que la cloche de notifications. Ils
+  // sont écrits une fois pour les deux — c'était déjà deux fois la même chose
+  // quand il n'y en avait qu'un et la cloche, et une troisième copie aurait
+  // fini par diverger sur un détail.
+  var PANNEAUX_DU_MENU = [
+    { bouton: 'marketToggle', panneau: 'marketPanel', remplir: 'renderMarketplaceLinks' },
+    { bouton: 'livraisonToggle', panneau: 'livraisonPanel', remplir: 'renderLivraisonLinks' }
+  ];
+  PANNEAUX_DU_MENU.forEach(function(p){
+    var toggle = document.getElementById(p.bouton);
+    var panel = document.getElementById(p.panneau);
+    if(!toggle || !panel) return;
     // Range dans le menu, le panneau serait rogne par la liste qui defile :
     // il flotte donc lui aussi, a cote du bouton.
-    document.body.appendChild(marketPanel);
-    marketPanel.style.position = 'fixed';
-    marketPanel.style.right = 'auto';
-    marketPanel.style.zIndex = '130';
+    document.body.appendChild(panel);
+    panel.style.position = 'fixed';
+    panel.style.right = 'auto';
+    panel.style.zIndex = '130';
 
-    marketToggle.addEventListener('click', function(e){
+    toggle.addEventListener('click', function(e){
       e.stopPropagation();
-      var isOpen = marketPanel.style.display === 'block';
-      marketPanel.style.display = isOpen ? 'none' : 'block';
-      marketToggle.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+      var isOpen = panel.style.display === 'block';
+      panel.style.display = isOpen ? 'none' : 'block';
+      toggle.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
       if(!isOpen){
         // Le menu s'efface : les deux listes se recouvriraient sinon.
         if(navList){
           navList.classList.remove('open');
-          menuToggle.setAttribute('aria-expanded', 'false');
+          if(menuToggle) menuToggle.setAttribute('aria-expanded', 'false');
         }
-        placerPresDuMenu(marketPanel);
-        // une seule liste ouverte à la fois
+        placerPresDuMenu(panel);
+        // une seule liste ouverte à la fois : la cloche, et l'autre panneau.
         if(notifPanel){
           notifPanel.style.display = 'none';
           if(notifToggle) notifToggle.setAttribute('aria-expanded', 'false');
         }
-        if(typeof renderMarketplaceLinks === 'function') renderMarketplaceLinks();
+        PANNEAUX_DU_MENU.forEach(function(q){
+          if(q.panneau === p.panneau) return;
+          var autre = document.getElementById(q.panneau);
+          var sonBouton = document.getElementById(q.bouton);
+          if(autre) autre.style.display = 'none';
+          if(sonBouton) sonBouton.setAttribute('aria-expanded', 'false');
+        });
+        var loupe = document.getElementById('recherchePanel');
+        if(loupe) loupe.style.display = 'none';
+        var boutonLoupe = document.getElementById('barRecherche');
+        if(boutonLoupe) boutonLoupe.setAttribute('aria-expanded', 'false');
+        if(typeof window[p.remplir] === 'function') window[p.remplir]();
       }
     });
     document.addEventListener('click', function(e){
       // .contains et non !== : le bouton porte maintenant un libelle, et
       // c'est lui que le clic designe.
-      if(marketPanel.style.display === 'block' && !marketPanel.contains(e.target) && !marketToggle.contains(e.target)){
-        marketPanel.style.display = 'none';
-        marketToggle.setAttribute('aria-expanded', 'false');
+      if(panel.style.display === 'block' && !panel.contains(e.target) && !toggle.contains(e.target)){
+        panel.style.display = 'none';
+        toggle.setAttribute('aria-expanded', 'false');
       }
     });
-  }
+  });
+
+  // ---- La loupe de la rangée du bas ----
+  // Le menu range ce qu'on connaît déjà : on y descend jusqu'à l'entrée qu'on
+  // cherchait. La loupe répond à une autre question — « où est-ce, déjà ? » —
+  // et la réponse n'est pas toujours une page. C'est parfois un article du
+  // stock, parfois une adresse que le menu garde dans l'une de ses fenêtres.
+  //
+  // Trois listes, donc, mais une seule question et une seule fenêtre :
+  // chercher « Amazon » ne doit pas demander de savoir d'avance laquelle des
+  // trois le contient.
+  (function(){
+    const bouton = document.getElementById('barRecherche');
+    const panneau = document.getElementById('recherchePanel');
+    const champ = document.getElementById('rechercheChamp');
+    const sortie = document.getElementById('rechercheResultats');
+    const rienTrouve = document.getElementById('rechercheVide');
+    if(!bouton || !panneau || !champ || !sortie) return;
+
+    // Hors du menu, comme les autres panneaux : rangé dedans, il serait rogné
+    // par la liste qui défile.
+    document.body.appendChild(panneau);
+    panneau.style.position = 'fixed';
+    panneau.style.zIndex = '130';
+    panneau.style.width = 'min(340px, calc(100vw - 24px))';
+
+    // Huit par groupe : au-delà on ne lit plus, on fait défiler. Qui ne trouve
+    // pas son article dans les huit premiers tape une lettre de plus, et c'est
+    // plus court que de parcourir trente lignes.
+    const PAR_GROUPE = 8;
+
+    // « Télécharger » se trouve en tapant « telecharger » : personne ne pose
+    // les accents sur un clavier de téléphone quand il cherche vite.
+    function nu(s){
+      return (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    }
+
+    // Une entrée que cette personne-ci n'a pas le droit de voir ne doit pas
+    // reparaître par la recherche : « Espace admin » est au propriétaire,
+    // « Ny momba ahy » à l'employé. On ne lit pas l'affichage de la liste du
+    // menu pour le savoir — elle reste parfois filtrée d'une fois sur l'autre,
+    // et l'on prendrait ce filtre pour une interdiction. La règle est redite.
+    function entreeOuverte(el){
+      if(el.id === 'navStock') return false;
+      if(el.id === 'navAdmin') return !!(currentUser && currentUser.email && isOwnerEmail(currentUser.email));
+      if(el.classList.contains('seulement-mpiasa')) return document.body.classList.contains('mode-mpiasa');
+      return true;
+    }
+
+    function lesPages(){
+      if(!navList) return [];
+      return [].slice.call(navList.children).filter(function(el){
+        return (el.classList.contains('nav-item') || el.classList.contains('nav-action')) && entreeOuverte(el);
+      }).map(function(el){
+        // Le premier libellé et non tout le bouton : la cloche porte un
+        // compteur, qui donnerait « Notifications3 ».
+        const porteur = el.querySelector('span') || el;
+        const nom = (porteur.textContent || el.textContent || '').trim();
+        return { nom: nom, ouvrir: function(){ el.click(); } };
+      });
+    }
+
+    function lesArticles(){
+      if(typeof items === 'undefined' || !Array.isArray(items)) return [];
+      return items.map(function(it){
+        const bouts = [];
+        if(it.ref) bouts.push(String(it.ref));
+        if(it.category) bouts.push(String(it.category));
+        bouts.push((it.qty != null ? it.qty : 0) + ' ' + (it.unit || 'pièce'));
+        if(it.supplier) bouts.push(String(it.supplier));
+        return {
+          nom: '📦 ' + (it.name || '—'),
+          detail: bouts.join(' · '),
+          // Ce qu'on tape n'est pas toujours le nom : c'est parfois la
+          // référence lue sur le carton, ou le nom du fournisseur.
+          mots: [it.name, it.ref, it.category, it.supplier].join(' '),
+          ouvrir: function(){ versLArticle(it.id); }
+        };
+      });
+    }
+
+    function lesAdresses(){
+      const vues = Object.create(null);
+      const liste = [];
+      function ajouter(icone, nom, url){
+        if(!nom || !url) return;
+        // La même adresse s'écrit de deux façons : « pixmania.com » dans la
+        // liste, « pixmania.com/ » une fois que le navigateur l'a lue dans un
+        // lien. Comparées telles quelles, elles font deux résultats pour une
+        // seule boutique.
+        const court = url.replace(/^https?:\/\//, '').replace(/\/+$/, '');
+        if(vues[court]) return;
+        vues[court] = true;
+        liste.push({
+          nom: icone + ' ' + nom,
+          detail: court,
+          mots: nom + ' ' + url,
+          ouvrir: function(){ window.open(url, '_blank', 'noopener'); }
+        });
+      }
+      if(typeof DEFAULT_MARKETPLACES !== 'undefined'){
+        DEFAULT_MARKETPLACES.forEach(function(g){
+          g.liens.forEach(function(m){ ajouter('🌍', m.name, m.url); });
+        });
+      }
+      if(typeof DEFAULT_TRANSPORTEURS !== 'undefined'){
+        DEFAULT_TRANSPORTEURS.forEach(function(g){
+          g.liens.forEach(function(m){ ajouter('🚚', m.name, m.url); });
+        });
+      }
+      // Les magazay ajoutés à la main vivent dans la base et n'arrivent
+      // qu'avec leur fenêtre. Si elle a déjà été ouverte, ils sont là : on les
+      // prend au passage plutôt que de redemander au serveur à chaque lettre
+      // tapée.
+      const boite = document.getElementById('marketplaceLinks');
+      if(boite){
+        [].slice.call(boite.querySelectorAll('a[href]')).forEach(function(a){
+          ajouter('🌍', (a.getAttribute('data-apercu-nom') || a.textContent || '').trim(), a.href);
+        });
+      }
+      return liste;
+    }
+
+    // Le fil : ce que les clients ont publié, ce qu'ils ont mis en vente, et
+    // ce qui s'est dit dessous. On le lit dans la page plutôt que d'aller le
+    // redemander au serveur à chaque lettre tapée — c'est exactement ce que
+    // le fil montre, et cela reste juste quand le réseau ne répond plus.
+    function court(s){
+      const t = (s || '').replace(/\s+/g, ' ').trim();
+      return t.length > 64 ? t.slice(0, 63) + '…' : t;
+    }
+    function leFil(){
+      const liste = document.getElementById('communityNewsList');
+      const billets = [], hevitra = [];
+      if(!liste) return { billets: billets, hevitra: hevitra };
+      [].slice.call(liste.querySelectorAll('.fb-post')).forEach(function(post){
+        const id = post.dataset.newsId;
+        if(!id) return;
+        const texteDe = function(sel){
+          const el = post.querySelector(sel);
+          return el ? (el.textContent || '').trim() : '';
+        };
+        const auteur = texteDe('.fb-post-name');
+        const corps = texteDe('.fb-post-body');
+        const prix = texteDe('.fb-post-price');
+        // Une marchandise mise en vente porte son prix et son propre habillage :
+        // elle se montre comme telle, et non comme une nouvelle parmi d'autres.
+        const entana = post.classList.contains('fb-post-entana');
+        billets.push({
+          nom: (entana ? '🛒 ' : '📰 ') + (court(corps) || auteur || 'Billet'),
+          detail: [auteur, prix].filter(Boolean).join(' · '),
+          mots: auteur + ' ' + corps + ' ' + prix,
+          ouvrir: function(){ versLeBillet(id, null); }
+        });
+        [].slice.call(post.querySelectorAll('.fb-comment')).forEach(function(ligne){
+          const fort = ligne.querySelector('strong');
+          const date = ligne.querySelector('.fb-comment-date');
+          const qui = fort ? (fort.textContent || '').trim() : '';
+          // Le propos seul : ni son auteur, ni l'heure. On cherche ce qui a
+          // été dit, et les retrouver dans le résultat ne dirait rien de plus
+          // que la ligne du dessous, qui les porte déjà.
+          let quoi = (ligne.textContent || '');
+          if(date) quoi = quoi.replace(date.textContent, '');
+          if(qui) quoi = quoi.replace(qui, '');
+          quoi = quoi.trim();
+          if(!quoi) return;
+          hevitra.push({
+            nom: '💬 ' + court(quoi),
+            detail: [qui, auteur ? 'ambanin\'ny an\'i ' + auteur : ''].filter(Boolean).join(' · '),
+            mots: qui + ' ' + quoi,
+            ouvrir: function(){ versLeBillet(id, quoi); }
+          });
+        });
+      });
+      return { billets: billets, hevitra: hevitra };
+    }
+
+    function viser(el, classe){
+      if(el.scrollIntoView) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      el.classList.remove(classe);
+      void el.offsetWidth;
+      el.classList.add(classe);
+    }
+
+    // Ouvrir l'Accueil REFAIT le fil entièrement, et il revient du serveur —
+    // deux secondes et demie, parfois. Le billet qui est à l'écran au moment
+    // où l'on presse disparaît donc, et avec lui la marque qu'on venait de
+    // poser : on atteignait l'Accueil sans que rien ne s'éclaire.
+    //
+    // On ne devine donc pas quand le fil aura fini : on marque le billet dès
+    // qu'on le voit, et on le remarque s'il est remplacé par un neuf. Six
+    // secondes de guet, une fois sur dix de seconde — de quoi laisser passer
+    // le fil, puis les commentaires qui arrivent derrière lui par une autre
+    // requête. Rien ne se remarque deux fois : la classe déjà posée le dit.
+    function versLeBillet(id, texteDuHevitra){
+      if(typeof ouvrirDepuisLeMenu !== 'function') return;
+      ouvrirDepuisLeMenu('accueil');
+      const numero = String(id).replace(/[^\w-]/g, '');
+      if(!numero) return;
+      const ou = '#communityNewsList .fb-post[data-news-id="' + numero + '"]';
+      let tours = 0;
+      (function guetter(){
+        const post = document.querySelector(ou);
+        if(post){
+          if(!post.classList.contains('billet-vise')) viser(post, 'billet-vise');
+          if(texteDuHevitra){
+            const ligne = [].slice.call(post.querySelectorAll('.fb-comment')).filter(function(l){
+              return (l.textContent || '').indexOf(texteDuHevitra) >= 0;
+            })[0];
+            if(ligne && !ligne.classList.contains('ligne-visee')) viser(ligne, 'ligne-visee');
+          }
+        }
+        tours += 1;
+        if(tours >= 60) return;
+        setTimeout(guetter, 100);
+      })();
+    }
+
+    // La page des articles en compte parfois cent. Y arriver sans savoir
+    // laquelle des cent lignes on cherchait, c'est arriver nulle part : la
+    // ligne se place au milieu de l'écran et s'éclaire un instant.
+    function versLArticle(id){
+      if(typeof ouvrirDepuisLeMenu !== 'function') return;
+      ouvrirDepuisLeMenu('articles');
+      requestAnimationFrame(function(){
+        const ligne = document.querySelector('#stockTableBody tr[data-item-id="' + id + '"]');
+        // « viser » retire la classe avant de la remettre : sans cela,
+        // chercher deux fois le même article ne rejouerait pas la couleur, et
+        // le second passage n'aurait l'air de rien.
+        if(ligne) viser(ligne, 'ligne-visee');
+      });
+    }
+
+    function placer(){
+      if(panneau.style.display !== 'block') return;
+      if(typeof placerPresDuMenu === 'function') placerPresDuMenu(panneau);
+    }
+
+    function fermer(){
+      panneau.style.display = 'none';
+      bouton.setAttribute('aria-expanded', 'false');
+    }
+
+    function chercher(){
+      const q = nu(champ.value.trim());
+      sortie.innerHTML = '';
+      if(!q){
+        if(rienTrouve) rienTrouve.style.display = 'none';
+        placer();
+        return;
+      }
+      const fil = leFil();
+      const groupes = [
+        { titre: 'Pejy', lignes: lesPages() },
+        { titre: 'Entana ao amin\'ny stock', lignes: lesArticles() },
+        { titre: 'Vaovao sy entana navoaka', lignes: fil.billets },
+        { titre: 'Hevitra', lignes: fil.hevitra },
+        { titre: 'Magazay sy fitaterana', lignes: lesAdresses() }
+      ];
+      let total = 0;
+      groupes.forEach(function(g){
+        const gardes = g.lignes.filter(function(l){
+          return nu(l.nom + ' ' + (l.mots || '')).indexOf(q) >= 0;
+        }).slice(0, PAR_GROUPE);
+        if(!gardes.length) return;
+        total += gardes.length;
+        const titre = document.createElement('div');
+        titre.className = 'recherche-groupe';
+        titre.textContent = g.titre;
+        sortie.appendChild(titre);
+        gardes.forEach(function(l){
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'nav-action';
+          b.textContent = l.nom;
+          if(l.detail){
+            const d = document.createElement('span');
+            d.className = 'recherche-detail';
+            d.textContent = l.detail;
+            b.appendChild(d);
+          }
+          // La fenêtre se referme AVANT d'ouvrir : ce qu'on ouvre est parfois
+          // une page, et elle paraîtrait sous la recherche restée dessus.
+          b.addEventListener('click', function(){ fermer(); l.ouvrir(); });
+          sortie.appendChild(b);
+        });
+      });
+      if(rienTrouve) rienTrouve.style.display = total ? 'none' : 'block';
+      placer();
+    }
+
+    bouton.addEventListener('click', function(e){
+      e.stopPropagation();
+      if(panneau.style.display === 'block'){ fermer(); return; }
+      panneau.style.display = 'block';
+      bouton.setAttribute('aria-expanded', 'true');
+      // Une seule fenêtre ouverte à la fois, comme partout ailleurs.
+      if(navList){
+        navList.classList.remove('open');
+        if(menuToggle) menuToggle.setAttribute('aria-expanded', 'false');
+      }
+      if(notifPanel){
+        notifPanel.style.display = 'none';
+        if(notifToggle) notifToggle.setAttribute('aria-expanded', 'false');
+      }
+      PANNEAUX_DU_MENU.forEach(function(q){
+        const p = document.getElementById(q.panneau);
+        const b = document.getElementById(q.bouton);
+        if(p) p.style.display = 'none';
+        if(b) b.setAttribute('aria-expanded', 'false');
+      });
+      // Le fil n'a peut-être jamais été affiché — on a ouvert l'application
+      // sur les Factures, et la loupe cherche alors dans une page vide. On le
+      // demande une fois, ici, et non à chaque lettre tapée : les résultats
+      // paraîtront dès qu'il arrivera.
+      const filVide = !document.querySelector('#communityNewsList .fb-post');
+      if(filVide && window.__sb && typeof window.renderCommunityNews === 'function'){
+        try { window.renderCommunityNews(); } catch(e){}
+      }
+      // Ce qu'on cherchait la fois d'avant n'a rien à voir avec maintenant :
+      // le champ repart vide.
+      champ.value = '';
+      chercher();
+      requestAnimationFrame(function(){
+        placer();
+        champ.focus({ preventScroll: true });
+      });
+    });
+
+    champ.addEventListener('input', chercher);
+    champ.addEventListener('click', function(e){ e.stopPropagation(); });
+    champ.addEventListener('keydown', function(e){
+      if(e.key === 'Escape'){ fermer(); return; }
+      // Entrée : on ouvre le premier résultat, sans avoir à viser.
+      if(e.key !== 'Enter') return;
+      const premier = sortie.querySelector('.nav-action');
+      if(premier) premier.click();
+    });
+
+    document.addEventListener('click', function(e){
+      if(panneau.style.display !== 'block') return;
+      if(panneau.contains(e.target) || bouton.contains(e.target)) return;
+      fermer();
+    });
+
+    window.addEventListener('resize', placer);
+    window.addEventListener('scroll', placer, { passive: true });
+  })();
 
   var notifClearBtn = document.getElementById('notifClearBtn');
   if(notifClearBtn){
@@ -4334,6 +5534,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
          && typeof renderEquipe === 'function') renderEquipe();
       if(nav.dataset.section === 'live') renderLiveList();
       if(nav.dataset.section === 'appels') renderOnlineClientsForCall();
+      if(nav.dataset.section === 'corbeille' && typeof renderCorbeille === 'function') renderCorbeille();
       // ferme le menu mobile après avoir choisi une section
       if(navList && navList.classList.contains('open')){
         navList.classList.remove('open');
@@ -4382,12 +5583,16 @@ const STORAGE_ITEMS = 'stockmanager_items';
     const vue = document.querySelector('.dash-view.active');
     return vue ? vue.id.replace(/^dash-/, '') : 'accueil';
   }
+  // La rangée de dehors ne sert qu'aux vues du stock posées dans la page —
+  // tableau de bord, historique, ajout, comptes, achat — pour passer de l'une
+  // à l'autre. Avec l'Accueil ou les Articles, qui s'ouvrent en fenêtre, elle
+  // restait seule derrière elles, à nu sur le fond d'écran. Les Articles
+  // portent maintenant leurs propres onglets, et la recherche.
+  // Le tableau de bord n'en est plus : il s'ouvre en fenêtre, avec ses onglets.
+  const VUES_DANS_LA_PAGE = ['historique', 'ajouter', 'comptes', 'acheter'];
   function updateSubTabsVisibility(){
-    const surLAccueil = vueAffichee() === 'accueil';
     const subTabs = document.getElementById('stockSubTabs');
-    if(subTabs) subTabs.style.display = surLAccueil ? 'none' : '';
-    const recherche = document.querySelector('#section-stock .global-search');
-    if(recherche) recherche.style.display = surLAccueil ? 'none' : '';
+    if(subTabs) subTabs.style.display = VUES_DANS_LA_PAGE.indexOf(vueAffichee()) >= 0 ? '' : 'none';
   }
   updateSubTabsVisibility();
 
@@ -4396,7 +5601,163 @@ const STORAGE_ITEMS = 'stockmanager_items';
   // Chaque vue redessine ce qui lui appartient. Deux chemins y mènent
   // maintenant — les onglets restants et les entrées du menu — et une vue
   // ouverte sans être redessinée montre l'état d'avant.
+  // Les deux onglets de « Commun » : le comptage des personnes et les CIN /
+  // passeports. On rouvre la fenêtre sur celui qu'on y a laissé. var et non
+  // let : rafraichirVue peut tourner avant que cette ligne ne soit lue.
+  var ongletCommun = 'tableau';
+  function choisirOngletCommun(nom){
+    const PANNEAUX = {
+      tableau: 'communCorps',
+      adidy: 'communAdidy', historique: 'communHistorique',
+      taratasy: 'communTaratasy', fianakaviana: 'communFianakaviana', fangatahana: 'communFangatahana'
+    };
+    ongletCommun = PANNEAUX[nom] ? nom : 'tableau';
+    Object.keys(PANNEAUX).forEach(function(cle){
+      const el = document.getElementById(PANNEAUX[cle]);
+      if(el) el.style.display = cle === ongletCommun ? '' : 'none';
+    });
+    document.querySelectorAll('#dash-commun [data-commun]').forEach(function(t){
+      t.classList.toggle('active', t.dataset.commun === ongletCommun);
+    });
+    // La porte d'abord : sans alalana, rien de tout cela ne se montre, et rien
+    // ne se demande au serveur.
+    if(typeof renderPorteCommun === 'function'){
+      renderPorteCommun().then(function(ouverte){ if(ouverte) remplirOngletCommun(); });
+      return;
+    }
+    remplirOngletCommun();
+  }
+
+  function remplirOngletCommun(){
+    const nom = ongletCommun;
+    // Le bloc revient du Commun : la liste des installations s'y referme.
+    window.__montrerLesInstallations();
+    if(nom === 'fangatahana'){
+      if(typeof renderFangatahana === 'function') renderFangatahana();
+      return;
+    }
+    // On relit à chaque ouverture : les chiffres se dessinent une fois
+    // l'onglet visible, et les adidy suivent les personnes du registre.
+    if(ongletCommun === 'adidy'){
+      if(typeof renderAdidy === 'function') renderAdidy();
+    } else if(ongletCommun === 'historique'){
+      if(typeof renderHistorique === 'function') renderHistorique();
+      // Les papiers remis ont leur place dans l'historique aussi (taratasy.js).
+      if(typeof renderTaratasyHistorique === 'function') renderTaratasyHistorique();
+    } else if(ongletCommun === 'taratasy'){
+      if(typeof renderTaratasy === 'function') renderTaratasy();
+    } else if(ongletCommun === 'fianakaviana'){
+      if(typeof renderFianakaviana === 'function') renderFianakaviana();
+    } else if(typeof renderFianakaviana === 'function'){
+      renderFianakaviana();
+    }
+    // Le tableau de bord montre aussi l'argent entré : il le relit lui-même,
+    // sans qu'il ait fallu passer par l'onglet Adidy.
+    if(ongletCommun === 'tableau'){
+      if(typeof renderFianakavianaIsa === 'function') renderFianakavianaIsa();
+      if(typeof renderVolaVoaangona === 'function') renderVolaVoaangona();
+      if(typeof renderTaratasyIsa === 'function') renderTaratasyIsa();
+    }
+  }
+
+  // Le tableau de bord du Fokontany vit dans sa fenêtre ; l'Administratif
+  // Commun le lui emprunte. Une seule vue est ouverte à la fois
+  // (showDashView), si bien que le bloc n'a jamais à être à deux endroits.
+  // Le Commun surplombe les fokontany : il lit LEURS registres, et non ceux
+  // de l'admin, qui n'en tient aucun. Les fichiers du registre le demandent
+  // avant de filtrer par compte (fianakaviana.js, adidy.js, taratasy.js).
+  //
+  // Le même bloc sert ici aux deux fenêtres : « Administratif Fokontany »,
+  // où l'admin tient son propre registre, et « Administratif Commun », qui
+  // les regarde tous. Ce qui les distingue est l'endroit où le bloc se
+  // trouve à l'instant (rangerTableauCommun) — pas l'adresse de la page,
+  // comme dans l'application à part (fokontany-app.js).
+  //
+  // Le serveur, lui, ne l'accorde qu'au propriétaire (règles
+  // « lecture commun »).
+  window.__lectureCommun = function(){
+    const corps = document.getElementById('communCorps');
+    const hote = document.getElementById('communAdminCorps');
+    if(!corps || !hote || corps.parentElement !== hote) return false;
+    return !!(currentUser && currentUser.email && isOwnerEmail(currentUser.email));
+  };
+
+  // Ce qui est déjà installé : l'admin passe de fokontany en fokontany, et
+  // sans cette liste il ne sait plus lequel est fait. Elle n'a de sens que
+  // dans le Commun, qui les surplombe — dans sa propre fenêtre, le
+  // fokontany n'a pas à savoir qui d'autre a installé l'application. Le
+  // panneau vit dans le bloc emprunté : hors du Commun, on le referme.
+  // (Même liste que dans l'application à part : fokontany-app.js.)
+  window.__montrerLesInstallations = function(){
+    const panneau = document.getElementById('communInstallesPanneau');
+    const liste = document.getElementById('communInstalles');
+    if(!panneau || !liste) return;
+    if(!window.__lectureCommun() || !window.__sb){ panneau.style.display = 'none'; return; }
+    panneau.style.display = '';
+    window.__sb.from('fokontany_installation').select('*').order('created_at', { ascending: false })
+      .then(function(res){
+        const lignes = (res && !res.error && res.data) || [];
+        liste.innerHTML = lignes.length
+          ? lignes.map(function(i){
+              const nom = String(i.fokontany || i.email || '').replace(/[<>&]/g, '');
+              const quoi = i.karazana === 'commun' ? '🏛️ Commun' : '🗂️ Fokontany';
+              const d = new Date(i.created_at);
+              return '<div class="list-row">' +
+                '<span>' + quoi + ' ' + nom + ' <span style="color:var(--muted);">· ' +
+                  String(i.email || '').replace(/[<>&]/g, '') + '</span></span>' +
+                '<span style="white-space:nowrap; color:var(--muted);">' +
+                  (isNaN(d) ? '—' : d.toLocaleDateString('fr-FR')) + '</span>' +
+              '</div>';
+            }).join('')
+          : '<p class="empty-hint" style="padding:0.4rem 0;">Mbola tsy misy fokontany nametraka ny app.</p>';
+      }, function(){});
+  };
+  function rangerTableauCommun(chez){
+    const corps = document.getElementById('communCorps');
+    const hote = chez === 'communadmin'
+      ? document.getElementById('communAdminCorps')
+      : document.getElementById('communContenu');
+    if(!corps || !hote || corps.parentElement === hote) return corps;
+    if(chez === 'communadmin') hote.appendChild(corps);
+    else {
+      // Sa place d'origine : juste après la rangée d'onglets.
+      const onglets = hote.querySelector('.dash-tabs');
+      hote.insertBefore(corps, onglets ? onglets.nextSibling : hote.firstChild);
+    }
+    return corps;
+  }
+  function ouvrirCommunAdmin(){
+    const corps = rangerTableauCommun('communadmin');
+    const message = document.getElementById('communAdminMessage');
+    if(!corps) return;
+    corps.style.display = 'none';
+    function montrer(ouverte){
+      // La fenêtre a pu être quittée pendant qu'on attendait le serveur.
+      if(!document.getElementById('dash-communadmin').classList.contains('active')) return;
+      corps.style.display = ouverte ? '' : 'none';
+      if(message){
+        message.style.display = ouverte ? 'none' : '';
+        message.textContent = ouverte ? '' :
+          '🔐 Mila alalana ity pejy ity : sokafy aloha ny « Administratif Fokontany » miaraka amin\'ny code nomen\'ny tompon\'ny site.';
+      }
+      if(!ouverte) return;
+      // Les mêmes lectures que l'onglet Tableau de bord du Fokontany,
+      // et la liste des installations, qui n'est qu'ici.
+      window.__montrerLesInstallations();
+      if(typeof renderFianakavianaIsa === 'function') renderFianakavianaIsa();
+      if(typeof renderVolaVoaangona === 'function') renderVolaVoaangona();
+      if(typeof renderTaratasyIsa === 'function') renderTaratasyIsa();
+    }
+    if(typeof renderPorteCommun === 'function') renderPorteCommun().then(montrer, function(){ montrer(false); });
+    else montrer(true);
+  }
+
   function rafraichirVue(nom){
+    if(nom === 'commun'){
+      rangerTableauCommun('commun');
+      choisirOngletCommun(ongletCommun);
+    }
+    if(nom === 'communadmin') ouvrirCommunAdmin();
     // Gardes typeof : showDashView tourne aussi au démarrage, pour rouvrir
     // la vue quittée, et tous les fichiers ne sont pas encore chargés.
     if(nom === 'dashboard'){
@@ -4412,13 +5773,19 @@ const STORAGE_ITEMS = 'stockmanager_items';
   }
 
   function showDashView(nom){
+    // Le Fokontany et l'Administratif Commun sont au propriétaire : un client
+    // qui y arriverait (vue rouverte au démarrage, lien) retombe sur l'Accueil,
+    // sans que rien n'ait été demandé au serveur.
+    if((nom === 'commun' || nom === 'communadmin') &&
+       !(currentUser && currentUser.email && isOwnerEmail(currentUser.email))) nom = 'accueil';
     const view = document.getElementById('dash-' + nom);
     if(!view) return false;
     document.querySelectorAll('.dash-tab').forEach(function(t){ t.classList.remove('active'); });
     document.querySelectorAll('.dash-view').forEach(function(v){ v.classList.remove('active'); });
     view.classList.add('active');
-    const tab = document.querySelector('.dash-tab[data-dash="' + nom + '"]');
-    if(tab) tab.classList.add('active');
+    // Un même onglet peut paraître deux fois — dehors et dans les Articles :
+    // les deux s'allument.
+    document.querySelectorAll('.dash-tab[data-dash="' + nom + '"]').forEach(function(t){ t.classList.add('active'); });
     rafraichirVue(nom);
     if(typeof updateSubTabsVisibility === 'function') updateSubTabsVisibility();
     return true;
@@ -4446,6 +5813,29 @@ const STORAGE_ITEMS = 'stockmanager_items';
   });
   const menuArticles = document.getElementById('menuArticles');
   if(menuArticles) menuArticles.addEventListener('click', function(){ ouvrirDepuisLeMenu('articles'); });
+  const menuTableauBord = document.getElementById('menuTableauBord');
+  if(menuTableauBord) menuTableauBord.addEventListener('click', function(){ ouvrirDepuisLeMenu('dashboard'); });
+  const menuCommun = document.getElementById('menuCommun');
+  if(menuCommun) menuCommun.addEventListener('click', function(){ ouvrirDepuisLeMenu('commun'); });
+  const menuCommunAdmin = document.getElementById('menuCommunAdmin');
+  if(menuCommunAdmin) menuCommunAdmin.addEventListener('click', function(){ ouvrirDepuisLeMenu('communadmin'); });
+  [['menuInstallFokontany', '/fokontany/', true], ['menuInstallCommun', '/commun/', false]].forEach(function(p){
+    const el = document.getElementById(p[0]);
+    if(el) el.addEventListener('click', function(){
+      if(!(currentUser && currentUser.email && isOwnerEmail(currentUser.email))) return;
+      if(p[2]) window.__validerAvantInstall(function(suffixe){ window.__versLInstallation(p[1], suffixe); });
+      else window.__versLInstallation(p[1]);
+    });
+  });
+
+  // La validation avant l'installation : une page entière, à l'image de la
+  // porte du Fokontany (« 🔐 Mila alalana ity pejy ity »). L'admin y écrit le
+  // code du fokontany nouveau (celui de sa demande, visible dans
+  // « 🛡️ Fangatahana ») et presse « 🔓 Sokafy ny pejy » : l'accès est
+  // confirmé et la demande acceptée, comme par ✅ Hamafiso. Le lien suit.
+  document.querySelectorAll('#dash-commun [data-commun]').forEach(function(tab){
+    tab.addEventListener('click', function(){ choisirOngletCommun(tab.dataset.commun); });
+  });
 
   const backToAccueilBtn = document.getElementById('backToAccueilBtn');
   if(backToAccueilBtn){
@@ -4464,7 +5854,7 @@ const STORAGE_ITEMS = 'stockmanager_items';
       if(!view) return;
       document.querySelectorAll('.dash-tab').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.dash-view').forEach(v => v.classList.remove('active'));
-      tab.classList.add('active');
+      document.querySelectorAll('.dash-tab[data-dash="' + tab.dataset.dash + '"]').forEach(t => t.classList.add('active'));
       view.classList.add('active');
       rafraichirVue(tab.dataset.dash);
       updateSubTabsVisibility();
@@ -4562,3 +5952,42 @@ const STORAGE_ITEMS = 'stockmanager_items';
       }
     });
   }
+  // Les noms complets (.champ-anarana) : une zone de texte qui grandit avec
+  // le nom au lieu de le couper. Elle reste un champ d'une seule ligne pour
+  // le reste du code : Entrée n'y ajoute rien, et un retour à la ligne collé
+  // devient une espace.
+  (function(){
+    function ajuster(el){
+      if(!el.offsetParent) return;          // cachée : mesurée quand elle paraîtra
+      el.style.height = 'auto';
+      el.style.height = el.scrollHeight + 2 + 'px';
+    }
+    document.querySelectorAll('textarea.champ-anarana').forEach(function(el){
+      // Les scripts écrivent .value directement (scan de la CIN, choix d'une
+      // personne, remise à zéro) : sans ce relais, la hauteur ne suivrait pas.
+      const proto = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value');
+      Object.defineProperty(el, 'value', {
+        configurable: true,
+        get: function(){ return proto.get.call(el); },
+        set: function(v){ proto.set.call(el, v); ajuster(el); }
+      });
+      el.addEventListener('keydown', function(e){ if(e.key === 'Enter') e.preventDefault(); });
+      el.addEventListener('input', function(){
+        if(/[\r\n]/.test(proto.get.call(el))){
+          const pos = el.selectionStart;
+          proto.set.call(el, proto.get.call(el).replace(/\s*[\r\n]+\s*/g, ' '));
+          el.setSelectionRange(pos, pos);
+        }
+        ajuster(el);
+      });
+      el.addEventListener('focus', function(){ ajuster(el); });
+    });
+    // La page qui s'ouvre, la fenêtre qu'on élargit : la largeur change, la
+    // hauteur nécessaire aussi.
+    function toutAjuster(){ document.querySelectorAll('textarea.champ-anarana').forEach(ajuster); }
+    window.addEventListener('resize', toutAjuster);
+    if(window.ResizeObserver){
+      const ro = new ResizeObserver(toutAjuster);
+      document.querySelectorAll('textarea.champ-anarana').forEach(function(el){ ro.observe(el.parentElement); });
+    }
+  })();

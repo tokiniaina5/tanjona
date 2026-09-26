@@ -26,6 +26,9 @@
         '<td>' + formatAr(item.qty * item.price) + '</td>' +
         '<td>' + (item.seuil != null ? item.seuil : 5) + '</td>' +
         '<td>' + escapeHtml(item.supplier || '—') + '</td>' +
+        // Navoaka na tsia : l'état est demandé à la base juste après (voir
+        // majLesBoutonsFil) ; en attendant, le bouton se tait.
+        '<td><button type="button" class="bouton-fil" data-publier="' + idx + '" aria-pressed="false" disabled>…</button></td>' +
         '<td style="white-space:nowrap;">' +
           '<button class="btn btn-violet btn-icon" data-edit="' + idx + '" title="Modifier" aria-label="Modifier" style="margin-right:0.35rem;">✏️</button>' +
           '<button class="btn btn-amber btn-icon" data-sortie="' + idx + '" title="Sortie" aria-label="Sortie" style="margin-right:0.35rem;">📤</button>' +
@@ -36,6 +39,9 @@
     tbody.querySelectorAll('button[data-idx]').forEach(function(btn){
       btn.addEventListener('click', function(){
         const idx = Number(btn.dataset.idx);
+        // Retirer la marchandise du stock, c'est cesser de la vendre : son
+        // annonce part avec elle, comme le jour où elle s'épuise.
+        if(items[idx]) retirerLesBillets(items[idx].id);
         items.splice(idx, 1);
         saveItems(items);
         // Ny mouvement mikasika io entana voafafa io dia TSY esorina: mijanona
@@ -56,6 +62,62 @@
         openEditModal(Number(btn.dataset.edit));
       });
     });
+    tbody.querySelectorAll('button[data-publier]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        const item = items[Number(btn.dataset.publier)];
+        if(!item) return;
+        // Navoaka : on le retire du fil. Il part à la corbeille de son auteur,
+        // d'où il peut revenir ; l'article, lui, reste au stock.
+        if(btn.getAttribute('aria-pressed') === 'true'){
+          if(typeof window.__retirerLEntanaDuFil !== 'function') return;
+          if(!confirm('Esorina ao amin\'ny fil ve ny « ' + item.name + ' » ? (Ho any amin\'ny 🗑️ Corbeille ilay publication.)')) return;
+          btn.disabled = true;
+          window.__retirerLEntanaDuFil(item.id).then(majLesBoutonsFil, function(){
+            alert('Tsy voaesotra ao amin\'ny fil. Andramo indray.');
+            majLesBoutonsFil();
+          });
+          return;
+        }
+        // Tsy navoaka : l'annonce s'écrit dans la boîte « Écrire », fiche
+        // comprise — le nom, le prix et la quantité y viennent d'ici.
+        if(typeof window.__ouvrirLaFicheDeLEntana === 'function') window.__ouvrirLaFicheDeLEntana(item);
+      });
+    });
+    majLesBoutonsFil();
+  }
+
+  // ---- Navoaka na tsia ----
+  // Le stock vit dans l'appareil, l'annonce dans la base : c'est elle qu'on
+  // interroge, en une seule question pour toute la liste.
+  function majLesBoutonsFil(){
+    const boutons = document.querySelectorAll('#stockTableBody button[data-publier]');
+    if(!boutons.length) return;
+    const poser = function(navoaka, connu){
+      boutons.forEach(function(btn){
+        const item = items[Number(btn.dataset.publier)];
+        const oui = !!(item && navoaka && navoaka.has(String(item.id)));
+        btn.disabled = !connu;
+        btn.setAttribute('aria-pressed', oui ? 'true' : 'false');
+        btn.classList.toggle('navoaka', oui);
+        btn.textContent = connu ? (oui ? '✅ Navoaka' : '⬜ Tsy navoaka') : '…';
+        btn.title = oui ? 'Esorina ao amin\'ny fil' : 'Avoaka ao amin\'ny fil';
+      });
+    };
+    if(typeof window.__lireLesEntanaNavoaka !== 'function'){ poser(null, false); return; }
+    window.__lireLesEntanaNavoaka().then(function(navoaka){ poser(navoaka, true); },
+      function(){ poser(new Set(), true); });
+  }
+  window.__majLesBoutonsFil = majLesBoutonsFil;
+  // Une annonce qui vient de partir : son article passe à « Navoaka ».
+  document.addEventListener('billet-publie', majLesBoutonsFil);
+
+  // Une marchandise épuisée, ou retirée du stock : son annonce n'a plus
+  // d'objet, et la laisser, c'est proposer à la vente ce qu'on n'a plus.
+  // Elle ne part que d'ici — le stock vit dans l'appareil, et la base ne sait
+  // pas ce qu'il en reste.
+  function retirerLesBillets(itemId){
+    if(typeof window.__effacerLesBilletsDeLEntana !== 'function') return;
+    window.__effacerLesBilletsDeLEntana(itemId);
   }
 
   // ---------------- MODIFIER UN ARTICLE ----------------
@@ -103,7 +165,15 @@
     item.price = Number(document.getElementById('editItemPrice').value) || 0;
     item.seuil = Number(document.getElementById('editItemSeuil').value) || 0;
     item.supplier = document.getElementById('editItemSupplier').value.trim();
+    // Une quantité ramenée à zéro à la main, c'est une rupture comme une
+    // autre : l'annonce n'a plus d'objet. L'article, lui, reste au registre —
+    // on l'a mis à zéro, pas effacé.
+    if(Number(before.qty) > 0 && Number(item.qty) <= 0) retirerLesBillets(item.id);
     saveItems(items);
+    // Le prix changé ici suit dans son annonce en ligne : l'article et
+    // l'annonce disent le même prix.
+    if(Number(before.price) !== Number(item.price) && Number(item.qty) > 0 &&
+       typeof window.__majLePrixDuBillet === 'function') window.__majLePrixDuBillet(item.id, item.price);
 
     // enregistre la modification dans l'historique des mouvements + notification
     const changes = [];
@@ -151,7 +221,10 @@
 
     if(item.qty <= 0){
       items.splice(idx, 1);
-      pushNotification('rupture', 'Entana « ' + item.name + ' » efa lany, voafafa tao amin\'ny stock.');
+      // L'annonce s'en va avec la marchandise : c'est ici, et nulle part
+      // ailleurs, qu'on sait que la dernière unité vient de sortir.
+      retirerLesBillets(item.id);
+      pushNotification('rupture', 'Entana « ' + item.name + ' » efa lany, voafafa tao amin\'ny stock sy tao amin\'ny fil.');
     }
     saveItems(items);
     renderStock();
@@ -255,6 +328,16 @@
     renderMovementsHistory();
     renderFilters();
     renderDashboard();
+
+    // « 📢 Avoaka ao amin'ny fil » coché : on passe tout de suite à la fiche
+    // de cet article. La case se décoche : le prochain article choisira pour
+    // lui-même.
+    const publier = document.getElementById('itemPublier');
+    if(publier && publier.checked){
+      publier.checked = false;
+      const ajoute = items.find(function(it){ return it.id === id; });
+      if(ajoute && typeof window.__ouvrirLaFicheDeLEntana === 'function') window.__ouvrirLaFicheDeLEntana(ajoute);
+    }
   });
 
   function movementTypeLabel(type){

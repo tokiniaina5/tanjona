@@ -236,16 +236,88 @@
     return kind || '—';
   }
 
+  function renderAdminVisiteurs(){
+    const body = document.getElementById('adminVisiteursBody');
+    const empty = document.getElementById('adminVisiteursEmpty');
+    if(!body) return;
+    const dire = function(message){
+      body.innerHTML = '';
+      if(empty){ empty.style.display = 'block'; empty.textContent = message; }
+    };
+    if(!window.__sb.functions || !window.__sb.functions.invoke){
+      dire('Fonction « visiteur » indisponible : déployez-la.');
+      return;
+    }
+    // Le jeton de la session, posé à la main. C'est lui qui dit au serveur que
+    // c'est bien le propriétaire qui demande — et la bibliothèque ne l'ajoute
+    // pas toute seule : avec les clés publiques de la nouvelle forme
+    // (« sb_publishable_… »), elle n'envoie aucun en-tête Authorization, et la
+    // liste serait refusée même au propriétaire connecté.
+    window.__sb.auth.getSession().then(function(session){
+      const jeton = session && session.data && session.data.session &&
+        session.data.session.access_token;
+      if(!jeton){
+        dire('Reconnectez-vous : la liste des clients ne s\'ouvre qu\'avec une session vérifiée.');
+        return;
+      }
+      demanderLaListe(jeton);
+    }, function(){ dire('Liste indisponible : session illisible.'); });
+
+    function demanderLaListe(jeton){
+      window.__sb.functions.invoke('visiteur', {
+        body: { action: 'liste' },
+        headers: { Authorization: 'Bearer ' + jeton }
+      })
+        .then(function(res){
+          if(res && res.error){
+            dire('Liste indisponible : ' + (res.error.message || 'erreur serveur'));
+            return;
+          }
+          const data = (res && res.data) || {};
+          const rows = data.visiteurs || [];
+          const total = data.total || 0;
+          const kpi = document.getElementById('adminKpiVisiteurs');
+          if(kpi) kpi.textContent = total;
+          const gain = document.getElementById('adminVisiteursGain');
+          if(gain) gain.textContent = (total * (data.valeurVisiteur || 0)).toLocaleString('fr-FR') + ' Ar';
+          body.innerHTML = '';
+          if(empty) empty.style.display = rows.length ? 'none' : 'block';
+          rows.forEach(function(r){
+            const tr = document.createElement('tr');
+            // Sans compte, la personne n'a pas de nom à montrer : le dire, plutôt
+            // qu'un tiret qui laisserait croire à une ligne incomplète.
+            tr.innerHTML =
+              '<td>' + adminDate(r.derniere_visite) + '</td>' +
+              '<td>' + adminEscape(r.nom || 'Sans compte') + '</td>' +
+              '<td>' + adminEscape(r.email || '—') + '</td>' +
+              '<td>' + (r.invite_par ? 'Invitation' : 'Direct') + '</td>' +
+              '<td>' + adminEscape(r.appareil || '—') + '</td>' +
+              '<td>' + (Number(r.visites) || 1) + '</td>';
+            body.appendChild(tr);
+          });
+        }, function(err){
+          dire('Liste indisponible : ' + ((err && err.message) || 'réseau'));
+        });
+    }
+  }
+
   function renderAdminSpace(){
     if(!document.getElementById('section-admin')) return;
     if(!window.__sb){
-      ['adminClientsEmpty','adminMoneyEmpty','adminUnlocksEmpty','adminClientAlertsEmpty','adminOwnerAlertsEmpty','adminBlockedEmpty']
+      ['adminVisiteursEmpty','adminClientsEmpty','adminMoneyEmpty','adminUnlocksEmpty','adminClientAlertsEmpty','adminOwnerAlertsEmpty','adminBlockedEmpty']
         .forEach(function(id){
           const el = document.getElementById(id);
           if(el){ el.style.display = 'block'; el.textContent = 'Serveur injoignable.'; }
         });
       return;
     }
+
+    // 0) tout le monde qui a ouvert le site. Par la fonction « visiteur » et
+    //    non par la table : celle-ci porte les noms et les emails de tous les
+    //    clients, et aucune policy ne la laisse lire depuis le navigateur.
+    //    C'est la fonction qui vérifie que celui qui demande est bien le
+    //    propriétaire.
+    renderAdminVisiteurs();
 
     // 1) clients inscrits
     window.__sb.from('client_signups').select('id,name,email,phone,created_at')

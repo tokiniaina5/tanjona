@@ -36,8 +36,21 @@
   let carte = null;
   let reperes = {};
   let mapsDemandee = null;
+  // La carte gratuite (carte-libre.js), quand il n'y a pas de clé Google.
+  let carteLibre = null;
+  let reperesLibres = {};
+  // La carte sans personne est posée sur Antananarivo une fois, pas à chaque
+  // relecture : celui qui l'a déplacée entre-temps ne doit pas y être ramené.
+  let vueVide = false;
+  // Vrai dès que Google a refusé la clé : jusqu'au rechargement, plus de
+  // Google, la carte gratuite à sa place.
+  let googleRefuse = false;
 
   function sb() {
+    // L'employé entré par son lien n'a pas de compte : ce qu'il lit et écrit
+    // ici passe par la fonction « mpiasa », au nom de son patron. Le client
+    // qui l'y envoie est posé par vue-mpiasa.js.
+    if (typeof MODE_MPIASA !== 'undefined' && MODE_MPIASA) return window.__sbMpiasa || null;
     return window.__sb || null;
   }
   // common.js n'est pas enveloppé : son « let currentUser » vit dans la portée
@@ -136,21 +149,45 @@
   }
 
   // ---------- La copie du stock ----------
-  // Les articles vivent dans le téléphone du patron. L'employé, qui n'a pas
-  // de compte, ne les verrait jamais : on en dépose une copie à chaque
-  // ouverture, et c'est elle qu'il regarde. Il ne peut rien y changer — il
-  // n'écrit nulle part.
+  // Les articles vivent dans le téléphone du patron. On en dépose une copie à
+  // chaque ouverture, mouvements compris : c'est elle que reçoit un employé
+  // la première fois qu'il ouvre son lien, pour partir du même stock. Ensuite
+  // le sien vit chez lui, et ce que l'un change ne touche pas l'autre.
+  //
+  // Les mille mouvements les plus récents suffisent : le tableau de bord
+  // regarde des jours et des semaines, pas l'histoire entière de la boutique.
+  const MOUVEMENTS_COPIES = 1000;
+
   function deposerLeStock() {
+    // L'employé a son propre stock : le déposer écraserait celui du patron.
+    if (typeof MODE_MPIASA !== 'undefined' && MODE_MPIASA) return;
     const client = sb();
     const email = monEmail();
     if (!client || !email || typeof loadItems !== 'function') return;
     let articles = [];
     try { articles = loadItems() || []; } catch (e) { return; }
-    client.from('stock_partage').upsert({
+    let mouvements = [];
+    try {
+      mouvements = (typeof loadMovements === 'function' ? loadMovements() : [])
+        .slice()
+        .sort(function (a, b) { return new Date(b.date) - new Date(a.date); })
+        .slice(0, MOUVEMENTS_COPIES);
+    } catch (e) { mouvements = []; }
+    const ligne = {
       owner_email: email,
       articles: articles,
+      mouvements: mouvements,
       maj: new Date().toISOString()
-    }, { onConflict: 'owner_email' }).then(function () {}, function () {});
+    };
+    client.from('stock_partage').upsert(ligne, { onConflict: 'owner_email' }).then(function (res) {
+      // La colonne « mouvements » vient de supabase-mpiasa-copie.sql. Tant
+      // qu'il n'a pas été passé, on dépose au moins les articles.
+      if (res && res.error && /mouvements/.test(res.error.message || '')) {
+        delete ligne.mouvements;
+        client.from('stock_partage').upsert(ligne, { onConflict: 'owner_email' })
+          .then(function () {}, function () {});
+      }
+    }, function () {});
   }
 
   // ---------- Le lien d'un employé ----------
@@ -165,29 +202,86 @@
     return sortie;
   }
 
-  function lienDe(jeton) {
-    return location.origin + location.pathname + '?mpiasa=' + jeton;
+  // L'adresse sur laquelle se bâtissent les deux liens qui partent d'ici.
+  //
+  // Ce n'est pas celle de la page ouverte. Le patron travaille parfois depuis
+  // « localhost », et un lien bâti là-dessus désigne sa propre machine :
+  // l'employé qui le reçoit n'ouvre rien, le client non plus. inviter.js avait
+  // déjà réglé la question pour les liens d'invitation ; ceux d'ici s'y
+  // rattachent, avec la même adresse réglable dans « Nous contacter ».
+  //
+  // Le repli sur l'adresse courante n'est là que si inviter.js n'a pas été
+  // chargé — un lien local vaut mieux que pas de lien du tout.
+  function base() {
+    if (typeof publicBaseUrl === 'function') return publicBaseUrl();
+    return location.origin + location.pathname;
   }
 
-  function donnerLeLien(personne, bouton) {
+  // Une écriture que la sécurité des lignes refuse ne rend pas d'erreur : elle
+  // ne touche simplement aucune ligne. Le lien avait l'air créé, se copiait,
+  // partait par SMS — et n'ouvrait rien : « Tsy fantatra ity rohy ity ». On
+  // relit donc ce que la base a vraiment gardé avant de donner le lien.
+  function relireLeJeton(client, table, id, jeton) {
+    return client.from(table).select('jeton').eq('id', id).maybeSingle().then(function (res) {
+      if (res && res.error) return res;
+      return { absent: !(res && res.data && res.data.jeton === jeton) };
+    });
+  }
+
+  // Presque toujours une session Supabase perdue, chez le patron. Chez
+  // l'employé, la fonction écrit avec la clé de service : si rien n'est gardé,
+  // c'est que la ligne n'existe plus.
+  function direLienPerdu(id) {
+    if (typeof MODE_MPIASA !== 'undefined' && MODE_MPIASA) {
+      dire(id, 'Tsy voatahiry ny rohy : mety efa nesorina io. Havaozy ny pejy.', true);
+      return;
+    }
+    direReentrer(id);
+  }
+
+  // « /confirmation » comme le lien d'invitation (inviter.js) : le mot se lit
+  // dans l'adresse. Seulement sur Netlify, qui sert cette adresse
+  // (_redirects). Les liens déjà envoyés, sans ce mot, s'ouvrent toujours.
+  function lienDe(jeton) {
+    const b = base();
+    const chemin = /^https:\/\/ny-asako\.netlify\.app\/$/i.test(b) ? 'confirmation' : '';
+    return b + chemin + '?mpiasa=' + jeton;
+  }
+
+  // Poser le jeton, séparé de ce qu'on en fait ensuite. Deux boutons mènent
+  // au même lien — le copier, ou l'envoyer par mail — et aucun des deux ne
+  // doit obliger à presser l'autre d'abord.
+  function creerLeJeton(personne, bouton) {
     const client = sb();
-    if (!client) return;
-    if (personne.jeton) { montrerLeLien(personne, personne.jeton); return; }
+    if (!client) return Promise.resolve('');
+    if (personne.jeton) return Promise.resolve(personne.jeton);
 
     if (bouton) bouton.disabled = true;
     const jeton = nouveauJeton();
-    client.from('equipe').update({ jeton: jeton }).eq('id', personne.id)
+    return client.from('equipe').update({ jeton: jeton }).eq('id', personne.id)
+      .then(function (res) {
+        if (res && res.error) return res;
+        return relireLeJeton(client, 'equipe', personne.id, jeton);
+      })
       .then(function (res) {
         if (bouton) bouton.disabled = false;
-        if (res && res.error) { direPartout('Tsy voaforona ny rohy : ' + res.error.message, true); return; }
+        if (res && res.error) { direPartout('Tsy voaforona ny rohy : ' + res.error.message, true); return ''; }
+        if (res && res.absent) { METIERS.forEach(function (r) { direLienPerdu(r + 'Statut'); }); return ''; }
         personne.jeton = jeton;
-        montrerLeLien(personne, jeton);
         if (personneOuverte && personneOuverte.id === personne.id) dessinerLienPersonne(personne);
         charger();
+        return jeton;
       }, function () {
         if (bouton) bouton.disabled = false;
         direPartout('Tsy tafita ny fangatahana.', true);
+        return '';
       });
+  }
+
+  function donnerLeLien(personne, bouton) {
+    creerLeJeton(personne, bouton).then(function (jeton) {
+      if (jeton) montrerLeLien(personne, jeton);
+    });
   }
 
   function montrerLeLien(personne, jeton) {
@@ -205,13 +299,70 @@
     }
   }
 
+  // ---------- Le lien par mail ----------
+  // L'adresse saisie à l'inscription ne servait qu'à être relue dans la
+  // liste : rien ne partait jamais vers elle. Le lien se collait donc à la
+  // main dans un message, et une adresse notée ne dispensait de rien.
+  //
+  // C'est le client mail du patron qui s'ouvre, pré-rempli — l'application
+  // n'a pas de serveur d'envoi, et de toute façon un lien qui ouvre un compte
+  // ne devrait pas partir sans que quelqu'un ait lu à qui il l'envoie. Le
+  // dernier geste reste le sien : « Envoyer ».
+  function mailDuLien(personne, jeton) {
+    const lien = lienDe(jeton);
+    const sujet = encodeURIComponent('Confirmer ny fidiranao — Ny asako');
+    const corps = encodeURIComponent(
+      'Salama ' + personne.nom + ',\n\n' +
+      'Tsindrio ity rohy ity mba hanamafisana (confirmer) ny fidiranao amin\'ny Ny asako. Tsy mila tenimiafina.\n\n' +
+      'Confirmer : ' + lien + '\n\n' +
+      'Tehirizo ho anao ihany io rohy io : izy irery no manokatra ny pejinao.\n\n' +
+      'Misaotra.'
+    );
+    // Sans adresse connue, on ouvre quand même : le message est écrit, il ne
+    // manque que le destinataire, que le patron tape lui-même. Un bouton
+    // éteint l'aurait renvoyé effacer la personne et la réinscrire — il n'y a
+    // pas d'écran pour corriger une adresse après coup.
+    const a = personne.email || '';
+    window.location.href = 'mailto:' + a + '?subject=' + sujet + '&body=' + corps;
+  }
+
+  function envoyerLeLienParMail(personne, bouton) {
+    creerLeJeton(personne, bouton).then(function (jeton) {
+      if (jeton) mailDuLien(personne, jeton);
+    });
+  }
+
+  // ---------- Le lien par n'importe quel canal ----------
+  // shareContent, d'inviter.js, ouvre la feuille de partage du système quand
+  // le téléphone en a une — WhatsApp, SMS, Messenger, ce qui est installé —
+  // et sinon dessine son propre menu. Rien à réécrire ici.
+  //
+  // Une réserve, qui tient au contenu et non au code : ce lien est une clé.
+  // Il ouvre la page de l'employé sans mot de passe. Les réseaux du menu qui
+  // publient — Facebook, X, Threads — le mettraient sous les yeux de tous.
+  // Le message le rappelle à celui qui partage ; le choix reste le sien.
+  function partagerLeLien(personne, bouton) {
+    creerLeJeton(personne, bouton).then(function (jeton) {
+      if (!jeton) return;
+      if (typeof shareContent !== 'function') { montrerLeLien(personne, jeton); return; }
+      shareContent({
+        title: 'Confirmer ny fidiranao — Ny asako',
+        // Le message demande de confirmer : le lien vient juste après
+        // « Confirmer », là où WhatsApp ou le SMS l'ajoutent.
+        text: 'Salama ' + personne.nom + ', tsindrio ity rohy ity mba hanamafisana (confirmer) ny fidiranao amin\'ny Ny asako. ' +
+          'Tsy mila tenimiafina — koa aza azarana amin\'ny olon-kafa.\n\nConfirmer :',
+        url: lienDe(jeton)
+      });
+    });
+  }
+
   // ---------- Le lien du client ----------
   // Le commerçant l'envoie par SMS. Il ne donne rien d'autre que cette
   // course-là : ni le stock, ni les autres clients, ni le téléphone du
   // livreur. Et il s'éteint de lui-même — la fonction cesse de rendre une
   // position dès que la course est arrivée ou annulée.
   function lienSuivi(jeton) {
-    return location.origin + location.pathname + '?suivi=' + jeton;
+    return base() + '?suivi=' + jeton;
   }
 
   function donnerLeLienClient(course, bouton) {
@@ -223,8 +374,13 @@
     const jeton = nouveauJeton();
     client.from('livraisons').update({ jeton: jeton }).eq('id', course.id)
       .then(function (res) {
+        if (res && res.error) return res;
+        return relireLeJeton(client, 'livraisons', course.id, jeton);
+      })
+      .then(function (res) {
         if (bouton) bouton.disabled = false;
         if (res && res.error) { dire('livraisonStatut', 'Tsy voaforona ny rohy : ' + res.error.message, true); return; }
+        if (res && res.absent) { direLienPerdu('livraisonStatut'); return; }
         course.jeton = jeton;
         montrerLienClient(course, jeton);
         charger();
@@ -289,6 +445,19 @@
     });
   }
 
+  // ---------- Qui se suit sur la carte ----------
+  // Un livreur, toujours. Un employé, le temps d'une course qu'on lui a
+  // confiée : sa page envoie alors sa position comme celle d'un livreur, et
+  // cesse quand la course est arrivée ou annulée (vue-mpiasa.js).
+  function enCourse(p) {
+    return livraisons.some(function (l) {
+      return l.livreur_id === p.id && l.statut !== 'tonga' && l.statut !== 'foana';
+    });
+  }
+  function suivable(p) {
+    return (p.role || 'mpiasa') === 'livreur' || enCourse(p);
+  }
+
   // ---------- Le registre ----------
   function dessinerEquipe() {
     METIERS.forEach(dessinerMetier);
@@ -333,9 +502,19 @@
       rohy.type = 'button';
       rohy.className = 'btn btn-sm';
       rohy.textContent = p.jeton ? 'Rohy' : 'Hamorona rohy';
-      rohy.title = 'Ny rohy hasehoana azy ny stock — tsy azony ovaina';
+      rohy.title = 'Ny rohy hidirany amin\'ny Ny asako feno — stock azy manokana, ekipanao iraisana';
       rohy.addEventListener('click', function () { donnerLeLien(p, rohy); });
       actions.appendChild(rohy);
+
+      if (suivable(p) && p.actif) {
+        const chercher = document.createElement('button');
+        chercher.type = 'button';
+        chercher.className = 'btn btn-sm';
+        chercher.textContent = '📍 Tadiavo';
+        chercher.title = 'Angataho avy hatrany ny toerana misy azy';
+        chercher.addEventListener('click', function () { tadiavo([p.id], chercher); });
+        actions.appendChild(chercher);
+      }
 
       const bascule = document.createElement('button');
       bascule.type = 'button';
@@ -358,7 +537,10 @@
       });
       actions.appendChild(retirer);
 
-      div.appendChild(actions);
+      // L'employé lit l'équipe, il n'y touche pas : ni ouvrir quelqu'un, ni
+      // lui faire un lien, ni le pauser, ni le retirer. Avec ces boutons, un
+      // lien suffisait à suspendre les autres — et soi-même, sans retour.
+      if (!(typeof MODE_MPIASA !== 'undefined' && MODE_MPIASA)) div.appendChild(actions);
       liste.appendChild(div);
     });
   }
@@ -419,7 +601,9 @@
     positions.forEach(function (pos) {
       const gens = equipe.filter(function (x) { return x.id === pos.equipe_id; });
       // Un relevé dont la personne a été retirée ne dit plus de qui il parle.
-      if (gens.length && (gens[0].role || 'mpiasa') === 'livreur') {
+      // Un employé n'y paraît que le temps d'une course : la sienne finie, ses
+      // anciennes positions ne disent plus rien d'utile.
+      if (gens.length && suivable(gens[0])) {
         lignes.push({ p: gens[0], pos: pos });
       }
     });
@@ -449,6 +633,19 @@
   // Google Maps ne se charge que si une clé existe : un script appelé sans
   // clé ne rend qu'un rectangle gris barré d'un avertissement.
   function chargerGoogleMaps() {
+    // Une clé refusée — facturation absente, API non activée, site non
+    // autorisé — laisse le script se charger, et c'est Google qui remplace
+    // ensuite la carte par « A small problem… An error has occurred ». Il ne
+    // prévient que par gm_authFailure : on y reprend la carte gratuite, dans
+    // une boîte neuve, car l'ancienne appartient encore à la carte en panne.
+    window.gm_authFailure = function () {
+      googleRefuse = true;
+      carte = null;
+      reperes = {};
+      const boite = document.getElementById('carteLivreur');
+      if (boite && boite.parentNode) boite.parentNode.replaceChild(boite.cloneNode(false), boite);
+      dessinerCarte();
+    };
     if (window.google && window.google.maps && window.google.maps.Map) return Promise.resolve(true);
     if (mapsDemandee) return mapsDemandee;
     if (!cleMaps()) return Promise.resolve(false);
@@ -467,39 +664,103 @@
     return mapsDemandee;
   }
 
+  // ---------- La carte gratuite ----------
+  // OpenStreetMap, sans clé ni facturation. Elle se pose quand il n'y a pas
+  // de clé Google, ou que la clé est refusée : une carte vaut toujours mieux
+  // qu'une liste de coordonnées.
+  function poserLaCarteLibre(boite, lignes) {
+    if (typeof chargerCarteLibre !== 'function') { boite.style.display = 'none'; return; }
+    chargerCarteLibre().then(function (prete) {
+      if (!prete) { boite.style.display = 'none'; return; }
+      const L = window.L;
+      // Google occupait la boîte : sa carte n'y est plus.
+      if (carte) { carte = null; reperes = {}; boite.innerHTML = ''; }
+      if (!carteLibre) {
+        carteLibre = L.map(boite);
+        fondCarteLibre(carteLibre);
+        vueVide = false;
+      }
+      carteLibre.invalidateSize();
+
+      const points = [];
+      const vivants = {};
+      lignes.forEach(function (l) {
+        const point = [Number(l.pos.lat), Number(l.pos.lng)];
+        const texte = '<strong>' + html(l.p.nom) + '</strong><br>' + html(depuis(l.pos.at)) + '<br>' +
+          new Date(l.pos.at).toLocaleString('fr-FR');
+        points.push(point);
+        vivants[l.p.id] = true;
+        let m = reperesLibres[l.p.id];
+        if (!m) {
+          m = repereCarteLibre(point).addTo(carteLibre);
+          m.bindTooltip(html(l.p.nom), { permanent: true, direction: 'top', offset: [0, -10] });
+          m.bindPopup(texte);
+          reperesLibres[l.p.id] = m;
+        } else {
+          m.setLatLng(point);
+          m.setTooltipContent(html(l.p.nom));
+          m.setPopupContent(texte);
+        }
+      });
+      // Celui qu'on a retiré de l'équipe ne doit pas rester planté là.
+      Object.keys(reperesLibres).forEach(function (id) {
+        if (!vivants[id]) { reperesLibres[id].remove(); delete reperesLibres[id]; }
+      });
+      if (!points.length) {
+        if (!vueVide) { carteLibre.setView([centreParDefaut.lat, centreParDefaut.lng], 12); vueVide = true; }
+      } else {
+        vueVide = false;
+        if (points.length === 1) carteLibre.setView(points[0], 15);
+        else carteLibre.fitBounds(points, { padding: [30, 30] });
+      }
+      // La page s'ouvre en fenêtre, qui ne prend sa taille qu'un instant
+      // après : mesurée trop tôt, la carte ne remplirait qu'un coin.
+      setTimeout(function () { if (carteLibre) carteLibre.invalidateSize(); }, 300);
+    });
+  }
+
   function poserLaCarte(lignes) {
     const boite = document.getElementById('carteLivreur');
     const note = document.getElementById('carteSansCle');
     if (!boite) return;
 
-    if (!cleMaps()) {
-      boite.style.display = 'none';
-      if (note) {
+    if (note) note.style.display = 'none';
+    // Toujours là, même avant la première position : sans repère, elle se
+    // pose sur Antananarivo.
+    boite.style.display = 'block';
+
+    // Pas de clé, ou une clé que Google a refusée : la carte gratuite.
+    if (!cleMaps() || googleRefuse) {
+      if (googleRefuse && note) {
         note.style.display = 'block';
-        note.textContent = 'Tsy mbola misy clé Google Maps : ny lisitra ihany no miseho. Ny rohy isaky ny anarana dia manokatra ny Google Maps.';
+        note.textContent = 'Nolavin\'i Google ny clé Google Maps (tsy misy facturation, na tsy nalefa ny Maps JavaScript API, na tsy nahazo alalana ny site) : sarintany maimaim-poana no miseho. ' +
+          'Raha tsy ilainao ilay clé, fafao ao amin\'ny « Clé Google Maps » eto ambany dia tsindrio « Tehirizo ».';
       }
+      poserLaCarteLibre(boite, lignes);
       return;
     }
-    if (note) note.style.display = 'none';
-    if (!lignes.length) { boite.style.display = 'none'; return; }
-    boite.style.display = 'block';
 
     chargerGoogleMaps().then(function (prete) {
       if (!prete) {
-        boite.style.display = 'none';
         if (note) {
           note.style.display = 'block';
-          note.textContent = 'Tsy nety ny clé Google Maps. Jereo ao amin\'ny Google Cloud raha mandeha ny Maps JavaScript API sy ny facturation.';
+          note.textContent = 'Tsy nety ny clé Google Maps (jereo ao amin\'ny Google Cloud raha mandeha ny Maps JavaScript API sy ny facturation) : sarintany maimaim-poana no miseho.';
         }
+        poserLaCarteLibre(boite, lignes);
         return;
       }
+      // La carte gratuite occupait la boîte : Google prend sa place.
+      if (carteLibre) { carteLibre.remove(); carteLibre = null; reperesLibres = {}; }
       const g = window.google.maps;
-      const premier = { lat: Number(lignes[0].pos.lat), lng: Number(lignes[0].pos.lng) };
+      const premier = lignes.length
+        ? { lat: Number(lignes[0].pos.lat), lng: Number(lignes[0].pos.lng) }
+        : centreParDefaut;
       if (!carte) {
         carte = new g.Map(boite, {
-          center: premier, zoom: 14,
+          center: premier, zoom: lignes.length ? 14 : 12,
           mapTypeControl: false, streetViewControl: false, fullscreenControl: false
         });
+        vueVide = !lignes.length;
       }
       const bornes = new g.LatLngBounds();
       const vivants = {};
@@ -528,8 +789,13 @@
       Object.keys(reperes).forEach(function (id) {
         if (!vivants[id]) { reperes[id].setMap(null); delete reperes[id]; }
       });
-      if (lignes.length === 1) { carte.setCenter(premier); carte.setZoom(15); }
-      else carte.fitBounds(bornes);
+      if (!lignes.length) {
+        if (!vueVide) { carte.setCenter(centreParDefaut); carte.setZoom(12); vueVide = true; }
+      } else {
+        vueVide = false;
+        if (lignes.length === 1) { carte.setCenter(premier); carte.setZoom(15); }
+        else carte.fitBounds(bornes);
+      }
     });
   }
 
@@ -543,6 +809,7 @@
     } catch (e) {}
     // Une clé qu'on change demande un nouveau chargement du script.
     mapsDemandee = null; carte = null; reperes = {};
+    googleRefuse = false;
     dessinerCarte();
 
     const client = sb();
@@ -562,6 +829,59 @@
     }, function () {
       dire('carteCleStatut', 'Tsy tafita ny fangatahana.', true);
     });
+  }
+
+  // ---------- Chercher un livreur ----------
+  // La position ne peut venir que du téléphone du livreur, sa page ouverte et
+  // son accord donné. « Tadiavo » lui demande d'en envoyer une sur-le-champ —
+  // l'heure de la demande va dans equipe.position_demandee_at, que sa page
+  // guette — puis relit toutes les cinq secondes. Au bout de 45 secondes, on
+  // nomme ceux qui n'ont pas répondu, plutôt que de chercher sans fin.
+  let recherche = null;
+
+  function tadiavo(ids, bouton) {
+    const client = sb();
+    const email = monEmail();
+    if (!ids.length) { dire('tadiavoStatut', 'Tsy misy livreur miasa hotadiavina.', true); return; }
+    if (!client || !email) { dire('tadiavoStatut', 'Midira aloha.', true); return; }
+    if (recherche) return;
+
+    const avant = {};
+    positions.forEach(function (x) { avant[x.equipe_id] = x.at; });
+    recherche = true;
+    if (bouton) bouton.disabled = true;
+    dire('tadiavoStatut', 'Angatahina ny toerana misy ' + (ids.length > 1 ? 'azy ireo' : 'azy') + '…');
+
+    const fin = function (message, erreur) {
+      if (recherche && recherche !== true) clearInterval(recherche);
+      recherche = null;
+      if (bouton) bouton.disabled = false;
+      dire('tadiavoStatut', message, erreur);
+    };
+
+    client.from('equipe').update({ position_demandee_at: new Date().toISOString() }).in('id', ids)
+      .then(function (res) {
+        if (res && res.error) { fin('Tsy tafita : ' + res.error.message, true); return; }
+        let tours = 0;
+        recherche = setInterval(function () {
+          tours += 1;
+          Promise.resolve(charger()).then(function () {
+            const hita = ids.filter(function (id) {
+              return positions.some(function (x) { return x.equipe_id === id && x.at !== avant[id]; });
+            });
+            if (hita.length === ids.length) {
+              fin('Hita ' + (ids.length > 1 ? 'daholo izy ireo' : 'izy') + ' — ' + new Date().toLocaleTimeString('fr-FR') + '.');
+            } else if (tours >= 9) {
+              const noms = ids.filter(function (id) { return hita.indexOf(id) < 0; }).map(function (id) {
+                return (equipe.filter(function (x) { return x.id === id; })[0] || {}).nom || '?';
+              });
+              fin('Tsy namaly : ' + noms.join(', ') + '. Mety tsy misokatra ny rohiny, na tsy nanaiky ny toerana, na tsy misy internet.', true);
+            }
+          });
+        }, 5000);
+      }, function () {
+        fin('Tsy tafita ny fangatahana.', true);
+      });
   }
 
   // Le rôle ne se choisit plus dans une liste : il est celui de la page où
@@ -718,7 +1038,10 @@
       });
       actions.appendChild(retirer);
 
-      div.appendChild(actions);
+      // Les courses se lisent aussi sans se toucher : les créer, les faire
+      // avancer, les annuler, en donner le lien au client ou les effacer
+      // revient au patron.
+      if (!(typeof MODE_MPIASA !== 'undefined' && MODE_MPIASA)) div.appendChild(actions);
       liste.appendChild(div);
     });
   }
@@ -823,7 +1146,7 @@
     if (fond) fond.classList.add('active');
     section.classList.add('active');
     dessinerLienPersonne(p);
-    dessinerArticlesPersonne();
+    dessinerTableauPersonne();
     chargerPersonne(p.id);
   }
 
@@ -832,31 +1155,171 @@
     const bouton = document.getElementById('personneLienBtn');
     if (ligne) ligne.textContent = p.jeton ? lienDe(p.jeton) : 'Mbola tsy misy rohy.';
     if (bouton) bouton.textContent = p.jeton ? 'Adikao ny rohy' : 'Hamorona rohy';
+
+    // Dire à l'avance où le mail ira. Une adresse manquante n'est pas une
+    // panne : le message s'ouvrira vide de destinataire, et la ligne le
+    // prévient plutôt que de le laisser découvrir.
+    const note = document.getElementById('personneLienMailNote');
+    if (note) {
+      note.textContent = p.email
+        ? 'Halefa any amin\'ny ' + p.email + '.'
+        : 'Tsy misy email voasoratra ho an\'i ' + p.nom + ' : ianao no manoratra azy eo amin\'ny mailaka hisokatra.';
+    }
   }
 
-  // Les mêmes articles que ceux qu'il verra : c'est la copie déposée à
-  // l'ouverture, donc ce que l'application a sous la main. Aucun champ, aucun
-  // bouton — on regarde, on ne change rien.
-  function dessinerArticlesPersonne() {
-    const boite = document.getElementById('personneArticles');
+  // ---------- Le tableau de bord d'une personne ----------
+  // Entré par son lien, un employé a son propre stock, qui vit dans son
+  // navigateur. Son application en dépose une copie après chaque changement
+  // (vue-mpiasa.js) : c'est elle qu'on lit ici. Ce qu'on voit date donc de
+  // son dernier envoi — et la date est écrite en tête, sans quoi un stock
+  // d'il y a trois jours passerait pour celui de maintenant.
+  function chargerTableauPersonne(id) {
+    const client = sb();
+    const email = monEmail();
+    if (!client || !email) return;
+    client.from('stock_mpiasa').select('articles,mouvements,maj')
+      .eq('owner_email', email).eq('equipe_id', id).maybeSingle()
+      .then(function (res) {
+        // Une autre personne a été ouverte entre-temps.
+        if (!personneOuverte || personneOuverte.id !== id) return;
+        if (res && res.error) { dessinerTableauPersonne(null, res.error.message); return; }
+        dessinerTableauPersonne((res && res.data) || null);
+      }, function () {
+        dessinerTableauPersonne(null, 'Tsy tafita ny fangatahana.');
+      });
+  }
+
+  const TYPES_MOUVEMENT = {
+    entree: '<span style="color:#6ee7b7;">▲ Entrée</span>',
+    sortie: '<span style="color:var(--amber);">▼ Sortie</span>',
+    modification: '<span style="color:var(--violet);">✎ Modification</span>'
+  };
+
+  function ariary(n) {
+    return (typeof formatAr === 'function') ? formatAr(n) : Math.round(Number(n) || 0) + ' Ar';
+  }
+
+  // « carte » est déjà pris : c'est la carte des livreurs.
+  function tuile(label, valeur, sous) {
+    return '<div class="kpi-card"><div class="kpi-label">' + html(label) + '</div>' +
+      '<div class="kpi-value">' + html(valeur) + '</div>' +
+      (sous ? '<div class="plan-note" style="margin-top:0.25rem;">' + html(sous) + '</div>' : '') +
+      '</div>';
+  }
+
+  // Sans ligne : en attente (rien de passé), jamais envoyé (null), ou refusé
+  // (un message). Chacun se dit autrement : « rien encore » n'est pas « panne ».
+  function dessinerTableauPersonne(ligne, erreur) {
+    const boite = document.getElementById('personneTableau');
+    const maj = document.getElementById('personneStockMaj');
     if (!boite) return;
-    let articles = [];
-    try { articles = (typeof loadItems === 'function' ? loadItems() : []) || []; } catch (e) { articles = []; }
-    if (!articles.length) {
-      boite.innerHTML = '<p class="empty-hint">Mbola tsy misy article.</p>';
+    if (ligne === undefined && !erreur) {
+      if (maj) maj.textContent = 'Miandry…';
+      boite.innerHTML = '';
       return;
     }
-    let t = '<div class="table-scroll"><table><thead><tr>' +
-      '<th>Article</th><th>Réf.</th><th>Isa</th><th>Vidiny</th></tr></thead><tbody>';
-    articles.forEach(function (a) {
-      const qte = Number(a.qty ?? a.quantity ?? a.quantite ?? 0);
-      const prix = Number(a.price ?? a.prix ?? 0);
-      t += '<tr><td>' + html(a.name ?? a.nom ?? '—') + '</td>' +
-        '<td>' + html(a.ref ?? a.reference ?? '—') + '</td>' +
-        '<td>' + qte.toLocaleString('fr-FR') + '</td>' +
-        '<td>' + (prix ? prix.toLocaleString('fr-FR') + ' Ar' : '—') + '</td></tr>';
-    });
-    t += '</tbody></table></div>';
+    if (erreur) {
+      if (maj) maj.textContent = 'Tsy azo ny tableau de bord : ' + erreur;
+      boite.innerHTML = '';
+      return;
+    }
+    if (!ligne) {
+      if (maj) maj.textContent = 'Mbola tsy nanokatra ny rohiny izy : rehefa manokatra azy, dia hiseho eto ny stock-ny.';
+      boite.innerHTML = '';
+      return;
+    }
+
+    const articles = Array.isArray(ligne.articles) ? ligne.articles : [];
+    const mouvements = (Array.isArray(ligne.mouvements) ? ligne.mouvements : [])
+      .filter(function (m) { return m && m.date && !isNaN(new Date(m.date)); })
+      .sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
+
+    if (maj) {
+      maj.textContent = 'Nohavaozina : ' + new Date(ligne.maj).toLocaleString('fr-FR') +
+        ' (' + depuis(ligne.maj) + ').';
+    }
+
+    const qte = function (a) { return Number(a.qty) || 0; };
+    const prix = function (a) { return Number(a.price) || 0; };
+    const stockTotal = articles.reduce(function (s, a) { return s + qte(a); }, 0);
+    const valeur = articles.reduce(function (s, a) { return s + qte(a) * prix(a); }, 0);
+
+    // La semaine et le jour : ce qu'on demande à quelqu'un qu'on suit, c'est
+    // ce qu'il a fait récemment, pas depuis toujours.
+    const semaine = debutDeSemaine().getTime();
+    const jour = debutDuJour().getTime();
+    const total = function (type, depuisQuand, champ) {
+      return mouvements.reduce(function (s, m) {
+        if (m.type !== type || new Date(m.date).getTime() < depuisQuand) return s;
+        return s + (Number(m[champ]) || 0);
+      }, 0);
+    };
+    const anio = mouvements.filter(function (m) { return new Date(m.date).getTime() >= jour; }).length;
+
+    let t = '<div class="kpi-row">' +
+      tuile('Articles', articles.length.toLocaleString('fr-FR')) +
+      tuile('Stock total', stockTotal.toLocaleString('fr-FR')) +
+      tuile('Valeur du stock', ariary(valeur)) +
+      tuile('Entrées · herinandro', total('entree', semaine, 'qty').toLocaleString('fr-FR'), ariary(total('entree', semaine, 'value'))) +
+      tuile('Sorties · herinandro', total('sortie', semaine, 'qty').toLocaleString('fr-FR'), ariary(total('sortie', semaine, 'value'))) +
+      tuile('Hetsika anio', anio.toLocaleString('fr-FR')) +
+      '</div>';
+
+    // ---- Ce qui manque ----
+    const aRemplir = articles
+      .filter(function (a) { return qte(a) <= Number(a.seuil != null ? a.seuil : 5); })
+      .sort(function (a, b) { return qte(a) - qte(b); });
+    t += '<div class="list-panel" style="margin-top:1rem;"><h4>⚠️ Tokony hofenoina</h4>';
+    if (!aRemplir.length) {
+      t += '<p class="empty-hint" style="padding:0.4rem 0;">Feno tsara ny articles rehetra.</p>';
+    } else {
+      aRemplir.forEach(function (a) {
+        t += '<div class="list-row"><span>' + html(a.name || '—') +
+          ' <span style="color:var(--muted); font-size:0.75rem;">(' + qte(a) + ' ' + html(a.unit || 'pièce') + ')</span></span>' +
+          (qte(a) === 0 ? '<span class="badge-danger">Lany</span>' : '<span class="badge-warn">Stock faible</span>') +
+          '</div>';
+      });
+    }
+    t += '</div>';
+
+    // ---- Ce qu'il a fait en dernier ----
+    t += '<h4 style="font-family:var(--font-mono); font-size:0.7rem; color:var(--cyan); margin:1.2rem 0 0.6rem; font-weight:500;">📜 Hetsika farany</h4>';
+    if (!mouvements.length) {
+      t += '<p class="empty-hint">Mbola tsy nisy hetsika.</p>';
+    } else {
+      t += '<div class="table-scroll"><table><thead><tr>' +
+        '<th>Daty</th><th>Karazany</th><th>Article</th><th>Isa</th><th>Sanda</th><th>Fanamarihana</th>' +
+        '</tr></thead><tbody>';
+      mouvements.slice(0, 15).forEach(function (m) {
+        const d = new Date(m.date);
+        t += '<tr><td>' + d.toLocaleDateString('fr-FR') + ' ' +
+          d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) + '</td>' +
+          '<td>' + (TYPES_MOUVEMENT[m.type] || html(m.type)) + '</td>' +
+          '<td>' + html(m.name || '—') + '</td>' +
+          '<td>' + (Number(m.qty) || 0).toLocaleString('fr-FR') + '</td>' +
+          '<td>' + ariary(m.value) + '</td>' +
+          '<td>' + html(m.note || '—') + '</td></tr>';
+      });
+      t += '</tbody></table></div>';
+    }
+
+    // ---- Son stock ----
+    t += '<h4 style="font-family:var(--font-mono); font-size:0.7rem; color:var(--cyan); margin:1.2rem 0 0.6rem; font-weight:500;">📦 Ny articles-ny</h4>';
+    if (!articles.length) {
+      t += '<p class="empty-hint">Mbola tsy misy article.</p>';
+    } else {
+      t += '<div class="table-scroll"><table><thead><tr>' +
+        '<th>Article</th><th>Réf.</th><th>Isa</th><th>Vidiny</th><th>Sanda</th></tr></thead><tbody>';
+      articles.forEach(function (a) {
+        t += '<tr><td>' + html(a.name || '—') + '</td>' +
+          '<td>' + html(a.ref || '—') + '</td>' +
+          '<td>' + qte(a).toLocaleString('fr-FR') + '</td>' +
+          '<td>' + ariary(prix(a)) + '</td>' +
+          '<td>' + ariary(qte(a) * prix(a)) + '</td></tr>';
+      });
+      t += '</tbody></table></div>';
+    }
+
     boite.innerHTML = t;
   }
 
@@ -864,6 +1327,8 @@
     const client = sb();
     const email = monEmail();
     if (!client || !email) return;
+    // Relu avec les heures : la fenêtre se rafraîchit d'un seul geste.
+    chargerTableauPersonne(id);
     client.from('pointages').select('*')
       .eq('owner_email', email).eq('equipe_id', id)
       .order('arrivee', { ascending: false }).limit(60)
@@ -1009,10 +1474,26 @@
       if (personneOuverte) donnerLeLien(personneOuverte, lienBtn);
     });
 
+    const lienMailBtn = document.getElementById('personneLienMailBtn');
+    if (lienMailBtn) lienMailBtn.addEventListener('click', function () {
+      if (personneOuverte) envoyerLeLienParMail(personneOuverte, lienMailBtn);
+    });
+
+    const lienZaraBtn = document.getElementById('personneLienZaraBtn');
+    if (lienZaraBtn) lienZaraBtn.addEventListener('click', function () {
+      if (personneOuverte) partagerLeLien(personneOuverte, lienZaraBtn);
+    });
+
     const cleBtn = document.getElementById('carteCleBtn');
     if (cleBtn) cleBtn.addEventListener('click', garderLaCle);
     const cleChamp = document.getElementById('carteCle');
     if (cleChamp) cleChamp.value = cleMaps();
+
+    const tadiavoTous = document.getElementById('tadiavoBtn');
+    if (tadiavoTous) tadiavoTous.addEventListener('click', function () {
+      const livreurs = equipe.filter(function (p) { return suivable(p) && p.actif; });
+      tadiavo(livreurs.map(function (p) { return p.id; }), tadiavoTous);
+    });
 
     const tonga = document.getElementById('personneTongaBtn');
     if (tonga) tonga.addEventListener('click', pointerArrivee);

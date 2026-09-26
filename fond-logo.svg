@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- Le fond par défaut de l'application : la marque, en vecteur.
+       Même dessin que les icônes PNG (outils/icones.mjs) — mêmes couleurs,
+       mêmes proportions — mais nette à toute taille : étirée sur un écran
+       d'ordinateur, l'icône de 512 pixels devenait floue.
+       Sans carré de fond : c'est la page qui en donne la couleur (fond.js),
+       celle du thème — sombre la nuit, claire le jour. -->
+
+  <g fill="#4fd8e0">
+    <!-- Les deux montants : de 30 % à 41 %, et de 59 % à 70 % ; du haut à 28 %
+         au bas à 72 %. -->
+    <rect x="153.6" y="143.36" width="56.32" height="225.28"/>
+    <rect x="302.08" y="143.36" width="56.32" height="225.28"/>
+    <!-- La diagonale, d'épaisseur constante à l'œil : 11 % corrigés de la
+         pente, soit 14,87 % mesurés à l'horizontale. -->
+    <polygon points="115.55,143.36 191.65,143.36 396.45,368.64 320.35,368.64"/>
+  </g>
+</svg>

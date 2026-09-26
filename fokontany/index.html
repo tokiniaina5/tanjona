@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="mg" class="fokontany">
+<head>
+<meta charset="UTF-8">
+<!-- « Administratif Fokontany » comme application à part : même site, même
+     base et mêmes comptes que Ny asako, mais un manifeste à lui — on
+     l'installe seul, avec son nom et sans le stock autour.
+     Les onglets ci-dessous sont copiés de index.html (#dash-commun) : une
+     modification là-bas doit être reportée ici. -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fokontany</title>
+<!-- Pas de manifeste ici : sans lui, la page ne s'installe pas. Il n'est
+     posé qu'une fois le propriétaire connecté (fokontany-app.js) — c'est lui
+     qui valide, lui seul installe, et il y vient depuis Ny asako. -->
+<meta name="theme-color" content="#0a0d10">
+<!-- « /commun/ » sert cette même page (_redirects) : c'est l'Administratif
+     Commun, le tableau de bord seul, à regarder sans rien changer. Il a son
+     manifeste (commun/), posé comme l'autre au propriétaire seul. -->
+<script>
+  (function(){
+    if(!/^\/commun(\/|$)/.test(location.pathname)) return;
+    document.documentElement.classList.add('app-commun');
+    document.title = 'Administratif Commun';
+  })();
+</script>
+<!-- Le thème choisi dans Ny asako vaut ici aussi (même localStorage). -->
+<script>
+  (function(){
+    // La luminosité, de 0 (nuit la plus sombre) à 100 (jour le plus clair).
+    //
+    // Deux moitiés, et non un seul fondu : fondre d'un bout à l'autre passait
+    // par un gris où le texte, clair ou sombre, ne se lisait plus. En dessous
+    // de 50, c'est la nuit qui s'éclaircit — texte clair ; à partir de 50,
+    // c'est le jour qui s'assombrit — texte sombre. 0 et 100 redonnent
+    // exactement les modes nuit et jour d'origine.
+    //
+    // Écrit ici, dans l'en-tête, pour que la page s'ouvre déjà à la bonne
+    // teinte ; theme.js s'en sert ensuite quand on bouge le curseur.
+    var NOMS = ['--bg', '--panel', '--panel-2', '--line', '--muted'];
+    var NUIT = [[10,13,16], [19,26,32], [24,33,41], [31,42,48], [124,139,146]];
+    var NUIT_CLAIRE = [[43,54,64], [53,65,76], [59,72,85], [74,88,100], [163,177,184]];
+    var JOUR_SOMBRE = [[180,190,197], [201,210,216], [191,201,207], [163,175,183], [61,75,83]];
+    var JOUR = [[238,242,245], [255,255,255], [243,246,248], [212,220,225], [90,106,114]];
+
+    window.__appliquerNiveau = function(t){
+      var racine = document.documentElement;
+      t = Math.max(0, Math.min(100, Number(t) || 0));
+      var jour = t >= 50;
+      var de = jour ? JOUR_SOMBRE : NUIT, a = jour ? JOUR : NUIT_CLAIRE;
+      var k = jour ? (t - 50) / 50 : t / 49;
+      var fond = null;
+      NOMS.forEach(function(nom, i){
+        var c = de[i].map(function(v, j){ return Math.round(v + (a[i][j] - v) * k); });
+        racine.style.setProperty(nom, 'rgb(' + c.join(',') + ')');
+        if(i === 0) fond = c;
+      });
+      if(jour) racine.setAttribute('data-theme', 'jour'); else racine.removeAttribute('data-theme');
+      var m = document.querySelector('meta[name="theme-color"]');
+      if(m) m.setAttribute('content', 'rgb(' + fond.join(',') + ')');
+    };
+    // L'automatique n'a pas de curseur : il rend la main aux deux thèmes fixes.
+    window.__effacerNiveau = function(){
+      var racine = document.documentElement;
+      NOMS.forEach(function(nom){ racine.style.removeProperty(nom); });
+    };
+
+    // Luminosité et contraste, en pour cent. Posés en filtre sur <html> et
+    // nulle part ailleurs : sur tout autre élément, un filtre détache les
+    // fenêtres et la rangée fixées à l'écran ; sur la racine, non.
+    // À 100 % tous deux, aucun filtre — un filtre sur la page entière coûte
+    // à chaque image, et un téléphone le sentirait pour rien.
+    window.__appliquerFiltre = function(lum, con){
+      lum = Math.max(50, Math.min(150, Number(lum) || 100));
+      con = Math.max(50, Math.min(150, Number(con) || 100));
+      document.documentElement.style.filter = (lum === 100 && con === 100)
+        ? '' : 'brightness(' + (lum / 100) + ') contrast(' + (con / 100) + ')';
+    };
+
+    try{
+      window.__appliquerFiltre(localStorage.getItem('stockmanager_luminosite'), localStorage.getItem('stockmanager_contraste'));
+    }catch(e){}
+
+    try{
+      if(localStorage.getItem('stockmanager_theme_mode') === 'auto'){
+        // En automatique, l'heure décide : jour de 6 h à 18 h (theme.js).
+        var h = new Date().getHours();
+        if(h >= 6 && h < 18){
+          document.documentElement.setAttribute('data-theme', 'jour');
+          var m = document.querySelector('meta[name="theme-color"]');
+          if(m) m.setAttribute('content', '#eef2f5');
+        }
+      } else {
+        var brut = localStorage.getItem('stockmanager_theme_niveau');
+        var niveau = brut !== null ? Number(brut)
+          : (localStorage.getItem('stockmanager_theme') === 'jour' ? 100 : 0);
+        window.__appliquerNiveau(niveau);
+      }
+    }catch(e){}
+  })();
+</script>
+<!-- Leurs propres icônes (F, et C pour le Commun : fokontany-app.js) : le « N »
+     de Ny asako les confondait avec lui dans la barre des tâches. -->
+<link rel="apple-touch-icon" href="/fokontany/icone-192.png">
+<link rel="icon" href="/fokontany/icone-192.png" type="image/png">
+<link rel="stylesheet" href="/gestion-stockage-css/base.css?v=3c7a1283">
+<link rel="stylesheet" href="/gestion-stockage-css/components.css?v=d696317b">
+<style>
+  .fk-barre{ display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;
+    padding:0.9rem 1rem; border-bottom:1px solid var(--line); background:var(--panel); position:sticky; top:0; z-index:40; }
+  .fk-qui{ font-size:0.76rem; color:var(--muted); text-align:right; line-height:1.4; }
+  .fk-qui strong{ color:var(--text); display:block; font-size:0.84rem; }
+  .fk-corps{ max-width:1200px; margin:0 auto; padding:1.2rem 16px 3rem; }
+  #fkToast{ display:none; position:fixed; left:50%; transform:translateX(-50%); bottom:24px; z-index:9100;
+    width:min(420px, calc(100vw - 32px)); background:var(--panel); color:var(--text); border:1px solid var(--cyan);
+    border-radius:14px; padding:0.8rem 0.9rem; font-size:0.82rem; line-height:1.45; box-shadow:0 10px 30px rgba(0,0,0,0.35); }
+  #communAnnonces{ bottom:24px !important; }
+  /* L'Administratif Commun voit tout ce que voit le Fokontany — les mêmes
+     onglets — mais il regarde sans toucher : la classe .lecture-seule est
+     posée sur chaque panneau (fokontany-app.js), jamais sur les onglets. */
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" crossorigin="anonymous"></script>
+<script src="/gestion-stockage-js/supabase-init.js?v=94f3c704"></script>
+</head>
+<body>
+
+<!-- Sans réseau : la page gardée s'ouvre, mais Supabase ne répond pas (fokontany-app.js). -->
+<div class="bandeau-reseau" id="bandeauReseau" role="status" hidden>
+  <span aria-hidden="true">📡</span>
+  <span>Tsy misy connexion — mety ho tsy vaovao ny isa.</span>
+</div>
+
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="eyebrow" id="fkNomApp">Administratif Fokontany</div>
+    <h1>Fidirana</h1>
+    <p class="sub">Ny kaonty Ny asako ihany no ampiasaina eto : email sy mot de passe mitovy.</p>
+    <form id="fkLoginForm">
+      <div class="field">
+        <label for="fkLoginEmail">Email</label>
+        <input id="fkLoginEmail" type="email" required placeholder="vous@exemple.com" autocomplete="email">
+      </div>
+      <div class="field">
+        <label for="fkLoginPassword">Mot de passe</label>
+        <input id="fkLoginPassword" type="password" required minlength="6" placeholder="••••••" autocomplete="current-password">
+      </div>
+      <p id="fkLoginStatus" style="font-size:0.75rem; color:var(--muted); margin:-0.4rem 0 0.8rem; min-height:1.1em;"></p>
+      <button type="submit" class="btn btn-primary" id="fkLoginBtn">Hiditra</button>
+    </form>
+    <!-- Créer un compte et retrouver un mot de passe, ici même, comme dans
+         Ny asako (même base, mêmes comptes) : on entre ensuite directement
+         dans le Fokontany, sans passer par le stock (fokontany-app.js). -->
+    <button type="button" class="btn btn-sm" id="fkVaovaoBtn" style="width:100%; margin-top:0.7rem;">📝 Tsy manana kaonty — hamorona kaonty</button>
+    <button type="button" class="btn btn-sm" id="fkAdinoBtn" style="width:100%; margin-top:0.5rem;">🔑 Adino ny mot de passe</button>
+
+    <!-- Kaonty vaovao -->
+    <form id="fkVaovaoForm" style="display:none; margin-top:0.9rem; border-top:1px solid var(--line); padding-top:0.9rem;">
+      <div class="field">
+        <label for="fkVaovaoAnarana">Anarana feno</label>
+        <input id="fkVaovaoAnarana" type="text" required placeholder="Nom et prénoms" autocomplete="name">
+      </div>
+      <div class="field">
+        <label for="fkVaovaoEmail">Email</label>
+        <input id="fkVaovaoEmail" type="email" required placeholder="vous@exemple.com" autocomplete="email">
+      </div>
+      <div class="field">
+        <label for="fkVaovaoFinday">Laharana finday</label>
+        <input id="fkVaovaoFinday" type="tel" placeholder="034 00 000 00" autocomplete="tel">
+      </div>
+      <div class="field">
+        <label for="fkVaovaoMdp">Mot de passe</label>
+        <input id="fkVaovaoMdp" type="password" required minlength="6" placeholder="6 litera farafahakeliny" autocomplete="new-password">
+      </div>
+      <p id="fkVaovaoStatus" style="font-size:0.75rem; color:var(--amber); margin:-0.2rem 0 0.8rem; line-height:1.5; min-height:1.1em;"></p>
+      <button type="submit" class="btn btn-primary btn-sm" id="fkVaovaoValider" style="width:100%;">Hamorona ny kaonty sy hiditra</button>
+    </form>
+
+    <!-- Mot de passe oublié : un code par email, puis le nouveau mot de passe. -->
+    <div id="fkAdinoBox" style="display:none; margin-top:0.9rem; border-top:1px solid var(--line); padding-top:0.9rem;">
+      <div class="field">
+        <label for="fkAdinoEmail">Email</label>
+        <input id="fkAdinoEmail" type="email" placeholder="vous@exemple.com" autocomplete="email">
+      </div>
+      <button type="button" class="btn btn-primary btn-sm" id="fkAdinoAlefa" style="width:100%;">✉️ Handray code amin'ny mailaka</button>
+      <p id="fkAdinoStatus" style="font-size:0.75rem; color:var(--muted); margin-top:0.7rem; line-height:1.5; min-height:1.1em;"></p>
+      <div id="fkAdinoCodeBox" style="display:none; margin-top:0.6rem;">
+        <div class="field">
+          <label for="fkAdinoCode">Code voaray tamin'ny mailaka</label>
+          <input id="fkAdinoCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="123456" style="font-family:var(--font-mono); letter-spacing:0.3em;">
+        </div>
+        <div class="field">
+          <label for="fkAdinoMdp">Mot de passe vaovao</label>
+          <input id="fkAdinoMdp" type="password" minlength="6" placeholder="6 litera farafahakeliny" autocomplete="new-password">
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" id="fkAdinoTehirizo" style="width:100%;">Hamarino ny code ary hiditra</button>
+        <p id="fkAdinoCodeStatus" style="font-size:0.75rem; color:var(--amber); margin-top:0.7rem; line-height:1.5; min-height:1.1em;"></p>
+      </div>
+    </div>
+
+    <!-- Retour par le lien de l'email (et non le code) : le nouveau mot de passe. -->
+    <div id="fkRecoveryBox" style="display:none; margin-top:0.9rem; border-top:1px solid var(--line); padding-top:0.9rem;">
+      <div class="field">
+        <label for="fkRecoveryMdp">Mot de passe vaovao</label>
+        <input id="fkRecoveryMdp" type="password" minlength="6" placeholder="6 litera farafahakeliny" autocomplete="new-password">
+      </div>
+      <button type="button" class="btn btn-primary btn-sm" id="fkRecoveryTehirizo" style="width:100%;">Tehirizo ary hiditra</button>
+      <p id="fkRecoveryStatus" style="font-size:0.75rem; color:var(--amber); margin-top:0.7rem; line-height:1.5; min-height:1.1em;"></p>
+    </div>
+  </div>
+</div>
+
+<div id="appScreen">
+  <header class="fk-barre">
+    <div class="brand" id="fkMarque">🗂️ Administratif <span>Fokontany</span></div>
+    <div style="display:flex; align-items:center; gap:0.8rem;">
+      <div class="fk-qui"><strong id="fkNom">—</strong><span id="fkEmail"></span></div>
+      <!-- Dans le Commun, l'admin valide les fokontany et prend leur lien
+           d'installation, sans repasser par Ny asako (validation-install.js). -->
+      <button type="button" class="btn btn-sm" id="fkValidation" style="width:auto; display:none;">🛡️ Fanamarinana</button>
+      <!-- Les avis restent ici, dans le site : une bande qui passe s'oublie,
+           et le fokontany veut relire ce qu'on lui a dit (fokontany-app.js). -->
+      <div style="position:relative;">
+        <button type="button" class="btn btn-sm" id="fkNotifBtn" aria-label="Fampahafantarana" aria-expanded="false" style="width:auto;">
+          🔔 <span id="fkNotifBadge" style="display:none; background:#ff6b6b; color:#fff; font-size:0.62rem; font-weight:700; border-radius:999px; min-width:16px; height:16px; line-height:16px; text-align:center; padding:0 4px;">0</span>
+        </button>
+        <div id="fkNotifPanel" style="display:none; position:absolute; top:40px; right:0; width:300px; max-height:340px; overflow-y:auto; background:var(--panel); border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.35); z-index:60; text-align:left;">
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:0.7rem 0.9rem; border-bottom:1px solid var(--line);">
+            <strong style="font-size:0.85rem;">Fampahafantarana</strong>
+            <button type="button" id="fkNotifFafao" style="background:none; border:none; color:var(--cyan); font-size:0.72rem; cursor:pointer;">Fafana</button>
+          </div>
+          <div id="fkNotifList"></div>
+        </div>
+      </div>
+      <!-- Au propriétaire seul, quand le navigateur sait installer. -->
+      <button type="button" class="btn btn-sm btn-primary" id="fkInstaller" style="width:auto; display:none;">📲 Installer</button>
+      <button type="button" class="btn btn-sm" id="fkSortir" style="width:auto;">Hivoaka</button>
+    </div>
+  </header>
+  <main class="fk-corps">
+    <!-- L'Administratif Commun est au propriétaire seul (fokontany-app.js). -->
+    <p id="fkInstallIos" class="empty-hint" style="display:none;">📲 Hametrahana azy : Partager ⬆️ ary « Sur l'écran d'accueil ».</p>
+    <p id="fkReserve" class="empty-hint" style="display:none;">🔒 Ho an'ny admin ihany ity pejy ity. Tsy afaka mijery azy ny kaonty hafa.</p>
+        <div class="dash-view active" id="dash-commun">
+          <!-- La porte : ce qui est dedans ne regarde pas tout le monde. On la
+               passe avec un code que le propriétaire donne de la main à la
+               main (commun-alalana.js). -->
+          <div id="communPorte" style="display:none;">
+            <div class="panel">
+              <h3>🔐 Mila alalana ity pejy ity</h3>
+              <p style="font-size:0.78rem; color:var(--muted); line-height:1.6; margin-bottom:0.9rem;">
+                Angataho amin'ny tompon'ny site ny fanokafana. Halefany amin'ny mailakao ny
+                <strong style="color:var(--text);">code</strong> sy ny rohy. Rehefa voasoratra ilay code
+                dia mahazo fampahafantarana izy, ary misokatra ny pejy rehefa nohamafisiny.
+                Indray mandeha ihany no ilana ny code : aorian'izay dia ny fidiranao amin'ny kaontinao
+                no manokatra azy, na eo amin'ny appareil hafa aza.
+              </p>
+              <div class="field">
+                <label for="porteHafatra">Hafatra (raha misy)</label>
+                <input type="text" id="porteHafatra" placeholder="Ohatra : mpiara-miasa ao amin'ny fokontany" autocomplete="off">
+              </div>
+              <button type="button" class="btn btn-sm" id="porteMangataka" style="width:auto;">📩 Mangataka fanokafana</button>
+              <p id="porteStatut" style="font-size:0.76rem; color:var(--muted); margin:0.7rem 0 0.9rem; min-height:1.1em;"></p>
+
+              <div class="field">
+                <label for="porteCode">Code nomen'ny tompon'ny site</label>
+                <input type="text" id="porteCode" placeholder="Litera 8" autocomplete="off" style="font-family:var(--font-mono); letter-spacing:0.2em; text-transform:uppercase;">
+              </div>
+              <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+                <button type="button" class="btn btn-primary btn-sm" id="porteSokafy" style="width:auto;">🔓 Sokafy ny pejy</button>
+                <!-- Le code est passé, la confirmation manque : regarder à
+                     nouveau plutôt que recharger la page. -->
+                <button type="button" class="btn btn-sm" id="porteJereo" style="width:auto; display:none;">🔄 Jereo indray</button>
+              </div>
+              <p id="porteMessage" style="font-size:0.78rem; margin-top:0.7rem; min-height:1.1em;"></p>
+            </div>
+          </div>
+
+          <div id="communContenu">
+          <!-- data-commun et non data-dash : ces onglets changent ce qu'on voit
+               DANS la fenêtre. Un data-dash ferait basculer la page entière. -->
+          <div class="dash-tabs">
+            <div class="dash-tab active" data-commun="tableau">📊 Tableau de bord</div>
+            <div class="dash-tab" data-commun="adidy">💰 Adidy</div>
+            <div class="dash-tab" data-commun="historique">📜 Historique</div>
+            <div class="dash-tab" data-commun="taratasy">📄 Taratasy</div>
+            <div class="dash-tab" data-commun="fianakaviana">📖 Livre de famille</div>
+            <!-- Le propriétaire seul : le style le montre, commun-alalana.js le décide. -->
+            <div class="dash-tab" data-commun="fangatahana" id="ongletFangatahana" style="display:none;">🛡️ Fangatahana</div>
+          </div>
+          <!-- Le comptage des personnes. -->
+          <div id="communCorps">
+            <p id="communComptageMessage" style="font-size:0.78rem; color:var(--red); margin:0 0 0.8rem; display:none;"></p>
+
+            <!-- Trois parts bien séparées, une par onglet : les pièces
+                 d'identité (pieces-identite.js), les adidy (adidy.js), les
+                 papiers (taratasy.js). Chacune a ses chiffres, ses graphiques
+                 et sa liste ; chaque fichier remplit la sienne. -->
+
+            <section class="fk-bloc fk-bloc-cin">
+              <h3 class="fk-bloc-titre">📖 Livre de famille</h3>
+              <div class="kpi-row">
+                <div class="kpi-card"><div class="kpi-label">Livre de famille</div><div class="kpi-value" id="communKpiFianakaviana">0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Olona voasoratra</div><div class="kpi-value" id="communKpiPersonnes">0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Ray aman-dreny</div><div class="kpi-value" id="communKpiRayReny">0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Zanaka</div><div class="kpi-value" id="communKpiZanaka">0</div></div>
+                <div class="kpi-card"><div class="kpi-label">CIN</div><div class="kpi-value" id="communKpiCin">0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Passeports</div><div class="kpi-value" id="communKpiPasseports">0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Fanambadiana ity taona ity</div><div class="kpi-value" id="communKpiFanambadiana">0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Voasoratra ity volana ity</div><div class="kpi-value" id="communKpiMois">0</div></div>
+              </div>
+              <div class="chart-grid">
+                <div class="chart-panel"><h4>Olona voasoratra isam-bolana</h4><div class="chart-box" style="height:220px;"><canvas id="communChartMois"></canvas></div></div>
+                <div class="chart-panel"><h4>Andraikitra ao amin'ny livre</h4><div class="chart-box" style="height:220px;"><canvas id="communChartTypes"></canvas></div></div>
+              </div>
+              <div class="list-panel">
+                <h4>📚 Livre de famille farany</h4>
+                <div id="communListeLivre"></div>
+              </div>
+              <!-- Le Commun suit les fokontany : ceux qui ont installé leur
+                   application s'inscrivent ici (fokontany-app.js). -->
+              <div class="list-panel" id="communInstallesPanneau" style="display:none;">
+                <h4>📲 Fokontany nametraka ny app</h4>
+                <div id="communInstalles"></div>
+              </div>
+            </section>
+
+            <!-- Les adidy versés : comptés sur la date du versement, et non sur
+                 la période couverte — c'est l'argent entré qu'on veut voir. -->
+            <section class="fk-bloc fk-bloc-adidy">
+              <h3 class="fk-bloc-titre">💰 Adidy</h3>
+              <div class="kpi-row">
+                <div class="kpi-card"><div class="kpi-label">Vola voaangona ity volana ity</div><div class="kpi-value" id="communKpiVolaVolana">0 Ar</div></div>
+                <div class="kpi-card"><div class="kpi-label">Vola voaangona ity taona ity</div><div class="kpi-value" id="communKpiVolaTaona">0 Ar</div></div>
+                <div class="kpi-card"><div class="kpi-label">Vola voaangona hatramin'izao</div><div class="kpi-value" id="communKpiVolaTotal">0 Ar</div></div>
+                <div class="kpi-card"><div class="kpi-label">Olona nandoa ity volana ity</div><div class="kpi-value" id="communKpiMpandoa">0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Fandoavana ity volana ity</div><div class="kpi-value" id="communKpiFandoavana">0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Karazana adidy</div><div class="kpi-value" id="communKpiAdidyIsa">0</div></div>
+              </div>
+              <div class="chart-grid">
+                <div class="chart-panel"><h4>Vola voaangona isam-bolana</h4><div class="chart-box" style="height:220px;"><canvas id="communChartVola"></canvas></div></div>
+                <div class="chart-panel"><h4>Vola isaky ny adidy (ity taona ity)</h4><div class="chart-box" style="height:220px;"><canvas id="communChartAdidy"></canvas></div></div>
+              </div>
+              <div class="list-panel">
+                <h4>🧾 Fandoavana farany</h4>
+                <div id="communListeFandoavana"></div>
+              </div>
+            </section>
+
+            <!-- Les papiers. Des départs, seuls le nombre et les dates sont
+                 demandés au serveur : l'archive reste fermée, aucun nom. -->
+            <section class="fk-bloc fk-bloc-taratasy">
+              <h3 class="fk-bloc-titre">📄 Taratasy</h3>
+              <div class="kpi-row">
+                <div class="kpi-card"><div class="kpi-label">Olona manana fanamarinam-ponenana</div><div class="kpi-value" id="communKpiFonenana">0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Fanamarinam-ponenana manan-kery</div><div class="kpi-value" id="communKpiFonenanaKery">0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Taratasy fifindra-monina</div><div class="kpi-value" id="communKpiFifindra">0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Sora-panambadiana</div><div class="kpi-value" id="communKpiFanambadiana">0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Sora-pahafatesana</div><div class="kpi-value" id="communKpiFahafatesana">0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Taratasy samihafa</div><div class="kpi-value" id="communKpiHafa">0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Taratasy nomena ity volana ity</div><div class="kpi-value" id="communKpiTarVolana">0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Taratasy nomena ity taona ity</div><div class="kpi-value" id="communKpiTarTaona">0</div></div>
+              </div>
+              <div class="chart-grid">
+                <div class="chart-panel"><h4>Taratasy nomena isam-bolana</h4><div class="chart-box" style="height:220px;"><canvas id="communChartTaratasy"></canvas></div></div>
+                <div class="chart-panel"><h4>Taratasy isaky ny karazana</h4><div class="chart-box" style="height:220px;"><canvas id="communChartTarKarazana"></canvas></div></div>
+              </div>
+              <div class="list-panel">
+                <h4>🗂️ Taratasy farany</h4>
+                <div id="communListeTaratasy"></div>
+              </div>
+            </section>
+          </div>
+
+          <!-- Les cotisations, et qui les a versées (adidy.js). Les personnes
+               viennent du registre des pièces : une seule liste de gens. -->
+          <div id="communAdidy" style="display:none;">
+            <div class="panel">
+              <h3>💰 Adidy</h3>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="adidyAnarana">Anaran'ny adidy</label>
+                  <input type="text" id="adidyAnarana" placeholder="Ohatra : Adidim-pianakaviana" autocomplete="off">
+                </div>
+                <div class="field">
+                  <label for="adidyVidiny">Vidiny (Ar)</label>
+                  <input type="number" id="adidyVidiny" min="0" step="100" placeholder="Avela foana raha tsy vola">
+                </div>
+                <div class="field">
+                  <label for="adidyFe">Fe-potoana</label>
+                  <select id="adidyFe">
+                    <option value="volana">Isam-bolana</option>
+                    <option value="taona">Isan-taona</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="adidyNote">Fanamarihana</label>
+                  <input type="text" id="adidyNote" placeholder="Ohatra : asa na fotoana, fa tsy vola" autocomplete="off">
+                </div>
+              </div>
+              <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+                <button type="button" class="btn btn-primary btn-sm" id="adidyAjouter" style="width:auto;">＋ Ajouter</button>
+                <button type="button" class="btn btn-sm" id="adidyAnnuler" style="width:auto; display:none;">Annuler</button>
+              </div>
+              <p id="adidyMessage" style="font-size:0.78rem; margin-top:0.7rem; min-height:1.1em;"></p>
+
+              <div class="table-scroll" style="margin-top:0.8rem;">
+                <table>
+                  <thead>
+                    <tr><th>Adidy</th><th>Vidiny</th><th>Fe-potoana</th><th>Fanamarihana</th><th></th></tr>
+                  </thead>
+                  <tbody id="adidyListe"></tbody>
+                </table>
+              </div>
+              <p class="empty-hint" id="adidyVide">Mbola tsy misy adidy voasoratra.</p>
+            </div>
+
+            <div class="panel">
+              <h3>🧾 Iza no efa nandoa</h3>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="adidySafidy">Adidy</label>
+                  <select id="adidySafidy"></select>
+                </div>
+                <div class="field" id="adidyVolanaChamp">
+                  <label for="adidyVolana">Volana</label>
+                  <input type="month" id="adidyVolana">
+                </div>
+                <div class="field" id="adidyTaonaChamp" style="display:none;">
+                  <label for="adidyTaona">Taona</label>
+                  <input type="number" id="adidyTaona" min="2000" max="2100" step="1">
+                </div>
+              </div>
+              <!-- Tout ce qui est entré, toutes cotisations confondues. -->
+              <p id="adidyTotaux" style="font-size:0.8rem; color:var(--amber); margin:0 0 0.4rem; min-height:1.1em;"></p>
+              <p id="adidyRecap" style="font-size:0.8rem; color:var(--cyan); margin:0 0 0.6rem; min-height:1.1em;"></p>
+              <p id="adidyFandoavanaMessage" style="font-size:0.78rem; margin:0 0 0.6rem; min-height:1.1em;"></p>
+
+              <div class="table-scroll">
+                <table>
+                  <thead>
+                    <tr><th>Olona</th><th>Naloha ?</th><th>Vola</th><th>Daty</th></tr>
+                  </thead>
+                  <tbody id="adidyOlonaListe"></tbody>
+                </table>
+              </div>
+              <p class="empty-hint" id="adidyOlonaVide">Mbola tsy misy olona ao amin'ny « CIN / Passeport ».</p>
+            </div>
+          </div>
+
+          <!-- Tous les versements, du plus récent au plus ancien (adidy.js).
+               L'onglet Adidy ne montre qu'une période à la fois ; celui-ci
+               montre ce qui s'est passé. -->
+          <div id="communHistorique" style="display:none;">
+            <div class="panel">
+              <h3>📜 Historique des fandoavana</h3>
+              <!-- Dans un .field : hors de lui, le navigateur dessine le champ
+                   en clair au milieu du fond sombre. -->
+              <div class="field">
+                <label for="histoRecherche">Fikarohana</label>
+                <input type="search" id="histoRecherche" placeholder="Anarana, adidy, vanim-potoana..." autocomplete="off">
+              </div>
+              <p id="histoRecap" style="font-size:0.8rem; color:var(--cyan); margin:0 0 0.6rem; min-height:1.1em;"></p>
+              <p id="histoMessage" style="font-size:0.78rem; margin:0 0 0.6rem; min-height:1.1em;"></p>
+
+              <div class="table-scroll">
+                <table>
+                  <thead>
+                    <tr><th>Daty</th><th>Olona</th><th>Adidy</th><th>Vanim-potoana</th><th>Vola</th><th></th></tr>
+                  </thead>
+                  <tbody id="histoListe"></tbody>
+                </table>
+              </div>
+              <p class="empty-hint" id="histoVide">Mbola tsy misy fandoavana voasoratra.</p>
+            </div>
+
+            <!-- Les papiers remis (taratasy.js), cherchés par le même champ.
+                 Des départs, seuls le numéro et la date : l'archive reste
+                 fermée. -->
+            <div class="panel">
+              <h3>📄 Historique des taratasy</h3>
+              <p id="histoTarRecap" style="font-size:0.8rem; color:var(--cyan); margin:0 0 0.6rem; min-height:1.1em;"></p>
+              <div class="table-scroll">
+                <table>
+                  <thead>
+                    <tr><th>Daty</th><th>Karazana</th><th>Olona</th><th>Laharana</th><th></th></tr>
+                  </thead>
+                  <tbody id="histoTarListe"></tbody>
+                </table>
+              </div>
+              <p class="empty-hint" id="histoTarVide">Mbola tsy misy taratasy nomena.</p>
+            </div>
+          </div>
+
+          <!-- Les papiers du fokontany (taratasy.js). Le papier
+               se prépare ici ; il ne vaut que signé et cacheté par l'autorité
+               compétente. -->
+          <div id="communTaratasy" style="display:none;">
+            <div class="panel">
+              <h3>📄 Taratasy vaovao</h3>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="tarKarazana">Karazana</label>
+                  <select id="tarKarazana">
+                    <option value="fonenana">Fanamarinam-ponenana</option>
+                    <option value="fifindramonina">Fanamarinana fifindra-monina</option>
+                    <option value="fanambadiana">Sora-panambadiana (acte de mariage)</option>
+                    <option value="fahafatesana">Sora-pahafatesana (acte de décès)</option>
+                    <option value="hafa">Taratasy samihafa</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="tarOlona">Olona (avy ao amin'ny CIN / Passeport)</label>
+                  <select id="tarOlona"></select>
+                </div>
+                <!-- Taratasy samihafa : son titre et son texte, écrits à la main. -->
+                <div class="field" id="tarLohatenyChamp" style="display:none;">
+                  <label for="tarLohateny">Lohatenin'ny taratasy</label>
+                  <input type="text" id="tarLohateny" placeholder="Ohatra : Fanamarinana fahalalam-pomba" autocomplete="off">
+                </div>
+                <div class="field">
+                  <label for="tarAnarana" id="tarAnaranaLabel">Anarana feno</label>
+                  <textarea id="tarAnarana" class="champ-anarana" rows="1" placeholder="Nom et prénoms" autocomplete="off"></textarea>
+                </div>
+                <div class="field">
+                  <label for="tarCin">Laharana CIN</label>
+                  <input type="text" id="tarCin" placeholder="101 234 567 890" autocomplete="off">
+                </div>
+                <div class="field">
+                  <label for="tarTerakaDaty">Daty nahaterahana</label>
+                  <input type="date" id="tarTerakaDaty">
+                </div>
+                <div class="field">
+                  <label for="tarTerakaToerana">Toerana nahaterahana</label>
+                  <input type="text" id="tarTerakaToerana" placeholder="Antananarivo" autocomplete="off">
+                </div>
+                <!-- Le mariage : le second conjoint. -->
+                <div class="field" id="tarVadyChamp" style="display:none;">
+                  <label for="tarVady">Anaran'ny vady faharoa</label>
+                  <textarea id="tarVady" class="champ-anarana" rows="1" placeholder="Nom et prénoms" autocomplete="off"></textarea>
+                </div>
+                <div class="field" id="tarVadyCinChamp" style="display:none;">
+                  <label for="tarVadyCin">Laharana CIN an'ny vady faharoa</label>
+                  <input type="text" id="tarVadyCin" placeholder="101 234 567 890" autocomplete="off">
+                </div>
+                <!-- Le mariage et le décès : quand et où c'est arrivé. -->
+                <div class="field" id="tarZavaDatyChamp" style="display:none;">
+                  <label for="tarZavaDaty" id="tarZavaDatyLabel">Daty</label>
+                  <input type="date" id="tarZavaDaty">
+                </div>
+                <div class="field" id="tarZavaToeranaChamp" style="display:none;">
+                  <label for="tarZavaToerana" id="tarZavaToeranaLabel">Toerana</label>
+                  <input type="text" id="tarZavaToerana" placeholder="Toerana" autocomplete="off">
+                </div>
+                <div class="field" id="tarFonenanaChamp">
+                  <label for="tarFonenana">Fonenana</label>
+                  <input type="text" id="tarFonenana" placeholder="Lot, fokontany, kaominina" autocomplete="off">
+                </div>
+                <div class="field" id="tarTalohaChamp" style="display:none;">
+                  <label for="tarTaloha">Fonenana taloha</label>
+                  <input type="text" id="tarTaloha" placeholder="Toerana nialana" autocomplete="off">
+                </div>
+                <div class="field" id="tarVaovaoChamp" style="display:none;">
+                  <label for="tarVaovao">Fonenana vaovao</label>
+                  <input type="text" id="tarVaovao" placeholder="Toerana nifindrana" autocomplete="off">
+                </div>
+                <div class="field">
+                  <label for="tarDaty">Daty nanaovana</label>
+                  <input type="date" id="tarDaty">
+                </div>
+                <div class="field">
+                  <label for="tarLaharana">Laharan'ny taratasy</label>
+                  <input type="text" id="tarLaharana" placeholder="001/09-2026" autocomplete="off">
+                </div>
+                <div class="field">
+                  <label for="tarNote">Fanamarihana</label>
+                  <input type="text" id="tarNote" placeholder="Raha misy" autocomplete="off">
+                </div>
+              </div>
+              <div class="field" id="tarVotoatinyChamp" style="display:none;">
+                <label for="tarVotoatiny">Votoatin'ny taratasy</label>
+                <textarea id="tarVotoatiny" rows="5" placeholder="Ny soratra rehetra hiseho ao amin'ny taratasy" autocomplete="off"></textarea>
+              </div>
+              <p id="tarValidite" style="font-size:0.76rem; color:var(--amber); margin:0 0 0.7rem; min-height:1.1em;"></p>
+              <button type="button" class="btn btn-primary btn-sm" id="tarVokatra" style="width:auto;">📄 Vokaro ny PDF sy tehirizo</button>
+              <p id="tarMessage" style="font-size:0.78rem; margin-top:0.7rem; min-height:1.1em;"></p>
+              <p style="font-size:0.74rem; color:var(--muted); line-height:1.5;">
+                Tsy manan-kery ity taratasy ity raha tsy misy sonia sy kasen'ny manam-pahefana.
+                Misy toerana malalaka any ambany amin'ny PDF ho an'izany.
+              </p>
+            </div>
+
+            <!-- Le départ ne se feuillette pas : il s'ouvre, et seulement pour
+                 qui sait déjà de quel papier il parle. -->
+            <div class="panel">
+              <h3>🔒 Sokafy ny taratasy fifindra-monina</h3>
+              <p style="font-size:0.76rem; color:var(--muted); line-height:1.5; margin-bottom:0.8rem;">
+                Tsy miseho ao amin'ny lisitra ireo taratasy fifindra-monina, ary tsy azo ovaina na fafana
+                rehefa voatahiry. Ny <strong style="color:var(--text);">laharana</strong> sy ny
+                <strong style="color:var(--text);">anarana</strong> miaraka no manokatra azy.
+              </p>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="tarArchiveLaharana">Laharan'ny taratasy</label>
+                  <input type="text" id="tarArchiveLaharana" placeholder="Laharana voasoratra tao" autocomplete="off">
+                </div>
+                <div class="field">
+                  <label for="tarArchiveAnarana">Anarana feno</label>
+                  <textarea id="tarArchiveAnarana" class="champ-anarana" rows="1" placeholder="Nom et prénoms" autocomplete="off"></textarea>
+                </div>
+              </div>
+              <button type="button" class="btn btn-sm" id="tarArchiveSokafy" style="width:auto;">🔓 Sokafy</button>
+              <p id="tarArchiveMessage" style="font-size:0.78rem; margin:0.7rem 0; min-height:1.1em;"></p>
+              <div id="tarArchiveResultat" style="display:none;"></div>
+            </div>
+
+            <div class="panel">
+              <h3>🗂️ Taratasy efa nomena</h3>
+              <div class="table-scroll">
+                <table>
+                  <thead>
+                    <tr><th>Daty</th><th>Karazana</th><th>Olona</th><th>Laharana</th><th>Manan-kery hatramin'ny</th><th></th></tr>
+                  </thead>
+                  <tbody id="tarListe"></tbody>
+                </table>
+              </div>
+              <p class="empty-hint" id="tarVide">Mbola tsy misy taratasy natao.</p>
+            </div>
+          </div>
+
+          <!-- Le livre de famille (fianakaviana.js). Ses membres viennent du
+               registre des CIN / passeports : on ne tient pas deux listes de
+               gens. Le mariage des parents date le livret. -->
+          <div id="communFianakaviana" style="display:none;">
+            <div class="panel">
+              <h3>📖 Livre de famille vaovao</h3>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="famLaharana">Laharan'ny livre</label>
+                  <input type="text" id="famLaharana" placeholder="001/2026" autocomplete="off">
+                  <p id="famLaharanaNote" style="font-size:0.72rem; color:var(--muted); margin:0.35rem 0 0; line-height:1.4;"></p>
+                </div>
+                <div class="field">
+                  <label for="famAnarana">Anaran'ny fianakaviana</label>
+                  <input type="text" id="famAnarana" placeholder="Fianakaviana RAKOTO" autocomplete="off">
+                </div>
+                <div class="field">
+                  <label for="famFonenana">Fonenana</label>
+                  <input type="text" id="famFonenana" placeholder="Lot, fokontany, kaominina" autocomplete="off">
+                </div>
+                <div class="field">
+                  <label for="famDaty">Daty nanambadiana</label>
+                  <input type="date" id="famDaty">
+                </div>
+                <div class="field">
+                  <label for="famToerana">Toerana nanambadiana</label>
+                  <input type="text" id="famToerana" placeholder="Antananarivo" autocomplete="off">
+                </div>
+                <div class="field">
+                  <label for="famNote">Fanamarihana</label>
+                  <input type="text" id="famNote" placeholder="Raha misy" autocomplete="off">
+                </div>
+              </div>
+              <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+                <button type="button" class="btn btn-primary btn-sm" id="famTehirizo" style="width:auto;">💾 Tehirizo</button>
+                <button type="button" class="btn btn-sm" id="famAnnuler" style="width:auto;">Hanafoana</button>
+              </div>
+              <p id="famMessage" style="font-size:0.78rem; margin-top:0.7rem; min-height:1.1em;"></p>
+            </div>
+
+            <div class="panel">
+              <h3>📚 Livre de famille voasoratra</h3>
+              <div class="table-scroll">
+                <table>
+                  <thead>
+                    <tr><th>Laharana</th><th>Fianakaviana</th><th>Fonenana</th><th>Fanambadiana</th><th>Mpianakavy</th><th></th></tr>
+                  </thead>
+                  <tbody id="famListe"></tbody>
+                </table>
+              </div>
+              <p class="empty-hint" id="famVide">Mbola tsy misy livre de famille.</p>
+            </div>
+
+            <p class="empty-hint" id="famOuvertVide" style="display:none;">Tsindrio « 📖 Sokafy » eo amin'ny livre iray, dia hiseho eto ny fanoratana ny mpianakavy : anarana, CIN na passeport, daty nahaterahana.</p>
+
+            <!-- Le livret ouvert : ses membres, pris dans le registre. -->
+            <div class="panel" id="famOuvert" style="display:none;">
+              <h3 id="famOuvertTitre">👪 Mpianakavy</h3>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="famMpAnarana">Anarana feno</label>
+                  <textarea id="famMpAnarana" class="champ-anarana" rows="1" placeholder="Nom et prénoms" autocomplete="off"></textarea>
+                </div>
+                <div class="field">
+                  <label for="famAndraikitra">Andraikitra</label>
+                  <select id="famAndraikitra">
+                    <option value="ray">Ray</option>
+                    <option value="reny">Reny</option>
+                    <option value="zanaka">Zanaka</option>
+                    <option value="hafa">Hafa</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="famKarazana">Karazana taratasy</label>
+                  <select id="famKarazana">
+                    <option value="cin">CIN</option>
+                    <option value="passeport">Passeport</option>
+                    <option value="">Tsy mbola misy</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="famLaharanaCin">Laharana (CIN / Passeport)</label>
+                  <input type="text" id="famLaharanaCin" placeholder="101 234 567 890" autocomplete="off">
+                </div>
+                <div class="field" id="famExpirationChamp" style="display:none;">
+                  <label for="famExpiration">Daty fahataperan'ny passeport</label>
+                  <input type="date" id="famExpiration">
+                </div>
+                <div class="field">
+                  <label for="famTeraka">Daty nahaterahana</label>
+                  <input type="date" id="famTeraka">
+                </div>
+                <div class="field">
+                  <label for="famTerakaToerana">Toerana nahaterahana</label>
+                  <input type="text" id="famTerakaToerana" placeholder="Antananarivo" autocomplete="off">
+                </div>
+              </div>
+              <button type="button" class="btn btn-primary btn-sm" id="famAmpio" style="width:auto;">➕ Ampio ao amin'ny livre</button>
+              <p id="famOuvertMessage" style="font-size:0.78rem; margin:0.7rem 0; min-height:1.1em;"></p>
+              <div class="table-scroll">
+                <table>
+                  <thead>
+                    <tr><th>Anarana</th><th>Andraikitra</th><th>Taratasy</th><th>Laharana</th><th>Teraka</th><th></th></tr>
+                  </thead>
+                  <tbody id="famMpikambana"></tbody>
+                </table>
+              </div>
+              <p class="empty-hint" id="famMpikambanaVide">Mbola tsy misy mpianakavy voasoratra.</p>
+            </div>
+          </div>
+
+          <!-- Qui demande à entrer, et à qui c'est accordé. Propriétaire seul. -->
+          <div id="communFangatahana" style="display:none;">
+            <div class="panel">
+              <h3>🛡️ Fangatahana fanokafana</h3>
+              <p style="font-size:0.76rem; color:var(--muted); line-height:1.5; margin-bottom:0.8rem;">
+                Rehefa tsindrianao « Omeo code » dia alefa amin'ny mailakin'ilay olona ny code sy ny rohy.
+                Tsy misokatra anefa ny pejy raha tsy <strong style="color:var(--text);">nohamafisinao</strong> :
+                rehefa nosoratany ny code dia mahazo mailaka ianao, ary eto no anindrianao « ✅ Hamafiso ».
+              </p>
+              <p id="admMessage" style="font-size:0.82rem; margin:0 0 0.8rem; min-height:1.1em; font-family:var(--font-mono);"></p>
+              <div class="table-scroll">
+                <table>
+                  <thead>
+                    <tr><th>Daty</th><th>Olona</th><th>Hafatra</th><th>Toe-javatra</th><th></th></tr>
+                  </thead>
+                  <tbody id="admFangatahanaListe"></tbody>
+                </table>
+              </div>
+              <p class="empty-hint" id="admFangatahanaVide">Mbola tsy misy fangatahana.</p>
+            </div>
+
+            <div class="panel">
+              <h3>🔑 Alalana efa nomena</h3>
+              <div class="table-scroll">
+                <table>
+                  <thead>
+                    <tr><th>Olona</th><th>Code</th><th>Toe-javatra</th><th></th></tr>
+                  </thead>
+                  <tbody id="admAlalanaListe"></tbody>
+                </table>
+              </div>
+              <p class="empty-hint" id="admAlalanaVide">Mbola tsy misy alalana nomena.</p>
+            </div>
+          </div>
+          </div>
+        </div>
+  </main>
+</div>
+
+<div id="fkToast" role="status"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
+<script src="/gestion-stockage-js/fokontany-app.js?v=83c4695a"></script>
+<script src="/gestion-stockage-js/commun-alalana.js?v=682d598c"></script>
+<script src="/gestion-stockage-js/taratasy.js?v=08c97553"></script>
+<script src="/gestion-stockage-js/fianakaviana.js?v=7620b9e5"></script>
+<script src="/gestion-stockage-js/validation-install.js?v=2e1540c4"></script>
+<script src="/gestion-stockage-js/adidy.js?v=7925663f"></script>
+</body>
+</html>

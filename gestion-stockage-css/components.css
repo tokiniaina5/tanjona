@@ -1,11 +1,29 @@
 /* ---------- Tableau de bord (Stock) ---------- */
   .dash-tabs{ display:flex; gap:0.4rem; margin-bottom:1.4rem; border-bottom:1px solid var(--line); flex-wrap:wrap; }
-  .dash-tab{
+  .dash-tab, .pc-onglet{
     padding:0.65rem 1.1rem; font-size:0.85rem; color:var(--muted); cursor:pointer;
     border-bottom:2px solid transparent; font-family:var(--font-mono); user-select:none;
   }
-  .dash-tab:hover{ color:var(--text); }
-  .dash-tab.active{ color:var(--cyan); border-color:var(--cyan); }
+  .dash-tab:hover, .pc-onglet:hover{ color:var(--text); }
+  .dash-tab.active, .pc-onglet.active{ color:var(--cyan); border-color:var(--cyan); }
+  /* L'Administratif Commun regarde, il ne touche pas : rien de ce qui s'y
+     montre ne répond au doigt, sauf les graphiques qu'on survole. */
+  .lecture-seule button, .lecture-seule input, .lecture-seule select,
+  .lecture-seule textarea, .lecture-seule a, .lecture-seule [contenteditable]{
+    pointer-events:none;
+  }
+  /* Administratif Fokontany et Administratif Commun : le propriétaire seul
+     les voit (parametres.js pose .est-proprietaire). Les clients n'en voient
+     ni l'entrée, ni l'icône épinglée, ni la fenêtre. La page /fokontany/
+     charge ce même fichier : sa racine porte .fokontany, la règle l'épargne. */
+  html:not(.est-proprietaire):not(.fokontany) #menuCommun,
+  html:not(.est-proprietaire):not(.fokontany) #menuCommunAdmin,
+  html:not(.est-proprietaire):not(.fokontany) #menuInstallFokontany,
+  html:not(.est-proprietaire):not(.fokontany) #menuInstallCommun,
+  html:not(.est-proprietaire):not(.fokontany) [data-epingle="id:menuCommun"],
+  html:not(.est-proprietaire):not(.fokontany) [data-epingle="id:menuCommunAdmin"],
+  html:not(.est-proprietaire):not(.fokontany) #dash-commun,
+  html:not(.est-proprietaire):not(.fokontany) #dash-communadmin{ display:none !important; }
   /* appel vidéo : au centre de la rangée, en évidence sans être criard */
   .dash-tab-call{ color:var(--cyan); }
   .dash-tab-call:hover{ color:var(--text); }
@@ -24,9 +42,22 @@
     justify-content: center;
     overflow-x: auto;
     overflow-y: hidden;
-    scrollbar-width: none;
   }
-  #stockMainTabs.dash-tabs::-webkit-scrollbar{ display:none; }
+  /* Quand les icônes ne tiennent plus, une barre de défilement le dit, et se
+     tire au doigt comme à la souris pour aller voir les pages restées
+     ouvertes. Cachée, rien n'annonçait qu'il y en avait d'autres.
+     Un trait fin et arrondi, et non le rectangle du navigateur ; son rail
+     s'arrête avant le ☰ et le ⋯ collés aux deux bouts, et avant les coins
+     ronds du dock. */
+  #stockMainTabs.dash-tabs::-webkit-scrollbar{ height: 6px; }
+  #stockMainTabs.dash-tabs::-webkit-scrollbar-button{ display: none; }
+  #stockMainTabs.dash-tabs::-webkit-scrollbar-track{ background: transparent; margin: 0 48px; }
+  #stockMainTabs.dash-tabs::-webkit-scrollbar-thumb{ background: var(--muted); border-radius: 999px; }
+  /* Firefox seulement : dans Chrome, ces propriétés annuleraient les règles
+     ci-dessus, rail et coins compris. */
+  @supports not selector(::-webkit-scrollbar){
+    #stockMainTabs.dash-tabs{ scrollbar-width: thin; scrollbar-color: var(--muted) transparent; }
+  }
   /* Pleine, elle ne se centre plus : le début doit rester à sa place. */
   #stockMainTabs.dash-tabs.pleine{ justify-content: flex-start; }
   /* Rien ne dit qu'une rangée défile. Un fondu au bord droit annonce ce qui
@@ -151,7 +182,9 @@
     background-position: center;
     background-repeat: no-repeat;
   }
-  .fond-apercu.vide{ background: var(--bg); }
+  /* Vide, il montre le logo : la couleur seule, sans effacer l'image que
+     fond.js y pose. */
+  .fond-apercu.vide{ background-color: var(--bg); }
   /* .btn-primary prend toute la largeur partout ailleurs — c'est voulu pour
      un bouton seul, au bas d'un formulaire. Ces deux-là vont par paire : le
      premier chassait le second sur la ligne suivante. */
@@ -245,23 +278,42 @@
      fil, et non à la place du fil. On les tire par les coins comme le menu ;
      on ne les déplace pas : elles s'ouvrent déjà entre les deux barres, là où
      l'œil les cherche. */
+  /* Habillées comme l'écran d'un téléphone « edge » : de grands coins ronds,
+     et des bords qui semblent se courber vers l'arrière — une ombre qui
+     fonce vers les côtés, un filet de lumière sur l'arête.
+     Les ombres sont « inset » : elles restent au bord de la fenêtre pendant
+     que le contenu défile, et passent sous lui. La marge intérieure s'élargit
+     d'autant, pour que rien ne se loge dans la courbe. */
   .section.fenetre-page.active,
   .dash-view.fenetre-page.active{
     position: fixed;
     z-index: 95;
     background: var(--panel);
     border: 1px solid var(--line);
-    border-radius: 12px;
-    box-shadow: 0 18px 48px rgba(0,0,0,0.55);
-    padding: 0.9rem 1rem;
+    border-radius: 28px;
+    box-shadow:
+      inset 14px 0 18px -14px rgba(0,0,0,0.45),
+      inset -14px 0 18px -14px rgba(0,0,0,0.45),
+      inset 1px 0 0 rgba(255,255,255,0.07),
+      inset -1px 0 0 rgba(255,255,255,0.07),
+      0 18px 48px rgba(0,0,0,0.55);
+    padding: 1rem 1.3rem;
     overflow-y: auto;
   }
+  /* Les poignées d'une page épousent ses coins : plus grandes, et arrondies
+     comme eux. Celles des panneaux du menu gardent leur petite équerre. */
+  .poignees:has(.poignee-deplacer) .poignee{ width:26px; height:26px; }
+  .poignees:has(.poignee-deplacer) .poignee.hg{ border-radius:28px 0 0 0; }
+  .poignees:has(.poignee-deplacer) .poignee.hd{ border-radius:0 28px 0 0; }
+  .poignees:has(.poignee-deplacer) .poignee.bg{ border-radius:0 0 0 28px; }
+  .poignees:has(.poignee-deplacer) .poignee.bd{ border-radius:0 0 28px 0; }
   /* Le ruban par lequel on prend la fenêtre pour la poser ailleurs. Il court
      entre le coin haut-gauche et la croix, et porte un trait au milieu : sans
      lui, rien ne dirait qu'on peut saisir là. */
   .poignee-deplacer{
     position: absolute;
-    top: 0; left: 18px; right: 40px;
+    /* Entre les deux coins arrondis, qui prennent plus de place qu'avant. */
+    top: 0; left: 30px; right: 48px;
     height: 22px;
     pointer-events: auto;
     touch-action: none;
@@ -284,7 +336,8 @@
      fenêtre : à l'intérieur, elle défilerait avec la page et disparaîtrait
      dès qu'on descend d'une ligne. */
   .fenetre-fermer{
-    position: absolute; top: 7px; right: 7px;
+    /* Rentrée dans la courbe du coin : collée au bord, elle en débordait. */
+    position: absolute; top: 12px; right: 14px;
     width: 26px; height: 26px; line-height: 24px;
     border-radius: 999px;
     border: 1px solid var(--line);
@@ -378,6 +431,19 @@
   .bandeau-reseau[hidden]{ display: none; }
 
   .reglages-choix{ display:flex; gap:0.6rem; }
+  /* Le curseur de luminosité : la lune d'un côté, le soleil de l'autre, et
+     toute la largeur entre les deux pour le doigt. */
+  .theme-niveau{ display:flex; align-items:center; gap:0.6rem; margin-top:0.9rem; font-size:1.2rem; }
+  .theme-niveau input[type="range"]{ flex:1; min-width:0; height:28px; accent-color: var(--cyan); cursor:pointer; }
+  /* Luminosité, contraste : le nom à gauche, la valeur à droite, le curseur
+     en dessous sur toute la largeur. */
+  .theme-reglage{ margin-top:0.8rem; }
+  .theme-reglage label{
+    display:flex; justify-content:space-between;
+    font-size:0.74rem; color:var(--muted); margin-bottom:0.2rem;
+  }
+  .theme-reglage label span:last-child{ font-family:var(--font-mono); color:var(--text); }
+  .theme-reglage input[type="range"]{ width:100%; height:26px; accent-color: var(--cyan); cursor:pointer; }
   /* Les deux choix sont d'abord des images : le mot n'est là que pour lever le
      doute sur ce que la main et la machine veulent dire. */
   .reglage-mode{
@@ -464,8 +530,49 @@
      le fil d’actualité occupe désormais toute la largeur */
   .community-grid{ display:grid; grid-template-columns: 1fr; gap:0.9rem; margin-bottom:1.4rem; align-items:start; }
   .community-sub{ font-size:0.8rem; color:var(--muted); margin-bottom:0.9rem; line-height:1.5; }
+  .marketplace-groupes{ display:flex; flex-direction:column; gap:0.75rem; }
+  .marketplace-titre{ font-size:0.7rem; color:var(--muted); text-transform:uppercase;
+    letter-spacing:0.04em; margin-bottom:-0.35rem; }
+  /* Les boutiques : une carte par ligne, comme un billet du fil en plus bas. */
+  .marketplace-cartes{ display:flex; flex-direction:column; gap:0.5rem; }
+  .marketplace-carte{ display:block; border:1px solid var(--line); border-radius:10px;
+    overflow:hidden; text-decoration:none; color:inherit; background:var(--panel-2); }
+  .marketplace-carte:hover{ border-color:var(--cyan); }
   .marketplace-row{ display:flex; flex-wrap:wrap; gap:0.6rem; }
   .marketplace-row a.btn{ display:inline-block; text-align:center; width:auto; }
+
+  /* ---------- La recherche de la rangée du bas ---------- */
+  /* Les résultats empruntent l'habillage des entrées du menu : ce sont les
+     mêmes gestes, et une deuxième apparence pour la même chose ne ferait
+     qu'une deuxième chose à apprendre. */
+  .recherche-resultats{ display:flex; flex-direction:column; gap:0.1rem; margin-top:0.6rem; }
+  .recherche-groupe{ font-size:0.7rem; color:var(--muted); text-transform:uppercase;
+    letter-spacing:0.04em; margin:0.6rem 0 0.2rem; }
+  .recherche-groupe:first-child{ margin-top:0; }
+  /* Ce qui distingue deux articles du même nom : la référence, ce qu'il en
+     reste, son prix. Sous le nom, en plus petit — on le lit si on en a besoin. */
+  .recherche-detail{ display:block; font-size:0.66rem; color:var(--muted);
+    margin-top:0.12rem; font-weight:400; }
+  .recherche-resultats .nav-action{ text-align:left; }
+
+  /* L'article qu'on vient d'atteindre depuis la recherche. La page des
+     articles en compte parfois cent : arriver dessus sans savoir laquelle des
+     cent lignes on cherchait, c'est arriver nulle part. La couleur passe, et
+     ne laisse rien derrière elle. */
+  .ligne-visee{ animation: ligneVisee 2.6s ease-out 1; }
+  @keyframes ligneVisee{
+    0%, 100%{ background: transparent; }
+    12%, 55%{ background: rgba(34, 211, 238, 0.16); }
+  }
+
+  /* Le billet qu'on vient d'atteindre. Un trait autour, et non un fond : la
+     carte porte déjà le sien, et une couleur par-dessus une autre ne se voit
+     pas. */
+  .billet-vise{ animation: billetVise 2.6s ease-out 1; }
+  @keyframes billetVise{
+    0%, 100%{ box-shadow: 0 0 0 0 rgba(34, 211, 238, 0); }
+    12%, 55%{ box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.55); }
+  }
 
   /* ---------- Accueil style "réseau social" ---------- */
   .fb-main{ display:flex; flex-direction:column; gap:0.9rem; }
@@ -492,8 +599,39 @@
   }
   .fb-composer-extra input:focus, .fb-composer-extra select:focus{ outline:none; border-color:var(--cyan); }
   .fb-composer-extra select{ flex:0 0 auto; min-width:140px; }
+  /* La fiche de l'article (🛒) : deux colonnes, une seule au téléphone. */
+  .entana-fiche{
+    display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:0.6rem 0.8rem;
+    margin-top:0.8rem; padding-top:0.8rem; border-top:1px solid var(--line);
+  }
+  .entana-fiche-titre{ grid-column:1 / -1; margin:0; font-size:0.85rem; font-weight:700; color:var(--text); }
+  .entana-fiche-titre span, .entana-fiche label span{ font-weight:400; color:var(--muted); }
+  .entana-fiche label{ display:flex; flex-direction:column; gap:0.3rem; font-size:0.75rem; color:var(--muted); }
+  .entana-fiche input, .entana-fiche select, .entana-fiche textarea{
+    width:100%; box-sizing:border-box; padding:0.55rem 0.7rem; border-radius:8px;
+    border:1px solid var(--line); background:var(--bg); color:var(--text); font-size:0.85rem; font-family:inherit;
+  }
+  .entana-fiche textarea{ resize:vertical; min-height:4.5rem; }
+  .entana-fiche input:focus, .entana-fiche select:focus, .entana-fiche textarea:focus{ outline:none; border-color:var(--cyan); }
+  .entana-fiche .tsy-feno{ border-color:var(--red); }
+  /* La colonne « Fil » des articles : publié ou non, d'un appui. */
+  .bouton-fil{
+    white-space:nowrap; padding:0.35rem 0.6rem; border-radius:999px;
+    border:1px solid var(--line); background:var(--panel-2); color:var(--muted);
+    font-size:0.75rem; cursor:pointer;
+  }
+  .bouton-fil.navoaka{ border-color:var(--cyan); color:var(--cyan); }
+  .bouton-fil:disabled{ opacity:0.6; cursor:wait; }
+  .case-publier{ display:inline-flex; align-items:center; gap:0.4rem; font-size:0.82rem; color:var(--text); cursor:pointer; align-self:center; }
+  /* Ce qui vient du stock se lit mais ne se retape pas. */
+  .entana-fiche input[readonly], #newsPrice[readonly]{ background:var(--panel-2); color:var(--muted); cursor:not-allowed; }
+  .entana-fiche-large, .entana-fiche-rappel{ grid-column:1 / -1; }
+  .entana-fiche-rappel{ margin:0; font-size:0.75rem; color:var(--muted); }
+  #newsPrice.tsy-feno{ border-color:var(--red); }
+  @media (max-width: 560px){ .entana-fiche{ grid-template-columns:minmax(0, 1fr); } }
 
-  .fb-feed{ display:flex; flex-direction:column; gap:0.9rem; }
+  /* Un billet glissé pour être effacé sort du fil sans faire défiler la page de côté. */
+  .fb-feed{ display:flex; flex-direction:column; gap:0.9rem; overflow-x:clip; }
   .fb-post{
     background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:1.1rem;
   }
@@ -619,6 +757,22 @@
   .list-panel h4{ font-family:var(--font-mono); font-size:0.7rem; color:var(--cyan); margin-bottom:0.8rem; font-weight:500; }
   .list-row{ display:flex; justify-content:space-between; align-items:center; gap:0.6rem; padding:0.5rem 0; border-bottom:1px dashed var(--line); font-size:0.85rem; }
   .list-row:last-child{ border-bottom:none; }
+
+  /* Le tableau de bord du Fokontany : une part par sujet — CIN, adidy,
+     taratasy — chacune dans son cadre, avec sa couleur sur le bord gauche,
+     pour qu'on ne lise pas les chiffres de l'une comme ceux de l'autre. */
+  .fk-bloc{
+    border:1px solid var(--line); border-left:4px solid var(--cyan); border-radius:14px;
+    padding:1.1rem 1.1rem 0.2rem; margin-bottom:1.4rem; background:var(--panel-2);
+  }
+  .fk-bloc-adidy{ border-left-color: var(--amber); }
+  .fk-bloc-taratasy{ border-left-color: #8b93ff; }
+  .fk-bloc-titre{ font-family:var(--font-display); font-size:1.05rem; margin:0 0 0.9rem; }
+  .fk-bloc .list-panel{ margin-bottom:1rem; }
+  @media (max-width: 600px){
+    .fk-bloc{ padding:0.9rem 0.8rem 0.1rem; }
+    .fk-bloc .kpi-row{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:0.6rem; }
+  }
   .list-row .val{ font-family:var(--font-mono); color:var(--cyan); white-space:nowrap; }
   .badge-warn{ font-size:0.66rem; padding:0.2rem 0.55rem; border-radius:999px; border:1px solid var(--amber); color:var(--amber); white-space:nowrap; }
   .badge-danger{ font-size:0.66rem; padding:0.2rem 0.55rem; border-radius:999px; border:1px solid var(--red); color:var(--red); white-space:nowrap; }
@@ -630,4 +784,209 @@
     .community-grid{ grid-template-columns: 1fr; }
     .filters-panel{ flex-direction:column; gap:1rem; }
     .filter-clear{ align-self:flex-start; margin-left:0; }
+  }
+
+  /* ---- L'employé entré par son lien ----
+     Il a toute l'application, mais pas de compte : il n'y a rien dont se
+     déconnecter. Et « Ny momba ahy » n'existe que pour lui. */
+  body.mode-mpiasa #logoutBtn{ display:none !important; }
+  body:not(.mode-mpiasa) .seulement-mpiasa{ display:none !important; }
+  /* L'équipe se lit, elle ne se touche pas : inscrire, pauser, retirer
+     quelqu'un ou lui faire un lien revient au patron. La fonction « mpiasa »
+     le refuse de toute façon ; on n'offre pas un bouton qui échoue. */
+  body.mode-mpiasa .seulement-patron{ display:none !important; }
+  /* La page « Mpiasa » n'existe pas pour l'employé : ni son entrée dans le
+     menu, ni son icône épinglée dans la rangée ou posée sur le fond, ni la
+     page elle-même si elle était la dernière ouverte dans ce navigateur. Les
+     noms, téléphones et emails de ses collègues ne le regardent pas — la
+     fonction « mpiasa » ne les lui envoie d'ailleurs plus. */
+  body.mode-mpiasa #section-mpiasa,
+  body.mode-mpiasa #navList .nav-item[data-section="mpiasa"],
+  body.mode-mpiasa [data-epingle="section:mpiasa"],
+  body.mode-mpiasa .icone-bureau[data-cle="section:mpiasa"]{ display:none !important; }
+
+  /* ---- Entré sans compte, les premiers jours ----
+     Même place dans le menu, l'autre sens : on ne quitte pas un compte qu'on
+     n'a pas ouvert, on l'ouvre. */
+  body.mode-visiteur #logoutBtn{ display:none !important; }
+  body:not(.mode-visiteur) #creerCompteBtn{ display:none !important; }
+
+  /* ---------- L'écran « edge », pour les petites fenêtres aussi ----------
+     Le menu et les panneaux qu'on ouvre par-dessus — notifications, achats
+     internationaux, réglages de la rangée, mode jour et nuit, boîte d'écriture —
+     prennent la même allure que les pages : coins ronds, bords qui se courbent.
+     Un peu moins que les pages (24 px et non 28) : sur une fenêtre de deux
+     cent trente pixels, la courbe d'une page mangerait la première ligne.
+
+     !important : les notifications et les achats portent encore leur
+     habillage dans leur attribut style, qui l'emporterait sinon. */
+  .nav-list.floating,
+  .panneau-boite,
+  #notifPanel,
+  #marketPanel,
+  #livraisonPanel,
+  #fbComposer.composer-flottant{
+    border-radius: 24px !important;
+    box-shadow:
+      inset 10px 0 14px -10px rgba(0,0,0,0.4),
+      inset -10px 0 14px -10px rgba(0,0,0,0.4),
+      inset 1px 0 0 rgba(255,255,255,0.07),
+      inset -1px 0 0 rgba(255,255,255,0.07),
+      0 12px 36px rgba(0,0,0,0.5) !important;
+  }
+  /* La marge intérieure s'élargit, pour que rien ne se loge dans la courbe. */
+  .nav-list.floating{ padding: 0.8rem 0.9rem; }
+  .panneau-boite{ padding: 1rem 1.15rem; }
+  /* Leurs poignées épousent ces coins, comme celles des pages. */
+  .poignees:not(:has(.poignee-deplacer)) .poignee{ width:20px; height:20px; }
+  .poignees:not(:has(.poignee-deplacer)) .poignee.hg{ border-radius:24px 0 0 0; }
+  .poignees:not(:has(.poignee-deplacer)) .poignee.hd{ border-radius:0 24px 0 0; }
+  .poignees:not(:has(.poignee-deplacer)) .poignee.bg{ border-radius:0 0 0 24px; }
+  .poignees:not(:has(.poignee-deplacer)) .poignee.bd{ border-radius:0 0 24px 0; }
+
+  /* La barre de défilement, dans ces fenêtres rondes. Celle du navigateur est
+     un rectangle gris à flèches, collé au bord droit : elle recouvrait la
+     courbe des deux coins et en dépassait en haut comme en bas. Elle devient
+     un trait fin, arrondi, sans flèches, sur un rail transparent — et le rail
+     s'arrête avant les coins, pour que la courbe reste entière. */
+  /* Pour Firefox seulement. Chrome, lui, abandonne toutes les règles
+     ::-webkit-scrollbar dès que ces deux propriétés sont posées — le rail
+     reprendrait alors toute la hauteur, coins compris. */
+  @supports not selector(::-webkit-scrollbar){
+    .fenetre-page,
+    .nav-list.floating,
+    .panneau-boite,
+    #notifPanel,
+    #marketPanel,
+    #livraisonPanel,
+    #fbComposer.composer-flottant{
+      scrollbar-width: thin;
+      scrollbar-color: var(--line) transparent;
+    }
+  }
+  .fenetre-page::-webkit-scrollbar,
+  .nav-list.floating::-webkit-scrollbar,
+  .panneau-boite::-webkit-scrollbar,
+  #notifPanel::-webkit-scrollbar,
+  #marketPanel::-webkit-scrollbar,
+  #fbComposer.composer-flottant::-webkit-scrollbar{ width: 8px; }
+  .fenetre-page::-webkit-scrollbar-button,
+  .nav-list.floating::-webkit-scrollbar-button,
+  .panneau-boite::-webkit-scrollbar-button,
+  #notifPanel::-webkit-scrollbar-button,
+  #marketPanel::-webkit-scrollbar-button,
+  #fbComposer.composer-flottant::-webkit-scrollbar-button{ display: none; }
+  .fenetre-page::-webkit-scrollbar-track{ background: transparent; margin: 28px 0; }
+  .nav-list.floating::-webkit-scrollbar-track,
+  .panneau-boite::-webkit-scrollbar-track,
+  #notifPanel::-webkit-scrollbar-track,
+  #marketPanel::-webkit-scrollbar-track,
+  #fbComposer.composer-flottant::-webkit-scrollbar-track{ background: transparent; margin: 24px 0; }
+  .fenetre-page::-webkit-scrollbar-thumb,
+  .nav-list.floating::-webkit-scrollbar-thumb,
+  .panneau-boite::-webkit-scrollbar-thumb,
+  #notifPanel::-webkit-scrollbar-thumb,
+  #marketPanel::-webkit-scrollbar-thumb,
+  #fbComposer.composer-flottant::-webkit-scrollbar-thumb{
+    background: var(--line);
+    border-radius: 999px;
+    /* Une bordure transparente l'amincit sans toucher à la zone qu'on saisit. */
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  .fenetre-page::-webkit-scrollbar-thumb:hover,
+  .nav-list.floating::-webkit-scrollbar-thumb:hover{ background-color: var(--muted); }
+
+  /* ---------- La rangée du bas en « dock » ----------
+     Elle quitte les bords de l'écran : posée à huit pixels des côtés et du
+     bas, arrondie et courbée comme les fenêtres, elle flotte comme le dock
+     d'un téléphone. Ses coins ronds rognent aussi le ☰ et le ⋯ collés aux
+     extrémités — le défilement latéral la découpe déjà à sa forme.
+     La barre d'accueil du téléphone est gardée sous elle, et non plus dedans. */
+  #stockMainTabs.dash-tabs-main{
+    left: 8px; right: 8px;
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
+    box-shadow:
+      inset 10px 0 14px -10px rgba(0,0,0,0.4),
+      inset -10px 0 14px -10px rgba(0,0,0,0.4),
+      inset 1px 0 0 rgba(255,255,255,0.07),
+      inset -1px 0 0 rgba(255,255,255,0.07),
+      0 10px 30px rgba(0,0,0,0.45);
+  }
+  /* Escamotée, elle descend de sa hauteur ET de l'écart qui la sépare du bas :
+     de sa seule hauteur, il en restait une lisière visible. */
+  #stockMainTabs.dash-tabs-main.barre-cachee{
+    transform: translateY(calc(100% + 8px + env(safe-area-inset-bottom, 0px)));
+  }
+  /* Le ☰ et le ⋯ prennent la couleur du dock, et non un fond plus sombre qui
+     dessinerait deux carrés dans ses coins ronds. */
+  #stockMainTabs #menuToggle,
+  #stockMainTabs #barReglagesBtn{ background: var(--panel); }
+
+  /* Les icônes deviennent des tuiles, comme les applications d'un téléphone :
+     un carré aux coins ronds, bombé par la même ombre que les fenêtres. */
+  #stockMainTabs .dash-tab[data-epingle],
+  #stockMainTabs #barComposer,
+  #stockMainTabs #barAccueil{
+    flex: 0 0 auto;
+    width: 40px; height: 40px;
+    margin: 0 3px;
+    padding: 0;
+    align-self: center;
+    justify-content: center;
+    border-radius: 13px;
+    border-bottom: none;
+    background: var(--panel-2);
+    box-shadow:
+      inset 4px 0 6px -4px rgba(0,0,0,0.35),
+      inset -4px 0 6px -4px rgba(0,0,0,0.35),
+      inset 0 0 0 1px var(--line);
+  }
+  /* La page ouverte : un liseré cyan autour de la tuile, à la place du
+     soulignement d'autrefois. */
+  #stockMainTabs .dash-tab[data-epingle].active,
+  #stockMainTabs #barComposer.active,
+  #stockMainTabs #barAccueil.active{
+    box-shadow:
+      inset 4px 0 6px -4px rgba(0,0,0,0.35),
+      inset -4px 0 6px -4px rgba(0,0,0,0.35),
+      inset 0 0 0 2px var(--cyan);
+  }
+  /* En mode manuel, la croix se pose sur le coin de la tuile, comme une
+     pastille d'application — et la tuile ne descend plus pour lui faire place. */
+  #stockMainTabs.mode-manuel .dash-tab[data-epingle],
+  #stockMainTabs.mode-manuel #barComposer,
+  #stockMainTabs.mode-manuel #barAccueil{
+    padding-top: 0; padding-bottom: 0;
+    margin-top: 7px;
+  }
+  #stockMainTabs .dash-tab[data-epingle] .epingle-retirer,
+  #stockMainTabs #barComposer .epingle-retirer,
+  #stockMainTabs #barAccueil .epingle-retirer{ top: -6px; right: -6px; }
+
+  /* La rangée des vues du stock, quand elle paraît dans la page : une barre
+     pleine aux coins ronds, et non des mots posés à même le fond d'écran. */
+  #stockSubTabs{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 0.2rem 0.6rem;
+  }
+
+  /* Les icônes posées sur le fond : la même tuile, sous leur nom. */
+  .icone-bureau .emoji{
+    width: 50px; height: 50px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 15px;
+    background: var(--panel-2);
+    box-shadow:
+      inset 5px 0 7px -5px rgba(0,0,0,0.4),
+      inset -5px 0 7px -5px rgba(0,0,0,0.4),
+      inset 0 0 0 1px var(--line),
+      0 4px 12px rgba(0,0,0,0.35);
+    text-shadow: none;
   }

@@ -14,7 +14,19 @@
   } catch(e){}
 
   if(!window.supabase || !window.supabase.createClient) return;
-  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  // Le Fokontany et le Commun INSTALLÉS gardent leur session à part. L'admin
+  // les installe sur l'ordinateur d'un fokontany : l'application doit s'ouvrir
+  // sur l'écran de connexion, pour le compte de ce fokontany, sans que l'admin
+  // ait à se déconnecter de Ny asako dans le navigateur. Même stockage, autre
+  // clé : les deux sessions ne se voient pas. Dans un onglet ordinaire, rien
+  // ne change — la page partage la session de Ny asako.
+  var options = {};
+  try {
+    var appAPart = /^\/(fokontany|commun)(\/|$)/.test(window.location.pathname);
+    var installee = !window.matchMedia('(display-mode: browser)').matches || window.navigator.standalone === true;
+    if(appAPart && installee) options = { auth: { storageKey: 'sb-nyasako-fokontany-app' } };
+  } catch(e){}
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, options);
   window.__sb = sb;
 
   // Même raison pour l'événement : il peut partir avant que common.js n'ait pu

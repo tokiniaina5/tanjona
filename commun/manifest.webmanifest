@@ -1,0 +1,37 @@
+{
+  "id": "/commun/",
+  "name": "Administratif Commun",
+  "short_name": "Commun",
+  "description": "Tableau de bord an'ny Administratif Fokontany : jerena fotsiny, tsy azo ovaina.",
+  "lang": "mg",
+  "dir": "ltr",
+  "start_url": "/commun/",
+  "scope": "/commun/",
+  "display": "standalone",
+  "background_color": "#0a0d10",
+  "theme_color": "#0a0d10",
+  "categories": [
+    "government",
+    "productivity"
+  ],
+  "icons": [
+    {
+      "src": "/commun/icone-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/commun/icone-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/commun/icone-512-masquable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

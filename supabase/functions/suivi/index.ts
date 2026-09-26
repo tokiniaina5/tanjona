@@ -64,6 +64,23 @@ Deno.serve(async (req: Request) => {
 
   const owner = course.owner_email;
 
+  // ---- « Tadiavo » ----
+  // Le client demande où est son livreur, maintenant. On ne devine rien : on
+  // note la demande sur le livreur de SA course, et la page de ce livreur,
+  // si elle est ouverte, envoie aussitôt sa position. Rien pour une course
+  // finie ou sans livreur — c'est la même règle que pour la position.
+  if (String(body.action ?? "") === "tadiavo") {
+    if (!course.livreur_id || TERMINEES.includes(String(course.statut))) {
+      return json({ ok: false, error: "tsy misy livreur" });
+    }
+    const { error } = await admin.from("equipe")
+      .update({ position_demandee_at: new Date().toISOString() })
+      .eq("id", course.livreur_id).eq("owner_email", owner);
+    // Presque toujours : supabase-livreur-tadiavo.sql n'a pas été passé.
+    if (error) return json({ ok: false, error: "tadiavo refusé" });
+    return json({ ok: true });
+  }
+
   // La clé de la carte voyage avec la réponse : le téléphone du client ne
   // la connaît pas et n'a aucun moyen de la connaître autrement.
   const { data: reglages } = await admin.from("reglages")

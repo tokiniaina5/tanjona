@@ -24,24 +24,32 @@
     try { localStorage.removeItem(CLE); } catch (e) {}
   }
 
-  // « cover » et non « contain » : l'image remplit l'écran et se recadre, au
-  // lieu de laisser deux bandes vides sur les côtés. « fixed » pour qu'elle
-  // reste en place pendant qu'on descend dans le fil.
+  // Tant que personne n'a choisi d'image, c'est le logo qui habille le fond :
+  // un écran uni ne disait pas dans quelle application on se trouvait.
+  // En SVG et non l'icône PNG : il couvre tout l'écran, et 512 pixels étirés
+  // sur un écran d'ordinateur donnaient un « N » flou.
+  const LOGO = '/fond-logo.svg';
+  // Le fond du logo. L'écran entier en prend la couleur : le logo n'est plus
+  // une vignette posée sur du noir, il est l'écran. La couleur des panneaux,
+  // lue dans le thème : sombre la nuit, claire le jour — le dessin du logo, lui,
+  // est transparent autour du « N ».
+  const COULEUR_LOGO = 'var(--panel)';
+
+  // Une photo : « cover », elle remplit l'écran et se recadre, au lieu de
+  // laisser deux bandes vides sur les côtés.
+  // Le logo : « contain ». Carré, il ne se recadre pas comme une photo — sur
+  // un téléphone debout, « cover » coupait le « N » des deux côtés. Il tient
+  // donc en entier, et la couleur de son fond remplit le reste : on ne voit
+  // pas où il s'arrête.
+  // « fixed » pour que le fond reste en place pendant qu'on descend.
   function appliquer(url) {
     const b = document.body;
-    if (url) {
-      b.style.backgroundImage = 'url("' + url + '")';
-      b.style.backgroundSize = 'cover';
-      b.style.backgroundPosition = 'center';
-      b.style.backgroundRepeat = 'no-repeat';
-      b.style.backgroundAttachment = 'fixed';
-    } else {
-      b.style.backgroundImage = '';
-      b.style.backgroundSize = '';
-      b.style.backgroundPosition = '';
-      b.style.backgroundRepeat = '';
-      b.style.backgroundAttachment = '';
-    }
+    b.style.backgroundImage = 'url("' + (url || LOGO) + '")';
+    b.style.backgroundSize = url ? 'cover' : 'contain';
+    b.style.backgroundColor = url ? '' : COULEUR_LOGO;
+    b.style.backgroundPosition = 'center';
+    b.style.backgroundRepeat = 'no-repeat';
+    b.style.backgroundAttachment = 'fixed';
   }
 
   // Le fond est posé avant tout le reste : on ne veut pas voir l'application
@@ -84,11 +92,16 @@
     function montrer() {
       const url = lire();
       if (apercu) {
-        apercu.style.backgroundImage = url ? 'url("' + url + '")' : '';
+        // L'aperçu montre ce qu'on verra : le logo quand rien n'est choisi.
+        apercu.style.backgroundImage = 'url("' + (url || LOGO) + '")';
+        apercu.style.backgroundSize = url ? 'cover' : 'contain';
+        apercu.style.backgroundColor = url ? '' : COULEUR_LOGO;
         apercu.classList.toggle('vide', !url);
       }
       retirer.disabled = !url;
-      dire(url ? 'Une image habille le fond.' : 'Aucune image : le fond reste uni.');
+      dire(url
+        ? 'Une image habille le fond.'
+        : 'Aucune image choisie : le logo Ny asako habille le fond.');
     }
     montrer();
 

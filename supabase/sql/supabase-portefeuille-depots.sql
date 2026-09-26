@@ -23,7 +23,11 @@ create table if not exists public.wallet_deposits (
 
   -- En ariary, entier. Le portefeuille ne compte qu'en ariary ; les
   -- devises se convertissent au moment d'entrer.
-  amount_ar integer not null check (amount_ar > 0),
+  --
+  -- bigint et non integer : en ariary, deux milliards se comptent vite, et
+  -- un « integer » s'arrête à 2 147 483 647. Le portefeuille ne doit avoir
+  -- aucun plafond.
+  amount_ar bigint not null check (amount_ar > 0),
 
   -- Qui a encaissé : 'mvola', 'orange', 'airtel', 'paypal'...
   provider text not null,
@@ -56,6 +60,10 @@ create unique index if not exists wallet_deposits_ref_unique
 -- cet index, sans quoi il relit toute la table.
 create index if not exists wallet_deposits_email_idx
   on public.wallet_deposits (email, status);
+
+-- Une base déjà créée garde son « integer » : on l'élargit. Sans plafond,
+-- le portefeuille reçoit n'importe quelle somme. Se relance sans risque.
+alter table public.wallet_deposits alter column amount_ar type bigint;
 
 alter table public.wallet_deposits enable row level security;
 
