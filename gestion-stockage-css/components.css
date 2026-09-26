@@ -239,6 +239,10 @@
     font-family: var(--font-mono);
     font-size: 0.62rem; line-height: 1.2; text-align: center;
     overflow-wrap: anywhere;
+    /* Deux lignes au plus : l'icône tient dans sa case de la grille
+       (rangerLeFond, common.js), sans déborder sur celle du dessous. */
+    display: -webkit-box; -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
   }
   .icone-bureau.tire{ opacity: 0.8; cursor: grabbing; z-index: 141; }
   .icone-bureau .epingle-retirer{ top: 0; right: 6px; }

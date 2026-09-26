@@ -4696,15 +4696,49 @@
       return true;
     }
 
+    // Les icônes se rangent sur une grille, une par case : lâchées au pixel
+    // près, elles finissaient les unes sur les autres. Une icône lâchée sur
+    // une case prise va à la case libre la plus proche.
+    const PAS_X = 76, PAS_Y = 96;
+    // `derniere` : l'icône qu'on vient de lâcher. Elle passe après les autres,
+    // qui gardent leur case, et sa place est retenue. Sans elle (ouverture,
+    // écran tourné), on range sans rien écrire : un écran plus petit ne doit
+    // pas effacer les places choisies sur un plus grand.
+    function rangerLeFond(derniere){
+      const c = cadreDuFond();
+      if(!c) return;
+      const W = window.innerWidth, H = window.innerHeight;
+      const cols = Math.max(1, Math.floor((c.x2 - c.x1) / PAS_X) + 1);
+      const lignes = Math.max(1, Math.floor((c.y2 - c.y1) / PAS_Y) + 1);
+      const prises = {};
+      const liste = lireBureau();
+      const ordre = liste.filter(function(i){ return i.cle !== derniere; })
+        .concat(liste.filter(function(i){ return i.cle === derniere; }));
+      const rangees = ordre.map(function(i){
+        const vx = Math.min(cols - 1, Math.max(0, Math.round((i.x * W - c.x1) / PAS_X)));
+        const vy = Math.min(lignes - 1, Math.max(0, Math.round((i.y * H - c.y1) / PAS_Y)));
+        let k = vx, r = vy, meilleure = Infinity;
+        for(let rr = 0; rr < lignes; rr++){
+          for(let kk = 0; kk < cols; kk++){
+            if(prises[kk + ',' + rr]) continue;
+            const d = (kk - vx) * (kk - vx) + (rr - vy) * (rr - vy);
+            if(d < meilleure){ meilleure = d; k = kk; r = rr; }
+          }
+        }
+        prises[k + ',' + r] = true;
+        const x = c.x1 + k * PAS_X, y = c.y1 + r * PAS_Y;
+        const el = document.querySelector('.icone-bureau[data-cle="' + i.cle + '"]');
+        if(el){ el.style.left = x + 'px'; el.style.top = y + 'px'; }
+        return { cle: i.cle, x: x / W, y: y / H };
+      });
+      if(derniere) ecrireBureau(rangees);
+    }
+
     // Chaque icône reprend la place qu'on lui a donnée. Appelé à l'ouverture,
     // puis une fois la page complète : le premier passage tombe souvent avant
     // que la rangée du bas ait une hauteur.
     function replacerLesIcones(){
-      const liste = lireBureau();
-      [].slice.call(document.querySelectorAll('.icone-bureau')).forEach(function(el){
-        const e = liste.filter(function(i){ return i.cle === el.dataset.cle; })[0];
-        if(e) placerIcone(el, e.x, e.y);
-      });
+      rangerLeFond(null);
     }
 
     function retirerDuFond(cle){
@@ -4840,24 +4874,16 @@
         // Relâchée sur la rangée : elle n'a jamais voulu en sortir.
         if(surLaRangee(ev.clientX, ev.clientY)) return;
         detacherDeLaRangee(cle, bouton);
+        // Centrée sous le doigt, puis calée sur sa case : c'est la case qu'on
+        // retient, et non le point brut du lâcher.
         const entree = {
           cle: cle,
-          x: ev.clientX / window.innerWidth,
-          y: ev.clientY / window.innerHeight
+          x: (ev.clientX - PAS_X / 2) / window.innerWidth,
+          y: (ev.clientY - PAS_Y / 2) / window.innerHeight
         };
         ecrireBureau(lireBureau().filter(function(i){ return i.cle !== cle; }).concat([entree]));
-        const pose = dessinerIcone(entree);
-        // C'est la place où elle s'est posée qu'on retient, et non le point du
-        // lâcher : lâchée au bord, elle est ramenée dans le cadre, et garder
-        // le point brut la ferait réapparaître ailleurs sur un autre écran.
-        if(pose){
-          const r2 = pose.getBoundingClientRect();
-          ecrireBureau(lireBureau().map(function(i){
-            return i.cle === cle
-              ? { cle: cle, x: r2.left / window.innerWidth, y: r2.top / window.innerHeight }
-              : i;
-          }));
-        }
+        dessinerIcone(entree);
+        rangerLeFond(cle);
       }
       document.addEventListener('pointermove', bouger);
       document.addEventListener('pointerup', lacher);
@@ -4890,14 +4916,12 @@
           el.classList.remove('tire');
           if(!parti){ ouvrirDepuisLaCle(cle); return; }
           if(surLaRangee(ev.clientX, ev.clientY)){ rendreALaRangee(cle); return; }
-          placerIcone(el, (ev.clientX - dx) / window.innerWidth, (ev.clientY - dy) / window.innerHeight);
-          const r2 = el.getBoundingClientRect();
-          const liste = lireBureau().map(function(i){
+          ecrireBureau(lireBureau().map(function(i){
             return i.cle === cle
-              ? { cle: cle, x: r2.left / window.innerWidth, y: r2.top / window.innerHeight }
+              ? { cle: cle, x: (ev.clientX - dx) / window.innerWidth, y: (ev.clientY - dy) / window.innerHeight }
               : i;
-          });
-          ecrireBureau(liste);
+          }));
+          rangerLeFond(cle);
         }
         el.addEventListener('pointermove', bouger);
         el.addEventListener('pointerup', lacher);
