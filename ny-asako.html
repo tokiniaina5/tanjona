@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="143689be">
+<meta name="ny-asako-version" content="d223f4a9">
 <title>Ny asako — Tanjona</title>
 <!-- Application installable : le manifeste décrit le nom, l'icône et la façon
      de s'ouvrir ; le reste est affaire de service worker, enregistré plus bas. -->
@@ -1635,11 +1635,11 @@
                   <label>Fournisseur (optionnel)</label>
                   <input id="itemSupplier" type="text" placeholder="Ex: Grossiste Analakely">
                 </div>
-                <!-- Coché : la boîte « Écrire » s'ouvre sur la fiche de l'article
-                     dès qu'il est ajouté (stock.js). Décoché : il reste au stock,
-                     sans annonce. -->
+                <!-- Tout article ajouté paraît dans la Botika (stock.js). Coché :
+                     la boîte « Écrire » s'ouvre d'abord sur sa fiche, pour une
+                     annonce complète (marque, photo, description). -->
                 <label class="case-publier" for="itemPublier">
-                  <input type="checkbox" id="itemPublier"> 📢 Avoaka ao amin'ny fil
+                  <input type="checkbox" id="itemPublier"> 📝 Hameno famaritana
                 </label>
                 <button class="btn btn-primary" id="addItemBtn" style="width:auto;">Ajouter</button>
               </div>
@@ -2998,7 +2998,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
 <script src="gestion-stockage-js/common.js?v=bcae709e"></script>
-<script src="gestion-stockage-js/stock.js?v=fe9a5898"></script>
+<script src="gestion-stockage-js/stock.js?v=ae755b14"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=7204c861"></script>
 <script src="gestion-stockage-js/factures.js?v=3c5eba5b"></script>

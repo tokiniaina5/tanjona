@@ -333,10 +333,17 @@
     // de cet article. La case se décoche : le prochain article choisira pour
     // lui-même.
     const publier = document.getElementById('itemPublier');
+    const ajoute = items.find(function(it){ return it.id === id; });
     if(publier && publier.checked){
       publier.checked = false;
-      const ajoute = items.find(function(it){ return it.id === id; });
       if(ajoute && typeof window.__ouvrirLaFicheDeLEntana === 'function') window.__ouvrirLaFicheDeLEntana(ajoute);
+    } else if(ajoute && Number(ajoute.qty) >= 1 && typeof window.__publierLEntana === 'function'){
+      // Case décochée : l'article paraît quand même dans la Botika, tout de
+      // suite — tout ce qu'on ajoute s'y voit. Déjà annoncé, il n'y est pas
+      // mis deux fois (__publierLEntana le vérifie).
+      window.__publierLEntana(ajoute).then(majLesBoutonsFil, function(err){
+        alert('Tsy navoaka tao amin\'ny Botika : ' + ((err && err.message) || 'andramo indray.'));
+      });
     }
   });
 
