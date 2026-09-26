@@ -35,5 +35,6 @@
 /confirmation/           /ny-asako.html  200
 
 # L'Administratif Commun est la page du Fokontany, sous une autre adresse.
+# Son manifeste et ses icônes existent vraiment, rangés sous fokontany/commun/.
 /commun                  /fokontany/index.html  200
 /commun/                 /fokontany/index.html  200

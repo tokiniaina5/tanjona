@@ -3360,7 +3360,7 @@
     // « Ny asako », la bannière d'essai et la rangée du bas.
     const PAGES = [
       'dash-accueil',
-      'dash-articles', 'dash-commun', 'dash-communadmin', 'section-factures', 'section-inviter', 'section-contact',
+      'dash-articles', 'dash-dashboard', 'dash-commun', 'dash-communadmin', 'section-factures', 'section-inviter', 'section-contact',
       // Les outils de bureau (fitaovana.js).
       'section-word', 'section-excel', 'section-notes', 'section-kajy',
       'section-calendrier', 'section-horaire',
@@ -4328,6 +4328,7 @@
       if(!id) return '';
       if(id.indexOf('section-') === 0) return 'section:' + id.slice(8);
       if(id === 'dash-articles') return 'id:menuArticles';
+      if(id === 'dash-dashboard') return 'id:menuTableauBord';
       if(id === 'dash-commun') return 'id:menuCommun';
       if(id === 'dash-communadmin') return 'id:menuCommunAdmin';
       return '';
@@ -4354,8 +4355,9 @@
       const cible = cle.indexOf('section:') === 0
         ? document.getElementById('section-' + cle.slice(8))
         : (cle === 'id:menuArticles' ? document.getElementById('dash-articles')
+        : (cle === 'id:menuTableauBord' ? document.getElementById('dash-dashboard')
           : (cle === 'id:menuCommun' ? document.getElementById('dash-commun')
-            : (cle === 'id:menuCommunAdmin' ? document.getElementById('dash-communadmin') : null)));
+            : (cle === 'id:menuCommunAdmin' ? document.getElementById('dash-communadmin') : null))));
       if(cible && cible.classList.contains('active')){
         const navStock = document.querySelector('.nav-item[data-section="stock"]');
         if(navStock) navStock.click();
@@ -5588,7 +5590,8 @@
   // à l'autre. Avec l'Accueil ou les Articles, qui s'ouvrent en fenêtre, elle
   // restait seule derrière elles, à nu sur le fond d'écran. Les Articles
   // portent maintenant leurs propres onglets, et la recherche.
-  const VUES_DANS_LA_PAGE = ['dashboard', 'historique', 'ajouter', 'comptes', 'acheter'];
+  // Le tableau de bord n'en est plus : il s'ouvre en fenêtre, avec ses onglets.
+  const VUES_DANS_LA_PAGE = ['historique', 'ajouter', 'comptes', 'acheter'];
   function updateSubTabsVisibility(){
     const subTabs = document.getElementById('stockSubTabs');
     if(subTabs) subTabs.style.display = VUES_DANS_LA_PAGE.indexOf(vueAffichee()) >= 0 ? '' : 'none';
@@ -5812,6 +5815,8 @@
   });
   const menuArticles = document.getElementById('menuArticles');
   if(menuArticles) menuArticles.addEventListener('click', function(){ ouvrirDepuisLeMenu('articles'); });
+  const menuTableauBord = document.getElementById('menuTableauBord');
+  if(menuTableauBord) menuTableauBord.addEventListener('click', function(){ ouvrirDepuisLeMenu('dashboard'); });
   const menuCommun = document.getElementById('menuCommun');
   if(menuCommun) menuCommun.addEventListener('click', function(){ ouvrirDepuisLeMenu('commun'); });
   const menuCommunAdmin = document.getElementById('menuCommunAdmin');

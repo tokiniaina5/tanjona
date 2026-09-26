@@ -9,7 +9,7 @@
 // Le nom porte l'empreinte du dernier envoi : outils/versionner.mjs le réécrit.
 // Chaque mise en ligne repart donc d'un cache neuf, et l'ancien est effacé —
 // sans quoi les fichiers de toutes les versions passées s'y empileraient.
-const CACHE = 'nyasako-3fc5f77a';
+const CACHE = 'nyasako-1fb73cf9';
 
 // Le partage reçu des autres applications (manifest.webmanifest, « share_target »).
 // Le téléphone ouvre cette adresse en POST, avec le texte et les fichiers
@@ -37,8 +37,8 @@ const SOCLE = [
   '/fokontany/icone-192.png',
   // L'Administratif Commun aussi : la même page, sous son adresse.
   '/commun/',
-  '/commun/manifest.webmanifest',
-  '/commun/icone-192.png',
+  '/fokontany/commun/manifest.webmanifest',
+  '/fokontany/commun/icone-192.png',
   // La boutique publique : c'est elle que trouve un lien partagé, et elle
   // doit s'ouvrir même quand le réseau hésite.
   '/botika/',

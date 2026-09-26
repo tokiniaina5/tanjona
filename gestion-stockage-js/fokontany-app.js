@@ -114,7 +114,7 @@ document.addEventListener('DOMContentLoaded', function () {
     $('fkMarque').innerHTML = '🏛️ Administratif <span>Commun</span>';
     // Son icône à lui, le « C » : celle du Fokontany est posée dans la page.
     document.querySelectorAll('link[rel="icon"], link[rel="apple-touch-icon"]').forEach(function (l) {
-      l.setAttribute('href', '/commun/icone-192.png');
+      l.setAttribute('href', '/fokontany/commun/icone-192.png');
     });
     // Le Commun voit tout ce que voit le Fokontany : les mêmes onglets, les
     // mêmes pages. Mais il regarde sans toucher — la classe va sur chaque
@@ -345,7 +345,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // installer l'une après l'autre, même sur le même ordinateur. Sans nom
   // (ou dans le Commun), c'est le manifeste du site qui sert.
   function adresseDuManifeste() {
-    if (APP_COMMUN) return '/commun/manifest.webmanifest';
+    if (APP_COMMUN) return '/fokontany/commun/manifest.webmanifest';
     var nom = '';
     try { nom = String(localStorage.getItem('stockmanager_fokontany_nom') || '').trim(); } catch (e) {}
     if (!nom) return '/fokontany/manifest.webmanifest';

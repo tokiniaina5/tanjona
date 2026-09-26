@@ -154,7 +154,7 @@ function fabriquerLettre(fichier, taille, dessin, encre, { rayonRelatif = 0.22 }
 }
 const AMBRE = [0xf2, 0xa3, 0x3c];
 const VIOLET = [0x8b, 0x93, 0xff];
-[['fokontany', dansLeF, AMBRE], ['commun', dansLeC, VIOLET]].forEach(function([dossier, dessin, encre]){
+[['fokontany', dansLeF, AMBRE], ['fokontany/commun', dansLeC, VIOLET]].forEach(function([dossier, dessin, encre]){
   fabriquerLettre(dossier + '/icone-192.png', 192, dessin, encre);
   fabriquerLettre(dossier + '/icone-512.png', 512, dessin, encre);
   fabriquerLettre(dossier + '/icone-512-masquable.png', 512, dessin, encre, { rayonRelatif: 0 });
