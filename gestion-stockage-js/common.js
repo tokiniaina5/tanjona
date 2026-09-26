@@ -2378,7 +2378,7 @@
     if(method === 'card') return 'Carte Visa / Mastercard';
     if(method === 'bank') return 'Virement bancaire';
     if(method === 'mobile') return 'Mobile Money';
-    return 'Ancien moyen de paiement';
+    return 'Papi';
   }
 
   // Le hash (jamais le code en clair) est ce qui transite et ce qui est stocké.
