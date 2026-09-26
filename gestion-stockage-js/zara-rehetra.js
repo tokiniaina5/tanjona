@@ -63,6 +63,15 @@
     return d;
   }
 
+  // La feuille de partage du téléphone. Sur ordinateur, navigator.share
+  // existe parfois (Windows, Chrome) mais n'y propose ni Instagram ni TikTok :
+  // on ne la prend que sur un appareil tactile.
+  function partageDirect() {
+    var tactile = false;
+    try { tactile = window.matchMedia('(pointer: coarse)').matches; } catch (e) {}
+    return tactile && typeof navigator.share === 'function';
+  }
+
   function copier(texte) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(texte).catch(function () {});
@@ -413,8 +422,14 @@
     }
     // Ce qui s'ouvre d'un seul appui : tout ce qui est coché, pas encore
     // parti, et qui n'est pas l'email.
+    // Sur téléphone, Instagram, TikTok et WeChat n'en sont pas : chacun passe
+    // par la feuille de partage, et elle ne s'ouvre qu'une fois par appui —
+    // on les touche donc un par un, dans la liste.
     function aOuvrir() {
-      return attente.filter(function (e) { return e.coche && !e.fait && !e.mail; });
+      var direct = partageDirect();
+      return attente.filter(function (e) {
+        return e.coche && !e.fait && !e.mail && !(direct && e.reseau && e.reseau.copie);
+      });
     }
     function restants() {
       return attente.filter(function (e) { return !e.fait; });
@@ -471,9 +486,14 @@
               ' background:none; border:none; padding:0; font:inherit; cursor:pointer; text-align:left;">' +
               nomDe(e) + '</button>');
         // Ce qu'il faut savoir avant de toucher la ligne, et non après.
-        var remarque = (!e.fait && e.reseau && e.reseau.remarque)
+        var texteRemarque = (!e.fait && e.reseau)
+          ? ((e.reseau.copie && partageDirect())
+            ? 'tsindrio : mandeha mivantana any amin\'ny application ny hafatra, tsy mila apetaka'
+            : (e.reseau.remarque || ''))
+          : '';
+        var remarque = texteRemarque
           ? '<span style="color:var(--muted); font-size:0.7rem; display:block; line-height:1.4;">' +
-            echap(e.reseau.remarque) + '</span>'
+            echap(texteRemarque) + '</span>'
           : '';
         return '<div class="list-row" data-i="' + i + '" style="' +
             (ici ? 'background:var(--panel-2); border-radius:8px;' : '') +
@@ -500,6 +520,21 @@
       var e = attente[Number(ligne.getAttribute('data-i'))];
       if (!e || e.fait) return;
       if (e.mail) { ev.preventDefault(); envoyerLeMail(e); return; }
+      // Instagram, TikTok, WeChat n'ont pas d'adresse qui porte le message.
+      // Sur téléphone, la feuille de partage le leur remet directement : on
+      // choisit l'application, le texte y est déjà, rien à coller. Ailleurs
+      // (ordinateur), on garde le presse-papier et la page à ouvrir.
+      if (e.reseau && e.reseau.copie && partageDirect()) {
+        ev.preventDefault();
+        copier(hafatra);
+        navigator.share({ text: hafatra }).then(function () {
+          e.fait = true;
+          nalefa++;
+          recalculerLeRang();
+          montrerLeRang();
+        }, function () { /* annulé : la ligne reste à faire */ });
+        return;
+      }
       // Le message passe au presse-papier à chaque ouverture, et plus
       // seulement pour ceux qui n'ont pas d'adresse. Certaines applications
       // s'ouvrent sans reprendre ce qu'on leur a passé — Telegram le fait
@@ -613,6 +648,18 @@
       var e = attente[rang];
       if (!e) return;
       if (e.mail) { envoyerLeMail(e); return; }
+      // Il ne reste que des réseaux à partager par le téléphone : le bouton
+      // partage celui du tour, comme un appui sur sa ligne.
+      if (!aOuvrir().length && e.reseau && e.reseau.copie && partageDirect()) {
+        copier(hafatra);
+        navigator.share({ text: hafatra }).then(function () {
+          e.fait = true;
+          nalefa++;
+          recalculerLeRang();
+          montrerLeRang();
+        }, function () {});
+        return;
+      }
       // Tout ce qui est coché s'ouvre ici, à la file et sans rien attendre
       // entre deux : le navigateur n'autorise les fenêtres que pendant le
       // geste qui les demande, et une seule attente suffirait à faire
