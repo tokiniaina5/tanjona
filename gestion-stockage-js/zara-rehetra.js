@@ -228,6 +228,9 @@
           '</p>' +
           '<button type="button" class="btn btn-sm" data-hariva style="width:auto;">📧 Alefa izao ny publication androany</button>' +
           '<p data-hariva-statut style="font-size:0.78rem; color:var(--muted); margin:0.6rem 0 0; min-height:1.1em;"></p>' +
+          // Le carnet : à qui sont partis les derniers envois.
+          '<h3 style="font-size:0.9rem; margin-top:1rem;">📋 Lasa tany amin\'iza ?</h3>' +
+          '<div data-hariva-tantara style="font-size:0.78rem; color:var(--muted); line-height:1.6;">Mamaky…</div>' +
         '</div>' +
 
         '<button type="button" class="btn btn-primary" data-alefa>📨 Alefa</button>' +
@@ -263,6 +266,60 @@
     // Ce que la tâche du soir fera à 18 h, tout de suite.
     var bHariva = page.querySelector('[data-hariva]');
     var statutHariva = page.querySelector('[data-hariva-statut]');
+    var boiteTantara = page.querySelector('[data-hariva-tantara]');
+
+    function echapper(t) {
+      return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+    function listeClients(liste) {
+      return (liste || []).map(function (c) {
+        return '<div style="padding:0.15rem 0;">' +
+          (c.name ? '<strong style="color:var(--text);">' + echapper(c.name) + '</strong> · ' : '') +
+          echapper(c.email) + '</div>';
+      }).join('');
+    }
+    // Chaque envoi, le plus récent d'abord, et sous lui la liste des clients.
+    function afficherTantara(lignes) {
+      if (!lignes.length) {
+        boiteTantara.textContent = 'Mbola tsy nisy fandefasana voarakitra.';
+        return;
+      }
+      boiteTantara.innerHTML = lignes.map(function (l, i) {
+        var voaray = l.voaray || [];
+        var tsy = l.tsy_lasa || [];
+        return '<details style="border:1px solid var(--line); border-radius:8px; padding:0.5rem 0.7rem; margin-bottom:0.5rem;"' +
+            (i === 0 ? ' open' : '') + '>' +
+          '<summary style="cursor:pointer; color:var(--text);">' +
+            new Date(l.created_at).toLocaleString('fr-FR') + ' · ' +
+            (l.loharano === 'hariva' ? '⏰ ho azy' : '📧 bokotra') + ' · ' +
+            'publication ' + (l.billets || 0) + ' · <strong>client ' + voaray.length + '</strong>' +
+            (tsy.length ? ' · <span style="color:var(--amber);">tsy lasa ' + tsy.length + '</span>' : '') +
+          '</summary>' +
+          '<div style="margin-top:0.4rem; max-height:30vh; overflow-y:auto;">' +
+            (voaray.length ? listeClients(voaray) : 'Tsy nisy client.') +
+            (tsy.length ? '<div style="color:var(--amber); margin-top:0.4rem;">Tsy lasa' +
+              (l.fahadisoana ? ' (' + echapper(l.fahadisoana) + ')' : '') + ' :</div>' + listeClients(tsy) : '') +
+          '</div>' +
+        '</details>';
+      }).join('');
+    }
+    function chargerTantara() {
+      if (!window.__sb || !window.__sb.functions) { boiteTantara.textContent = 'Tsy tafiditra ny serveur.'; return; }
+      window.__sb.functions.invoke('fandefasana-hariva', { body: { action: 'tantara' } }).then(function (res) {
+        var d = (res && res.data) || {};
+        if (d.tantara) { afficherTantara(d.tantara); return; }
+        var ctx = res && res.error && res.error.context;
+        if (ctx && typeof ctx.json === 'function') {
+          ctx.json().then(function (b) { boiteTantara.textContent = (b && b.error) || 'Tsy voavaky ny tantara.'; },
+            function () { boiteTantara.textContent = 'Tsy voavaky ny tantara.'; });
+        } else {
+          boiteTantara.textContent = d.error || 'Tsy voavaky ny tantara.';
+        }
+      }, function () { boiteTantara.textContent = 'Tsy tratra ny serveur.'; });
+    }
+    chargerTantara();
     bHariva.addEventListener('click', function () {
       if (!window.__sb || !window.__sb.functions) { statutHariva.textContent = 'Tsy tafiditra ny serveur.'; return; }
       if (!confirm('Halefa amin\'ny client rehetra manana email ny publication rehetra androany. Tsy azo averina. Hitohy?')) return;
@@ -274,6 +331,7 @@
         statutHariva.textContent = d.sent
           ? '✓ Publication ' + d.billets + ' lasa any amin\'ny client ' + d.sent + (d.error ? ' (' + d.error + ')' : '') + '.'
           : 'Tsy lasa : ' + (d.error || (res && res.error && res.error.message) || 'antony tsy fantatra');
+        chargerTantara();
       }, function (err) {
         bHariva.disabled = false;
         statutHariva.textContent = 'Tsy tratra ny fonction : ' + ((err && err.message) || 'réseau');

@@ -26,6 +26,10 @@
 //
 // « essai: true » dans le corps : elle dit ce qu'elle enverrait, sans rien
 // envoyer.
+//
+// Chaque envoi s'inscrit dans « fandefasana_tantara »
+// (supabase-fandefasana-tantara.sql) avec la liste des clients servis.
+// « action: "tantara" » rend les derniers envois au propriétaire connecté.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
@@ -100,6 +104,7 @@ Deno.serve(async (req: Request) => {
   // 1) La porte : le secret de la tâche du soir, ou le propriétaire connecté.
   const secretRecu = req.headers.get("x-secret-hariva") ?? "";
   let autorise = !!secret && !!secretRecu && memeSecret(secretRecu, secret);
+  const loharano = autorise ? "hariva" : "bokotra";
   if (!autorise) {
     const token = (req.headers.get("Authorization") ?? "").replace("Bearer ", "");
     if (token) {
@@ -110,7 +115,23 @@ Deno.serve(async (req: Request) => {
   if (!autorise) return json({ error: "refusé" }, 401);
 
   let essai = false;
-  try { essai = (await req.json())?.essai === true; } catch { /* corps vide */ }
+  let action = "";
+  try {
+    const corpsRecu = await req.json();
+    essai = corpsRecu?.essai === true;
+    action = String(corpsRecu?.action ?? "");
+  } catch { /* corps vide */ }
+
+  // ---- Le carnet : à qui sont partis les derniers envois ----
+  if (action === "tantara") {
+    const { data, error } = await admin.from("fandefasana_tantara")
+      .select("id,created_at,loharano,billets,sujet,voaray,tsy_lasa,fahadisoana")
+      .order("created_at", { ascending: false }).limit(15);
+    if (error) {
+      return json({ error: "Tsy hita ny tantara : alefaso ao amin'ny SQL Editor ny supabase-fandefasana-tantara.sql. (" + error.message + ")" }, 500);
+    }
+    return json({ tantara: data ?? [] });
+  }
 
   // 2) Ce qui a paru depuis vingt-quatre heures, et qui est encore en ligne.
   const depuis = new Date(Date.now() - FENETRE_MS).toISOString();
@@ -131,16 +152,19 @@ Deno.serve(async (req: Request) => {
 
   // 3) Les clients, une adresse chacun.
   const { data: lignes, error: erreurListe } = await admin
-    .from("client_signups").select("email").limit(5000);
+    .from("client_signups").select("email,name").limit(5000);
   if (erreurListe) return json({ error: erreurListe.message }, 500);
   const vus = new Set<string>();
   const adresses: string[] = [];
+  const noms = new Map<string, string>();
   for (const l of lignes ?? []) {
     const e = String(l?.email ?? "").trim().toLowerCase();
     if (!e || e.indexOf("@") < 1 || vus.has(e) || e === ownerEmail) continue;
     vus.add(e);
     adresses.push(e);
+    noms.set(e, String(l?.name ?? "").trim());
   }
+  const qui = (e: string) => ({ email: e, name: noms.get(e) ?? "" });
 
   const corps = [
     "Ireto ny vaovao rehetra tao amin'ny Botika androany :",
@@ -170,5 +194,15 @@ Deno.serve(async (req: Request) => {
   }
   try { await client.close(); } catch { /* déjà fermé */ }
 
-  return json({ billets: billets.length, total: adresses.length, sent: envoyes, error: erreur });
+  // Les paquets partent dans l'ordre : les « envoyes » premiers sont servis.
+  const voaray = adresses.slice(0, envoyes).map(qui);
+  const tsyLasa = adresses.slice(envoyes).map(qui);
+  // Le carnet ne doit jamais empêcher l'envoi : une table absente se tait.
+  try {
+    await admin.from("fandefasana_tantara").insert({
+      loharano, billets: billets.length, sujet, voaray, tsy_lasa: tsyLasa, fahadisoana: erreur || null,
+    });
+  } catch { /* supabase-fandefasana-tantara.sql pas encore passé */ }
+
+  return json({ billets: billets.length, total: adresses.length, sent: envoyes, error: erreur, voaray, tsyLasa });
 });
