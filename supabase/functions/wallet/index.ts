@@ -46,6 +46,12 @@ function tarifParrainage(email: string): number {
   return proprio && email === proprio ? AR_PER_REFERRAL_OWNER : AR_PER_REFERRAL;
 }
 const MIN_PAYOUT_AR = Number(Deno.env.get("MIN_PAYOUT_AR") ?? "10000");
+// Frais de retrait, en pourcentage, ajoutés à la somme demandée : la personne
+// reçoit ce qu'elle a demandé, et son solde baisse de la somme + les frais.
+const PAYOUT_FEE_PCT = Number(Deno.env.get("PAYOUT_FEE_PCT") ?? "5");
+function fraisRetrait(montant: number): number {
+  return PAYOUT_FEE_PCT > 0 ? Math.ceil(montant * PAYOUT_FEE_PCT / 100) : 0;
+}
 
 // L'argent sort par le canal que la personne indique. La liste n'a pas à être
 // fermée : elle le serait pour rien, puisque c'est un humain qui exécute
@@ -343,9 +349,10 @@ async function balanceFor(admin: Admin, email: string): Promise<number> {
 
   // 2) ce qui est parti ou est réservé pour partir
   const { data: payouts } = await admin.from("wallet_payouts")
-    .select("amount_ar,status").eq("email", email).in("status", ["pending", "sent"]);
+    .select("amount_ar,fee_ar,status").eq("email", email).in("status", ["pending", "sent"]);
   const withdrawn = (payouts ?? []).reduce(
-    (sum: number, p: { amount_ar: number }) => sum + (Number(p.amount_ar) || 0), 0);
+    (sum: number, p: { amount_ar: number; fee_ar: number }) =>
+      sum + (Number(p.amount_ar) || 0) + (Number(p.fee_ar) || 0), 0);
 
   // 3) ce qui a servi à rouvrir un accès. « amount » y est compté en
   //    crédits, et un crédit vaut AR_PER_REFERRAL — le tarif de BASE, pas
@@ -412,7 +419,7 @@ Deno.serve(async (req: Request) => {
 
     const balance = await balanceFor(admin, email);
     const { data: mine } = await admin.from("wallet_payouts")
-      .select("id,amount_ar,method,kind,destination,link,instructions,currency,amount_out,status,note,created_at,settled_at,auto_provider,auto_ref")
+      .select("id,amount_ar,fee_ar,method,kind,destination,link,instructions,currency,amount_out,status,note,created_at,settled_at,auto_provider,auto_ref")
       .eq("email", email).order("created_at", { ascending: false }).limit(20);
 
     let queue = null;
@@ -430,7 +437,7 @@ Deno.serve(async (req: Request) => {
       .eq("email", email).order("created_at", { ascending: false }).limit(20);
 
     return json({
-      balanceAr: balance, arPerReferral: tarifParrainage(email), minPayoutAr: MIN_PAYOUT_AR,
+      balanceAr: balance, arPerReferral: tarifParrainage(email), minPayoutAr: MIN_PAYOUT_AR, payoutFeePct: PAYOUT_FEE_PCT,
       payouts: mine ?? [], deposits: depots ?? [], queue, isOwner, items: SITE_ITEMS,
     });
   }
@@ -498,8 +505,13 @@ Deno.serve(async (req: Request) => {
     }
 
     const balance = await balanceFor(admin, email);
-    if (amount > balance) {
-      return json({ error: `Votre solde est de ${balance.toLocaleString("fr-FR")} Ar.` }, 400);
+    const frais = fraisRetrait(amount);
+    if (amount + frais > balance) {
+      return json({
+        error: `Votre solde est de ${balance.toLocaleString("fr-FR")} Ar. Il faut ` +
+          `${(amount + frais).toLocaleString("fr-FR")} Ar (${amount.toLocaleString("fr-FR")} Ar + ` +
+          `${frais.toLocaleString("fr-FR")} Ar de frais, ${PAYOUT_FEE_PCT} %).`,
+      }, 400);
     }
 
     const rate = await rateFromAr(currency);
@@ -509,8 +521,8 @@ Deno.serve(async (req: Request) => {
       email: email, name: name, amount_ar: amount, method: method, kind: kind,
       destination: destination, link: link || null, instructions: instructions || null,
       currency: currency, amount_out: amountOut, rate: rate || null,
-      status: "pending",
-    }).select("id,amount_ar,currency,amount_out").single();
+      status: "pending", fee_ar: frais,
+    }).select("id,amount_ar,fee_ar,currency,amount_out").single();
 
     if (error) return json({ error: error.message }, 500);
 
@@ -571,7 +583,7 @@ Deno.serve(async (req: Request) => {
     // Le solde est déjà amputé : un retrait en attente compte comme parti,
     // sinon la même somme pourrait être demandée deux fois. Un refus, lui,
     // la rend — « balanceFor » ne compte que 'pending' et 'sent'.
-    const soldeApres = etatFinal === "refused" ? balance : balance - amount;
+    const soldeApres = etatFinal === "refused" ? balance : balance - amount - frais;
     return json({
       payout: data,
       balanceAr: soldeApres,

@@ -2284,6 +2284,37 @@
             </div>
           </div>
 
+          <!-- ---- RECHARGER LE SOLDE VIA PAPI (MVola, Orange Money, Airtel Money, carte) ---- -->
+          <div class="panel" id="walletPapiPanel">
+            <h3>📲 Recharger mon solde</h3>
+            <p style="font-size:0.82rem; color:var(--muted); line-height:1.6; margin-bottom:1rem;">
+              Payez avec MVola, Orange Money, Airtel Money ou une carte bancaire. La somme est
+              ajoutée à votre solde dès que Papi confirme le paiement.
+            </p>
+            <div class="form-grid">
+              <div class="field" style="margin-bottom:0;">
+                <label for="papiAmount">Montant (Ar)</label>
+                <input id="papiAmount" type="number" min="300" step="1000" value="15000">
+              </div>
+              <div class="field" style="margin-bottom:0;">
+                <label for="papiProvider">Payer avec</label>
+                <select id="papiProvider">
+                  <option value="">Choisir sur la page Papi</option>
+                  <option value="MVOLA">MVola</option>
+                  <option value="ORANGE_MONEY">Orange Money</option>
+                  <option value="AIRTEL_MONEY">Airtel Money</option>
+                  <option value="BRED">Carte bancaire</option>
+                </select>
+              </div>
+              <div class="field" style="margin-bottom:0;">
+                <label for="papiPhone">Téléphone (facultatif)</label>
+                <input id="papiPhone" type="tel" placeholder="034 00 000 00">
+              </div>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" id="papiPayBtn" style="width:auto; margin-top:1rem;">Payer avec Papi</button>
+            <p id="papiStatus" style="font-size:0.8rem; color:var(--cyan); margin-top:0.8rem; line-height:1.5;"></p>
+          </div>
+
           <!-- ---- FILE DES RETRAITS À ENVOYER (propriétaire uniquement) ---- -->
           <div class="panel" id="walletQueuePanel" style="display:none;">
             <h3>📤 Retraits à envoyer</h3>
@@ -2998,6 +3029,7 @@
 <script src="gestion-stockage-js/adidy.js?v=7925663f"></script>
 <script src="gestion-stockage-js/theme.js?v=096262fd"></script>
 <script src="gestion-stockage-js/securite.js?v=e38535e6"></script>
+<script src="gestion-stockage-js/papi-paiement.js?v=1"></script>
 
 
 
