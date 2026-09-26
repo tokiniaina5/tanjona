@@ -1010,6 +1010,17 @@
         ? 'soit ' + Math.floor((walletState.balanceAr || 0) / par) + ' parrainage(s) à ' + formatWalletAr(par)
         : '';
     }
+    // Ce qui peut sortir pour de bon : l'argent vraiment payé. Le reste
+    // (parrainages, sommes inscrites par l'application) se dépense ici.
+    const retirableEl = document.getElementById('walletRetirable');
+    if(retirableEl){
+      const r = walletState.retirableAr;
+      retirableEl.innerHTML = (r === undefined || r === null) ? '' :
+        '💵 Azo alaina (tena vola) : <strong style="color:var(--text);">' + formatWalletAr(r) + '</strong>' +
+        (r < (walletState.balanceAr || 0)
+          ? '<br><span style="font-size:0.72rem;">Ny vola nampidirin\'ny appli ho azy dia ampiasaina ato anatiny ihany (abonnement, déblocage…).</span>'
+          : '');
+    }
     updateWalletConversion();
   }
 

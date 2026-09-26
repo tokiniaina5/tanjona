@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="cfe910b5">
+<meta name="ny-asako-version" content="bfa3b95c">
 <title>Ny asako — Tanjona</title>
 <!-- Application installable : le manifeste décrit le nom, l'icône et la façon
      de s'ouvrir ; le reste est affaire de service worker, enregistré plus bas. -->
@@ -2182,6 +2182,9 @@
                 <div class="plan-note">Solde disponible</div>
                 <div class="plan-price" id="walletBalance" style="font-size:1.4rem; color:var(--cyan);">0 Ar</div>
                 <div class="plan-note" id="walletBalanceCredits" style="margin-top:0.2rem;">—</div>
+                <!-- Seul l'argent vraiment payé sort en retrait (wallet, « retirableFor ») :
+                     les parrainages et les sommes inscrites par l'application se dépensent ici. -->
+                <div class="plan-note" id="walletRetirable" style="margin-top:0.2rem;"></div>
               </div>
               <div>
                 <div class="plan-note">PayPal</div>
@@ -2286,8 +2289,13 @@
             </div>
           </div>
 
-          <!-- ---- RECHARGER LE SOLDE VIA PAPI (MVola, Orange Money, Airtel Money, carte) ---- -->
-          <div class="panel" id="walletPapiPanel">
+          <!-- ---- RECHARGER LE SOLDE VIA PAPI (MVola, Orange Money, Airtel Money, carte) ----
+               Débranché le 26/09/2026 à la demande du propriétaire : le site ne
+               parle plus à Papi pour l'instant. Le panneau reste, caché : son
+               bouton était la seule porte vers Papi. papi-paiement.js reste
+               chargé, pour l'affichage des frais de retrait. Pour rebrancher,
+               retirer le display:none. -->
+          <div class="panel" id="walletPapiPanel" style="display:none;">
             <h3>📲 Recharger mon solde</h3>
             <p style="font-size:0.82rem; color:var(--muted); line-height:1.6; margin-bottom:1rem;">
               Payez avec MVola, Orange Money, Airtel Money ou une carte bancaire. La somme est
@@ -2357,22 +2365,6 @@
                 <div class="plan-price">+7 jours</div>
                 <div class="plan-note">20 000 Ar — ajoutés au prochain paiement</div>
                 <button type="button" class="btn btn-sm buy-site-item" data-item="sub_days" style="width:100%; margin-top:0.7rem;">Payer</button>
-              </div>
-            </div>
-
-            <h3 style="font-size:0.95rem; margin-top:1.4rem;">Achat dans le site</h3>
-            <div class="line-grid" style="margin-top:0.7rem;">
-              <div class="plan-card" style="cursor:default;">
-                <div class="plan-name">Essai gratuit</div>
-                <div class="plan-price">+1 jour</div>
-                <div class="plan-note">10 000 Ar</div>
-                <button type="button" class="btn btn-sm buy-site-item" data-item="trial_day" style="width:100%; margin-top:0.7rem;">Payer</button>
-              </div>
-              <div class="plan-card" style="cursor:default;">
-                <div class="plan-name">Booster</div>
-                <div class="plan-price">Live 24 h</div>
-                <div class="plan-note">5 000 Ar</div>
-                <button type="button" class="btn btn-sm buy-site-item" data-item="booster" style="width:100%; margin-top:0.7rem;">Payer</button>
               </div>
             </div>
 
@@ -2999,7 +2991,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=44c4bb47"></script>
+<script src="gestion-stockage-js/common.js?v=65100471"></script>
 <script src="gestion-stockage-js/stock.js?v=ae755b14"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=7204c861"></script>
@@ -3027,7 +3019,7 @@
 <script src="gestion-stockage-js/commun-alalana.js?v=682d598c"></script>
 <script src="gestion-stockage-js/taratasy.js?v=08c97553"></script>
 <script src="gestion-stockage-js/fianakaviana.js?v=7620b9e5"></script>
-<script src="gestion-stockage-js/validation-install.js?v=d9389281"></script>
+<script src="gestion-stockage-js/validation-install.js?v=6973f976"></script>
 <script src="gestion-stockage-js/adidy.js?v=7925663f"></script>
 <script src="gestion-stockage-js/theme.js?v=096262fd"></script>
 <script src="gestion-stockage-js/securite.js?v=e38535e6"></script>
