@@ -58,10 +58,13 @@
   document.getElementById('generateInvoiceBtn').addEventListener('click', function(){
     if(!window.jspdf){ alert("La bibliothèque PDF n'a pas pu être chargée."); return; }
     const customer = document.getElementById('invoiceCustomer').value.trim() || 'Client';
+    const selection = getInvoiceSelection();
+    if(!selection.length){ alert('Sélectionnez au moins un article avec une quantité.'); return; }
 
     // Le client a SA facture (factures-modely.js) : c'est elle qui sort, à
-    // la place de la facture des articles, telle quelle — pas d'article à
-    // choisir. Elle suit le même chemin : rangée dans « 📄 PDF », imprimée.
+    // la place de la facture standard — les articles dans son tableau, son
+    // en-tête inchangé. Elle suit le même chemin : rangée dans « 📄 PDF »,
+    // imprimée.
     const modele = window.__factureModely && window.__factureModely.hita(customer);
     if(modele){
       // Sur téléphone, l'onglet d'impression s'ouvre pendant l'appui.
@@ -69,7 +72,7 @@
       try { if(window.matchMedia('(pointer: coarse)').matches) onglet = window.open('', '_blank'); } catch(e){}
       const bouton = this;
       bouton.disabled = true;
-      window.__factureModely.pdf(modele).then(function(blob){
+      window.__factureModely.pdf(modele, articlesFacture(selection)).then(function(blob){
         bouton.disabled = false;
         const nomPdf = modele.anarana.replace(/\.xlsx?$/i, '') + '-' + String(Date.now()).slice(-6) + '.pdf';
         if(window.__pdfTahiry){
@@ -84,9 +87,6 @@
       });
       return;
     }
-
-    const selection = getInvoiceSelection();
-    if(!selection.length){ alert('Sélectionnez au moins un article avec une quantité.'); return; }
 
     const invoiceNo = '#' + String(Date.now()).slice(-6);
     const doc = factureStandard(customer, selection, invoiceNo);
@@ -117,16 +117,14 @@
     const customer = document.getElementById('invoiceCustomer').value.trim() || 'Client';
     const modele = window.__factureModely && window.__factureModely.hita(customer);
     let selection = getInvoiceSelection();
-    // Les lignes d'exemple ne servent qu'à la facture des articles : celle du
-    // client se montre telle quelle.
-    const exemple = !modele && !selection.length;
+    const exemple = !selection.length;
     if(exemple) selection = [{ name: 'Article exemple 1', qty: 2, price: 15000 }, { name: 'Article exemple 2', qty: 1, price: 40000 }];
     document.getElementById('invoiceApercuTitre').textContent = '👁 Aperçu — ' + customer +
-      (modele ? ' (facture du client : ' + modele.anarana + ')' : ' (facture des articles)') + (exemple ? ' · exemple' : '');
+      (modele ? ' (facture du client : ' + modele.anarana + ')' : ' (facture standard)') + (exemple ? ' · exemple' : '');
     boite.style.display = '';
     pages.innerHTML = '<p style="color:var(--muted); font-size:0.85rem;">Mamaky…</p>';
     const fait = modele
-      ? window.__factureModely.pdf(modele)
+      ? window.__factureModely.pdf(modele, articlesFacture(selection))
       : Promise.resolve(factureStandard(customer, selection, '#' + String(Date.now()).slice(-6)).output('blob'));
     fait.then(function(blob){ return window.__pdfTahiry.dessinerPages(blob, pages); }, function(err){
       pages.innerHTML = '<p style="color:var(--amber); font-size:0.85rem;">' + escapeHtml((err && err.message) || 'erreur') + '</p>';
@@ -134,6 +132,17 @@
     boite.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   window.__apercuFacture = apercuFacture;
+
+  // Ce que la facture d'un client reçoit dans son tableau (factures-modely.js).
+  function articlesFacture(selection){
+    let total = 0;
+    const lignes = selection.map(function(s, i){
+      const montant = s.qty * s.price;
+      total += montant;
+      return { n: i + 1, designation: s.name, qte: s.qty, pu: s.price, montant: montant };
+    });
+    return { total: total, lignes: lignes };
+  }
   const apercuBtn = document.getElementById('apercuInvoiceBtn');
   if(apercuBtn) apercuBtn.addEventListener('click', apercuFacture);
   const apercuFermer = document.getElementById('invoiceApercuFermer');

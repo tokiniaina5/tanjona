@@ -2,10 +2,11 @@
 //
 // Un client qui a SA facture la donne en .xlsx : on la dépose une fois, sous
 // son nom, dans la page Factures. Pour ce client, c'est ELLE qui sort, à la
-// place de la facture des articles, et TELLE QUELLE : rien n'y est écrit ni
-// changé. Sa première feuille est mise en PDF — couleurs, bordures, cases
-// fusionnées et logo gardés — rangée dans « 📄 PDF » et imprimée ; « ⬇ »
-// rend le fichier même.
+// place de la facture standard : les articles choisis s'écrivent dans son
+// tableau (lignes et total), et rien d'autre n'y change — en-tête, nom, date,
+// mise en page restent les siens. Sa première feuille est mise en PDF —
+// couleurs, bordures, cases fusionnées et logo gardés — rangée dans
+// « 📄 PDF » et imprimée ; « ⬇ » rend le fichier même.
 //
 // Les modèles vont en ligne quand on est connecté (table facture_modely,
 // supabase-facture-modely.sql) ; sans compte, ils attendent dans ce
@@ -145,6 +146,160 @@
       });
     }
     return promesseExcel;
+  }
+
+  // ---------- Les articles, et rien d'autre ----------
+  // Dans la facture du client, seul le tableau des articles reçoit quelque
+  // chose : ses lignes et son total. L'en-tête, le nom, la date, tout ce qui
+  // est au-dessus et autour, reste tel que le client l'a fait.
+  function texteDe(cell) {
+    const v = cell.value;
+    if (v == null) return '';
+    if (typeof v === 'object') {
+      if (v.richText) return v.richText.map(function (t) { return t.text; }).join('');
+      if (v.formula || v.sharedFormula) return v.result == null ? '' : String(v.result);
+      if (v.text) return String(v.text);
+      if (v instanceof Date) return v.toLocaleDateString('fr-FR');
+      return '';
+    }
+    return String(v);
+  }
+  // Insérer des lignes : ExcelJS ne décale pas les cases fusionnées situées
+  // dessous — elles resteraient à leur ancienne place, et leur texte se
+  // répéterait. On les défait, on insère, on les refait plus bas.
+  function refFusion(ref) {
+    const m = /^([A-Z]+)(\d+):([A-Z]+)(\d+)$/i.exec(ref);
+    if (!m) return null;
+    const cn = function (l) { return l.toUpperCase().split('').reduce(function (a, ch) { return a * 26 + ch.charCodeAt(0) - 64; }, 0); };
+    return { ref: ref, r1: Number(m[2]), c1: cn(m[1]), r2: Number(m[4]), c2: cn(m[3]) };
+  }
+  function insererEnDecalant(ws, apres, combien, inserer) {
+    const aDecaler = ((ws.model && ws.model.merges) || []).map(refFusion)
+      .filter(function (f) { return f && f.r1 > apres; });
+    aDecaler.forEach(function (f) { ws.unMergeCells(f.ref); });
+    inserer();
+    aDecaler.forEach(function (f) { ws.mergeCells(f.r1 + combien, f.c1, f.r2 + combien, f.c2); });
+  }
+  const MOTIF_TOTAL = /^\s*(total|montant total|total\s*(ttc|ht|g[ée]n[ée]ral)?|net\s*[àa]\s*payer|total\s*[àa]\s*payer)\s*:?\s*$/i;
+
+  // d : { total, lignes: [{ n, designation, qte, pu, montant }] }
+  function remplirArticles(wb, d) {
+    const ws = wb.worksheets[0];
+    const n = d.lignes.length;
+
+    // 1) Une ligne à repères ({{designation}}…) : répétée pour chaque article ;
+    //    seuls les repères d'article et {{total}} sont remplacés.
+    let ligneModele = 0;
+    ws.eachRow({ includeEmpty: false }, function (row, r) {
+      if (ligneModele) return;
+      row.eachCell(function (c) { if (/\{\{\s*(designation|article|anarana)\s*\}\}/i.test(texteDe(c))) ligneModele = r; });
+    });
+    if (ligneModele) {
+      const gabarit = {};
+      ws.getRow(ligneModele).eachCell({ includeEmpty: true }, function (c, col) { gabarit[col] = c.value; });
+      if (n > 1) insererEnDecalant(ws, ligneModele, n - 1, function () { ws.duplicateRow(ligneModele, n - 1, true); });
+      d.lignes.forEach(function (l, i) {
+        const row = ws.getRow(ligneModele + i);
+        const v = { n: l.n, designation: l.designation, article: l.designation, anarana: l.designation, qte: l.qte, pu: l.pu, montant: l.montant };
+        Object.keys(gabarit).forEach(function (col) {
+          const c = row.getCell(Number(col));
+          const t = texteDe({ value: gabarit[col] });
+          const seul = /^\s*\{\{\s*([a-z_]+)\s*\}\}\s*$/i.exec(t);
+          if (seul && seul[1].toLowerCase() in v) c.value = v[seul[1].toLowerCase()];
+          else if (/\{\{/.test(t)) c.value = t.replace(/\{\{\s*([a-z_]+)\s*\}\}/gi, function (m, k) { k = k.toLowerCase(); return k in v ? String(v[k]) : m; });
+          else c.value = gabarit[col];
+        });
+        row.commit();
+      });
+      ws.eachRow({ includeEmpty: false }, function (row) {
+        row.eachCell(function (c) { if (/^\s*\{\{\s*total\s*\}\}\s*$/i.test(texteDe(c))) c.value = d.total; });
+      });
+      return ws;
+    }
+
+    // 2) Sans repères : l'en-tête du tableau (Désignation, Qté, P.U.,
+    //    Montant…) donne les colonnes ; ses anciennes lignes sont vidées
+    //    (valeurs seulement, la mise en forme reste), les articles écrits
+    //    dessous, le total en face de « Total ».
+    const motifs = {
+      designation: /d[ée]signation|article|libell[ée]|produit|description|d[ée]tail/i,
+      qte: /qt[ée]|quantit[ée]|nombre|isa/i,
+      pu: /p\.?\s*u\.?|prix\s*unit|unit/i,
+      montant: /montant|prix\s*total|^total$|sous[- ]?total|vola/i,
+      n: /^\s*(n[°o]|#|r[ée]f\.?|code)\s*$/i
+    };
+    let entete = 0;
+    const cols = {};
+    ws.eachRow({ includeEmpty: false }, function (row, r) {
+      if (entete) return;
+      row.eachCell(function (c) { if (motifs.designation.test(texteDe(c))) entete = r; });
+      if (!entete) return;
+      row.eachCell(function (c, col) {
+        const t = texteDe(c);
+        Object.keys(motifs).forEach(function (k) { if (!cols[k] && motifs[k].test(t)) cols[k] = col; });
+      });
+    });
+    if (!entete) throw new Error('Tsy hita ao amin\'ny facture ny tabilaon\'ny entana (lohateny « Désignation »)');
+    const colMin = Math.min.apply(null, Object.keys(cols).map(function (k) { return cols[k]; }));
+    const colMax = Math.max.apply(null, Object.keys(cols).map(function (k) { return cols[k]; }));
+
+    let ligneTotal = 0;
+    ws.eachRow({ includeEmpty: false }, function (row, r) {
+      if (ligneTotal || r <= entete) return;
+      row.eachCell(function (c) { if (MOTIF_TOTAL.test(texteDe(c))) ligneTotal = r; });
+    });
+    // Les lignes d'articles déjà là : jusqu'au total, ou sinon jusqu'à la
+    // première ligne vide dans les colonnes du tableau.
+    const vide = function (r) {
+      let rien = true;
+      for (let c = colMin; c <= colMax; c++) if (texteDe(ws.getRow(r).getCell(c)) !== '') rien = false;
+      return rien;
+    };
+    let fin = ligneTotal;
+    if (!fin) { fin = entete + 1; while (fin <= ws.rowCount && !vide(fin)) fin++; }
+    let libres = fin - entete - 1;
+    // On vide les anciennes lignes (dans les colonnes du tableau seulement).
+    for (let r = entete + 1; r < fin; r++) {
+      for (let c = colMin; c <= colMax; c++) ws.getRow(r).getCell(c).value = null;
+    }
+    if (libres < n) {
+      const manque = n - Math.max(libres, 0);
+      const vides = Array.from({ length: manque }, function () { return []; });
+      // duplicateRow d'ExcelJS échoue sur une ligne vide : on insère, en
+      // reprenant le style de la première ligne du tableau s'il y en a une.
+      if (libres >= 1) insererEnDecalant(ws, entete + 1, manque, function () { ws.insertRows(entete + 2, vides, 'i'); });
+      else insererEnDecalant(ws, entete, manque, function () { ws.insertRows(entete + 1, vides, 'n'); });
+      if (ligneTotal) ligneTotal += manque;
+    }
+    // Une ligne du tableau restée sans mise en forme (une ligne vide du
+    // fichier) prend celle de la première ligne d'articles : même bordure,
+    // même format de nombre.
+    const premiere = ws.getRow(entete + 1);
+    d.lignes.forEach(function (l, i) {
+      const row = ws.getRow(entete + 1 + i);
+      if (i > 0) {
+        for (let c = colMin; c <= colMax; c++) {
+          const cible = row.getCell(c);
+          const b = cible.border || {};
+          if (!b.top && !b.bottom && !b.left && !b.right && !cible.numFmt) {
+            cible.style = JSON.parse(JSON.stringify(premiere.getCell(c).style || {}));
+          }
+        }
+      }
+      if (cols.n) row.getCell(cols.n).value = l.n;
+      row.getCell(cols.designation).value = l.designation;
+      if (cols.qte) row.getCell(cols.qte).value = l.qte;
+      if (cols.pu) row.getCell(cols.pu).value = l.pu;
+      if (cols.montant) row.getCell(cols.montant).value = l.montant;
+      row.commit();
+    });
+    if (ligneTotal) {
+      const row = ws.getRow(ligneTotal);
+      let col = cols.montant;
+      if (!col) row.eachCell(function (c, k) { if (/total|payer/i.test(texteDe(c))) col = k + 1; });
+      if (col) row.getCell(col).value = d.total;
+    }
+    return ws;
   }
 
   // ---------- La feuille en PDF ----------
@@ -336,11 +491,15 @@
   }
 
   // ---------- Pour factures.js ----------
-  // La facture du client sort TELLE QUELLE : rien n'y est écrit ni changé.
-  function pdf(m) {
+  // La facture du client, avec les articles dans son tableau ; le reste tel
+  // qu'elle est. Sans articles (d absent), elle sort telle quelle.
+  function pdf(m, d) {
     return excelJs().then(function (ExcelJS) {
       const wb = new ExcelJS.Workbook();
-      return wb.xlsx.load(b642ab(m.rakitra)).then(function () { return versPdf(wb, wb.worksheets[0]); });
+      return wb.xlsx.load(b642ab(m.rakitra)).then(function () {
+        const ws = d && d.lignes && d.lignes.length ? remplirArticles(wb, d) : wb.worksheets[0];
+        return versPdf(wb, ws);
+      });
     });
   }
   // Le fichier même que le client a donné.
@@ -371,8 +530,8 @@
           : '<span style="color:var(--muted); font-size:0.82rem;">' +
               (client ? 'aucune — la facture des articles sera utilisée' : 'aucun client choisi') + '</span>') +
       '</div>' +
-      (m ? '<p style="font-size:0.76rem; color:var(--muted); margin:0.35rem 0 0;">Elle remplace la facture des articles, ' +
-           'et sort telle quelle : rien n\'y est changé.</p>' : '') +
+      (m ? '<p style="font-size:0.76rem; color:var(--muted); margin:0.35rem 0 0;">C\'est elle qui sort : les articles ' +
+           's\'écrivent dans son tableau, l\'en-tête et le reste ne changent pas.</p>' : '') +
       '<div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.5rem;">' +
         // Le fichier Excel que le client a donné : il se dépose ici, sous son nom.
         '<label class="btn btn-sm" style="width:auto; cursor:pointer;">' +
