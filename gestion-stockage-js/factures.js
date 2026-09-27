@@ -108,11 +108,14 @@
   });
 
   // ---- L'aperçu : la facture telle qu'elle sortira, dans la page ----
-  // Avec le modèle du client s'il en a un, sinon la facture standard. Sans
+  // Avec la facture du client s'il en a une, sinon la facture standard. Sans
   // article choisi, deux lignes d'exemple montrent quand même la mise en page.
-  // Le brouillon : ce que montre l'aperçu, et ce qui partira. On y corrige
-  // une erreur (article, quantité, prix — et pour la facture standard le
-  // client, la date, le numéro) sans toucher au stock ; l'aperçu suit.
+  //
+  // Le brouillon : ce que montre l'aperçu, et ce qui partira. Une erreur
+  // dans l'EN-TÊTE s'y corrige — pour la facture standard : société, nom,
+  // email, téléphone, NIF, STAT, client, date, numéro ; pour la facture du
+  // client : chaque case écrite au-dessus de son tableau. Les articles, eux,
+  // ne se touchent pas ici : ils viennent du choix fait plus haut.
   let brouillon = null;
 
   function apercuFacture(){
@@ -122,11 +125,16 @@
     let selection = getInvoiceSelection();
     const exemple = !selection.length;
     if(exemple) selection = [{ name: 'Article exemple 1', qty: 2, price: 15000 }, { name: 'Article exemple 2', qty: 1, price: 40000 }];
+    const e = emetteurFacture();
     brouillon = {
       client: customer,
+      exemple: exemple,
       date: new Date().toLocaleDateString('fr-FR'),
       numero: '#' + String(Date.now()).slice(-6),
-      lignes: selection.map(function(s){ return { name: s.name, qty: s.qty, price: s.price }; })
+      emetteur: { company: e.company || '', name: e.name || '', email: e.email || '', phone: e.phone || '',
+                  nif: e.nif || '', stat: e.stat || '', logo: e.logo || null, auteur: e.auteur || '' },
+      corrections: {},
+      lignes: selection
     };
     boite.style.display = '';
     dessinerEdition();
@@ -139,15 +147,12 @@
   }
 
   // Le PDF du brouillon : dans la facture du client s'il en a une (articles
-  // dans son tableau, en-tête inchangé), sinon la facture standard.
+  // dans son tableau, en-tête corrigé s'il le faut), sinon la standard.
   function pdfDuBrouillon(){
-    const lignes = brouillon.lignes.filter(function(l){ return String(l.name).trim() && Number(l.qty) > 0; })
-      .map(function(l){ return { name: String(l.name).trim(), qty: Number(l.qty) || 0, price: Number(l.price) || 0 }; });
-    if(!lignes.length) return Promise.reject(new Error('Tsy misy andalana ao amin\'ny facture.'));
     const modele = modeleDuBrouillon();
     return modele
-      ? window.__factureModely.pdf(modele, articlesFacture(lignes))
-      : Promise.resolve(factureStandard(brouillon.client, lignes, brouillon.numero, brouillon.date).output('blob'));
+      ? window.__factureModely.pdf(modele, articlesFacture(brouillon.lignes), brouillon.corrections)
+      : Promise.resolve(factureStandard(brouillon.client, brouillon.lignes, brouillon.numero, brouillon.date, brouillon.emetteur).output('blob'));
   }
 
   let minuterie = null;
@@ -157,82 +162,85 @@
       const pages = document.getElementById('invoiceApercuPages');
       const modele = modeleDuBrouillon();
       document.getElementById('invoiceApercuTitre').textContent = '👁 Aperçu — ' + brouillon.client +
-        (modele ? ' (facture du client : ' + modele.anarana + ')' : ' (facture standard)');
+        (modele ? ' (facture du client : ' + modele.anarana + ')' : ' (facture standard)') + (brouillon.exemple ? ' · exemple' : '');
       pdfDuBrouillon().then(function(blob){ return window.__pdfTahiry.dessinerPages(blob, pages); }, function(err){
         pages.innerHTML = '<p style="color:var(--amber); font-size:0.85rem;">' + escapeHtml((err && err.message) || 'erreur') + '</p>';
       });
     }, 350);
   }
 
-  // Le tableau à corriger, au-dessus de l'aperçu.
+  // L'en-tête à corriger, au-dessus de l'aperçu ; les articles en lecture.
   function dessinerEdition(){
     const zone = document.getElementById('invoiceApercuEdit');
     if(!zone) return;
     const modele = modeleDuBrouillon();
     const champ = 'style="width:100%; min-width:0; background:var(--bg); color:var(--text); border:1px solid var(--line); ' +
       'border-radius:6px; padding:0.35rem 0.45rem; font:inherit;"';
+    const case_ = function(label, attr, valeur){
+      return '<div class="field" style="margin:0;"><label>' + escapeHtml(label) + '</label>' +
+        '<input ' + attr + ' ' + champ + ' value="' + escapeHtml(valeur) + '"></div>';
+    };
     let total = 0;
+    const articles = brouillon.lignes.map(function(l){
+      const m = l.qty * l.price;
+      total += m;
+      return '<tr><td>' + escapeHtml(l.name) + '</td><td style="text-align:right;">' + l.qty + '</td>' +
+        '<td style="text-align:right; white-space:nowrap;">' + formatAr(l.price) + '</td>' +
+        '<td style="text-align:right; white-space:nowrap;">' + formatAr(m) + '</td></tr>';
+    }).join('');
+
     zone.innerHTML =
       '<details open style="margin-bottom:0.8rem;">' +
-        '<summary style="cursor:pointer; font-weight:bold; margin-bottom:0.5rem;">✏️ Corriger la facture</summary>' +
-        (modele
-          ? '<p style="font-size:0.76rem; color:var(--muted); margin:0 0 0.5rem;">Facture du client : seules les lignes changent, son en-tête reste tel quel.</p>'
-          : '<div class="form-grid" style="margin-bottom:0.6rem;">' +
-              '<div class="field" style="margin:0;"><label>Client</label><input data-b="client" ' + champ + ' value="' + escapeHtml(brouillon.client) + '"></div>' +
-              '<div class="field" style="margin:0;"><label>Date</label><input data-b="date" ' + champ + ' value="' + escapeHtml(brouillon.date) + '"></div>' +
-              '<div class="field" style="margin:0;"><label>N°</label><input data-b="numero" ' + champ + ' value="' + escapeHtml(brouillon.numero) + '"></div>' +
-            '</div>') +
-        '<div style="overflow-x:auto;"><table style="width:100%; font-size:0.82rem;">' +
-          '<thead><tr><th>Désignation</th><th style="width:4.5rem;">Qté</th><th style="width:7rem;">P.U.</th><th style="width:7rem; text-align:right;">Montant</th><th style="width:2rem;"></th></tr></thead>' +
-          '<tbody>' + brouillon.lignes.map(function(l, i){
-            const m = (Number(l.qty) || 0) * (Number(l.price) || 0);
-            total += m;
-            return '<tr>' +
-              '<td><input data-l="' + i + '" data-k="name" ' + champ + ' value="' + escapeHtml(l.name) + '"></td>' +
-              '<td><input data-l="' + i + '" data-k="qty" type="number" min="0" ' + champ + ' value="' + escapeHtml(l.qty) + '"></td>' +
-              '<td><input data-l="' + i + '" data-k="price" type="number" min="0" ' + champ + ' value="' + escapeHtml(l.price) + '"></td>' +
-              '<td data-montant="' + i + '" style="text-align:right; white-space:nowrap;">' + formatAr(m) + '</td>' +
-              '<td><button type="button" class="btn btn-sm" data-suppr="' + i + '" title="Retirer la ligne" style="width:auto; padding:0.15rem 0.45rem;">✕</button></td>' +
-            '</tr>';
-          }).join('') + '</tbody>' +
-        '</table></div>' +
-        '<div style="display:flex; justify-content:space-between; align-items:center; gap:0.6rem; flex-wrap:wrap; margin-top:0.5rem;">' +
-          '<button type="button" class="btn btn-sm" data-ajout style="width:auto;">➕ Ajouter une ligne</button>' +
-          '<strong data-total-b>Total : ' + formatAr(total) + '</strong>' +
+        '<summary style="cursor:pointer; font-weight:bold; margin-bottom:0.5rem;">✏️ Corriger l\'en-tête</summary>' +
+        '<div data-entete class="form-grid" style="margin-bottom:0.8rem;">' +
+          (modele ? '<p style="color:var(--muted); font-size:0.8rem;">Mamaky…</p>'
+            : case_('Société', 'data-e="company"', brouillon.emetteur.company) +
+              case_('Nom', 'data-e="name"', brouillon.emetteur.name) +
+              case_('Email', 'data-e="email"', brouillon.emetteur.email) +
+              case_('Téléphone', 'data-e="phone"', brouillon.emetteur.phone) +
+              case_('NIF', 'data-e="nif"', brouillon.emetteur.nif) +
+              case_('STAT', 'data-e="stat"', brouillon.emetteur.stat) +
+              case_('Client', 'data-b="client"', brouillon.client) +
+              case_('Date', 'data-b="date"', brouillon.date) +
+              case_('N°', 'data-b="numero"', brouillon.numero)) +
         '</div>' +
+        '<p style="font-size:0.76rem; color:var(--muted); margin:0 0 0.35rem;">Articles (ils ne changent pas ici) :</p>' +
+        '<div style="overflow-x:auto;"><table style="width:100%; font-size:0.8rem;">' +
+          '<thead><tr><th>Désignation</th><th style="text-align:right;">Qté</th><th style="text-align:right;">P.U.</th><th style="text-align:right;">Montant</th></tr></thead>' +
+          '<tbody>' + articles + '</tbody></table></div>' +
+        '<div style="text-align:right; margin-top:0.4rem;"><strong>Total : ' + formatAr(total) + '</strong></div>' +
       '</details>';
 
-    zone.querySelectorAll('[data-b]').forEach(function(inp){
-      inp.addEventListener('input', function(){
-        brouillon[inp.getAttribute('data-b')] = inp.value;
-        rafraichirApercu();
+    const brancher = function(){
+      zone.querySelectorAll('[data-e]').forEach(function(inp){
+        inp.addEventListener('input', function(){ brouillon.emetteur[inp.getAttribute('data-e')] = inp.value; rafraichirApercu(); });
       });
-    });
-    zone.querySelectorAll('[data-l]').forEach(function(inp){
-      inp.addEventListener('input', function(){
-        const i = Number(inp.getAttribute('data-l'));
-        const k = inp.getAttribute('data-k');
-        brouillon.lignes[i][k] = k === 'name' ? inp.value : Number(inp.value) || 0;
-        // Montant et total suivent sans redessiner le tableau (le curseur reste).
-        const l = brouillon.lignes[i];
-        zone.querySelector('[data-montant="' + i + '"]').textContent = formatAr((Number(l.qty) || 0) * (Number(l.price) || 0));
-        const t = brouillon.lignes.reduce(function(s, x){ return s + (Number(x.qty) || 0) * (Number(x.price) || 0); }, 0);
-        zone.querySelector('[data-total-b]').textContent = 'Total : ' + formatAr(t);
-        rafraichirApercu();
+      zone.querySelectorAll('[data-b]').forEach(function(inp){
+        inp.addEventListener('input', function(){ brouillon[inp.getAttribute('data-b')] = inp.value; rafraichirApercu(); });
       });
-    });
-    zone.querySelectorAll('[data-suppr]').forEach(function(b){
-      b.addEventListener('click', function(){
-        brouillon.lignes.splice(Number(b.getAttribute('data-suppr')), 1);
-        dessinerEdition();
-        rafraichirApercu();
+      zone.querySelectorAll('[data-fcase]').forEach(function(inp){
+        inp.addEventListener('input', function(){ brouillon.corrections[inp.getAttribute('data-fcase')] = inp.value; rafraichirApercu(); });
       });
-    });
-    zone.querySelector('[data-ajout]').addEventListener('click', function(){
-      brouillon.lignes.push({ name: '', qty: 1, price: 0 });
-      dessinerEdition();
-      const champs = zone.querySelectorAll('[data-k="name"]');
-      if(champs.length) champs[champs.length - 1].focus();
+    };
+    if(!modele){ brancher(); return; }
+
+    // La facture du client : chaque case écrite de son en-tête, telle quelle.
+    window.__factureModely.enTete(modele).then(function(cases){
+      const boite = zone.querySelector('[data-entete]');
+      if(!boite) return;
+      // Une case par ligne, en pleine largeur : les textes d'en-tête sont longs.
+      boite.className = '';
+      boite.style.cssText = 'display:flex; flex-direction:column; gap:0.5rem; margin-bottom:0.8rem;';
+      boite.innerHTML = cases.length
+        ? cases.map(function(c){
+            const v = c.adresse in brouillon.corrections ? brouillon.corrections[c.adresse] : c.texte;
+            return case_(c.adresse, 'data-fcase="' + escapeHtml(c.adresse) + '"', v);
+          }).join('')
+        : '<p style="color:var(--muted); font-size:0.8rem;">Tsy misy soratra ao amin\'ny en-tête.</p>';
+      brancher();
+    }, function(err){
+      const boite = zone.querySelector('[data-entete]');
+      if(boite) boite.innerHTML = '<p style="color:var(--amber); font-size:0.8rem;">' + escapeHtml((err && err.message) || 'erreur') + '</p>';
     });
   }
 
@@ -240,6 +248,8 @@
   const apercuPdfBtn = document.getElementById('invoiceApercuPdf');
   if(apercuPdfBtn) apercuPdfBtn.addEventListener('click', function(){
     if(!brouillon) return;
+    // Les lignes d'exemple ne sont là que pour voir la mise en page.
+    if(brouillon.exemple){ alert('Sélectionnez au moins un article avec une quantité.'); return; }
     let onglet = null;
     try { if(window.matchMedia('(pointer: coarse)').matches) onglet = window.open('', '_blank'); } catch(e){}
     apercuPdfBtn.disabled = true;
@@ -278,13 +288,13 @@
 
   // La facture standard (sans modèle de client), prête à ranger, imprimer
   // ou montrer en aperçu.
-  function factureStandard(customer, selection, invoiceNo, date){
+  function factureStandard(customer, selection, invoiceNo, date, emetteurCorrige){
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const pageW = 210;
     const marginX = 14;
     const rightX = pageW - marginX;
-    const emetteur = emetteurFacture();
+    const emetteur = emetteurCorrige || emetteurFacture();
     const emissEmail = emetteur.email || '—';
     const emissName = emetteur.name;
     const emissCompany = emetteur.company;

@@ -491,22 +491,64 @@
   }
 
   // ---------- Pour factures.js ----------
-  // La facture du client, avec les articles dans son tableau ; le reste tel
-  // qu'elle est. Sans articles (d absent), elle sort telle quelle.
-  function pdf(m, d) {
+  // La première ligne du tableau des articles (sa ligne à repères, ou son
+  // en-tête « Désignation ») : tout ce qui est au-dessus est l'en-tête.
+  function debutTableau(ws) {
+    let r0 = 0;
+    ws.eachRow({ includeEmpty: false }, function (row, r) {
+      if (r0) return;
+      row.eachCell(function (c) {
+        const t = texteDe(c);
+        if (/\{\{\s*(designation|article|anarana)\s*\}\}/i.test(t) ||
+            /d[ée]signation|article|libell[ée]|produit|description|d[ée]tail/i.test(t)) r0 = r;
+      });
+    });
+    return r0 || ws.rowCount + 1;
+  }
+  function charger_(m) {
     return excelJs().then(function (ExcelJS) {
       const wb = new ExcelJS.Workbook();
-      return wb.xlsx.load(b642ab(m.rakitra)).then(function () {
-        const ws = d && d.lignes && d.lignes.length ? remplirArticles(wb, d) : wb.worksheets[0];
-        return versPdf(wb, ws);
+      return wb.xlsx.load(b642ab(m.rakitra)).then(function () { return wb; });
+    });
+  }
+  // Les cases écrites de l'en-tête, pour les corriger : [{ adresse, texte }].
+  function enTete(m) {
+    return charger_(m).then(function (wb) {
+      const ws = wb.worksheets[0];
+      const fin = debutTableau(ws);
+      const cases = [];
+      ws.eachRow({ includeEmpty: false }, function (row, r) {
+        if (r >= fin) return;
+        row.eachCell(function (c) {
+          if (c.isMerged && c.master !== c) return;
+          const t = texteDe(c);
+          if (t.trim()) cases.push({ adresse: c.address, texte: t });
+        });
       });
+      return cases;
+    });
+  }
+
+  // La facture du client, avec les articles dans son tableau ; le reste tel
+  // qu'elle est, sauf les cases de l'en-tête corrigées à la main
+  // (corrections : { A1: 'texte' }). Sans articles, elle sort telle quelle.
+  function pdf(m, d, corrections) {
+    return charger_(m).then(function (wb) {
+      const ws0 = wb.worksheets[0];
+      Object.keys(corrections || {}).forEach(function (a) {
+        const v = corrections[a];
+        // Un nombre reste un nombre (format de la case gardé).
+        ws0.getCell(a).value = typeof ws0.getCell(a).value === 'number' && v.trim() !== '' && !isNaN(Number(v)) ? Number(v) : v;
+      });
+      const ws = d && d.lignes && d.lignes.length ? remplirArticles(wb, d) : ws0;
+      return versPdf(wb, ws);
     });
   }
   // Le fichier même que le client a donné.
   function xlsx(m) {
     return Promise.resolve(new Blob([b642ab(m.rakitra)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
   }
-  window.__factureModely = { hita: hita, pdf: pdf, xlsx: xlsx };
+  window.__factureModely = { hita: hita, pdf: pdf, xlsx: xlsx, enTete: enTete };
 
   // ---------- Dans la page Factures ----------
   function telecharger(nom, blob) {
