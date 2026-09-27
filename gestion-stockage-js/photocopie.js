@@ -298,6 +298,8 @@
         }
       }
       pdf.save(nomFichier(nom) + '.pdf');
+      // Tout PDF du site se retrouve aussi dans « 📄 PDF » (pdf.js).
+      if (window.__pdfTahiry) window.__pdfTahiry.ampio(nomFichier(nom) + '.pdf', pdf.output('blob'), 'photocopie').catch(function () {});
       return true;
     }, function (e) {
       console.error('photocopie PDF', e);

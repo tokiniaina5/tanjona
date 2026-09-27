@@ -1,7 +1,8 @@
 // PDF : les documents PDF de l'application, rangés dans le menu.
 //
-// Une facture générée (factures.js) n'est plus seulement téléchargée : elle
-// se range ici, puis sort à l'impression. On la retrouve ensuite pour la
+// Tout PDF que fait le site se range ici : la facture (factures.js), qui sort
+// ensuite à l'impression, le PDF d'un scan (photocopie.js) et les papiers du
+// fokontany (taratasy.js, aussi depuis la page Fokontany). On la retrouve ensuite pour la
 // réimprimer, l'ouvrir, la télécharger ou l'effacer (bouton ✕, ou la ligne
 // glissée à gauche ou à droite). On peut aussi y ajouter un PDF du téléphone.
 //
@@ -33,7 +34,9 @@
   }
 
   // ---------- La base ----------
-  // Un enregistrement : { id, anarana, karazana: 'facture' | 'nampidirina', at, blob }.
+  // Un enregistrement : { id, anarana, karazana, at, blob }, karazana étant
+  // 'facture', 'photocopie', 'taratasy' ou 'nampidirina' (ajouté à la main).
+  const SARY = { facture: '🧾 ', photocopie: '📠 ', taratasy: '📜 ' };
   let promesseBase = null;
   function base() {
     if (!promesseBase) {
@@ -121,7 +124,8 @@
           '</div>' +
         '</div>' +
         '<p style="font-size:0.8rem; color:var(--muted); margin:0 0 0.8rem; line-height:1.6;">' +
-          'Eto no mipetraka ny facture rehetra noforonina, vao mivoaka ho amin\'ny impression. ' +
+          'Eto no mipetraka ny PDF rehetra noforonin\'ny site : facture (vao mivoaka ho amin\'ny impression), ' +
+          'photocopie ary taratasy. ' +
           'Ahodino ankavia na ankavanana ny andalana, na tsindrio ✕, raha hamafa. ' +
           'Ato amin\'ity navigateur ity ihany no voatahiry izy.' +
         '</p>' +
@@ -137,7 +141,7 @@
       div.style.flexWrap = 'wrap';
       div.innerHTML =
         '<span style="min-width:0; flex:1 1 12rem;">' +
-          '<strong style="word-break:break-word;">' + (r.karazana === 'facture' ? '🧾 ' : '📄 ') + html(r.anarana) + '</strong><br>' +
+          '<strong style="word-break:break-word;">' + (SARY[r.karazana] || '📄 ') + html(r.anarana) + '</strong><br>' +
           '<span style="color:var(--muted); font-size:0.75rem;">' + quand(r.at) + ' · ' + taille(r.blob ? r.blob.size : 0) + '</span>' +
         '</span>' +
         '<span style="display:flex; gap:0.35rem; flex-wrap:wrap;">' +

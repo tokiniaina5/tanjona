@@ -344,6 +344,9 @@
     const nomFichier = (nomDe(t) + '-' + (t.anarana || '') + '-' + (t.laharana || ''))
       .replace(/[^A-Za-z0-9\-]+/g, '-') + '.pdf';
     doc.save(nomFichier);
+    // Tout PDF du site se retrouve aussi dans « 📄 PDF » (pdf.js) — y compris
+    // depuis le Fokontany : même navigateur, même rangement.
+    if (window.__pdfTahiry) window.__pdfTahiry.ampio(nomFichier, doc.output('blob'), 'taratasy').catch(function () {});
   }
 
   // ---------- La liste ----------
