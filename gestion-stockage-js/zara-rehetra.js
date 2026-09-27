@@ -246,6 +246,7 @@
           '<p data-hariva-statut style="font-size:0.78rem; color:var(--muted); margin:0.6rem 0 0; min-height:1.1em;">Mamaky…</p>' +
           // Le carnet : à qui sont partis les derniers envois.
           '<h3 style="font-size:0.9rem; margin-top:1rem;">📋 Lasa tany amin\'iza ?</h3>' +
+          '<p style="font-size:0.74rem; color:var(--muted); margin:0 0 0.5rem;">Ahodino ankavia na ankavanana ny andalana raha hamafa azy.</p>' +
           '<div data-hariva-tantara style="font-size:0.78rem; color:var(--muted); line-height:1.6;">Mamaky…</div>' +
         '</div>' +
 
@@ -309,7 +310,8 @@
       boiteTantara.innerHTML = lignes.map(function (l, i) {
         var voaray = l.voaray || [];
         var tsy = l.tsy_lasa || [];
-        return '<details style="border:1px solid var(--line); border-radius:8px; padding:0.5rem 0.7rem; margin-bottom:0.5rem;"' +
+        return '<details data-tantara-id="' + echapper(l.id) + '" ' +
+            'style="border:1px solid var(--line); border-radius:8px; padding:0.5rem 0.7rem; margin-bottom:0.5rem;"' +
             (i === 0 ? ' open' : '') + '>' +
           '<summary style="cursor:pointer; color:var(--text);">' +
             new Date(l.created_at).toLocaleString('fr-FR') + ' · ' +
@@ -330,6 +332,82 @@
           '</div>' +
         '</details>';
       }).join('');
+      Array.prototype.forEach.call(boiteTantara.querySelectorAll('[data-tantara-id]'), glisserPourFafana);
+    }
+
+    // Une ligne du carnet glissée à gauche ou à droite au-delà d'un tiers de
+    // sa largeur est effacée pour de bon ; si le serveur refuse, elle revient.
+    function glisserPourFafana(el) {
+      el.style.touchAction = 'pan-y';
+      el.title = 'Ahodino ankavia na ankavanana raha hamafa';
+      var depart = null, glisse = false, dx = 0, avalerClic = false;
+      function remettre() {
+        el.style.transition = 'transform 0.2s, opacity 0.2s';
+        el.style.transform = '';
+        el.style.opacity = '';
+      }
+      function debut(x, y) { depart = { x: x, y: y }; glisse = false; dx = 0; }
+      function bouge(x, y) {
+        if (!depart) return false;
+        dx = x - depart.x;
+        var dy = y - depart.y;
+        if (!glisse) {
+          // Plus vertical qu'horizontal : c'est la liste qui défile.
+          if (Math.abs(dy) > 10 && Math.abs(dy) >= Math.abs(dx)) { depart = null; return false; }
+          if (Math.abs(dx) < 12) return false;
+          glisse = true;
+          el.style.transition = 'none';
+        }
+        el.style.transform = 'translateX(' + dx + 'px)';
+        el.style.opacity = String(Math.max(1 - Math.abs(dx) / (el.offsetWidth || 1), 0.25));
+        return true;
+      }
+      function fin() {
+        if (!depart) return;
+        depart = null;
+        if (!glisse) return;
+        glisse = false;
+        avalerClic = true;
+        setTimeout(function () { avalerClic = false; }, 50);
+        if (Math.abs(dx) < (el.offsetWidth || 1) * 0.35) { remettre(); return; }
+        el.style.transition = 'transform 0.22s ease, opacity 0.22s ease';
+        el.style.transform = 'translateX(' + (dx < 0 ? -1 : 1) * (el.offsetWidth + 40) + 'px)';
+        el.style.opacity = '0';
+        appelerHariva({ action: 'fafao', id: el.getAttribute('data-tantara-id') }).then(function () {
+          setTimeout(function () {
+            el.remove();
+            if (!boiteTantara.querySelector('[data-tantara-id]')) boiteTantara.textContent = 'Mbola tsy nisy fandefasana voarakitra.';
+          }, 230);
+        }, function (e) {
+          remettre();
+          alert('Tsy voafafa : ' + e.message);
+        });
+      }
+      // Un glissement ne doit pas aussi ouvrir ou fermer la ligne.
+      el.addEventListener('click', function (e) { if (avalerClic) { e.preventDefault(); e.stopPropagation(); } }, true);
+      el.addEventListener('dragstart', function (e) { e.preventDefault(); });
+      el.addEventListener('touchstart', function (e) {
+        if (e.touches.length !== 1) { depart = null; remettre(); return; }
+        debut(e.touches[0].clientX, e.touches[0].clientY);
+      }, { passive: true });
+      el.addEventListener('touchmove', function (e) {
+        if (!depart) return;
+        if (bouge(e.touches[0].clientX, e.touches[0].clientY) && e.cancelable) e.preventDefault();
+      }, { passive: false });
+      el.addEventListener('touchend', fin);
+      el.addEventListener('touchcancel', function () { depart = null; glisse = false; remettre(); });
+      el.addEventListener('mousedown', function (e) {
+        if (e.button !== 0) return;
+        debut(e.clientX, e.clientY);
+        function suivre(ev) { if (bouge(ev.clientX, ev.clientY)) ev.preventDefault(); }
+        function lacher() {
+          document.removeEventListener('mousemove', suivre);
+          document.removeEventListener('mouseup', lacher);
+          fin();
+        }
+        document.addEventListener('mousemove', suivre);
+        document.addEventListener('mouseup', lacher);
+      });
     }
     function chargerTantara() {
       if (!window.__sb || !window.__sb.functions) { boiteTantara.textContent = 'Tsy tafiditra ny serveur.'; return; }

@@ -142,6 +142,17 @@ Deno.serve(async (req: Request) => {
     return json({ tantara: data ?? [] });
   }
 
+  // ---- Effacer une ligne du carnet (glissée à gauche ou à droite) ----
+  if (action === "fafao") {
+    if (loharano === "hariva") return json({ error: "refusé" }, 401);
+    let id = "";
+    try { id = String(JSON.parse(texteCorps || "{}").id ?? ""); } catch { /* vide */ }
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return json({ error: "id tsy mety" }, 400);
+    const { error } = await admin.from("fandefasana_tantara").delete().eq("id", id);
+    if (error) return json({ error: error.message }, 500);
+    return json({ voafafa: id });
+  }
+
   // ---- L'heure et les dates, choisies par le propriétaire ----
   const TSY_MISY_FIKIRANA = "Tsy hita ny fikirana : alefaso ao amin'ny SQL Editor ny supabase-fandefasana-fotoana.sql.";
   const lireFikirana = () =>
