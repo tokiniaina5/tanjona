@@ -227,7 +227,7 @@
         //    deux dates s'il y en a (fonction « fandefasana-hariva », tâche
         //    qui passe chaque minute et ne part qu'une fois par jour).
         '<div class="panel">' +
-          '<h3>⏰ Fandefasana ho azy — isak\'andro amin\'ny <span data-hariva-ora-titre>18:00</span></h3>' +
+          '<h3>⏰ Fandefasana ho azy</h3>' +
           '<p style="font-size:0.78rem; color:var(--muted); line-height:1.6; margin:0 0 0.9rem;">' +
             'Amin\'ny ora voafidy eto, ny publication rehetra nivoaka androany ao amin\'ny Botika dia ' +
             '<strong style="color:var(--text);">alefa ho azy amin\'ny mailaka</strong> any amin\'ny client rehetra ' +
@@ -285,7 +285,6 @@
     var champOra = page.querySelector('[data-hariva-ora]');
     var champManomboka = page.querySelector('[data-hariva-manomboka]');
     var champHatramin = page.querySelector('[data-hariva-hatramin]');
-    var oraTitre = page.querySelector('[data-hariva-ora-titre]');
     var statutHariva = page.querySelector('[data-hariva-statut]');
     var boiteTantara = page.querySelector('[data-hariva-tantara]');
 
@@ -443,7 +442,6 @@
     }
     // Ce que la tâche fera, dit en une phrase.
     function direFikirana(f) {
-      oraTitre.textContent = f.ora;
       var fetra = f.manomboka && f.hatramin ? ', ' + dateFr(f.manomboka) + ' hatramin\'ny ' + dateFr(f.hatramin)
         : f.manomboka ? ', manomboka ny ' + dateFr(f.manomboka)
         : f.hatramin ? ', hatramin\'ny ' + dateFr(f.hatramin)
