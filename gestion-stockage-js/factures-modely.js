@@ -568,11 +568,11 @@
         (m
           ? '<span style="color:var(--cyan); font-size:0.85rem;">✓ ' + html(m.anarana) + (m.enLigne ? ' ☁' : ' 📱') + '</span>'
           : '<span style="color:var(--muted); font-size:0.82rem;">' +
-              (client ? 'aucun — la facture standard sera utilisée' : 'écrivez d\'abord le nom du client') + '</span>') +
+              (client ? 'aucun — la facture standard sera utilisée' : 'aucun client choisi') + '</span>') +
       '</div>' +
       '<div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.5rem;">' +
         // Le fichier Excel que le client a donné : il se dépose ici, sous son nom.
-        '<label class="btn btn-sm" style="width:auto; cursor:pointer;' + (client ? '' : ' opacity:0.5; pointer-events:none;') + '">' +
+        '<label class="btn btn-sm" style="width:auto; cursor:pointer;">' +
           '📥 ' + (m ? 'Remplacer' : 'Télécharger') + ' le modèle facture du client (.xlsx)' +
           '<input type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" data-modely-ampidiro style="display:none;"></label>' +
         (m ? '<button type="button" class="btn btn-sm" data-modely-alaina style="width:auto;">⬇ Modèle</button>' +
@@ -589,8 +589,16 @@
     const input = boite.querySelector('[data-modely-ampidiro]');
     if (input) input.addEventListener('change', function (e) {
       const f = e.target.files && e.target.files[0];
-      if (!f || !client) return;
-      tahiry(client, f).catch(function (err) { alert('Modèle non enregistré : ' + ((err && err.message) || 'erreur')); });
+      if (!f) return;
+      // Sans nom de client écrit, on le demande — le nom du fichier en
+      // proposition — et il remplit le champ.
+      let pour = client;
+      if (!pour) {
+        pour = String(prompt('Nom du client pour ce modèle :', f.name.replace(/\.xlsx?$/i, '')) || '').trim();
+        if (!pour) return;
+        champ.value = pour;
+      }
+      tahiry(pour, f).catch(function (err) { alert('Modèle non enregistré : ' + ((err && err.message) || 'erreur')); });
     });
     const bAlaina = boite.querySelector('[data-modely-alaina]');
     if (bAlaina) bAlaina.addEventListener('click', function () {
