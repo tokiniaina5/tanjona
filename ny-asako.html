@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="f970bfcb">
+<meta name="ny-asako-version" content="60dee8c8">
 <title>Ny asako — Tanjona</title>
 <!-- Application installable : le manifeste décrit le nom, l'icône et la façon
      de s'ouvrir ; le reste est affaire de service worker, enregistré plus bas. -->
@@ -2815,12 +2815,19 @@
         </div>
 
         <div class="panel" id="adminVisitsPanel" style="display:none;">
-          <h3>🌐 Visiteurs du site</h3>
+          <div class="section-head" style="margin-bottom:0.6rem;">
+            <div><h3>🌐 Visiteurs du site</h3></div>
+            <div class="actions-row">
+              <button class="btn btn-red btn-sm" id="clearSiteVisitsBtn">Vider les visites</button>
+            </div>
+          </div>
           <p style="font-size:0.8rem; color:var(--muted); margin-bottom:0.8rem;">
             Dernières visites enregistrées sur le site (page consultée, provenance, appareil).
+            Glisser une ligne à gauche ou à droite, ou toucher ✕, l'efface.
           </p>
+          <p id="siteVisitsStatus" style="font-size:0.78rem; color:var(--amber); margin:0 0 0.5rem; min-height:0;"></p>
           <table>
-            <thead><tr><th>Date</th><th>Page</th><th>Provenance</th><th>Appareil</th></tr></thead>
+            <thead><tr><th>Date</th><th>Page</th><th>Provenance</th><th>Appareil</th><th></th></tr></thead>
             <tbody id="siteVisitsTableBody"></tbody>
           </table>
           <p class="empty-hint" id="siteVisitsEmptyHint" style="display:none;">Aucune visite enregistrée pour le moment.</p>
@@ -2937,7 +2944,7 @@
 <script src="gestion-stockage-js/zara-rehetra.js?v=1d7a9c94"></script>
 <script src="gestion-stockage-js/live.js?v=accde37b"></script>
 <script src="gestion-stockage-js/traduction.js?v=8f5605bc"></script>
-<script src="gestion-stockage-js/parametres.js?v=7d570da2"></script>
+<script src="gestion-stockage-js/parametres.js?v=f6294684"></script>
 <!-- Le partage reçu du dehors remplit la boîte « Écrire », que parametres.js
      tient : il se charge après elle. -->
 <script src="gestion-stockage-js/zara-miditra.js?v=bfe2ae80"></script>

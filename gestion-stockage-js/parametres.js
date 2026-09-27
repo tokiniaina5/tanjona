@@ -86,7 +86,7 @@
     const emptyHint = document.getElementById('siteVisitsEmptyHint');
     if(!tbody || !window.__sb){ return; }
     window.__sb.from('site_visits')
-      .select('path,referrer,user_agent,created_at')
+      .select('id,path,referrer,user_agent,created_at')
       .order('created_at', { ascending: false })
       .limit(50)
       .then(function(res){
@@ -100,11 +100,126 @@
             '<td>' + d + '</td>' +
             '<td>' + escapeHtml(v.path || '—') + '</td>' +
             '<td>' + escapeHtml(v.referrer || 'Direct') + '</td>' +
-            '<td>' + shortUserAgent(v.user_agent) + '</td>';
+            '<td>' + shortUserAgent(v.user_agent) + '</td>' +
+            '<td style="text-align:right;"><button type="button" class="btn btn-sm" data-effacer-visite ' +
+              'title="Effacer" style="width:auto; padding:0.2rem 0.55rem;">✕</button></td>';
+          tr.querySelector('[data-effacer-visite]').addEventListener('click', function(){
+            effacerVisite(v.id, tr, 1);
+          });
+          glisserVisite(v.id, tr);
           tbody.appendChild(tr);
         });
       }, function(){});
   }
+
+  // Une visite effacée part pour de bon (règle « owner can delete visits »,
+  // supabase-visites-fafana.sql). Si la base refuse, la ligne revient.
+  function effacerVisite(id, tr, sens){
+    const statut = document.getElementById('siteVisitsStatus');
+    tr.style.transition = 'transform 0.22s ease, opacity 0.22s ease';
+    tr.style.transform = 'translateX(' + sens * (tr.offsetWidth + 40) + 'px)';
+    tr.style.opacity = '0';
+    window.__sb.from('site_visits').delete().eq('id', id).select('id').then(function(res){
+      if(res && !res.error && res.data && res.data.length){
+        setTimeout(function(){
+          tr.remove();
+          const tbody = document.getElementById('siteVisitsTableBody');
+          if(tbody && !tbody.children.length) document.getElementById('siteVisitsEmptyHint').style.display = 'block';
+        }, 230);
+        if(statut) statut.textContent = '';
+        return;
+      }
+      tr.style.transform = '';
+      tr.style.opacity = '';
+      if(statut) statut.textContent = '⚠ Non effacée : ' + ((res && res.error && res.error.message) ||
+        'refusé — passer supabase-visites-fafana.sql dans le SQL Editor');
+    }, function(){
+      tr.style.transform = '';
+      tr.style.opacity = '';
+      if(statut) statut.textContent = '⚠ Serveur injoignable.';
+    });
+  }
+
+  // Glisser la ligne à gauche ou à droite au-delà d'un tiers l'efface.
+  function glisserVisite(id, tr){
+    tr.style.touchAction = 'pan-y';
+    let depart = null, glisse = false, dx = 0;
+    function remettre(){
+      tr.style.transition = 'transform 0.2s, opacity 0.2s';
+      tr.style.transform = '';
+      tr.style.opacity = '';
+    }
+    function debut(x, y, cible){
+      if(cible && cible.closest && cible.closest('button')){ depart = null; return; }
+      depart = { x: x, y: y }; glisse = false; dx = 0;
+    }
+    function bouge(x, y){
+      if(!depart) return false;
+      dx = x - depart.x;
+      const dy = y - depart.y;
+      if(!glisse){
+        if(Math.abs(dy) > 10 && Math.abs(dy) >= Math.abs(dx)){ depart = null; return false; }
+        if(Math.abs(dx) < 12) return false;
+        glisse = true;
+        tr.style.transition = 'none';
+      }
+      tr.style.transform = 'translateX(' + dx + 'px)';
+      tr.style.opacity = String(Math.max(1 - Math.abs(dx) / (tr.offsetWidth || 1), 0.25));
+      return true;
+    }
+    function fin(){
+      if(!depart) return;
+      depart = null;
+      if(!glisse) return;
+      glisse = false;
+      if(Math.abs(dx) >= (tr.offsetWidth || 1) * 0.35) effacerVisite(id, tr, dx < 0 ? -1 : 1);
+      else remettre();
+    }
+    tr.addEventListener('dragstart', function(e){ e.preventDefault(); });
+    tr.addEventListener('touchstart', function(e){
+      if(e.touches.length !== 1){ depart = null; remettre(); return; }
+      debut(e.touches[0].clientX, e.touches[0].clientY, e.target);
+    }, { passive: true });
+    tr.addEventListener('touchmove', function(e){
+      if(!depart) return;
+      if(bouge(e.touches[0].clientX, e.touches[0].clientY) && e.cancelable) e.preventDefault();
+    }, { passive: false });
+    tr.addEventListener('touchend', fin);
+    tr.addEventListener('touchcancel', function(){ depart = null; glisse = false; remettre(); });
+    tr.addEventListener('mousedown', function(e){
+      if(e.button !== 0) return;
+      debut(e.clientX, e.clientY, e.target);
+      if(!depart) return;
+      function suivre(ev){ if(bouge(ev.clientX, ev.clientY)) ev.preventDefault(); }
+      function lacher(){
+        document.removeEventListener('mousemove', suivre);
+        document.removeEventListener('mouseup', lacher);
+        fin();
+      }
+      document.addEventListener('mousemove', suivre);
+      document.addEventListener('mouseup', lacher);
+    });
+  }
+
+  const clearSiteVisitsBtn = document.getElementById('clearSiteVisitsBtn');
+  if(clearSiteVisitsBtn) clearSiteVisitsBtn.addEventListener('click', function(){
+    if(!window.__sb) return;
+    if(!confirm('Effacer toutes les visites enregistrées ? Irréversible.')) return;
+    const statut = document.getElementById('siteVisitsStatus');
+    clearSiteVisitsBtn.disabled = true;
+    window.__sb.from('site_visits').delete().not('id', 'is', null).then(function(res){
+      clearSiteVisitsBtn.disabled = false;
+      if(res && res.error){
+        if(statut) statut.textContent = '⚠ Non effacées : ' + res.error.message;
+        return;
+      }
+      if(statut) statut.textContent = '';
+      renderSiteVisits();
+    }, function(){
+      clearSiteVisitsBtn.disabled = false;
+      if(statut) statut.textContent = '⚠ Serveur injoignable.';
+    });
+  });
 
   document.getElementById('clearLoginsBtn').addEventListener('click', function(){
     if(confirm("Vider tout l'historique des connexions ?")){
