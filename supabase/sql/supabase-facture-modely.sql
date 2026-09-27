@@ -5,8 +5,9 @@
 -- il n'y a RIEN à remplacer. Se relance sans risque.
 --
 -- Un client qui a SA facture (un classeur .xlsx) la donne une fois : la page
--- Factures la garde, et chaque facture pour lui se remplit dans son modèle
--- (factures-modely.js). Un modèle par client et par compte ; le fichier,
+-- Factures la garde, et c'est elle qui sort pour lui, telle quelle, à la
+-- place de la facture des articles (factures-modely.js). Une facture par
+-- client et par compte ; le fichier,
 -- petit, voyage en base64 dans la ligne même. Chacun ne voit que les siens.
 -- ============================================================
 

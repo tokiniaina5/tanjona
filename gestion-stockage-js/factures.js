@@ -58,35 +58,35 @@
   document.getElementById('generateInvoiceBtn').addEventListener('click', function(){
     if(!window.jspdf){ alert("La bibliothèque PDF n'a pas pu être chargée."); return; }
     const customer = document.getElementById('invoiceCustomer').value.trim() || 'Client';
-    const selection = getInvoiceSelection();
-    if(!selection.length){ alert('Sélectionnez au moins un article avec une quantité.'); return; }
 
-    // Le client a SON modèle Excel (factures-modely.js) : la facture se
-    // remplit dedans, puis suit le même chemin — rangée dans « 📄 PDF »,
-    // puis imprimée.
+    // Le client a SA facture (factures-modely.js) : c'est elle qui sort, à
+    // la place de la facture des articles, telle quelle — pas d'article à
+    // choisir. Elle suit le même chemin : rangée dans « 📄 PDF », imprimée.
     const modele = window.__factureModely && window.__factureModely.hita(customer);
     if(modele){
-      const d = donneesFacture(customer, selection);
       // Sur téléphone, l'onglet d'impression s'ouvre pendant l'appui.
       let onglet = null;
       try { if(window.matchMedia('(pointer: coarse)').matches) onglet = window.open('', '_blank'); } catch(e){}
       const bouton = this;
       bouton.disabled = true;
-      window.__factureModely.pdf(modele, d).then(function(blob){
+      window.__factureModely.pdf(modele).then(function(blob){
         bouton.disabled = false;
-        const nomPdf = 'facture-' + customer.replace(/\s+/g, '-').toLowerCase() + '-' + d.numero.slice(1) + '.pdf';
+        const nomPdf = modele.anarana.replace(/\.xlsx?$/i, '') + '-' + String(Date.now()).slice(-6) + '.pdf';
         if(window.__pdfTahiry){
           window.__pdfTahiry.imprimer(blob, onglet);
           window.__pdfTahiry.ampio(nomPdf, blob, 'facture').then(function(){ window.__pdfTahiry.sokafy(); });
         }
-        pushNotification('facture', 'Facture ho an\'i ' + customer + ' (modèle Excel) voatahiry ao amin\'ny PDF, ary nalefa ho amin\'ny impression.');
+        pushNotification('facture', 'Facture an\'i ' + customer + ' voatahiry ao amin\'ny PDF, ary nalefa ho amin\'ny impression.');
       }, function(err){
         bouton.disabled = false;
         if(onglet) onglet.close();
-        alert('Modèle Excel : ' + ((err && err.message) || 'erreur'));
+        alert('Facture du client : ' + ((err && err.message) || 'erreur'));
       });
       return;
     }
+
+    const selection = getInvoiceSelection();
+    if(!selection.length){ alert('Sélectionnez au moins un article avec une quantité.'); return; }
 
     const invoiceNo = '#' + String(Date.now()).slice(-6);
     const doc = factureStandard(customer, selection, invoiceNo);
@@ -115,16 +115,18 @@
     const pages = document.getElementById('invoiceApercuPages');
     if(!boite || !pages || !window.__pdfTahiry || !window.jspdf) return;
     const customer = document.getElementById('invoiceCustomer').value.trim() || 'Client';
-    let selection = getInvoiceSelection();
-    const exemple = !selection.length;
-    if(exemple) selection = [{ name: 'Article exemple 1', qty: 2, price: 15000 }, { name: 'Article exemple 2', qty: 1, price: 40000 }];
     const modele = window.__factureModely && window.__factureModely.hita(customer);
+    let selection = getInvoiceSelection();
+    // Les lignes d'exemple ne servent qu'à la facture des articles : celle du
+    // client se montre telle quelle.
+    const exemple = !modele && !selection.length;
+    if(exemple) selection = [{ name: 'Article exemple 1', qty: 2, price: 15000 }, { name: 'Article exemple 2', qty: 1, price: 40000 }];
     document.getElementById('invoiceApercuTitre').textContent = '👁 Aperçu — ' + customer +
-      (modele ? ' (modèle Excel : ' + modele.anarana + ')' : ' (facture standard)') + (exemple ? ' · exemple' : '');
+      (modele ? ' (facture du client : ' + modele.anarana + ')' : ' (facture des articles)') + (exemple ? ' · exemple' : '');
     boite.style.display = '';
     pages.innerHTML = '<p style="color:var(--muted); font-size:0.85rem;">Mamaky…</p>';
     const fait = modele
-      ? window.__factureModely.pdf(modele, donneesFacture(customer, selection))
+      ? window.__factureModely.pdf(modele)
       : Promise.resolve(factureStandard(customer, selection, '#' + String(Date.now()).slice(-6)).output('blob'));
     fait.then(function(blob){ return window.__pdfTahiry.dessinerPages(blob, pages); }, function(err){
       pages.innerHTML = '<p style="color:var(--amber); font-size:0.85rem;">' + escapeHtml((err && err.message) || 'erreur') + '</p>';
@@ -292,46 +294,6 @@
     doc.text('MERCI POUR VOTRE CONFIANCE', marginX, 291);
     return doc;
   }
-
-  // Ce qu'un modèle Excel de client reçoit (factures-modely.js).
-  function donneesFacture(customer, selection){
-    const e = emetteurFacture();
-    let total = 0;
-    const lignes = selection.map(function(s, i){
-      const montant = s.qty * s.price;
-      total += montant;
-      return { n: i + 1, designation: s.name, qte: s.qty, pu: s.price, montant: montant };
-    });
-    return {
-      client: customer, date: new Date().toLocaleDateString('fr-FR'),
-      numero: '#' + String(Date.now()).slice(-6), total: total, lignes: lignes,
-      emetteur: e.name, societe: e.company, nif: e.nif, stat: e.stat, email: e.email, telephone: e.phone
-    };
-  }
-
-  // La même facture, en classeur Excel rempli dans le modèle du client.
-  const excelInvoiceBtn = document.getElementById('excelInvoiceBtn');
-  if(excelInvoiceBtn) excelInvoiceBtn.addEventListener('click', function(){
-    const customer = document.getElementById('invoiceCustomer').value.trim() || 'Client';
-    const selection = getInvoiceSelection();
-    if(!selection.length){ alert('Sélectionnez au moins un article avec une quantité.'); return; }
-    const modele = window.__factureModely && window.__factureModely.hita(customer);
-    if(!modele) return;
-    const d = donneesFacture(customer, selection);
-    excelInvoiceBtn.disabled = true;
-    window.__factureModely.xlsx(modele, d).then(function(blob){
-      excelInvoiceBtn.disabled = false;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'facture-' + customer.replace(/\s+/g, '-').toLowerCase() + '-' + d.numero.slice(1) + '.xlsx';
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
-    }, function(err){
-      excelInvoiceBtn.disabled = false;
-      alert('Modèle Excel : ' + ((err && err.message) || 'erreur'));
-    });
-  });
 
   document.getElementById('mailInvoiceBtn').addEventListener('click', function(){
     const customer = document.getElementById('invoiceCustomer').value.trim() || 'Client';
