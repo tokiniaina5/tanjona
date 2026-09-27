@@ -199,10 +199,32 @@
     });
   }
 
+  // Insérer des lignes : ExcelJS ne décale pas les cases fusionnées situées
+  // dessous — elles resteraient à leur ancienne place, et leur texte se
+  // répéterait. On les défait, on insère, on les refait plus bas.
+  function refFusion(ref) {
+    const m = /^([A-Z]+)(\d+):([A-Z]+)(\d+)$/i.exec(ref);
+    if (!m) return null;
+    const cn = function (l) { return l.toUpperCase().split('').reduce(function (a, ch) { return a * 26 + ch.charCodeAt(0) - 64; }, 0); };
+    return { ref: ref, r1: Number(m[2]), c1: cn(m[1]), r2: Number(m[4]), c2: cn(m[3]) };
+  }
+  function insererEnDecalant(ws, apres, combien, inserer) {
+    const aDecaler = ((ws.model && ws.model.merges) || []).map(refFusion)
+      .filter(function (f) { return f && f.r1 > apres; });
+    aDecaler.forEach(function (f) { ws.unMergeCells(f.ref); });
+    inserer();
+    aDecaler.forEach(function (f) { ws.mergeCells(f.r1 + combien, f.c1, f.r2 + combien, f.c2); });
+  }
+
   function remplir(wb, d) {
     const ws = wb.worksheets[0];
     const gen = valeursGenerales(d);
     const n = d.lignes.length;
+    // Les repères que le modèle porte déjà : leurs étiquettes (« Client : »…)
+    // n'ont alors rien à recevoir de plus.
+    let tousTextes = '';
+    ws.eachRow({ includeEmpty: false }, function (row) { row.eachCell(function (c) { tousTextes += ' ' + texteDe(c); }); });
+    const aRepere = function (k) { return new RegExp('\\{\\{\\s*' + k + '\\s*\\}\\}', 'i').test(tousTextes); };
 
     // 1) La ligne d'articles à repères.
     let ligneModele = 0;
@@ -213,7 +235,7 @@
     if (ligneModele) {
       const modeleTextes = {};
       ws.getRow(ligneModele).eachCell({ includeEmpty: true }, function (c, col) { modeleTextes[col] = c.value; });
-      if (n > 1) ws.duplicateRow(ligneModele, n - 1, true);
+      if (n > 1) insererEnDecalant(ws, ligneModele, n - 1, function () { ws.duplicateRow(ligneModele, n - 1, true); });
       d.lignes.forEach(function (l, i) {
         const row = ws.getRow(ligneModele + i);
         Object.keys(modeleTextes).forEach(function (col) {
@@ -234,10 +256,10 @@
     });
     // 3) « Client : » / « Date : » / « Facture N° : » suivis d'une case vide.
     const etiquettes = [
-      [/^\s*(client|doit|factur[ée]e?\s+[àa]|nom du client)\s*:?\s*$/i, d.client],
-      [/^\s*date( de facture)?\s*:?\s*$/i, d.date],
-      [/^\s*(facture\s*n[°o]?|n[°o]\s*(de\s*)?facture|num[ée]ro)\s*:?\s*$/i, d.numero]
-    ];
+      [/^\s*(client|doit|factur[ée]e?\s+[àa]|nom du client)\s*:?\s*$/i, d.client, 'client'],
+      [/^\s*date( de facture)?\s*:?\s*$/i, d.date, '(date|daty)'],
+      [/^\s*(facture\s*n[°o]?|n[°o]\s*(de\s*)?facture|num[ée]ro)\s*:?\s*$/i, d.numero, '(numero|laharana)']
+    ].filter(function (e) { return !aRepere(e[2]); });
     ws.eachRow({ includeEmpty: false }, function (row) {
       row.eachCell(function (c, col) {
         const t = texteDe(c);
@@ -292,8 +314,8 @@
       const vides = Array.from({ length: manque }, function () { return []; });
       // duplicateRow d'ExcelJS échoue sur une ligne vide : on insère, en
       // reprenant le style de la première ligne du tableau s'il y en a une.
-      if (libres >= 1) ws.insertRows(entete + 2, vides, 'i');
-      else ws.insertRows(entete + 1, vides, 'n');
+      if (libres >= 1) insererEnDecalant(ws, entete + 1, manque, function () { ws.insertRows(entete + 2, vides, 'i'); });
+      else insererEnDecalant(ws, entete, manque, function () { ws.insertRows(entete + 1, vides, 'n'); });
       if (ligneTotal) ligneTotal += manque;
     }
     d.lignes.forEach(function (l, i) {
@@ -524,6 +546,111 @@
   }
   window.__factureModely = { hita: hita, pdf: pdf, xlsx: xlsx };
 
+  // ---------- Un modèle prêt à l'emploi ----------
+  // Pour partir de quelque chose : un classeur déjà mis en forme, tous les
+  // repères à leur place. On le retouche dans Excel (couleurs, logo, mots),
+  // puis on l'importe sous le nom du client.
+  function modeleVierge() {
+    return excelJs().then(function (ExcelJS) {
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet('Facture', {
+        pageSetup: { paperSize: 9, orientation: 'portrait', fitToPage: true, fitToWidth: 1, fitToHeight: 0 }
+      });
+      ws.columns = [{ width: 6 }, { width: 38 }, { width: 9 }, { width: 15 }, { width: 17 }];
+      const bleu = 'FF1E4078', clair = 'FFE8EFF8', blanc = 'FFFFFFFF';
+      const cadre = { style: 'thin', color: { argb: 'FFB4C3D8' } };
+      const tout = { top: cadre, bottom: cadre, left: cadre, right: cadre };
+
+      // L'en-tête : qui émet la facture.
+      ws.mergeCells('A1:C1'); ws.getCell('A1').value = '{{societe}}';
+      ws.getCell('A1').font = { bold: true, size: 14, color: { argb: bleu } };
+      ws.mergeCells('A2:C2'); ws.getCell('A2').value = '{{emetteur}}';
+      ws.mergeCells('A3:C3'); ws.getCell('A3').value = '{{email}} · {{telephone}}';
+      ws.mergeCells('A4:C4'); ws.getCell('A4').value = 'NIF : {{nif}}   STAT : {{stat}}';
+      ['A2', 'A3', 'A4'].forEach(function (a) { ws.getCell(a).font = { size: 9, color: { argb: 'FF555555' } }; });
+
+      ws.mergeCells('D1:E2'); ws.getCell('D1').value = 'FACTURE';
+      ws.getCell('D1').font = { bold: true, size: 22, color: { argb: blanc } };
+      ws.getCell('D1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bleu } };
+      ws.getCell('D1').alignment = { horizontal: 'center', vertical: 'middle' };
+      ws.getCell('D3').value = 'N° :'; ws.getCell('E3').value = '{{numero}}';
+      ws.getCell('D4').value = 'Date :'; ws.getCell('E4').value = '{{date}}';
+      ['D3', 'D4'].forEach(function (a) { ws.getCell(a).font = { bold: true, size: 10 }; ws.getCell(a).alignment = { horizontal: 'right' }; });
+      ['E3', 'E4'].forEach(function (a) { ws.getCell(a).alignment = { horizontal: 'right' }; });
+
+      // Le client.
+      ws.getCell('A6').value = 'FACTURÉ À :';
+      ws.getCell('A6').font = { bold: true, size: 9, color: { argb: 'FF666666' } };
+      ws.mergeCells('A7:C7'); ws.getCell('A7').value = '{{client}}';
+      ws.getCell('A7').font = { bold: true, size: 12 };
+
+      // Le tableau : l'en-tête, puis LA ligne d'articles, répétée à chaque facture.
+      ws.getRow(9).height = 20;
+      ['N°', 'DÉSIGNATION', 'QTÉ', 'P.U.', 'MONTANT'].forEach(function (t, i) {
+        const c = ws.getRow(9).getCell(i + 1);
+        c.value = t;
+        c.font = { bold: true, size: 10, color: { argb: blanc } };
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bleu } };
+        c.alignment = { horizontal: i >= 2 ? 'right' : 'left', vertical: 'middle' };
+        c.border = tout;
+      });
+      ['{{n}}', '{{designation}}', '{{qte}}', '{{pu}}', '{{montant}}'].forEach(function (t, i) {
+        const c = ws.getRow(10).getCell(i + 1);
+        c.value = t;
+        c.border = tout;
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: clair } };
+        c.alignment = { horizontal: i >= 2 ? 'right' : 'left' };
+        if (i >= 3) c.numFmt = '#,##0';
+      });
+
+      // Le total.
+      ws.getCell('D12').value = 'TOTAL';
+      ws.getCell('E12').value = '{{total}}';
+      ['D12', 'E12'].forEach(function (a) {
+        const c = ws.getCell(a);
+        c.font = { bold: true, size: 12, color: { argb: blanc } };
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bleu } };
+        c.alignment = { horizontal: 'right', vertical: 'middle' };
+      });
+      ws.getCell('E12').numFmt = '#,##0" Ar"';
+      ws.getRow(12).height = 22;
+
+      // Signature et remerciement.
+      ws.getCell('E16').value = 'Signature';
+      ws.getCell('E16').alignment = { horizontal: 'center' };
+      ws.getCell('E16').border = { top: { style: 'thin' } };
+      ws.mergeCells('A19:E19'); ws.getCell('A19').value = 'MERCI POUR VOTRE CONFIANCE';
+      ws.getCell('A19').font = { bold: true, color: { argb: blanc } };
+      ws.getCell('A19').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bleu } };
+      ws.getCell('A19').alignment = { horizontal: 'center', vertical: 'middle' };
+      ws.getRow(19).height = 22;
+
+      // Une seconde feuille pour s'y retrouver ; seule la première est remplie.
+      const aide = wb.addWorksheet('Aide');
+      aide.columns = [{ width: 18 }, { width: 70 }];
+      [
+        ['Repère', 'Ce qui s\'y écrit'],
+        ['{{client}}', 'le nom du client'],
+        ['{{date}}', 'la date de la facture'],
+        ['{{numero}}', 'le numéro de la facture'],
+        ['{{total}}', 'le total, en nombre'],
+        ['{{designation}}', 'sur LA ligne d\'articles : elle est répétée pour chaque article'],
+        ['{{n}} {{qte}} {{pu}} {{montant}}', 'sur la même ligne : numéro, quantité, prix unitaire, montant'],
+        ['{{societe}} {{emetteur}}', 'votre société et votre nom (profil)'],
+        ['{{email}} {{telephone}}', 'vos coordonnées (profil)'],
+        ['{{nif}} {{stat}}', 'vos numéros NIF et STAT (profil)'],
+        ['', 'Changez librement couleurs, polices, logo (Insertion > Image), colonnes et textes.'],
+        ['', 'Seule la PREMIÈRE feuille sert de facture. Enregistrez en .xlsx, puis importez-le sous le nom du client.']
+      ].forEach(function (l, i) {
+        const row = aide.addRow(l);
+        if (i === 0) row.font = { bold: true };
+      });
+      return wb.xlsx.writeBuffer();
+    }).then(function (buf) {
+      return new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    });
+  }
+
   // ---------- Dans la page Factures ----------
   function telecharger(nom, blob) {
     const url = URL.createObjectURL(blob);
@@ -549,6 +676,8 @@
               (client ? 'aucun — la facture standard sera utilisée' : 'écrivez d\'abord le nom du client') + '</span>') +
       '</div>' +
       '<div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.5rem;">' +
+        '<button type="button" class="btn btn-sm" data-modely-vierge style="width:auto;" ' +
+          'title="Un modèle Excel prêt, avec tous les repères, à retoucher puis importer">⬇ Télécharger un modèle Excel</button>' +
         '<label class="btn btn-sm" style="width:auto; cursor:pointer;' + (client ? '' : ' opacity:0.5; pointer-events:none;') + '">' +
           '📥 ' + (m ? 'Remplacer' : 'Importer') + ' le modèle (.xlsx)' +
           '<input type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" data-modely-ampidiro style="display:none;"></label>' +
@@ -579,6 +708,17 @@
       const f = e.target.files && e.target.files[0];
       if (!f || !client) return;
       tahiry(client, f).catch(function (err) { alert('Modèle non enregistré : ' + ((err && err.message) || 'erreur')); });
+    });
+    const bVierge = boite.querySelector('[data-modely-vierge]');
+    bVierge.addEventListener('click', function () {
+      bVierge.disabled = true;
+      modeleVierge().then(function (blob) {
+        bVierge.disabled = false;
+        telecharger('modele-facture.xlsx', blob);
+      }, function (err) {
+        bVierge.disabled = false;
+        alert('Modèle non créé : ' + ((err && err.message) || 'erreur'));
+      });
     });
     const bAlaina = boite.querySelector('[data-modely-alaina]');
     if (bAlaina) bAlaina.addEventListener('click', function () {
