@@ -211,8 +211,20 @@
     doc.setFontSize(11);
     doc.text('MERCI POUR VOTRE CONFIANCE', marginX, 291);
 
-    doc.save('facture-' + customer.replace(/\s+/g, '-').toLowerCase() + '.pdf');
-    pushNotification('facture', 'Facture ho an\'i ' + customer + ' efa lasa (téléchargée).');
+    // La facture se range dans « 📄 PDF » (pdf.js), puis sort à l'impression.
+    // L'impression part tout de suite, pendant l'appui : un téléphone refuse
+    // d'ouvrir l'onglet du PDF s'il vient après une attente.
+    const nomPdf = 'facture-' + customer.replace(/\s+/g, '-').toLowerCase() + '-' + invoiceNo.slice(1) + '.pdf';
+    const blob = doc.output('blob');
+    if(window.__pdfTahiry){
+      window.__pdfTahiry.imprimer(blob);
+      window.__pdfTahiry.ampio(nomPdf, blob, 'facture').then(function(){
+        window.__pdfTahiry.sokafy();
+      }, function(){ doc.save(nomPdf); });
+    } else {
+      doc.save(nomPdf);
+    }
+    pushNotification('facture', 'Facture ho an\'i ' + customer + ' voatahiry ao amin\'ny PDF, ary nalefa ho amin\'ny impression.');
   });
 
   document.getElementById('mailInvoiceBtn').addEventListener('click', function(){
