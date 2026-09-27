@@ -690,18 +690,9 @@
               return '<button type="button" class="btn btn-sm" data-modely-client="' + html(x.client) + '" ' +
                 'style="width:auto; padding:0.15rem 0.5rem; margin:0.15rem 0.2rem 0 0;">' + html(x.client) + '</button>';
             }).join('') + '</div>'
-        : '') +
-      '<details style="margin-top:0.6rem; font-size:0.76rem; color:var(--muted); line-height:1.6;">' +
-        '<summary style="cursor:pointer;">Comment préparer le modèle Excel ?</summary>' +
-        'Dans la première feuille, écrivez <code>{{client}}</code>, <code>{{date}}</code>, <code>{{numero}}</code>, ' +
-        '<code>{{total}}</code> là où ils doivent aller, et une ligne d\'articles avec <code>{{designation}}</code>, ' +
-        '<code>{{qte}}</code>, <code>{{pu}}</code>, <code>{{montant}}</code> (et <code>{{n}}</code>) : elle sera répétée ' +
-        'pour chaque article. Aussi : <code>{{emetteur}}</code>, <code>{{societe}}</code>, <code>{{nif}}</code>, ' +
-        '<code>{{stat}}</code>, <code>{{email}}</code>, <code>{{telephone}}</code>.<br>' +
-        'Sans ces repères, l\'application cherche l\'en-tête du tableau (Désignation, Qté, P.U., Montant), ' +
-        'écrit les articles dessous et le total en face de « Total ». Les couleurs, bordures, cases fusionnées ' +
-        'et le logo du modèle sont gardés.' +
-      '</details>';
+        : '');
+    // Le mode d'emploi des repères vit dans la feuille « Aide » du modèle
+    // téléchargé, plus dans la page.
 
     const input = boite.querySelector('[data-modely-ampidiro]');
     if (input) input.addEventListener('change', function (e) {
