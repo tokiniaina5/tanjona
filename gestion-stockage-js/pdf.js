@@ -542,7 +542,8 @@
     if (nav) nav.click();
   }
   // Les autres pages impriment, elles aussi, au format choisi ici.
-  window.__pdfTahiry = { ampio: ampio, imprimer: function (b) { imprimerAuFormat(b); }, sokafy: sokafy };
+  // « onglet » : déjà ouvert pendant l'appui, quand le PDF vient après une attente.
+  window.__pdfTahiry = { ampio: ampio, imprimer: function (b, onglet) { imprimerAuFormat(b, onglet || null); }, sokafy: sokafy };
 
   // La page se remplit à l'ouverture, et chaque fois qu'on y revient.
   const nav = document.querySelector('.nav-item[data-section="pdf"]');

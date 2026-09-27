@@ -61,6 +61,33 @@
     const selection = getInvoiceSelection();
     if(!selection.length){ alert('Sélectionnez au moins un article avec une quantité.'); return; }
 
+    // Le client a SON modèle Excel (factures-modely.js) : la facture se
+    // remplit dedans, puis suit le même chemin — rangée dans « 📄 PDF »,
+    // puis imprimée.
+    const modele = window.__factureModely && window.__factureModely.hita(customer);
+    if(modele){
+      const d = donneesFacture(customer, selection);
+      // Sur téléphone, l'onglet d'impression s'ouvre pendant l'appui.
+      let onglet = null;
+      try { if(window.matchMedia('(pointer: coarse)').matches) onglet = window.open('', '_blank'); } catch(e){}
+      const bouton = this;
+      bouton.disabled = true;
+      window.__factureModely.pdf(modele, d).then(function(blob){
+        bouton.disabled = false;
+        const nomPdf = 'facture-' + customer.replace(/\s+/g, '-').toLowerCase() + '-' + d.numero.slice(1) + '.pdf';
+        if(window.__pdfTahiry){
+          window.__pdfTahiry.imprimer(blob, onglet);
+          window.__pdfTahiry.ampio(nomPdf, blob, 'facture').then(function(){ window.__pdfTahiry.sokafy(); });
+        }
+        pushNotification('facture', 'Facture ho an\'i ' + customer + ' (modèle Excel) voatahiry ao amin\'ny PDF, ary nalefa ho amin\'ny impression.');
+      }, function(err){
+        bouton.disabled = false;
+        if(onglet) onglet.close();
+        alert('Modèle Excel : ' + ((err && err.message) || 'erreur'));
+      });
+      return;
+    }
+
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const pageW = 210;
@@ -225,6 +252,46 @@
       doc.save(nomPdf);
     }
     pushNotification('facture', 'Facture ho an\'i ' + customer + ' voatahiry ao amin\'ny PDF, ary nalefa ho amin\'ny impression.');
+  });
+
+  // Ce qu'un modèle Excel de client reçoit (factures-modely.js).
+  function donneesFacture(customer, selection){
+    const e = emetteurFacture();
+    let total = 0;
+    const lignes = selection.map(function(s, i){
+      const montant = s.qty * s.price;
+      total += montant;
+      return { n: i + 1, designation: s.name, qte: s.qty, pu: s.price, montant: montant };
+    });
+    return {
+      client: customer, date: new Date().toLocaleDateString('fr-FR'),
+      numero: '#' + String(Date.now()).slice(-6), total: total, lignes: lignes,
+      emetteur: e.name, societe: e.company, nif: e.nif, stat: e.stat, email: e.email, telephone: e.phone
+    };
+  }
+
+  // La même facture, en classeur Excel rempli dans le modèle du client.
+  const excelInvoiceBtn = document.getElementById('excelInvoiceBtn');
+  if(excelInvoiceBtn) excelInvoiceBtn.addEventListener('click', function(){
+    const customer = document.getElementById('invoiceCustomer').value.trim() || 'Client';
+    const selection = getInvoiceSelection();
+    if(!selection.length){ alert('Sélectionnez au moins un article avec une quantité.'); return; }
+    const modele = window.__factureModely && window.__factureModely.hita(customer);
+    if(!modele) return;
+    const d = donneesFacture(customer, selection);
+    excelInvoiceBtn.disabled = true;
+    window.__factureModely.xlsx(modele, d).then(function(blob){
+      excelInvoiceBtn.disabled = false;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'facture-' + customer.replace(/\s+/g, '-').toLowerCase() + '-' + d.numero.slice(1) + '.xlsx';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+    }, function(err){
+      excelInvoiceBtn.disabled = false;
+      alert('Modèle Excel : ' + ((err && err.message) || 'erreur'));
+    });
   });
 
   document.getElementById('mailInvoiceBtn').addEventListener('click', function(){
