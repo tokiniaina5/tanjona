@@ -88,6 +88,60 @@
       return;
     }
 
+    const invoiceNo = '#' + String(Date.now()).slice(-6);
+    const doc = factureStandard(customer, selection, invoiceNo);
+
+    // La facture se range dans « 📄 PDF » (pdf.js), puis sort à l'impression.
+    // L'impression part tout de suite, pendant l'appui : un téléphone refuse
+    // d'ouvrir l'onglet du PDF s'il vient après une attente.
+    const nomPdf = 'facture-' + customer.replace(/\s+/g, '-').toLowerCase() + '-' + invoiceNo.slice(1) + '.pdf';
+    const blob = doc.output('blob');
+    if(window.__pdfTahiry){
+      window.__pdfTahiry.imprimer(blob);
+      window.__pdfTahiry.ampio(nomPdf, blob, 'facture').then(function(){
+        window.__pdfTahiry.sokafy();
+      }, function(){ doc.save(nomPdf); });
+    } else {
+      doc.save(nomPdf);
+    }
+    pushNotification('facture', 'Facture ho an\'i ' + customer + ' voatahiry ao amin\'ny PDF, ary nalefa ho amin\'ny impression.');
+  });
+
+  // ---- L'aperçu : la facture telle qu'elle sortira, dans la page ----
+  // Avec le modèle du client s'il en a un, sinon la facture standard. Sans
+  // article choisi, deux lignes d'exemple montrent quand même la mise en page.
+  function apercuFacture(){
+    const boite = document.getElementById('invoiceApercu');
+    const pages = document.getElementById('invoiceApercuPages');
+    if(!boite || !pages || !window.__pdfTahiry || !window.jspdf) return;
+    const customer = document.getElementById('invoiceCustomer').value.trim() || 'Client';
+    let selection = getInvoiceSelection();
+    const exemple = !selection.length;
+    if(exemple) selection = [{ name: 'Article exemple 1', qty: 2, price: 15000 }, { name: 'Article exemple 2', qty: 1, price: 40000 }];
+    const modele = window.__factureModely && window.__factureModely.hita(customer);
+    document.getElementById('invoiceApercuTitre').textContent = '👁 Aperçu — ' + customer +
+      (modele ? ' (modèle Excel : ' + modele.anarana + ')' : ' (facture standard)') + (exemple ? ' · exemple' : '');
+    boite.style.display = '';
+    pages.innerHTML = '<p style="color:var(--muted); font-size:0.85rem;">Mamaky…</p>';
+    const fait = modele
+      ? window.__factureModely.pdf(modele, donneesFacture(customer, selection))
+      : Promise.resolve(factureStandard(customer, selection, '#' + String(Date.now()).slice(-6)).output('blob'));
+    fait.then(function(blob){ return window.__pdfTahiry.dessinerPages(blob, pages); }, function(err){
+      pages.innerHTML = '<p style="color:var(--amber); font-size:0.85rem;">' + escapeHtml((err && err.message) || 'erreur') + '</p>';
+    });
+    boite.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  window.__apercuFacture = apercuFacture;
+  const apercuBtn = document.getElementById('apercuInvoiceBtn');
+  if(apercuBtn) apercuBtn.addEventListener('click', apercuFacture);
+  const apercuFermer = document.getElementById('invoiceApercuFermer');
+  if(apercuFermer) apercuFermer.addEventListener('click', function(){
+    document.getElementById('invoiceApercu').style.display = 'none';
+  });
+
+  // La facture standard (sans modèle de client), prête à ranger, imprimer
+  // ou montrer en aperçu.
+  function factureStandard(customer, selection, invoiceNo){
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const pageW = 210;
@@ -100,7 +154,6 @@
     const emissPhone = emetteur.phone;
     const emissNif = emetteur.nif;
     const emissStat = emetteur.stat;
-    const invoiceNo = '#' + String(Date.now()).slice(-6);
     const today = new Date().toLocaleDateString('fr-FR');
 
     // couleurs
@@ -237,22 +290,8 @@
     doc.setFont(undefined, 'bold');
     doc.setFontSize(11);
     doc.text('MERCI POUR VOTRE CONFIANCE', marginX, 291);
-
-    // La facture se range dans « 📄 PDF » (pdf.js), puis sort à l'impression.
-    // L'impression part tout de suite, pendant l'appui : un téléphone refuse
-    // d'ouvrir l'onglet du PDF s'il vient après une attente.
-    const nomPdf = 'facture-' + customer.replace(/\s+/g, '-').toLowerCase() + '-' + invoiceNo.slice(1) + '.pdf';
-    const blob = doc.output('blob');
-    if(window.__pdfTahiry){
-      window.__pdfTahiry.imprimer(blob);
-      window.__pdfTahiry.ampio(nomPdf, blob, 'facture').then(function(){
-        window.__pdfTahiry.sokafy();
-      }, function(){ doc.save(nomPdf); });
-    } else {
-      doc.save(nomPdf);
-    }
-    pushNotification('facture', 'Facture ho an\'i ' + customer + ' voatahiry ao amin\'ny PDF, ary nalefa ho amin\'ny impression.');
-  });
+    return doc;
+  }
 
   // Ce qu'un modèle Excel de client reçoit (factures-modely.js).
   function donneesFacture(customer, selection){

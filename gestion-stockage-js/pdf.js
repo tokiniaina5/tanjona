@@ -542,8 +542,27 @@
     if (nav) nav.click();
   }
   // Les autres pages impriment, elles aussi, au format choisi ici.
+  // Les pages d'un PDF, dessinées dans un conteneur d'une autre page (aperçu
+  // de la facture, factures.js) : chacune sur sa feuille blanche.
+  function dessinerPages(blob, conteneur) {
+    conteneur.innerHTML = '<p style="color:var(--muted); font-size:0.85rem;">Mamaky…</p>';
+    const largeur = Math.min(Math.max(conteneur.clientWidth - 16, 240), 900);
+    return pagesEnCanvas(blob, largeur * (window.devicePixelRatio || 1)).then(function (pages) {
+      conteneur.innerHTML = '';
+      pages.forEach(function (c) {
+        c.style.cssText = 'width:100%; max-width:' + largeur + 'px; display:block; background:#fff; ' +
+          'box-shadow:0 2px 10px rgba(0,0,0,0.35); margin:0 auto 0.8rem;';
+        conteneur.appendChild(c);
+      });
+    }, function (e) {
+      conteneur.innerHTML = '<p style="color:var(--amber); font-size:0.85rem;">Tsy aseho : ' +
+        html((e && e.message) || 'réseau') + '</p>';
+    });
+  }
+
   // « onglet » : déjà ouvert pendant l'appui, quand le PDF vient après une attente.
-  window.__pdfTahiry = { ampio: ampio, imprimer: function (b, onglet) { imprimerAuFormat(b, onglet || null); }, sokafy: sokafy };
+  window.__pdfTahiry = { ampio: ampio, imprimer: function (b, onglet) { imprimerAuFormat(b, onglet || null); }, sokafy: sokafy,
+                         dessinerPages: dessinerPages };
 
   // La page se remplit à l'ouverture, et chaque fois qu'on y revient.
   const nav = document.querySelector('.nav-item[data-section="pdf"]');

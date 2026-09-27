@@ -598,7 +598,10 @@
         if (!pour) return;
         champ.value = pour;
       }
-      tahiry(pour, f).catch(function (err) { alert('Modèle non enregistré : ' + ((err && err.message) || 'erreur')); });
+      // Le modèle posé, on montre tout de suite la facture qu'il donne.
+      tahiry(pour, f).then(function () {
+        if (window.__apercuFacture) window.__apercuFacture();
+      }, function (err) { alert('Modèle non enregistré : ' + ((err && err.message) || 'erreur')); });
     });
     const bAlaina = boite.querySelector('[data-modely-alaina]');
     if (bAlaina) bAlaina.addEventListener('click', function () {
