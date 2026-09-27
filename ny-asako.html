@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="def62e65">
+<meta name="ny-asako-version" content="53e8f82b">
 <title>Ny asako — Tanjona</title>
 <!-- Application installable : le manifeste décrit le nom, l'icône et la façon
      de s'ouvrir ; le reste est affaire de service worker, enregistré plus bas. -->
@@ -1789,9 +1789,12 @@
           <div class="section-head" style="margin-bottom:0.6rem;">
             <div><h3 id="invoiceApercuTitre" style="word-break:break-word;">👁 Aperçu</h3></div>
             <div class="actions-row">
+              <button class="btn btn-primary btn-sm" id="invoiceApercuPdf" style="width:auto;">📄 Mettre dans PDF et imprimer</button>
               <button class="btn btn-sm" id="invoiceApercuFermer" style="width:auto;">✖ Fermer</button>
             </div>
           </div>
+          <!-- Corriger la facture avant qu'elle parte (factures.js). -->
+          <div id="invoiceApercuEdit"></div>
           <div id="invoiceApercuPages" style="max-height:80vh; overflow-y:auto; background:var(--bg); border-radius:8px; padding:0.8rem;"></div>
         </div>
       </section>
@@ -2952,7 +2955,7 @@
 <script src="gestion-stockage-js/stock.js?v=ae755b14"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=7204c861"></script>
-<script src="gestion-stockage-js/factures.js?v=308d5e5b"></script>
+<script src="gestion-stockage-js/factures.js?v=284b0151"></script>
 <script src="gestion-stockage-js/factures-modely.js?v=b7097215"></script>
 <script src="gestion-stockage-js/inviter.js?v=437d899c"></script>
 <script src="gestion-stockage-js/contact.js?v=b7517b12"></script>

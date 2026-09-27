@@ -110,27 +110,153 @@
   // ---- L'aperçu : la facture telle qu'elle sortira, dans la page ----
   // Avec le modèle du client s'il en a un, sinon la facture standard. Sans
   // article choisi, deux lignes d'exemple montrent quand même la mise en page.
+  // Le brouillon : ce que montre l'aperçu, et ce qui partira. On y corrige
+  // une erreur (article, quantité, prix — et pour la facture standard le
+  // client, la date, le numéro) sans toucher au stock ; l'aperçu suit.
+  let brouillon = null;
+
   function apercuFacture(){
     const boite = document.getElementById('invoiceApercu');
-    const pages = document.getElementById('invoiceApercuPages');
-    if(!boite || !pages || !window.__pdfTahiry || !window.jspdf) return;
+    if(!boite || !window.__pdfTahiry || !window.jspdf) return;
     const customer = document.getElementById('invoiceCustomer').value.trim() || 'Client';
-    const modele = window.__factureModely && window.__factureModely.hita(customer);
     let selection = getInvoiceSelection();
     const exemple = !selection.length;
     if(exemple) selection = [{ name: 'Article exemple 1', qty: 2, price: 15000 }, { name: 'Article exemple 2', qty: 1, price: 40000 }];
-    document.getElementById('invoiceApercuTitre').textContent = '👁 Aperçu — ' + customer +
-      (modele ? ' (facture du client : ' + modele.anarana + ')' : ' (facture standard)') + (exemple ? ' · exemple' : '');
+    brouillon = {
+      client: customer,
+      date: new Date().toLocaleDateString('fr-FR'),
+      numero: '#' + String(Date.now()).slice(-6),
+      lignes: selection.map(function(s){ return { name: s.name, qty: s.qty, price: s.price }; })
+    };
     boite.style.display = '';
-    pages.innerHTML = '<p style="color:var(--muted); font-size:0.85rem;">Mamaky…</p>';
-    const fait = modele
-      ? window.__factureModely.pdf(modele, articlesFacture(selection))
-      : Promise.resolve(factureStandard(customer, selection, '#' + String(Date.now()).slice(-6)).output('blob'));
-    fait.then(function(blob){ return window.__pdfTahiry.dessinerPages(blob, pages); }, function(err){
-      pages.innerHTML = '<p style="color:var(--amber); font-size:0.85rem;">' + escapeHtml((err && err.message) || 'erreur') + '</p>';
-    });
+    dessinerEdition();
+    rafraichirApercu();
     boite.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
+
+  function modeleDuBrouillon(){
+    return brouillon && window.__factureModely ? window.__factureModely.hita(brouillon.client) : null;
+  }
+
+  // Le PDF du brouillon : dans la facture du client s'il en a une (articles
+  // dans son tableau, en-tête inchangé), sinon la facture standard.
+  function pdfDuBrouillon(){
+    const lignes = brouillon.lignes.filter(function(l){ return String(l.name).trim() && Number(l.qty) > 0; })
+      .map(function(l){ return { name: String(l.name).trim(), qty: Number(l.qty) || 0, price: Number(l.price) || 0 }; });
+    if(!lignes.length) return Promise.reject(new Error('Tsy misy andalana ao amin\'ny facture.'));
+    const modele = modeleDuBrouillon();
+    return modele
+      ? window.__factureModely.pdf(modele, articlesFacture(lignes))
+      : Promise.resolve(factureStandard(brouillon.client, lignes, brouillon.numero, brouillon.date).output('blob'));
+  }
+
+  let minuterie = null;
+  function rafraichirApercu(){
+    clearTimeout(minuterie);
+    minuterie = setTimeout(function(){
+      const pages = document.getElementById('invoiceApercuPages');
+      const modele = modeleDuBrouillon();
+      document.getElementById('invoiceApercuTitre').textContent = '👁 Aperçu — ' + brouillon.client +
+        (modele ? ' (facture du client : ' + modele.anarana + ')' : ' (facture standard)');
+      pdfDuBrouillon().then(function(blob){ return window.__pdfTahiry.dessinerPages(blob, pages); }, function(err){
+        pages.innerHTML = '<p style="color:var(--amber); font-size:0.85rem;">' + escapeHtml((err && err.message) || 'erreur') + '</p>';
+      });
+    }, 350);
+  }
+
+  // Le tableau à corriger, au-dessus de l'aperçu.
+  function dessinerEdition(){
+    const zone = document.getElementById('invoiceApercuEdit');
+    if(!zone) return;
+    const modele = modeleDuBrouillon();
+    const champ = 'style="width:100%; min-width:0; background:var(--bg); color:var(--text); border:1px solid var(--line); ' +
+      'border-radius:6px; padding:0.35rem 0.45rem; font:inherit;"';
+    let total = 0;
+    zone.innerHTML =
+      '<details open style="margin-bottom:0.8rem;">' +
+        '<summary style="cursor:pointer; font-weight:bold; margin-bottom:0.5rem;">✏️ Corriger la facture</summary>' +
+        (modele
+          ? '<p style="font-size:0.76rem; color:var(--muted); margin:0 0 0.5rem;">Facture du client : seules les lignes changent, son en-tête reste tel quel.</p>'
+          : '<div class="form-grid" style="margin-bottom:0.6rem;">' +
+              '<div class="field" style="margin:0;"><label>Client</label><input data-b="client" ' + champ + ' value="' + escapeHtml(brouillon.client) + '"></div>' +
+              '<div class="field" style="margin:0;"><label>Date</label><input data-b="date" ' + champ + ' value="' + escapeHtml(brouillon.date) + '"></div>' +
+              '<div class="field" style="margin:0;"><label>N°</label><input data-b="numero" ' + champ + ' value="' + escapeHtml(brouillon.numero) + '"></div>' +
+            '</div>') +
+        '<div style="overflow-x:auto;"><table style="width:100%; font-size:0.82rem;">' +
+          '<thead><tr><th>Désignation</th><th style="width:4.5rem;">Qté</th><th style="width:7rem;">P.U.</th><th style="width:7rem; text-align:right;">Montant</th><th style="width:2rem;"></th></tr></thead>' +
+          '<tbody>' + brouillon.lignes.map(function(l, i){
+            const m = (Number(l.qty) || 0) * (Number(l.price) || 0);
+            total += m;
+            return '<tr>' +
+              '<td><input data-l="' + i + '" data-k="name" ' + champ + ' value="' + escapeHtml(l.name) + '"></td>' +
+              '<td><input data-l="' + i + '" data-k="qty" type="number" min="0" ' + champ + ' value="' + escapeHtml(l.qty) + '"></td>' +
+              '<td><input data-l="' + i + '" data-k="price" type="number" min="0" ' + champ + ' value="' + escapeHtml(l.price) + '"></td>' +
+              '<td data-montant="' + i + '" style="text-align:right; white-space:nowrap;">' + formatAr(m) + '</td>' +
+              '<td><button type="button" class="btn btn-sm" data-suppr="' + i + '" title="Retirer la ligne" style="width:auto; padding:0.15rem 0.45rem;">✕</button></td>' +
+            '</tr>';
+          }).join('') + '</tbody>' +
+        '</table></div>' +
+        '<div style="display:flex; justify-content:space-between; align-items:center; gap:0.6rem; flex-wrap:wrap; margin-top:0.5rem;">' +
+          '<button type="button" class="btn btn-sm" data-ajout style="width:auto;">➕ Ajouter une ligne</button>' +
+          '<strong data-total-b>Total : ' + formatAr(total) + '</strong>' +
+        '</div>' +
+      '</details>';
+
+    zone.querySelectorAll('[data-b]').forEach(function(inp){
+      inp.addEventListener('input', function(){
+        brouillon[inp.getAttribute('data-b')] = inp.value;
+        rafraichirApercu();
+      });
+    });
+    zone.querySelectorAll('[data-l]').forEach(function(inp){
+      inp.addEventListener('input', function(){
+        const i = Number(inp.getAttribute('data-l'));
+        const k = inp.getAttribute('data-k');
+        brouillon.lignes[i][k] = k === 'name' ? inp.value : Number(inp.value) || 0;
+        // Montant et total suivent sans redessiner le tableau (le curseur reste).
+        const l = brouillon.lignes[i];
+        zone.querySelector('[data-montant="' + i + '"]').textContent = formatAr((Number(l.qty) || 0) * (Number(l.price) || 0));
+        const t = brouillon.lignes.reduce(function(s, x){ return s + (Number(x.qty) || 0) * (Number(x.price) || 0); }, 0);
+        zone.querySelector('[data-total-b]').textContent = 'Total : ' + formatAr(t);
+        rafraichirApercu();
+      });
+    });
+    zone.querySelectorAll('[data-suppr]').forEach(function(b){
+      b.addEventListener('click', function(){
+        brouillon.lignes.splice(Number(b.getAttribute('data-suppr')), 1);
+        dessinerEdition();
+        rafraichirApercu();
+      });
+    });
+    zone.querySelector('[data-ajout]').addEventListener('click', function(){
+      brouillon.lignes.push({ name: '', qty: 1, price: 0 });
+      dessinerEdition();
+      const champs = zone.querySelectorAll('[data-k="name"]');
+      if(champs.length) champs[champs.length - 1].focus();
+    });
+  }
+
+  // La facture corrigée : rangée dans « 📄 PDF », puis imprimée.
+  const apercuPdfBtn = document.getElementById('invoiceApercuPdf');
+  if(apercuPdfBtn) apercuPdfBtn.addEventListener('click', function(){
+    if(!brouillon) return;
+    let onglet = null;
+    try { if(window.matchMedia('(pointer: coarse)').matches) onglet = window.open('', '_blank'); } catch(e){}
+    apercuPdfBtn.disabled = true;
+    pdfDuBrouillon().then(function(blob){
+      apercuPdfBtn.disabled = false;
+      const modele = modeleDuBrouillon();
+      const nomPdf = (modele ? modele.anarana.replace(/\.xlsx?$/i, '') : 'facture-' + brouillon.client.replace(/\s+/g, '-').toLowerCase()) +
+        '-' + String(brouillon.numero).replace(/[^0-9A-Za-z-]/g, '') + '.pdf';
+      window.__pdfTahiry.imprimer(blob, onglet);
+      window.__pdfTahiry.ampio(nomPdf, blob, 'facture').then(function(){ window.__pdfTahiry.sokafy(); });
+      pushNotification('facture', 'Facture ho an\'i ' + brouillon.client + ' voatahiry ao amin\'ny PDF, ary nalefa ho amin\'ny impression.');
+    }, function(err){
+      apercuPdfBtn.disabled = false;
+      if(onglet) onglet.close();
+      alert((err && err.message) || 'erreur');
+    });
+  });
   window.__apercuFacture = apercuFacture;
 
   // Ce que la facture d'un client reçoit dans son tableau (factures-modely.js).
@@ -152,7 +278,7 @@
 
   // La facture standard (sans modèle de client), prête à ranger, imprimer
   // ou montrer en aperçu.
-  function factureStandard(customer, selection, invoiceNo){
+  function factureStandard(customer, selection, invoiceNo, date){
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const pageW = 210;
@@ -165,7 +291,7 @@
     const emissPhone = emetteur.phone;
     const emissNif = emetteur.nif;
     const emissStat = emetteur.stat;
-    const today = new Date().toLocaleDateString('fr-FR');
+    const today = date || new Date().toLocaleDateString('fr-FR');
 
     // couleurs
     const blueDark = [30, 64, 120];
