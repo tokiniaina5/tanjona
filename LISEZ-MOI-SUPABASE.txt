@@ -1122,3 +1122,21 @@ Déploiement :
      (ajoute la colonne « tambajotra » au carnet).
   2. supabase functions deploy tambajotra --no-verify-jwt
   3. supabase functions deploy fandefasana-hariva --no-verify-jwt
+
+------------------------------------------------------------
+L'ENVOI DU SOIR : HEURE ET DATES AU CHOIX (27/09/2026)
+------------------------------------------------------------
+Le bouton « Alefa izao » a laissé la place à trois champs : l'heure
+(HH:MM, heure de Madagascar) et deux dates facultatives « Manomboka ny »
+et « Hatramin'ny ». « 💾 Tehirizo » les enregistre dans la table
+« fandefasana_fikirana ».
+
+La tâche « fandefasana-hariva » passe désormais CHAQUE MINUTE ; la
+fonction ne part qu'à l'heure choisie (une heure de marge), entre les
+dates, et une seule fois par jour (colonne « farany_nalefa »).
+
+Déploiement (DANS CET ORDRE — l'ancienne fonction appelée chaque minute
+enverrait un mail chaque minute) :
+  1. supabase functions deploy fandefasana-hariva --no-verify-jwt
+  2. SQL Editor : "supabase/sql/supabase-fandefasana-fotoana.sql"
+Ne plus repasser supabase-fandefasana-hariva.sql (il remet 15 h UTC fixe).

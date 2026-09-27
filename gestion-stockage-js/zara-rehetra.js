@@ -223,18 +223,27 @@
         '</div>' +
 
         // 4) Le soir : tout ce qui a paru dans la journée part tout seul par
-        //    email, à 18 h (fonction « fandefasana-hariva », tâche du soir).
-        //    Le bouton fait la même chose tout de suite.
+        //    email et sur les réseaux prêts, à l'heure choisie ici, entre les
+        //    deux dates s'il y en a (fonction « fandefasana-hariva », tâche
+        //    qui passe chaque minute et ne part qu'une fois par jour).
         '<div class="panel">' +
-          '<h3>⏰ Fandefasana ho azy — isak\'andro amin\'ny 18:00</h3>' +
+          '<h3>⏰ Fandefasana ho azy — isak\'andro amin\'ny <span data-hariva-ora-titre>18:00</span></h3>' +
           '<p style="font-size:0.78rem; color:var(--muted); line-height:1.6; margin:0 0 0.9rem;">' +
-            'Isaky ny 6 ora hariva, ny publication rehetra nivoaka androany ao amin\'ny Botika dia ' +
-            '<strong style="color:var(--text);">alefa ho azy amin\'ny mailaka</strong> any amin\'ny client rehetra, ' +
-            'tsy misy tsindriana. Ny WhatsApp sy ny tambajotra kosa tsy mety mandeha ho azy : ' +
-            'tsy avelan\'izy ireo hisy site handefa ho anao.' +
+            'Amin\'ny ora voafidy eto, ny publication rehetra nivoaka androany ao amin\'ny Botika dia ' +
+            '<strong style="color:var(--text);">alefa ho azy amin\'ny mailaka</strong> any amin\'ny client rehetra ' +
+            '(sy amin\'ireo tambajotra ⚡), tsy misy tsindriana. Raha misy daty, ao anatin\'io fotoana io ihany ' +
+            'no mandeha ; raha foana, tsy misy fetra.' +
           '</p>' +
-          '<button type="button" class="btn btn-sm" data-hariva style="width:auto;">📧 Alefa izao ny publication androany</button>' +
-          '<p data-hariva-statut style="font-size:0.78rem; color:var(--muted); margin:0.6rem 0 0; min-height:1.1em;"></p>' +
+          '<div style="display:flex; gap:0.8rem; flex-wrap:wrap; align-items:flex-end;">' +
+            '<div class="field" style="margin:0;"><label for="zrOra">Ora sy minitra</label>' +
+              '<input type="time" id="zrOra" data-hariva-ora step="60" value="18:00" style="width:auto;"></div>' +
+            '<div class="field" style="margin:0;"><label for="zrManomboka">Manomboka ny</label>' +
+              '<input type="date" id="zrManomboka" data-hariva-manomboka style="width:auto;"></div>' +
+            '<div class="field" style="margin:0;"><label for="zrHatramin">Hatramin\'ny</label>' +
+              '<input type="date" id="zrHatramin" data-hariva-hatramin style="width:auto;"></div>' +
+            '<button type="button" class="btn btn-sm" data-hariva-tehirizo style="width:auto;">💾 Tehirizo</button>' +
+          '</div>' +
+          '<p data-hariva-statut style="font-size:0.78rem; color:var(--muted); margin:0.6rem 0 0; min-height:1.1em;">Mamaky…</p>' +
           // Le carnet : à qui sont partis les derniers envois.
           '<h3 style="font-size:0.9rem; margin-top:1rem;">📋 Lasa tany amin\'iza ?</h3>' +
           '<div data-hariva-tantara style="font-size:0.78rem; color:var(--muted); line-height:1.6;">Mamaky…</div>' +
@@ -270,8 +279,12 @@
     var fermer = function () { page.remove(); };
     page.querySelector('[data-hidio]').addEventListener('click', fermer);
 
-    // Ce que la tâche du soir fera à 18 h, tout de suite.
-    var bHariva = page.querySelector('[data-hariva]');
+    // L'heure et les dates de la tâche du soir.
+    var bTehirizo = page.querySelector('[data-hariva-tehirizo]');
+    var champOra = page.querySelector('[data-hariva-ora]');
+    var champManomboka = page.querySelector('[data-hariva-manomboka]');
+    var champHatramin = page.querySelector('[data-hariva-hatramin]');
+    var oraTitre = page.querySelector('[data-hariva-ora-titre]');
     var statutHariva = page.querySelector('[data-hariva-statut]');
     var boiteTantara = page.querySelector('[data-hariva-tantara]');
 
@@ -333,21 +346,65 @@
       }, function () { boiteTantara.textContent = 'Tsy tratra ny serveur.'; });
     }
     chargerTantara();
-    bHariva.addEventListener('click', function () {
+    // Appelle la fonction du soir ; rend ses données, ou le message d'erreur
+    // qu'elle a renvoyé (dans le corps de la réponse, pas dans res.error).
+    function appelerHariva(corps) {
+      return window.__sb.functions.invoke('fandefasana-hariva', { body: corps }).then(function (res) {
+        var d = (res && res.data) || null;
+        if (d && !d.error) return d;
+        var ctx = res && res.error && res.error.context;
+        if (ctx && typeof ctx.json === 'function') {
+          return ctx.json().then(function (b) { throw new Error((b && b.error) || 'antony tsy fantatra'); },
+            function () { throw new Error((res.error && res.error.message) || 'antony tsy fantatra'); });
+        }
+        throw new Error((d && d.error) || (res && res.error && res.error.message) || 'antony tsy fantatra');
+      });
+    }
+    function dateFr(iso) {
+      return iso ? iso.split('-').reverse().join('/') : '';
+    }
+    // Ce que la tâche fera, dit en une phrase.
+    function direFikirana(f) {
+      oraTitre.textContent = f.ora;
+      var fetra = f.manomboka && f.hatramin ? ', ' + dateFr(f.manomboka) + ' hatramin\'ny ' + dateFr(f.hatramin)
+        : f.manomboka ? ', manomboka ny ' + dateFr(f.manomboka)
+        : f.hatramin ? ', hatramin\'ny ' + dateFr(f.hatramin)
+        : ', tsy misy fetra';
+      var androany = new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10);
+      var lany = f.hatramin && f.hatramin < androany;
+      statutHariva.innerHTML = (lany ? '<span style="color:var(--amber);">⚠ Lany ny daty : tsy mandeha intsony.</span> ' : '✓ ') +
+        'Isak\'andro amin\'ny <strong style="color:var(--text);">' + echapper(f.ora) + '</strong>' + echapper(fetra) + '.' +
+        (f.farany_nalefa ? ' Farany : ' + echapper(dateFr(f.farany_nalefa)) + '.' : '');
+    }
+    function chargerFikirana() {
       if (!window.__sb || !window.__sb.functions) { statutHariva.textContent = 'Tsy tafiditra ny serveur.'; return; }
-      if (!confirm('Halefa amin\'ny client rehetra manana email ny publication rehetra androany. Tsy azo averina. Hitohy?')) return;
-      bHariva.disabled = true;
-      statutHariva.textContent = 'Mandefa…';
-      window.__sb.functions.invoke('fandefasana-hariva', { body: {} }).then(function (res) {
-        var d = (res && res.data) || {};
-        bHariva.disabled = false;
-        statutHariva.textContent = d.sent
-          ? '✓ Publication ' + d.billets + ' lasa any amin\'ny client ' + d.sent + (d.error ? ' (' + d.error + ')' : '') + '.'
-          : 'Tsy lasa : ' + (d.error || (res && res.error && res.error.message) || 'antony tsy fantatra');
-        chargerTantara();
-      }, function (err) {
-        bHariva.disabled = false;
-        statutHariva.textContent = 'Tsy tratra ny fonction : ' + ((err && err.message) || 'réseau');
+      appelerHariva({ action: 'fikirana' }).then(function (d) {
+        var f = d.fikirana || {};
+        champOra.value = f.ora || '18:00';
+        champManomboka.value = f.manomboka || '';
+        champHatramin.value = f.hatramin || '';
+        direFikirana(f);
+      }, function (e) { statutHariva.textContent = 'Tsy voavaky ny ora : ' + e.message; });
+    }
+    chargerFikirana();
+    bTehirizo.addEventListener('click', function () {
+      if (!window.__sb || !window.__sb.functions) { statutHariva.textContent = 'Tsy tafiditra ny serveur.'; return; }
+      var ora = String(champOra.value || '').slice(0, 5);
+      if (!/^\d{2}:\d{2}$/.test(ora)) { statutHariva.textContent = 'Fidio ny ora sy ny minitra.'; return; }
+      var manomboka = champManomboka.value || null;
+      var hatramin = champHatramin.value || null;
+      if (manomboka && hatramin && hatramin < manomboka) {
+        statutHariva.textContent = 'Tsy maintsy aorian\'ny « Manomboka » ny « Hatramin\'ny ».';
+        return;
+      }
+      bTehirizo.disabled = true;
+      statutHariva.textContent = 'Mitahiry…';
+      appelerHariva({ action: 'tehirizo', ora: ora, manomboka: manomboka, hatramin: hatramin }).then(function (d) {
+        bTehirizo.disabled = false;
+        direFikirana(d.fikirana || { ora: ora, manomboka: manomboka, hatramin: hatramin });
+      }, function (e) {
+        bTehirizo.disabled = false;
+        statutHariva.textContent = 'Tsy voatahiry : ' + e.message;
       });
     });
 

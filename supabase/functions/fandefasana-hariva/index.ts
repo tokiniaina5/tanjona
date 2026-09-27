@@ -1,4 +1,7 @@
-// Les publications du jour, chez tous les clients, chaque soir à 18 h.
+// Les publications du jour, chez tous les clients, chaque jour à l'heure
+// choisie par le propriétaire (18 h par défaut), entre deux dates s'il en
+// a posé (table « fandefasana_fikirana », supabase-fandefasana-fotoana.sql).
+// « action: "fikirana" » la lit, « action: "tehirizo" » l'enregistre.
 //
 // Le partage ouvre des fenêtres (WhatsApp, Facebook…) et c'est le
 // propriétaire qui appuie sur « Envoyer » : aucune page ne peut le faire à sa
@@ -120,8 +123,10 @@ Deno.serve(async (req: Request) => {
 
   let essai = false;
   let action = "";
+  let texteCorps = "";
   try {
-    const corpsRecu = await req.json();
+    texteCorps = await req.text();
+    const corpsRecu = JSON.parse(texteCorps || "{}");
     essai = corpsRecu?.essai === true;
     action = String(corpsRecu?.action ?? "");
   } catch { /* corps vide */ }
@@ -135,6 +140,66 @@ Deno.serve(async (req: Request) => {
       return json({ error: "Tsy hita ny tantara : alefaso ao amin'ny SQL Editor ny supabase-fandefasana-tantara.sql. (" + error.message + ")" }, 500);
     }
     return json({ tantara: data ?? [] });
+  }
+
+  // ---- L'heure et les dates, choisies par le propriétaire ----
+  const TSY_MISY_FIKIRANA = "Tsy hita ny fikirana : alefaso ao amin'ny SQL Editor ny supabase-fandefasana-fotoana.sql.";
+  const lireFikirana = () =>
+    admin.from("fandefasana_fikirana").select("ora,manomboka,hatramin,farany_nalefa").eq("id", 1).maybeSingle();
+
+  if (action === "fikirana" || action === "tehirizo") {
+    if (loharano === "hariva") return json({ error: "refusé" }, 401);
+    if (action === "tehirizo") {
+      let recu: Record<string, unknown> = {};
+      try { recu = JSON.parse(texteCorps || "{}"); } catch { /* vide */ }
+      const ora = String(recu.ora ?? "");
+      const daty = (v: unknown) => {
+        const s = String(v ?? "");
+        return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
+      };
+      const m = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(ora);
+      if (!m) return json({ error: "ora tsy mety (HH:MM)" }, 400);
+      const manomboka = daty(recu.manomboka);
+      const hatramin = daty(recu.hatramin);
+      if (manomboka && hatramin && hatramin < manomboka) {
+        return json({ error: "« Hatramin'ny » tsy maintsy aorian'ny « Manomboka »" }, 400);
+      }
+      const { error } = await admin.from("fandefasana_fikirana")
+        .upsert({ id: 1, ora, manomboka, hatramin, updated_at: new Date().toISOString() });
+      if (error) return json({ error: TSY_MISY_FIKIRANA + " (" + error.message + ")" }, 500);
+    }
+    const { data, error } = await lireFikirana();
+    if (error) return json({ error: TSY_MISY_FIKIRANA + " (" + error.message + ")" }, 500);
+    return json({ fikirana: data ?? { ora: "18:00", manomboka: null, hatramin: null, farany_nalefa: null } });
+  }
+
+  // ---- La tâche passe chaque minute : elle ne part qu'une fois par jour,
+  //      à l'heure choisie (heure de Madagascar, UTC+3, sans heure d'été),
+  //      et seulement entre les deux dates s'il y en a. ----
+  if (loharano === "hariva") {
+    const { data: f, error } = await lireFikirana();
+    if (error) return json({ error: TSY_MISY_FIKIRANA + " (" + error.message + ")" }, 500);
+    const mada = new Date(Date.now() + 3 * 60 * 60 * 1000);
+    const androany = mada.toISOString().slice(0, 10);
+    const minitraIzao = mada.getUTCHours() * 60 + mada.getUTCMinutes();
+    const [h, mn] = String(f?.ora ?? "18:00").split(":").map(Number);
+    const minitraVoafidy = h * 60 + mn;
+    if (f?.manomboka && androany < f.manomboka) return json({ miandry: "mbola tsy tonga ny daty" });
+    if (f?.hatramin && androany > f.hatramin) return json({ miandry: "lany ny daty" });
+    if (f?.farany_nalefa === androany) return json({ miandry: "efa lasa androany" });
+    // Une heure de marge : une minute manquée par la tâche ne fait pas
+    // sauter la journée, mais une heure choisie après coup ne part pas le
+    // soir même à minuit passé.
+    if (minitraIzao < minitraVoafidy || minitraIzao >= minitraVoafidy + 60) {
+      return json({ miandry: "mbola tsy ora" });
+    }
+    // On prend la journée avant d'envoyer : deux passages rapprochés ne
+    // peuvent pas partir tous les deux.
+    const { data: pris } = await admin.from("fandefasana_fikirana")
+      .update({ farany_nalefa: androany }).eq("id", 1)
+      .or(`farany_nalefa.is.null,farany_nalefa.lt.${androany}`)
+      .select("id");
+    if (!pris?.length) return json({ miandry: "efa lasa androany" });
   }
 
   // 2) Ce qui a paru depuis vingt-quatre heures, et qui est encore en ligne.
