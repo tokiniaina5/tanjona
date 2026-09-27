@@ -168,10 +168,12 @@
         // 1) Les clients, un par un : c'est le seul envoi qui s'adresse à
         //    quelqu'un en particulier.
         '<div class="panel">' +
-          '<h3>👥 Client tsirairay (WhatsApp)</h3>' +
+          '<h3>👥 Client tsirairay (WhatsApp) <span data-wa-auto style="display:none; color:var(--cyan); font-size:0.8rem;">⚡ ho azy</span></h3>' +
           '<p style="font-size:0.78rem; color:var(--muted); line-height:1.6; margin:0 0 0.9rem;">' +
             'Ireto ny client rehetra manana nomerao — <strong style="color:var(--text);">tsy misy fetra ny isa</strong>. ' +
-            'Hisokatra tsirairay ny resaka, feno ny hafatra ; ianao no manindry « Envoyer » ao.' +
+            '<span data-wa-tanana>Hisokatra tsirairay ny resaka, feno ny hafatra ; ianao no manindry « Envoyer » ao.</span>' +
+            '<span data-wa-ho-azy style="display:none;">Ny serveur no mandefa ny hafatra any amin\'ny client voamarika tsirairay, ' +
+              'tsy misy tsindriana (WhatsApp Business).</span>' +
           '</p>' +
           '<div class="field">' +
             '<label for="zrSivana">Tadiavo</label>' +
@@ -185,6 +187,7 @@
           '</div>' +
           '<div data-liste style="max-height:40vh; overflow-y:auto;"></div>' +
           '<p class="empty-hint" data-vide style="display:none;">Mbola tsy misy client manana nomerao.</p>' +
+          '<p data-wa-statut style="font-size:0.78rem; color:var(--muted); margin:0.6rem 0 0; line-height:1.6;"></p>' +
         '</div>' +
 
         // 2) Les réseaux : une publication, et non un envoi par client.
@@ -593,7 +596,34 @@
         var c = (res && res.data && res.data.canaux) || {};
         reseaux.forEach(function (r) { r.auto = !!c[r.cle]; });
         dessinerReseaux();
+        waAuto = !!c.whatsapp_client;
+        page.querySelector('[data-wa-auto]').style.display = waAuto ? '' : 'none';
+        page.querySelector('[data-wa-ho-azy]').style.display = waAuto ? '' : 'none';
+        page.querySelector('[data-wa-tanana]').style.display = waAuto ? 'none' : '';
       }, function () { /* fonction absente : tout reste à la main */ });
+    }
+
+    // WhatsApp Business configuré côté serveur : les clients cochés reçoivent
+    // le message sans que rien ne s'ouvre ici (_shared/whatsapp.ts).
+    var waAuto = false;
+    var statutWa = page.querySelector('[data-wa-statut]');
+    function envoyerWhatsApp(liste) {
+      statutWa.textContent = '⚡ Mandefa WhatsApp any amin\'ny client ' + liste.length + '…';
+      window.__sb.functions.invoke('tambajotra', {
+        body: { action: 'whatsapp', texte: texte, rohy: rohy, numeros: liste.map(function (c) { return c.numero; }) }
+      }).then(function (res) {
+        var w = res && res.data && res.data.whatsapp;
+        if (!w) {
+          statutWa.textContent = 'Tsy lasa : ' + ((res && res.data && res.data.error) || (res && res.error && res.error.message) || 'antony tsy fantatra');
+          return;
+        }
+        statutWa.innerHTML = '✅ Lasa any amin\'ny client ' + w.lasa.length + ' / ' + liste.length +
+          (w.tsy.length ? '<br><span style="color:var(--amber);">⚠ Tsy lasa ' + w.tsy.length + ' : ' +
+            w.tsy.slice(0, 5).map(function (t) { return '+' + echap(t.numero) + ' (' + echap(t.detail) + ')'; }).join(', ') +
+            '</span>' : '');
+      }, function (err) {
+        statutWa.textContent = 'Tsy tratra ny serveur : ' + ((err && err.message) || 'réseau');
+      });
     }
 
     // Les réseaux « ⚡ ho azy » partent du serveur, d'un seul appel.
@@ -830,12 +860,16 @@
 
     page.querySelector('[data-alefa]').addEventListener('click', function () {
       var autos = cochesR().filter(function (r) { return r.auto; });
-      attente = cochesC().map(function (c) { return { client: c }; })
+      var waServeur = waAuto ? cochesC() : [];
+      if (waServeur.length && !confirm('Halefa amin\'ny WhatsApp any amin\'ny client ' + waServeur.length +
+          ' ny hafatra. Tsy azo averina. Hitohy?')) return;
+      if (waServeur.length) envoyerWhatsApp(waServeur);
+      attente = (waAuto ? [] : cochesC()).map(function (c) { return { client: c }; })
         .concat(cochesR().filter(function (r) { return !r.auto; }).map(function (r) { return { reseau: r }; }))
         .concat(mailaka.checked ? [{ mail: true }] : []);
       if (autos.length) publierAuto(autos);
       if (!attente.length) {
-        if (!autos.length) alert('Tsy misy voamarika.');
+        if (!autos.length && !waServeur.length) alert('Tsy misy voamarika.');
         return;
       }
       attente.forEach(function (e) { e.coche = true; e.fait = false; });

@@ -1140,3 +1140,33 @@ enverrait un mail chaque minute) :
   1. supabase functions deploy fandefasana-hariva --no-verify-jwt
   2. SQL Editor : "supabase/sql/supabase-fandefasana-fotoana.sql"
 Ne plus repasser supabase-fandefasana-hariva.sql (il remet 15 h UTC fixe).
+
+------------------------------------------------------------
+WHATSAPP AUX CLIENTS, SANS APPUYER (27/09/2026)
+------------------------------------------------------------
+Quand le numéro WhatsApp Business est configuré, « 📨 Alefa » écrit à
+chaque client coché depuis le serveur (plus de fenêtres à ouvrir), et
+l'envoi du soir écrit aussi à tous les clients. Sans ces secrets, tout
+reste comme avant. Groupes et statuts : aucune API, restent à la main.
+
+Mise en place (Meta, une fois) :
+  1. business.facebook.com : un Business Manager (vérification
+     d'entreprise conseillée, sinon 250 destinataires / 24 h).
+  2. developers.facebook.com > Créer une app > type « Business » >
+     ajouter le produit « WhatsApp ». Y ajouter un NUMÉRO qui n'est
+     PAS déjà sur l'application WhatsApp ordinaire (ou le retirer
+     d'abord), et un moyen de paiement (chaque message se paie).
+  3. WhatsApp Manager > Modèles de message > Créer : catégorie
+     « Marketing », langue Français, corps par exemple :
+         Vaovao avy amin'ny Botika : {{1}}
+     Attendre la validation par Meta.
+  4. Business Manager > Utilisateurs système > créer un admin, lui
+     donner l'app et le compte WhatsApp, générer un jeton PERMANENT
+     avec whatsapp_business_messaging + whatsapp_business_management.
+  5. Supabase > Edge Functions > Secrets :
+       WA_TOKEN      le jeton permanent
+       WA_PHONE_ID   « Phone number ID » (WhatsApp > API Setup)
+       WA_TEMPLATE   le nom du modèle validé
+       WA_LANG       fr   (ou la langue du modèle)
+  Aucun redéploiement n'est nécessaire : la page affiche « ⚡ ho azy »
+  à côté de « Client tsirairay (WhatsApp) » dès que c'est prêt.

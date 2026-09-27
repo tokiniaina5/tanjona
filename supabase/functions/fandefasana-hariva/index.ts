@@ -36,10 +36,13 @@
 //
 // Les réseaux dont les clefs sont posées (Telegram, Facebook Page, Threads,
 // X — voir _shared/tambajotra.ts) reçoivent aussi le résumé du jour.
+// WhatsApp aussi, client par client, si son numéro Business est configuré
+// (_shared/whatsapp.ts).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 import { publier } from "../_shared/tambajotra.ts";
+import { alefaWhatsApp, numerosClients, whatsappVonona } from "../_shared/whatsapp.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -259,7 +262,21 @@ Deno.serve(async (req: Request) => {
 
   // Les réseaux d'abord : ils ne dépendent pas des adresses email.
   const resume = sujet + " :\n\n" + billets.map(leBillet).join("\n");
-  const tambajotra = await publier(resume, appUrl ? appUrl + "/botika/" : "");
+  const tambajotra: Record<string, { ok: boolean; detail: string }> =
+    { ...(await publier(resume, appUrl ? appUrl + "/botika/" : "")) };
+
+  // WhatsApp, client par client, quand le numéro Business est configuré
+  // (_shared/whatsapp.ts). Il ne remplace pas l'email : les deux partent.
+  if (whatsappVonona()) {
+    const numeros = await numerosClients(admin);
+    if (numeros.length) {
+      const wa = await alefaWhatsApp(numeros, sujet + " : " + billets.map(leBillet).join(" "), appUrl ? appUrl + "/botika/" : "");
+      tambajotra.whatsapp = {
+        ok: wa.lasa.length > 0,
+        detail: "lasa " + wa.lasa.length + "/" + numeros.length + (wa.tsy.length ? " — " + wa.tsy[0].detail : ""),
+      };
+    }
+  }
 
   // Le carnet ne doit jamais empêcher l'envoi : une table ou une colonne
   // absente se tait (la colonne « tambajotra » vient d'un second passage du SQL).

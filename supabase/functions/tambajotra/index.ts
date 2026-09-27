@@ -3,6 +3,9 @@
 //
 //   { action: "canaux" }                          quels réseaux sont prêts
 //   { action: "alefa", texte, rohy, reseaux: [] } publier maintenant
+//   { action: "whatsapp", texte, rohy, numeros: [] }
+//                                                 écrire aux clients sur WhatsApp
+//                                                 (voir _shared/whatsapp.ts)
 //
 // Réservé au propriétaire connecté : c'est sa page et son compte qui parlent.
 // Déploiement (le jeton est vérifié ici même) :
@@ -10,6 +13,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { configures, publier } from "../_shared/tambajotra.ts";
+import { alefaWhatsApp, numerosClients, numeroInternational, whatsappVonona } from "../_shared/whatsapp.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -43,7 +47,19 @@ Deno.serve(async (req: Request) => {
   try { corps = await req.json(); } catch { /* vide */ }
   const action = String(corps.action ?? "");
 
-  if (action === "canaux") return json({ canaux: configures() });
+  if (action === "canaux") return json({ canaux: { ...configures(), whatsapp_client: whatsappVonona() } });
+
+  if (action === "whatsapp") {
+    const texte = String(corps.texte ?? "").trim();
+    const rohy = String(corps.rohy ?? "").trim();
+    if (!texte && !rohy) return json({ error: "tsy misy hafatra" }, 400);
+    // Seuls les numéros des clients inscrits : la page ne choisit que parmi eux.
+    const inscrits = new Set(await numerosClients(admin));
+    const demandes = Array.isArray(corps.numeros) ? corps.numeros.map(numeroInternational) : [];
+    const numeros = [...new Set(demandes)].filter((n) => n && inscrits.has(n));
+    if (!numeros.length) return json({ error: "tsy misy nomerao client voamarika" }, 400);
+    return json({ whatsapp: await alefaWhatsApp(numeros, texte, rohy) });
+  }
 
   if (action === "alefa") {
     const texte = String(corps.texte ?? "").trim();
