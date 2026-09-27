@@ -182,14 +182,170 @@
     a.remove();
     setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
   }
-  function agir(r, action) {
-    const besoinOnglet = action === 'ouvrir' || (action === 'imprimer' && tactile());
-    const onglet = (besoinOnglet && !r.blob && !cache.has(r.id)) ? window.open('', '_blank') : null;
+  // ---------- Le format du papier ----------
+  // « Original » garde le PDF tel quel. Les autres le remettent sur la
+  // feuille choisie : chaque page, rendue en image par PDF.js, est posée
+  // entière et centrée sur une page A4, A5… (couchée si la page l'était).
+  const FORMATS = {
+    original: { nom: 'Original', mm: null },
+    a4: { nom: 'A4', mm: [210, 297] },
+    a5: { nom: 'A5', mm: [148, 210] },
+    a3: { nom: 'A3', mm: [297, 420] },
+    letter: { nom: 'Letter', mm: [215.9, 279.4] },
+    legal: { nom: 'Legal', mm: [215.9, 355.6] }
+  };
+  const CLE_FORMAT = 'nyasako_pdf_format' + SUFFIXE;
+  let format = 'original';
+  try { if (FORMATS[localStorage.getItem(CLE_FORMAT)]) format = localStorage.getItem(CLE_FORMAT); } catch (e) {}
+  function choisirFormat(f) {
+    format = FORMATS[f] ? f : 'original';
+    try { localStorage.setItem(CLE_FORMAT, format); } catch (e) {}
+  }
+
+  // PDF.js ne se charge qu'au premier besoin.
+  const PDFJS = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+  let promessePdfJs = null;
+  function pdfJs() {
+    if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+    if (!promessePdfJs) {
+      promessePdfJs = new Promise(function (ok, non) {
+        const s = document.createElement('script');
+        s.src = PDFJS + 'pdf.min.js';
+        s.crossOrigin = 'anonymous';
+        s.onload = function () {
+          window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS + 'pdf.worker.min.js';
+          ok(window.pdfjsLib);
+        };
+        s.onerror = function () { promessePdfJs = null; non(new Error('PDF.js tsy tafiditra')); };
+        document.head.appendChild(s);
+      });
+    }
+    return promessePdfJs;
+  }
+  // Chaque page du PDF, dessinée sur un canvas à la largeur voulue (en px).
+  async function pagesEnCanvas(blob, largeur) {
+    const lib = await pdfJs();
+    const doc = await lib.getDocument({ data: new Uint8Array(await blob.arrayBuffer()) }).promise;
+    const pages = [];
+    for (let i = 1; i <= doc.numPages; i++) {
+      const page = await doc.getPage(i);
+      const base = page.getViewport({ scale: 1 });
+      const vp = page.getViewport({ scale: largeur / base.width });
+      const c = document.createElement('canvas');
+      c.width = Math.round(vp.width);
+      c.height = Math.round(vp.height);
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, c.width, c.height);
+      await page.render({ canvasContext: ctx, viewport: vp }).promise;
+      pages.push(c);
+    }
+    return pages;
+  }
+  // La feuille d'une page : portrait ou paysage selon la page elle-même.
+  function feuille(f, w, h) {
+    const mm = FORMATS[f].mm;
+    return w > h ? [mm[1], mm[0]] : mm;
+  }
+  async function auFormat(blob) {
+    if (format === 'original' || !window.jspdf) return blob;
+    const pages = await pagesEnCanvas(blob, 1600);
+    const { jsPDF } = window.jspdf;
+    let pdf = null;
+    pages.forEach(function (c) {
+      const f = feuille(format, c.width, c.height);
+      const o = f[0] > f[1] ? 'landscape' : 'portrait';
+      if (!pdf) pdf = new jsPDF({ unit: 'mm', format: FORMATS[format].mm, orientation: o });
+      else pdf.addPage(FORMATS[format].mm, o);
+      const k = Math.min(f[0] / c.width, f[1] / c.height);
+      const w = c.width * k, h = c.height * k;
+      pdf.addImage(c.toDataURL('image/jpeg', 0.92), 'JPEG', (f[0] - w) / 2, (f[1] - h) / 2, w, h, undefined, 'FAST');
+    });
+    return pdf ? pdf.output('blob') : blob;
+  }
+  function nomAuFormat(nom) {
+    const n = /\.pdf$/i.test(nom) ? nom.slice(0, -4) : nom;
+    return format === 'original' ? n + '.pdf' : n + '-' + FORMATS[format].nom + '.pdf';
+  }
+  // Imprimer au format choisi. Sur téléphone, l'onglet s'ouvre pendant
+  // l'appui, avant la mise en page qui prend un instant.
+  function imprimerAuFormat(blob, onglet) {
+    if (format === 'original') { imprimer(blob, onglet); return; }
+    const o = onglet || (tactile() ? window.open('', '_blank') : null);
+    auFormat(blob).then(function (b) { imprimer(b, o); }, function (e) {
+      if (o) o.close();
+      alert('Tsy vita ny format ' + FORMATS[format].nom + ' : ' + ((e && e.message) || 'erreur'));
+    });
+  }
+
+  // ---------- L'aperçu, dans la page ----------
+  // Les pages dessinées l'une sous l'autre, chacune sur une feuille blanche
+  // aux proportions du format choisi : on voit ce qui sortira.
+  let apercu = null;
+  function montrerApercu(r, sansDefiler) {
+    apercu = r;
+    const boite = document.querySelector('#section-pdf [data-pdf-jereo]');
+    if (!boite) return;
+    boite.style.display = '';
+    boite.innerHTML =
+      '<div class="section-head" style="margin-bottom:0.6rem; gap:0.5rem; flex-wrap:wrap;">' +
+        '<div style="min-width:0;"><h3 style="word-break:break-word;">👁 ' + html(r.anarana) + '</h3>' +
+          '<span style="font-size:0.75rem; color:var(--muted);">Format : ' + FORMATS[format].nom + '</span></div>' +
+        '<div class="actions-row" style="flex-wrap:wrap;">' +
+          '<button type="button" class="btn btn-primary btn-sm" data-j="imprimer" style="width:auto;">🖨 Imprimer</button>' +
+          '<button type="button" class="btn btn-sm" data-j="telecharger" style="width:auto;">⬇</button>' +
+          '<button type="button" class="btn btn-sm" data-j="hidio" style="width:auto;">✖ Hidio</button>' +
+        '</div>' +
+      '</div>' +
+      '<div data-j-pejy style="display:flex; flex-direction:column; align-items:center; gap:0.8rem; ' +
+        'max-height:75vh; overflow-y:auto; background:var(--bg); border-radius:8px; padding:0.8rem;">' +
+        '<p style="color:var(--muted); font-size:0.85rem;">Mamaky…</p></div>';
+    boite.querySelector('[data-j="imprimer"]').addEventListener('click', function () { agir(r, 'imprimer'); });
+    boite.querySelector('[data-j="telecharger"]').addEventListener('click', function () { agir(r, 'telecharger'); });
+    boite.querySelector('[data-j="hidio"]').addEventListener('click', function () {
+      apercu = null;
+      boite.style.display = 'none';
+      boite.innerHTML = '';
+    });
+    if (!sansDefiler) boite.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const zonePages = boite.querySelector('[data-j-pejy]');
+    const largeur = Math.min(Math.max(zonePages.clientWidth - 16, 240), 900);
     blobDe(r).then(function (b) {
-      if (action === 'imprimer') imprimer(b, onglet);
-      else if (action === 'ouvrir') ongletDe(b, onglet);
-      else telecharger(r.anarana, b);
+      return pagesEnCanvas(b, largeur * (window.devicePixelRatio || 1));
+    }).then(function (pages) {
+      if (apercu !== r) return;
+      zonePages.innerHTML = '';
+      pages.forEach(function (c, i) {
+        const papier = document.createElement('div');
+        let ratio = c.width / c.height;
+        if (format !== 'original') { const f = feuille(format, c.width, c.height); ratio = f[0] / f[1]; }
+        papier.style.cssText = 'background:#fff; width:100%; max-width:' + largeur + 'px; aspect-ratio:' + ratio + '; ' +
+          'display:flex; align-items:center; justify-content:center; box-shadow:0 2px 10px rgba(0,0,0,0.35); position:relative;';
+        c.style.cssText = 'max-width:100%; max-height:100%; display:block;';
+        papier.appendChild(c);
+        const num = document.createElement('span');
+        num.textContent = (i + 1) + ' / ' + pages.length;
+        num.style.cssText = 'position:absolute; bottom:4px; right:8px; font-size:0.7rem; color:#888;';
+        papier.appendChild(num);
+        zonePages.appendChild(papier);
+      });
     }, function (e) {
+      if (apercu !== r) return;
+      zonePages.innerHTML = '<p style="color:var(--amber); font-size:0.85rem;">Tsy aseho ny PDF : ' +
+        html((e && e.message) || 'réseau') + '</p>';
+    });
+  }
+
+  function agir(r, action) {
+    // Un téléphone n'ouvre un onglet que pendant l'appui : on l'ouvre tout
+    // de suite si le fichier doit d'abord venir du serveur ou être remis
+    // au format.
+    const attente = (!r.blob && !cache.has(r.id)) || format !== 'original';
+    const onglet = (action === 'imprimer' && tactile() && attente) ? window.open('', '_blank') : null;
+    blobDe(r).then(function (b) {
+      if (action === 'imprimer') imprimerAuFormat(b, onglet);
+      else return auFormat(b).then(function (x) { telecharger(nomAuFormat(r.anarana), x); });
+    }).catch(function (e) {
       if (onglet) onglet.close();
       alert('Tsy azo ny PDF : ' + ((e && e.message) || 'réseau'));
     });
@@ -218,9 +374,25 @@
             ? '<strong style="color:var(--text);">☁ An-tserasera</strong> : hita amin\'ny fitaovana rehetra idiranao amin\'ity kaonty ity.'
             : '<strong style="color:var(--amber);">📱 Ato amin\'ity navigateur ity ihany</strong> : midira amin\'ny kaontinao dia handeha an-tserasera izy.') +
         '</p>' +
+        '<div class="field" style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap; margin:0 0 0.8rem;">' +
+          '<label for="pdfFormat" style="margin:0;">📐 Haben\'ny taratasy</label>' +
+          '<select id="pdfFormat" data-pdf-format style="width:auto;">' +
+            Object.keys(FORMATS).map(function (k) {
+              return '<option value="' + k + '"' + (k === format ? ' selected' : '') + '>' +
+                (k === 'original' ? 'Original (tsy ovaina)' : FORMATS[k].nom) + '</option>';
+            }).join('') +
+          '</select>' +
+          '<span style="font-size:0.75rem; color:var(--muted);">— arahin\'ny aperçu, ny impression ary ny ⬇</span>' +
+        '</div>' +
         '<div data-pdf-lisitra></div>' +
         '<p class="empty-hint" data-pdf-foana style="display:none;">Mbola tsy misy PDF voatahiry.</p>' +
-      '</div>';
+      '</div>' +
+      '<div class="panel" data-pdf-jereo style="display:none;"></div>';
+
+    z.querySelector('[data-pdf-format]').addEventListener('change', function (e) {
+      choisirFormat(e.target.value);
+      if (apercu) montrerApercu(apercu);
+    });
 
     const lisitra = z.querySelector('[data-pdf-lisitra]');
     z.querySelector('[data-pdf-foana]').style.display = rakitra.length ? 'none' : '';
@@ -240,9 +412,14 @@
           '<button type="button" class="btn btn-sm" data-a="telecharger" style="width:auto;" title="Télécharger">⬇</button>' +
           '<button type="button" class="btn btn-sm" data-a="effacer" style="width:auto;" title="Effacer">✕</button>' +
         '</span>';
-      ['imprimer', 'ouvrir', 'telecharger'].forEach(function (a) {
+      ['imprimer', 'telecharger'].forEach(function (a) {
         div.querySelector('[data-a="' + a + '"]').addEventListener('click', function () { agir(r, a); });
       });
+      // Le nom comme l'œil montrent la feuille ici même.
+      div.querySelector('[data-a="ouvrir"]').addEventListener('click', function () { montrerApercu(r); });
+      const titre = div.querySelector('strong');
+      titre.style.cursor = 'pointer';
+      titre.addEventListener('click', function () { montrerApercu(r); });
       div.querySelector('[data-a="effacer"]').addEventListener('click', function () {
         if (confirm('Hofafana ve « ' + r.anarana + ' » ?')) effacer(r, div, 1);
       });
@@ -254,6 +431,12 @@
       const fichiers = Array.prototype.slice.call(e.target.files || []);
       Promise.all(fichiers.map(function (f) { return ampio(f.name, f, 'nampidirina'); }));
     });
+
+    // La liste redessinée garde l'aperçu ouvert, s'il montre encore un PDF présent.
+    if (apercu) {
+      const encore = rakitra.filter(function (x) { return x.id === apercu.id; })[0];
+      if (encore) montrerApercu(encore, true); else apercu = null;
+    }
   }
 
   function effacer(r, div, sens) {
@@ -358,7 +541,8 @@
     const nav = document.querySelector('.nav-item[data-section="pdf"]');
     if (nav) nav.click();
   }
-  window.__pdfTahiry = { ampio: ampio, imprimer: function (b) { imprimer(b); }, sokafy: sokafy };
+  // Les autres pages impriment, elles aussi, au format choisi ici.
+  window.__pdfTahiry = { ampio: ampio, imprimer: function (b) { imprimerAuFormat(b); }, sokafy: sokafy };
 
   // La page se remplit à l'ouverture, et chaque fois qu'on y revient.
   const nav = document.querySelector('.nav-item[data-section="pdf"]');
