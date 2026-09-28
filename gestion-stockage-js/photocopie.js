@@ -15,7 +15,11 @@
   const CLE_VIDINY = 'stockmanager_photocopie_vidiny' + SUFFIXE;
   // La rame en cours : { habe (feuilles dans une rame), at (ouverte quand) }.
   // Ce qui reste se calcule : la rame moins les photocopies notées depuis.
-  const CLE_RAM = 'stockmanager_photocopie_ram' + SUFFIXE;
+  // Deux papiers, deux rames : 'kopia' (papier ordinaire : photocopie, reliure,
+  // plastification) et 'sary' (papier photo).
+  const CLE_RAM = { kopia: 'stockmanager_photocopie_ram' + SUFFIXE, sary: 'stockmanager_photocopie_ram_sary' + SUFFIXE };
+  const RAM_HABE = { kopia: 500, sary: 100 };
+  const RAM_SERVICES = { kopia: { kopia: true, reliure: true, plast: true }, sary: { sary: true } };
   const CHAMP = 'background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:0.5rem 0.6rem; font:inherit;';
 
   function $(id) { return document.getElementById(id); }
@@ -130,6 +134,7 @@
     tous.unshift(ligne);
     ecrireJson(CLE_ASA, tous.slice(0, 5000));
     rendreTableau();
+    rendreRam();
   }
 
   // ---------- Traiter une image ----------
@@ -431,6 +436,7 @@
         '<div class="panel">' +
           '<h3>📷 Maka sary</h3>' +
           boutonsCamera('sary', '📸 Alaina ny sary') +
+          blocRam('sary') +
         '</div>' +
         '<div class="panel" style="margin-top:1rem;"><h3>🖼️ Sary voatahiry</h3><div id="pcSaryLisitra"></div></div>' +
         panneauPrix(['sary']) +
@@ -449,13 +455,7 @@
                 '<label for="pcKopiaManaoIsa" style="font-size:0.8rem; color:var(--muted);">Isan\'ny taratasy</label>' +
                 '<input type="number" id="pcKopiaManaoIsa" min="1" value="1" style="' + CHAMP + ' width:5rem; text-align:right;">' +
               '</div>' +
-              // Le papier : combien de feuilles restent dans la rame ouverte.
-              '<div style="display:flex; gap:0.6rem; align-items:center; flex-wrap:wrap; margin-top:0.8rem; padding-top:0.8rem; border-top:1px solid var(--line);">' +
-                '<span id="pcRamSisa" style="font-size:0.9rem;"></span>' +
-                '<label for="pcRamHabe" style="font-size:0.8rem; color:var(--muted); margin-left:auto;">Taratasy ao anaty ram iray</label>' +
-                '<input type="number" id="pcRamHabe" min="1" style="' + CHAMP + ' width:5.5rem; text-align:right;">' +
-                '<button type="button" class="btn btn-sm" id="pcRamVaovao" style="width:auto;">📦 Ram vaovao</button>' +
-              '</div>'
+              blocRam('kopia')
             : '') +
           '<div' + (PC_DOSSIER ? ' style="display:none;"' : '') + '>' +
           '<div style="display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center;">' +
@@ -617,7 +617,7 @@
     if (nom === 'reliure') kajyReliure();
     if (nom === 'plast') kajyPlast();
     if (nom === 'scan') { rendreScanPejy(); rendreListe('scan'); }
-    if (nom === 'sary') rendreListe('sary');
+    if (nom === 'sary') { rendreListe('sary'); rendreRam(); }
     if (nom === 'kopia') { rendreKopia(); rendreKopiaAndro(); }
   }
 
@@ -1033,28 +1033,38 @@
   }
   // Le tableau des photocopies d'aujourd'hui : l'heure (notée seule au moment
   // de l'impression), le nombre de pages sorties et ce que ça fait.
-  function lireRam() { return Object.assign({ habe: 500, at: 0 }, lireJson(CLE_RAM, {})); }
+  // Le papier d'une rame : ses feuilles, ce qui reste, l'alerte.
+  function blocRam(t) {
+    return '<div style="display:flex; gap:0.6rem; align-items:center; flex-wrap:wrap; margin-top:0.8rem; padding-top:0.8rem; border-top:1px solid var(--line);">' +
+      '<span data-ram-sisa="' + t + '" style="font-size:0.9rem;"></span>' +
+      '<label style="font-size:0.8rem; color:var(--muted); margin-left:auto;">' + (t === 'sary' ? 'Taratasy sary ao anaty paquet iray' : 'Taratasy ao anaty ram iray') +
+        ' <input type="number" min="1" data-ram-habe="' + t + '" style="' + CHAMP + ' width:5.5rem; text-align:right;"></label>' +
+      '<button type="button" class="btn btn-sm" data-ram-vaovao="' + t + '" style="width:auto;">📦 ' + (t === 'sary' ? 'Paquet vaovao' : 'Ram vaovao') + '</button>' +
+    '</div>';
+  }
+  function lireRam(t) { return Object.assign({ habe: RAM_HABE[t], at: 0 }, lireJson(CLE_RAM[t], {})); }
   function rendreRam() {
-    const el = $('pcRamSisa');
-    if (!el) return;
-    const ram = lireRam();
-    if ($('pcRamHabe') && document.activeElement !== $('pcRamHabe')) $('pcRamHabe').value = ram.habe;
-    if (!ram.at) {
-      el.innerHTML = '📦 <span style="color:var(--muted);">Tsindrio « Ram vaovao » rehefa manokatra ram ianao.</span>';
-      return;
-    }
-    // Photocopie, reliure et plastification prennent toutes leurs feuilles
-    // dans la même rame.
-    const PRENNENT = { kopia: true, reliure: true, plast: true };
-    const lany = lireAsa().reduce(function (s, a) {
-      return s + (a.at >= ram.at && PRENNENT[serviceDe(a)] ? a.pejy * a.isa : 0);
-    }, 0);
-    const sisa = ram.habe - lany;
-    const fetra = Math.max(20, Math.round(ram.habe * 0.1));
-    el.innerHTML = '📦 Taratasy sisa : <strong style="color:' + (sisa <= fetra ? 'var(--red)' : 'var(--cyan)') + ';">' +
-      Math.max(0, sisa) + '</strong> / ' + ram.habe +
-      (sisa <= 0 ? ' <strong style="color:var(--red);">— ⚠️ Lany ny taratasy</strong>'
-        : sisa <= fetra ? ' <strong style="color:var(--red);">— ⚠️ Efa ho lany</strong>' : '');
+    ['kopia', 'sary'].forEach(function (t) {
+      const z = racine();
+      const el = z && z.querySelector('[data-ram-sisa="' + t + '"]');
+      if (!el) return;
+      const ram = lireRam(t);
+      const champ = z.querySelector('[data-ram-habe="' + t + '"]');
+      if (champ && document.activeElement !== champ) champ.value = ram.habe;
+      if (!ram.at) {
+        el.innerHTML = '📦 <span style="color:var(--muted);">Tsindrio « ' + (t === 'sary' ? 'Paquet vaovao' : 'Ram vaovao') + ' » rehefa manokatra vaovao ianao.</span>';
+        return;
+      }
+      const lany = lireAsa().reduce(function (s, a) {
+        return s + (a.at >= ram.at && RAM_SERVICES[t][serviceDe(a)] ? a.pejy * a.isa : 0);
+      }, 0);
+      const sisa = ram.habe - lany;
+      const fetra = Math.max(t === 'sary' ? 5 : 20, Math.round(ram.habe * 0.1));
+      el.innerHTML = '📦 ' + (t === 'sary' ? 'Taratasy sary sisa' : 'Taratasy sisa') + ' : <strong style="color:' + (sisa <= fetra ? 'var(--red)' : 'var(--cyan)') + ';">' +
+        Math.max(0, sisa) + '</strong> / ' + ram.habe +
+        (sisa <= 0 ? ' <strong style="color:var(--red);">— ⚠️ Lany ny taratasy</strong>'
+          : sisa <= fetra ? ' <strong style="color:var(--red);">— ⚠️ Efa ho lany</strong>' : '');
+    });
   }
   function rendreKopiaAndro() {
     rendreRam();
@@ -1332,19 +1342,24 @@
     // ensuite dans le tableau.
     // La rame : sa taille se garde dès qu'on la change ; « Ram vaovao »
     // repart d'une rame pleine, à partir de maintenant.
-    if ($('pcRamHabe')) {
-      $('pcRamHabe').addEventListener('change', function () {
-        const ram = lireRam();
-        ram.habe = Math.max(1, parseInt(this.value, 10) || 500);
-        ecrireJson(CLE_RAM, ram);
+    racine().querySelectorAll('[data-ram-habe]').forEach(function (champ) {
+      champ.addEventListener('change', function () {
+        const t = champ.dataset.ramHabe;
+        const ram = lireRam(t);
+        ram.habe = Math.max(1, parseInt(champ.value, 10) || RAM_HABE[t]);
+        ecrireJson(CLE_RAM[t], ram);
         rendreRam();
       });
-      $('pcRamVaovao').addEventListener('click', function () {
-        const habe = Math.max(1, parseInt($('pcRamHabe').value, 10) || lireRam().habe);
-        ecrireJson(CLE_RAM, { habe: habe, at: Date.now() });
+    });
+    racine().querySelectorAll('[data-ram-vaovao]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const t = b.dataset.ramVaovao;
+        const champ = racine().querySelector('[data-ram-habe="' + t + '"]');
+        const habe = Math.max(1, parseInt(champ && champ.value, 10) || lireRam(t).habe);
+        ecrireJson(CLE_RAM[t], { habe: habe, at: Date.now() });
         rendreRam();
       });
-    }
+    });
     if ($('pcKopiaManao')) {
       $('pcKopiaManao').addEventListener('click', function () {
         const isa = Math.max(1, parseInt($('pcKopiaManaoIsa').value, 10) || 1);
