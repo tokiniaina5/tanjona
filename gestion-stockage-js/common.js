@@ -5744,8 +5744,9 @@
   const VUES_DANS_LA_PAGE = ['historique', 'ajouter', 'nouveau', 'comptes', 'acheter'];
   function updateSubTabsVisibility(){
     const subTabs = document.getElementById('stockSubTabs');
-    // Les « Nouvel article » ouverts par le + (nouveau2, nouveau3...) en sont aussi.
-    const vue = vueAffichee().replace(/^nouveau\d+$/, 'nouveau');
+    // Les « Nouvel article » et « Gestion de compte » ouverts par le +
+    // (nouveau2, comptes2...) en sont aussi.
+    const vue = vueAffichee().replace(/^nouveau\d+$/, 'nouveau').replace(/^comptes\d+$/, 'comptes');
     if(subTabs) subTabs.style.display = VUES_DANS_LA_PAGE.indexOf(vue) >= 0 ? '' : 'none';
   }
   updateSubTabsVisibility();
@@ -5923,7 +5924,7 @@
     if((nom === 'ajouter' || /^nouveau\d*$/.test(nom)) && typeof renderStock === 'function') renderStock();
     if(nom === 'articles' && typeof renderStock === 'function') renderStock();
     if(nom === 'acheter' && typeof populateAcheterItemSelect === 'function') populateAcheterItemSelect();
-    if(nom === 'comptes' && typeof renderClientsList === 'function') renderClientsList();
+    if(/^comptes\d*$/.test(nom) && typeof renderClientsList === 'function') renderClientsList();
   }
 
   function showDashView(nom){

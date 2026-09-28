@@ -7,7 +7,20 @@
   .dash-tab:hover, .pc-onglet:hover{ color:var(--text); }
   .dash-tab.active, .pc-onglet.active{ color:var(--cyan); border-color:var(--cyan); }
   /* Le + qui ouvre un « Nouvel article » de plus, et le ✕ qui le referme. */
-  .onglet-plus-nouveau{ font-weight:700; padding-left:0.7rem; padding-right:0.7rem; }
+  /* Le + se voit d'emblée : une pastille pleine, couleur de l'application,
+     et non un signe gris perdu parmi les onglets. */
+  .onglet-plus-nouveau, .onglet-plus-compte{
+    align-self:center;
+    display:inline-flex; align-items:center; justify-content:center;
+    width:30px; height:30px; padding:0; margin:0 0.3rem;
+    border-radius:50%; border:0;
+    background:var(--cyan); color:var(--bg);
+    font-family:var(--font-display); font-size:1.25rem; font-weight:700; line-height:1;
+    box-shadow:0 2px 8px rgba(0,0,0,0.35);
+    transition:transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  .onglet-plus-nouveau:hover, .onglet-plus-compte:hover{ color:var(--bg); transform:scale(1.1); box-shadow:0 3px 12px rgba(0,0,0,0.45); }
+  .onglet-plus-nouveau:active, .onglet-plus-compte:active{ transform:scale(0.95); }
   .onglet-fermer{ margin-left:0.35rem; opacity:0.6; font-size:0.85em; }
   .onglet-fermer:hover{ opacity:1; color:var(--amber); }
   .onglet-crayon{ display:none; margin-left:0.35rem; font-size:0.8em; opacity:0.7; cursor:pointer; }
@@ -239,6 +252,12 @@
     touch-action: none;
     user-select: none;
   }
+  /* Les vues posées dans la page et non en fenêtre — Entrée en stock, Nouvel
+     article, Historique… — et leur rangée d'onglets passent aussi devant les
+     icônes : sans cela, Factures ou Corbeille venaient se poser sur les
+     formulaires et les tableaux de bord. */
+  .dash-view.active:not(.fenetre-page),
+  #stockSubTabs{ position: relative; z-index: 93; }
   .icone-bureau .emoji{ font-size: 1.7rem; line-height: 1; }
   /* Une ombre portée, et non un fond : l'image du dessous peut être claire
      comme sombre, et un cadre opaque cacherait ce qu'on a choisi de voir. */

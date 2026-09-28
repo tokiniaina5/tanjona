@@ -659,6 +659,8 @@
     renderTableauxNouveau();
     majTitreTableau();
     majMenuTableaux();
+    // Les onglets « Gestion de compte » se renomment par le même ✏️ (comptes.js).
+    if(typeof majOngletsComptes === 'function') majOngletsComptes();
   }
 
   // Dans le menu, sous « 📊 Tableau de bord » : celui de chaque onglet
