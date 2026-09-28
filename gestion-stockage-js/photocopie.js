@@ -90,14 +90,37 @@
   // Une ligne : { id, at, nom, pejy (feuilles par exemplaire), isa (exemplaires), loko: 'nb' | 'loko' | 'scan' | 'sary', vola }.
   // « scan » : une page scannée ; « sary » : une photo prise. Chacun à son prix.
   function lireAsa() { return lireJson(CLE_ASA, []); }
-  function lireVidiny() { return Object.assign({ nb: 100, loko: 500, scan: 200, sary: 0 }, lireJson(CLE_VIDINY, {})); }
-  function noterAsa(nom, pejy, isa, loko) {
+  // Les prix de tous les services, réglés dans « 💲 Vidiny » (tableau de bord).
+  // Ce qui n'a pas de prix connu part à 0 : à régler avant d'encaisser.
+  const PRIX = [
+    ['nb', 'Photocopie mainty'], ['loko', 'Photocopie miloko'],
+    ['impNb', 'Impression mainty'], ['impLoko', 'Impression miloko'],
+    ['scan', 'Scan / pejy'], ['sary', 'Sary / iray'],
+    ['plastA4', 'Plastification A4'], ['plastA5', 'Plastification A5'],
+    ['plastA3', 'Plastification A3'], ['plastKaratra', 'Plastification karatra / CIN']
+  ];
+  const HABE_PLAST = { A4: 'A4', A5: 'A5', A3: 'A3', Karatra: 'Karatra / CIN' };
+  function lireVidiny() {
+    const v = { nb: 100, loko: 500, scan: 200 };
+    PRIX.forEach(function (p) { if (!(p[0] in v)) v[p[0]] = 0; });
+    return Object.assign(v, lireJson(CLE_VIDINY, {}));
+  }
+  // loko : 'nb' | 'loko' (photocopie), 'imp-nb' | 'imp-loko' (impression),
+  // 'scan', 'sary', 'plast' (avec sa taille, habe).
+  function prixDe(loko, habe) {
     const v = lireVidiny();
+    if (loko === 'imp-nb') return v.impNb;
+    if (loko === 'imp-loko') return v.impLoko;
+    if (loko === 'plast') return v['plast' + habe] || 0;
+    return v[loko] || 0;
+  }
+  function noterAsa(nom, pejy, isa, loko, habe) {
     const ligne = {
       id: nouvelId(), at: Date.now(), nom: nom,
       pejy: pejy, isa: isa, loko: loko,
-      vola: pejy * isa * (loko === 'loko' ? v.loko : loko === 'scan' ? v.scan : loko === 'sary' ? v.sary : v.nb)
+      vola: pejy * isa * prixDe(loko, habe)
     };
+    if (habe) ligne.habe = habe;
     const tous = lireAsa();
     tous.unshift(ligne);
     ecrireJson(CLE_ASA, tous.slice(0, 5000));
@@ -329,7 +352,7 @@
     if (!z) return false;
     z.innerHTML =
       '<div class="section-head"><div><h2>📠 Multi-service</h2>' +
-        '<p>Scan, sary ary photocopie. Ao amin\'ity navigateur ity ihany no voatahiry ny sary.</p></div></div>' +
+        '<p>Scan, sary, photocopie, impression ary plastification. Ao amin\'ity navigateur ity ihany no voatahiry ny sary.</p></div></div>' +
       // pc-onglet et non dash-tab : common.js retire « active » à tous les
       // .dash-tab quand il change de vue.
       '<div class="dash-tabs" id="pcOnglets">' +
@@ -337,6 +360,8 @@
         '<div class="pc-onglet" data-pc="scan">📠 Scan</div>' +
         '<div class="pc-onglet" data-pc="sary">📷 Maka sary</div>' +
         '<div class="pc-onglet" data-pc="kopia">🖨️ Photocopie</div>' +
+        '<div class="pc-onglet" data-pc="impression">🖨 Impression</div>' +
+        '<div class="pc-onglet" data-pc="plast">🪪 Plastification</div>' +
       '</div>' +
 
       // ----- Tableau de bord -----
@@ -353,6 +378,8 @@
           carteService('kopia', '🖨️ Photocopie', 'pejy') +
           carteService('scan', '📠 Scan', 'pejy') +
           carteService('sary', '📷 Maka sary', 'sary') +
+          carteService('impression', '🖨 Impression', 'pejy') +
+          carteService('plast', '🪪 Plastification', 'isa') +
         '</div>' +
         '<div class="chart-grid">' +
           '<div class="chart-panel"><h4>Vola isan\'andro (14 andro farany)</h4><div class="chart-box" style="height:220px;"><canvas id="pcChartAndro"></canvas></div></div>' +
@@ -361,6 +388,17 @@
         '<div class="panel" style="margin-top:1rem;">' +
           '<h3>📜 Asa natao</h3>' +
           '<div id="pcHistorique" style="overflow-x:auto;"></div>' +
+        '</div>' +
+        // Les prix de tous les services, en un seul endroit.
+        '<div class="panel" style="margin-top:1rem;">' +
+          '<h3>💲 Vidiny</h3>' +
+          '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(10rem, 1fr)); gap:0.7rem; align-items:end;">' +
+            PRIX.map(function (p) {
+              return champ('pcVidiny_' + p[0], p[1] + ' (Ar)', '<input type="number" id="pcVidiny_' + p[0] + '" min="0" step="10" style="' + CHAMP + ' width:100%; box-sizing:border-box;">');
+            }).join('') +
+            '<button type="button" class="btn btn-sm" id="pcVidinyTehirizo" style="width:auto;">💾 Tehirizo</button>' +
+          '</div>' +
+          '<p id="pcVidinyStatut" style="font-size:0.78rem; color:var(--muted); margin-top:0.6rem; min-height:1.1em;"></p>' +
         '</div>' +
       '</div>' +
 
@@ -436,15 +474,47 @@
           '</div>' +
         '</div>' +
 
-        '<div class="panel" style="margin-top:1rem;">' +
-          '<h3>💲 Vidiny</h3>' +
-          '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(9rem, 1fr)); gap:0.7rem; align-items:end;">' +
-            champ('pcVidinyNb', 'Mainty sy fotsy (Ar)', '<input type="number" id="pcVidinyNb" min="0" step="10" style="' + CHAMP + ' width:100%; box-sizing:border-box;">') +
-            champ('pcVidinyLoko', 'Miloko (Ar)', '<input type="number" id="pcVidinyLoko" min="0" step="10" style="' + CHAMP + ' width:100%; box-sizing:border-box;">') +
-            champ('pcVidinyScan', 'Scan / pejy (Ar)', '<input type="number" id="pcVidinyScan" min="0" step="10" style="' + CHAMP + ' width:100%; box-sizing:border-box;">') +
-            champ('pcVidinySary', 'Sary / iray (Ar)', '<input type="number" id="pcVidinySary" min="0" step="10" style="' + CHAMP + ' width:100%; box-sizing:border-box;">') +
-            '<button type="button" class="btn btn-sm" id="pcVidinyTehirizo" style="width:auto;">💾 Tehirizo</button>' +
+      '</div>' +
+
+      // ----- Impression -----
+      // Un document du client (PDF ou images), imprimé puis compté ; ou une
+      // impression faite ailleurs, seulement comptée.
+      '<div data-volet="impression" style="display:none;">' +
+        '<div class="panel">' +
+          '<h3>🖨 Impression</h3>' +
+          '<div style="display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center; margin-bottom:0.8rem;">' +
+            '<button type="button" class="btn btn-sm" id="pcImpSafidy" style="width:auto;">📂 Safidio ny fichier (PDF na sary)</button>' +
+            '<input type="file" id="pcImpFichier" accept="application/pdf,image/*" multiple style="display:none;">' +
+            '<span id="pcImpFichierAnarana" style="font-size:0.8rem; color:var(--muted);">Tsy misy fichier voafidy.</span>' +
           '</div>' +
+          '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(9rem, 1fr)); gap:0.7rem;">' +
+            champ('pcImpAnarana', 'Anarana', '<input type="text" id="pcImpAnarana" placeholder="Ohatra : CV Rakoto" style="' + CHAMP + ' width:100%; box-sizing:border-box;">') +
+            champ('pcImpPejy', 'Pejy', '<input type="number" id="pcImpPejy" min="1" value="1" style="' + CHAMP + ' width:100%; box-sizing:border-box;">') +
+            champ('pcImpIsa', 'Isa (exemplaire)', '<input type="number" id="pcImpIsa" min="1" value="1" style="' + CHAMP + ' width:100%; box-sizing:border-box;">') +
+            champ('pcImpLoko', 'Loko', '<select id="pcImpLoko" style="' + CHAMP + ' width:100%;"><option value="imp-nb">⚫ Mainty sy fotsy</option><option value="imp-loko">🌈 Miloko</option></select>') +
+          '</div>' +
+          '<p id="pcImpVola" style="font-size:0.9rem; margin:0.9rem 0;"></p>' +
+          '<div style="display:flex; gap:0.6rem; flex-wrap:wrap;">' +
+            '<button type="button" class="btn btn-primary btn-sm" id="pcImpAtonta" style="width:auto;">🖨 Atonta sy soraty</button>' +
+            '<button type="button" class="btn btn-sm" id="pcImpSoraty" style="width:auto;">➕ Soraty fotsiny</button>' +
+          '</div>' +
+          '<p id="pcImpStatut" style="font-size:0.78rem; color:var(--muted); margin-top:0.6rem; min-height:1.1em;"></p>' +
+        '</div>' +
+      '</div>' +
+
+      // ----- Plastification -----
+      '<div data-volet="plast" style="display:none;">' +
+        '<div class="panel">' +
+          '<h3>🪪 Plastification</h3>' +
+          '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(9rem, 1fr)); gap:0.7rem;">' +
+            champ('pcPlastAnarana', 'Anarana', '<input type="text" id="pcPlastAnarana" placeholder="Ohatra : Diplôme" style="' + CHAMP + ' width:100%; box-sizing:border-box;">') +
+            champ('pcPlastHabe', 'Habe', '<select id="pcPlastHabe" style="' + CHAMP + ' width:100%;">' +
+              Object.keys(HABE_PLAST).map(function (k) { return '<option value="' + k + '">' + HABE_PLAST[k] + '</option>'; }).join('') + '</select>') +
+            champ('pcPlastIsa', 'Isa', '<input type="number" id="pcPlastIsa" min="1" value="1" style="' + CHAMP + ' width:100%; box-sizing:border-box;">') +
+          '</div>' +
+          '<p id="pcPlastVola" style="font-size:0.9rem; margin:0.9rem 0;"></p>' +
+          '<button type="button" class="btn btn-primary btn-sm" id="pcPlastAmpidiro" style="width:auto;">➕ Ampidiro</button>' +
+          '<p id="pcPlastStatut" style="font-size:0.78rem; color:var(--muted); margin-top:0.6rem; min-height:1.1em;"></p>' +
         '</div>' +
       '</div>';
     return true;
@@ -515,7 +585,9 @@
     z.querySelectorAll('.pc-onglet').forEach(function (o) { o.classList.toggle('active', o.dataset.pc === nom); });
     z.querySelectorAll('[data-volet]').forEach(function (v) { v.style.display = v.dataset.volet === nom ? '' : 'none'; });
     fermerCamera();
-    if (nom === 'tableau') rendreTableau();
+    if (nom === 'tableau') { rendreTableau(); remplirPrix(); }
+    if (nom === 'impression') kajyImp();
+    if (nom === 'plast') kajyPlast();
     if (nom === 'scan') { rendreScanPejy(); rendreListe('scan'); }
     if (nom === 'sary') rendreListe('sary');
     if (nom === 'kopia') rendreKopia();
@@ -524,9 +596,13 @@
   // ---------- Tableau de bord ----------
   const graphiques = {};
   // Le service d'une ligne du journal : son « loko » le dit.
-  const SERVICES = ['kopia', 'scan', 'sary'];
-  const NOM_SERVICE = { kopia: '🖨️ Photocopie', scan: '📠 Scan', sary: '📷 Sary' };
-  function serviceDe(a) { return a.loko === 'scan' ? 'scan' : a.loko === 'sary' ? 'sary' : 'kopia'; }
+  const SERVICES = ['kopia', 'scan', 'sary', 'impression', 'plast'];
+  const NOM_SERVICE = { kopia: '🖨️ Photocopie', scan: '📠 Scan', sary: '📷 Sary', impression: '🖨 Impression', plast: '🪪 Plastification' };
+  function serviceDe(a) {
+    if (a.loko === 'scan' || a.loko === 'sary' || a.loko === 'plast') return a.loko;
+    if (a.loko === 'imp-nb' || a.loko === 'imp-loko') return 'impression';
+    return 'kopia';
+  }
   function debutJour(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); }
   function rendreTableau() {
     const z = racine();
@@ -563,7 +639,9 @@
         '<th>Daty</th><th>Service</th><th>Antontan-taratasy</th><th>Isa</th><th>Vola</th><th></th></tr></thead><tbody>' +
         asa.slice(0, 100).map(function (a) {
           const s = serviceDe(a);
-          const detail = s === 'kopia' ? a.pejy + ' × ' + a.isa + (a.loko === 'loko' ? ' 🌈' : ' ⚫') : String(a.pejy * a.isa);
+          const detail = (s === 'kopia' || s === 'impression')
+            ? a.pejy + ' × ' + a.isa + (a.loko === 'loko' || a.loko === 'imp-loko' ? ' 🌈' : ' ⚫')
+            : String(a.pejy * a.isa);
           return '<tr><td>' + quand(a.at) + '</td><td>' + NOM_SERVICE[s] + '</td><td>' + html(a.nom) + '</td><td>' + detail +
             '</td><td>' + ariary(a.vola) +
             '</td><td><button type="button" class="btn btn-sm" data-esory-asa="' + a.id + '" style="width:auto;" aria-label="Fafao">🗑</button></td></tr>';
@@ -575,8 +653,9 @@
     const accent = (styles.getPropertyValue('--cyan') || '#3fd0c9').trim();
     const muted = (styles.getPropertyValue('--muted') || '#7c8b92').trim();
     const violet = (styles.getPropertyValue('--violet') || '#a78bfa').trim();
-    const couleurs = { kopia: accent, scan: violet, sary: muted };
-    const jours = [], parService = { kopia: [], scan: [], sary: [] };
+    const amber = (styles.getPropertyValue('--amber') || '#f5b454').trim();
+    const couleurs = { kopia: accent, scan: violet, sary: muted, impression: amber, plast: '#6ee7b7' };
+    const jours = [], parService = { kopia: [], scan: [], sary: [], impression: [], plast: [] };
     for (let i = 13; i >= 0; i--) {
       const d = new Date(auj); d.setDate(d.getDate() - i);
       const debut = d.getTime();
@@ -789,10 +868,6 @@
       }).join('');
     sel.value = kopiaChoix;
     const v = lireVidiny();
-    $('pcVidinyNb').value = v.nb;
-    $('pcVidinyLoko').value = v.loko;
-    $('pcVidinyScan').value = v.scan;
-    $('pcVidinySary').value = v.sary;
     const src = sourceKopia();
     $('pcKopiaTopy').innerHTML = src ? src.pages.map(function (b) {
       return '<img src="' + urlDe(b) + '" alt="" style="width:6rem; aspect-ratio:1/1.414; object-fit:contain; background:#fff; border:1px solid var(--line); border-radius:6px;' +
@@ -816,6 +891,26 @@
     const prix = lireVidiny()[p.loko];
     el.innerHTML = '📄 ' + feuilles + ' pejy × ' + p.isa + ' = <strong>' + (feuilles * p.isa) + ' pejy</strong> · 💰 <strong>' +
       ariary(feuilles * p.isa * prix) + '</strong> <span style="color:var(--muted); font-size:0.78rem;">(' + ariary(prix) + ' isaky ny pejy)</span>';
+  }
+  function kajyImp() {
+    const el = $('pcImpVola');
+    if (!el) return;
+    const pejy = Math.max(1, parseInt($('pcImpPejy').value, 10) || 1);
+    const isa = Math.max(1, parseInt($('pcImpIsa').value, 10) || 1);
+    const prix = prixDe($('pcImpLoko').value);
+    el.innerHTML = '📄 ' + pejy + ' pejy × ' + isa + ' = <strong>' + (pejy * isa) + ' pejy</strong> · 💰 <strong>' +
+      ariary(pejy * isa * prix) + '</strong> <span style="color:var(--muted); font-size:0.78rem;">(' + ariary(prix) + ' isaky ny pejy)</span>';
+  }
+  function kajyPlast() {
+    const el = $('pcPlastVola');
+    if (!el) return;
+    const isa = Math.max(1, parseInt($('pcPlastIsa').value, 10) || 1);
+    const prix = prixDe('plast', $('pcPlastHabe').value);
+    el.innerHTML = '🪪 ' + isa + ' × ' + ariary(prix) + ' = 💰 <strong>' + ariary(isa * prix) + '</strong>';
+  }
+  function remplirPrix() {
+    const v = lireVidiny();
+    PRIX.forEach(function (p) { const i = $('pcVidiny_' + p[0]); if (i) i.value = v[p[0]]; });
   }
   function versKopia(id) {
     kopiaChoix = id;
@@ -1028,15 +1123,68 @@
       $('pcKopiaStatut').textContent = '✅ Voasoratra : ' + (pejy * isa) + ' pejy.';
     });
     $('pcVidinyTehirizo').addEventListener('click', function () {
-      ecrireJson(CLE_VIDINY, {
-        nb: Math.max(0, Number($('pcVidinyNb').value) || 0),
-        loko: Math.max(0, Number($('pcVidinyLoko').value) || 0),
-        scan: Math.max(0, Number($('pcVidinyScan').value) || 0),
-        sary: Math.max(0, Number($('pcVidinySary').value) || 0)
-      });
-      kajyVola();
-      $('pcKopiaStatut').style.color = 'var(--muted)';
-      $('pcKopiaStatut').textContent = '✅ Voatahiry ny vidiny.';
+      const v = {};
+      PRIX.forEach(function (p) { v[p[0]] = Math.max(0, Number($('pcVidiny_' + p[0]).value) || 0); });
+      ecrireJson(CLE_VIDINY, v);
+      kajyVola(); kajyImp(); kajyPlast();
+      $('pcVidinyStatut').textContent = '✅ Voatahiry ny vidiny.';
+    });
+
+    // Impression
+    let impFichiers = [];
+    $('pcImpSafidy').addEventListener('click', function () { $('pcImpFichier').click(); });
+    $('pcImpFichier').addEventListener('change', function () {
+      impFichiers = Array.prototype.slice.call(this.files || []);
+      this.value = '';
+      $('pcImpFichierAnarana').textContent = impFichiers.length
+        ? impFichiers.map(function (f) { return f.name; }).join(', ') : 'Tsy misy fichier voafidy.';
+      if (impFichiers.length && !$('pcImpAnarana').value.trim()) $('pcImpAnarana').value = impFichiers[0].name.replace(/\.[^.]+$/, '');
+      // Des images : une page chacune. Un PDF : son nombre de pages se lit
+      // quand on l'imprime ; jusque-là on garde ce qui est écrit.
+      const images = impFichiers.filter(function (f) { return /^image\//.test(f.type); });
+      if (images.length === impFichiers.length && images.length) $('pcImpPejy').value = images.length;
+      kajyImp();
+    });
+    ['pcImpPejy', 'pcImpIsa', 'pcImpLoko'].forEach(function (id) {
+      $(id).addEventListener('input', kajyImp);
+      $(id).addEventListener('change', kajyImp);
+    });
+    function soratyImp() {
+      const pejy = Math.max(1, parseInt($('pcImpPejy').value, 10) || 1);
+      const isa = Math.max(1, parseInt($('pcImpIsa').value, 10) || 1);
+      const loko = $('pcImpLoko').value;
+      const nom = $('pcImpAnarana').value.trim() || 'Impression';
+      noterAsa(nom, pejy, isa, loko);
+      $('pcImpStatut').textContent = '✅ Voasoratra : ' + nom + ' — ' + (pejy * isa) + ' pejy = ' + ariary(pejy * isa * prixDe(loko)) + '.';
+      $('pcImpAnarana').value = '';
+      impFichiers = [];
+      $('pcImpFichierAnarana').textContent = 'Tsy misy fichier voafidy.';
+    }
+    $('pcImpSoraty').addEventListener('click', soratyImp);
+    $('pcImpAtonta').addEventListener('click', function () {
+      if (!impFichiers.length) { $('pcImpStatut').textContent = 'Safidio aloha ny fichier hatonta, na tsindrio « ➕ Soraty fotsiny ».'; return; }
+      const isa = Math.max(1, parseInt($('pcImpIsa').value, 10) || 1);
+      const images = impFichiers.filter(function (f) { return /^image\//.test(f.type); });
+      const pdfs = impFichiers.filter(function (f) { return /pdf$/i.test(f.type) || /\.pdf$/i.test(f.name); });
+      if (images.length) imprimer(images, isa, $('pcImpLoko').value === 'imp-nb' ? 'nb' : 'loko', false);
+      if (pdfs.length && window.__pdfTahiry) pdfs.forEach(function (f) { window.__pdfTahiry.imprimer(f); });
+      soratyImp();
+    });
+
+    // Plastification
+    ['pcPlastHabe', 'pcPlastIsa'].forEach(function (id) {
+      $(id).addEventListener('input', kajyPlast);
+      $(id).addEventListener('change', kajyPlast);
+    });
+    $('pcPlastAmpidiro').addEventListener('click', function () {
+      const isa = Math.max(1, parseInt($('pcPlastIsa').value, 10) || 1);
+      const habe = $('pcPlastHabe').value;
+      const nom = ($('pcPlastAnarana').value.trim() || 'Plastification') + ' (' + HABE_PLAST[habe] + ')';
+      noterAsa(nom, 1, isa, 'plast', habe);
+      $('pcPlastStatut').textContent = '✅ Voasoratra : ' + nom + ' × ' + isa + ' = ' + ariary(isa * prixDe('plast', habe)) + '.';
+      $('pcPlastAnarana').value = '';
+      $('pcPlastIsa').value = 1;
+      kajyPlast();
     });
 
     // La caméra s'éteint quand la fenêtre se ferme ou qu'on change de page.
