@@ -12,6 +12,7 @@
     tbody.innerHTML = '';
     document.getElementById('stockEmptyHint').style.display = items.length ? 'none' : 'block';
     refreshItemRefField();
+    renderTableauxNouveau();
     items.forEach(function(item, idx){
       const tr = document.createElement('tr');
       tr.dataset.itemId = item.id;
@@ -261,16 +262,17 @@
     return div.innerHTML;
   }
 
-  // Sans préfixe : 1, 2, 3... (« Ajouter », les achats). Avec « N » : N1, N2...
-  // la série à part des « Nouvel article », qui ne croise jamais l'autre.
+  // Sans préfixe : 1, 2, 3... (« Entrée en stock », les achats). Avec un
+  // préfixe (« N », « VARY-»...) : la série d'un onglet « Nouvel article »,
+  // qui ne croise jamais les autres.
   function nextRef(prefixe){
     prefixe = prefixe || '';
     let maxNum = 0;
     items.forEach(function(it){
       const r = String(it.ref == null ? '' : it.ref);
-      const n = prefixe
-        ? (r.indexOf(prefixe) === 0 ? parseInt(r.slice(prefixe.length), 10) : NaN)
-        : parseInt(r, 10);
+      let n = NaN;
+      if(!prefixe) n = parseInt(r, 10);
+      else if(r.indexOf(prefixe) === 0 && /^\d+$/.test(r.slice(prefixe.length))) n = parseInt(r.slice(prefixe.length), 10);
       if(!isNaN(n) && n > maxNum) maxNum = n;
     });
     return prefixe + (maxNum + 1);
@@ -280,24 +282,66 @@
   // (identifiants itemRef, itemName...), « Nouvel article » (les mêmes,
   // suivis de Nouveau) et ceux que le « + » ouvre à côté (Nouveau2,
   // Nouveau3...). Les « Nouvel article » ne créent que des marchandises
-  // encore absentes du stock, dans la série N1, N2...
+  // encore absentes du stock. Chacun est un groupe : ses articles portent
+  // `groupe` (le nom de sa vue : nouveau, nouveau3...), une référence tirée
+  // du nom de l'onglet (Vary → VARY-1, VARY-2...) et il a son tableau de bord.
   const FORMULAIRES_AJOUTER = ['', 'Nouveau'];
-  function estNouvelArticle(sfx){ return sfx.indexOf('Nouveau') === 0; }
-  function prefixeRef(sfx){ return estNouvelArticle(sfx) ? 'N' : ''; }
+  const CLE_ONGLETS_NOUVEAU = 'stockmanager_onglets_nouveau';
+  // Le dernier numéro donné : un onglet refermé ne rend pas le sien, et ses
+  // articles ne tombent jamais dans le tableau d'un onglet ouvert plus tard.
+  const CLE_DERNIER_NOUVEAU = 'stockmanager_onglets_nouveau_dernier';
+  const CLE_NOMS_NOUVEAU = 'stockmanager_noms_nouveau';
 
-  // Chaque onglet « Nouvel article » montre son propre numéro : les plus
-  // petits N encore libres, dans l'ordre des onglets (N1, N2, N3...). C'est
-  // ce numéro-là que reçoit l'article créé depuis cet onglet.
+  function estNouvelArticle(sfx){ return sfx.indexOf('Nouveau') === 0; }
+  function vueDe(sfx){ return 'nouveau' + sfx.slice('Nouveau'.length); }
+
+  function lireNomsNouveau(){
+    try{
+      const v = JSON.parse(localStorage.getItem(CLE_NOMS_NOUVEAU) || '{}');
+      return v && typeof v === 'object' ? v : {};
+    }catch(e){ return {}; }
+  }
+  function ecrireNomsNouveau(noms){
+    try{ localStorage.setItem(CLE_NOMS_NOUVEAU, JSON.stringify(noms)); }catch(e){}
+  }
+
+  // Le nom affiché d'un onglet : celui choisi, sinon « 🆕 Nouvel article »,
+  // « 🆕 Nouvel article 2 »... d'après sa place.
+  function nomOngletNouveau(sfx, noms){
+    noms = noms || lireNomsNouveau();
+    const vue = vueDe(sfx);
+    if(noms[vue]) return noms[vue];
+    const place = FORMULAIRES_AJOUTER.filter(estNouvelArticle).indexOf(sfx) + 1;
+    return '🆕 Nouvel article' + (place > 1 ? ' ' + place : '');
+  }
+
+  // Le préfixe des références : le nom de l'onglet en capitales, sans accent
+  // ni signe (8 lettres au plus), suivi d'un tiret. Sans nom : N pour le
+  // premier onglet (N1, N2...), N3- pour l'onglet nouveau3...
+  function prefixeRef(sfx){
+    if(!estNouvelArticle(sfx)) return '';
+    const choisi = lireNomsNouveau()[vueDe(sfx)];
+    const propre = String(choisi || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 8);
+    if(propre) return propre + '-';
+    const num = sfx.slice('Nouveau'.length);
+    return num ? 'N' + num + '-' : 'N';
+  }
+
+  // Les articles créés avant les groupes, dans la série N1, N2... du premier
+  // onglet, en font partie.
+  (function rangerLesAnciensN(){
+    let change = false;
+    items.forEach(function(it){
+      if(!it.groupe && /^N\d+$/.test(String(it.ref))){ it.groupe = 'nouveau'; change = true; }
+    });
+    if(change) saveItems(items);
+  })();
+
   function refreshItemRefField(){
-    const pris = new Set(items.map(function(it){ return String(it.ref); }));
-    let n = 1;
     FORMULAIRES_AJOUTER.forEach(function(sfx){
       const el = document.getElementById('itemRef' + sfx);
-      if(!el) return;
-      if(!estNouvelArticle(sfx)){ el.value = nextRef(); return; }
-      while(pris.has('N' + n)) n++;
-      el.value = 'N' + n;
-      n++;
+      if(el) el.value = nextRef(prefixeRef(sfx));
     });
   }
   refreshItemRefField();
@@ -339,11 +383,10 @@
       if(supplier) existing.supplier = supplier;
     } else {
       id = genId();
-      const affiche = document.getElementById('itemRef' + sfx).value;
-      ref = (estNouvelArticle(sfx) && /^Nd+$/.test(affiche) &&
-             !items.some(function(it){ return String(it.ref) === affiche; }))
-        ? affiche : nextRef(prefixeRef(sfx));
-      items.push({ id, ref, name, category, qty, unit, price, seuil, supplier });
+      ref = nextRef(prefixeRef(sfx));
+      const nouvel = { id, ref, name, category, qty, unit, price, seuil, supplier };
+      if(estNouvelArticle(sfx)) nouvel.groupe = vueDe(sfx);
+      items.push(nouvel);
     }
     saveItems(items);
 
@@ -386,12 +429,68 @@
   });
   }
 
+  // ---- Le tableau de bord de chaque « Nouvel article » ----
+  // Sous le formulaire : les chiffres du groupe (articles, stock, valeur,
+  // entrées, sorties) et la liste de ses articles. renderStock le redessine
+  // après chaque changement du stock.
+  function renderTableauxNouveau(){
+    const noms = lireNomsNouveau();
+    FORMULAIRES_AJOUTER.filter(estNouvelArticle).forEach(function(sfx){
+      const vue = vueDe(sfx);
+      const hote = document.getElementById('dash-' + vue);
+      if(!hote) return;
+      let bloc = hote.querySelector('.tableau-nouveau');
+      if(!bloc){
+        bloc = document.createElement('div');
+        bloc.className = 'panel tableau-nouveau';
+        hote.appendChild(bloc);
+      }
+      const groupe = items.filter(function(it){ return it.groupe === vue; });
+      const ids = new Set(groupe.map(function(it){ return it.id; }));
+      let stock = 0, valeur = 0, entrees = 0, sorties = 0;
+      groupe.forEach(function(it){
+        stock += Number(it.qty) || 0;
+        valeur += (Number(it.qty) || 0) * (Number(it.price) || 0);
+      });
+      movements.forEach(function(m){
+        if(!ids.has(m.itemId)) return;
+        if(m.type === 'entree') entrees += Number(m.value) || 0;
+        else if(m.type === 'sortie') sorties += Number(m.value) || 0;
+      });
+      const kpi = function(label, val){
+        return '<div class="kpi-card"><div class="kpi-label">' + label + '</div><div class="kpi-value">' + val + '</div></div>';
+      };
+      const lignes = groupe.map(function(it){
+        const faible = Number(it.qty) <= Number(it.seuil != null ? it.seuil : 5);
+        return '<tr>' +
+          '<td>' + escapeHtml(it.ref || '—') + '</td>' +
+          '<td>' + escapeHtml(it.name) + '</td>' +
+          '<td>' + escapeHtml(it.category || '—') + '</td>' +
+          '<td>' + it.qty + ' ' + escapeHtml(it.unit || 'pièce') + (faible ? ' <span class="badge-warn">Stock faible</span>' : '') + '</td>' +
+          '<td>' + formatAr(it.price) + '</td>' +
+          '<td>' + formatAr((Number(it.qty) || 0) * (Number(it.price) || 0)) + '</td>' +
+        '</tr>';
+      }).join('');
+      bloc.innerHTML =
+        '<h3>📊 Tableau de bord — ' + escapeHtml(nomOngletNouveau(sfx, noms)) + '</h3>' +
+        '<div class="kpi-row">' +
+          kpi('Articles', groupe.length) +
+          kpi('Stock total', stock) +
+          kpi('Valeur de stock', formatAr(valeur)) +
+          kpi('Valeur des entrées', formatAr(entrees)) +
+          kpi('Valeur des sorties', formatAr(sorties)) +
+        '</div>' +
+        (groupe.length
+          ? '<div class="table-scroll"><table><thead><tr><th>Réf.</th><th>Nom</th><th>Catégorie</th><th>Quantité</th><th>Prix unitaire</th><th>Valeur</th></tr></thead><tbody>' + lignes + '</tbody></table></div>'
+          : '<p class="empty-hint">Mbola tsy misy entana noforonina tao amin\'ity onglet ity.</p>');
+    });
+  }
+
   // ---- Le « + » des Nouvel article ----
   // Posé après l'onglet « 🆕 Nouvel article » dans chaque rangée : chaque
-  // pression ouvre un onglet de plus (Nouvel article 2, 3...), copie du
-  // premier formulaire, que son ✕ referme. Les onglets ouverts reviennent
-  // au rechargement de la page.
-  const CLE_ONGLETS_NOUVEAU = 'stockmanager_onglets_nouveau';
+  // pression ouvre un onglet de plus, dont on écrit aussitôt le nom des
+  // articles (Vary, Menaka...), copie du premier formulaire, que son ✕ referme. Les
+  // onglets ouverts et leurs noms reviennent au rechargement de la page.
   function lireOngletsNouveau(){
     try{
       const v = JSON.parse(localStorage.getItem(CLE_ONGLETS_NOUVEAU) || '[]');
@@ -403,6 +502,21 @@
       .map(function(sfx){ return parseInt(sfx.slice('Nouveau'.length), 10); })
       .filter(function(n){ return !isNaN(n); });
     try{ localStorage.setItem(CLE_ONGLETS_NOUVEAU, JSON.stringify(nums)); }catch(e){}
+  }
+  function prochainNumeroNouveau(){
+    let num = 2;
+    try{ num = Math.max(num, (parseInt(localStorage.getItem(CLE_DERNIER_NOUVEAU), 10) || 0) + 1); }catch(e){}
+    FORMULAIRES_AJOUTER.forEach(function(sfx){
+      const n = parseInt(sfx.slice('Nouveau'.length), 10);
+      if(!isNaN(n) && n >= num) num = n + 1;
+    });
+    // Un article d'un onglet refermé garde son groupe : son numéro reste pris.
+    items.forEach(function(it){
+      const m = /^nouveau(\d+)$/.exec(it.groupe || '');
+      if(m && Number(m[1]) >= num) num = Number(m[1]) + 1;
+    });
+    try{ localStorage.setItem(CLE_DERNIER_NOUVEAU, String(num)); }catch(e){}
+    return num;
   }
 
   function ouvrirVue(nom){
@@ -447,54 +561,67 @@
 
     FORMULAIRES_AJOUTER.push(sfx);
     brancherFormulaireAjouter(sfx);
-    refreshItemRefField();
     renumeroterOngletsNouveau();
     ecrireOngletsNouveau();
   }
 
-  // Les onglets se nomment d'après leur place (2, 3, 4...) et non d'après
-  // leur identifiant : un onglet refermé ne laisse pas de trou dans les noms,
-  // qui suivent ainsi les N affichés dedans.
-  // Un nom choisi au ✏️ remplace celui-là, onglet par onglet (clé : la vue,
-  // « nouveau », « nouveau3 »...), et se garde au rechargement.
-  const CLE_NOMS_NOUVEAU = 'stockmanager_noms_nouveau';
-  function lireNomsNouveau(){
-    try{
-      const v = JSON.parse(localStorage.getItem(CLE_NOMS_NOUVEAU) || '{}');
-      return v && typeof v === 'object' ? v : {};
-    }catch(e){ return {}; }
-  }
-  function ecrireNomsNouveau(noms){
-    try{ localStorage.setItem(CLE_NOMS_NOUVEAU, JSON.stringify(noms)); }catch(e){}
-  }
-
+  // Les noms d'onglet (et le titre de leur formulaire), les références
+  // proposées et les tableaux de bord suivent les noms choisis.
   function renumeroterOngletsNouveau(){
     const noms = lireNomsNouveau();
-    let place = 0;
-    FORMULAIRES_AJOUTER.forEach(function(sfx){
-      if(!estNouvelArticle(sfx)) return;
-      place++;
-      const vue = 'nouveau' + sfx.slice('Nouveau'.length);
-      const choisi = noms[vue];
-      const nom = choisi || ('🆕 Nouvel article' + (place > 1 ? ' ' + place : ''));
+    FORMULAIRES_AJOUTER.filter(estNouvelArticle).forEach(function(sfx){
+      const vue = vueDe(sfx);
+      const nom = nomOngletNouveau(sfx, noms);
       const titre = document.querySelector('#dash-' + vue + ' h3');
-      if(titre) titre.textContent = choisi ? nom : nom + ' (entana vaovao)';
+      if(titre) titre.textContent = noms[vue] ? '🆕 ' + nom + ' (entana vaovao)' : nom + ' (entana vaovao)';
       document.querySelectorAll('.dash-tab[data-dash="' + vue + '"] .onglet-nom').forEach(function(el){
         el.textContent = nom;
       });
     });
+    refreshItemRefField();
+    renderTableauxNouveau();
   }
 
+  // Le nom s'écrit dans l'onglet même (prompt() n'existe pas partout) :
+  // Entrée ou un clic ailleurs le garde, Échap l'abandonne, vide rend le nom
+  // de départ. Les articles déjà créés gardent leur référence : seuls les
+  // suivants prennent le préfixe du nouveau nom.
   function renommerOngletNouveau(vue){
+    const onglets = Array.prototype.slice.call(document.querySelectorAll('.dash-tab[data-dash="' + vue + '"]'));
+    const onglet = onglets.find(function(t){ return t.offsetParent !== null; }) || onglets[0];
+    const span = onglet && onglet.querySelector('.onglet-nom');
+    if(!span || onglet.querySelector('.onglet-saisie')) return;
     const noms = lireNomsNouveau();
-    const el = document.querySelector('.dash-tab[data-dash="' + vue + '"] .onglet-nom');
-    const reponse = prompt('Anarana vaovao ho an\'ity onglet ity (avelao ho foana raha hiverina amin\'ny taloha) :',
-      noms[vue] || (el ? el.textContent : ''));
-    if(reponse === null) return;
-    const nom = reponse.trim().slice(0, 40);
-    if(nom) noms[vue] = nom; else delete noms[vue];
-    ecrireNomsNouveau(noms);
-    renumeroterOngletsNouveau();
+    const champ = document.createElement('input');
+    champ.type = 'text';
+    champ.className = 'onglet-saisie';
+    champ.maxLength = 40;
+    champ.value = noms[vue] || '';
+    champ.placeholder = 'Ex: Vary';
+    champ.setAttribute('aria-label', 'Anaran\'ny entana ao amin\'ity onglet ity');
+    span.style.display = 'none';
+    span.after(champ);
+    champ.focus();
+    let fini = false;
+    function terminer(garder){
+      if(fini) return;
+      fini = true;
+      if(garder){
+        const nom = champ.value.trim().slice(0, 40);
+        const n = lireNomsNouveau();
+        if(nom) n[vue] = nom; else delete n[vue];
+        ecrireNomsNouveau(n);
+      }
+      champ.remove();
+      span.style.display = '';
+      renumeroterOngletsNouveau();
+    }
+    champ.addEventListener('click', function(e){ e.stopPropagation(); });
+    champ.addEventListener('keydown', function(e){
+      if(e.key === 'Enter'){ e.preventDefault(); terminer(true); }
+      else if(e.key === 'Escape'){ e.preventDefault(); terminer(false); }
+    });
+    champ.addEventListener('blur', function(){ terminer(true); });
   }
 
   // Le ✏️ ne se montre que sur l'onglet ouvert (components.css).
@@ -512,16 +639,20 @@
     if(fermer) fermer.before(crayon); else onglet.appendChild(crayon);
   }
 
+  // Ses articles restent au stock (et dans « Articles ») ; seul l'onglet et
+  // son tableau s'en vont.
   function fermerOngletNouveau(num){
-    const vue = document.getElementById('dash-nouveau' + num);
+    const nomVue = 'nouveau' + num;
+    const combien = items.filter(function(it){ return it.groupe === nomVue; }).length;
+    if(combien && !confirm('Misy entana ' + combien + ' noforonina tao amin\'ity onglet ity. Mijanona ao amin\'ny stock izy ireo, fa tsy hanana tableau de bord manokana intsony. Hidio ve ?')) return;
+    const vue = document.getElementById('dash-' + nomVue);
     const etaitAffichee = vue && vue.classList.contains('active');
     if(vue) vue.remove();
-    document.querySelectorAll('.dash-tab[data-dash="nouveau' + num + '"]').forEach(function(t){ t.remove(); });
+    document.querySelectorAll('.dash-tab[data-dash="' + nomVue + '"]').forEach(function(t){ t.remove(); });
     const noms = lireNomsNouveau();
-    if(noms['nouveau' + num]){ delete noms['nouveau' + num]; ecrireNomsNouveau(noms); }
+    if(noms[nomVue]){ delete noms[nomVue]; ecrireNomsNouveau(noms); }
     const i = FORMULAIRES_AJOUTER.indexOf('Nouveau' + num);
     if(i >= 0) FORMULAIRES_AJOUTER.splice(i, 1);
-    refreshItemRefField();
     renumeroterOngletsNouveau();
     ecrireOngletsNouveau();
     if(etaitAffichee) ouvrirVue('nouveau');
@@ -536,16 +667,12 @@
     plus.title = 'Nouvel article hafa';
     plus.setAttribute('role', 'button');
     plus.setAttribute('aria-label', 'Sokafy onglet Nouvel article hafa');
+    // L'onglet s'ouvre, et son nom (Vary, Menaka...) s'écrit tout de suite.
     plus.addEventListener('click', function(){
-      // Toujours après le dernier ouvert : les onglets restent dans l'ordre
-      // de leurs numéros, et leurs N aussi.
-      let num = 2;
-      FORMULAIRES_AJOUTER.forEach(function(sfx){
-        const n = parseInt(sfx.slice('Nouveau'.length), 10);
-        if(!isNaN(n) && n >= num) num = n + 1;
-      });
+      const num = prochainNumeroNouveau();
       creerOngletNouveau(num);
       ouvrirVue('nouveau' + num);
+      renommerOngletNouveau('nouveau' + num);
     });
     onglet.after(plus);
   });
