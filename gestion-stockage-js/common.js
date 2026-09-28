@@ -5741,10 +5741,12 @@
   // restait seule derrière elles, à nu sur le fond d'écran. Les Articles
   // portent maintenant leurs propres onglets, et la recherche.
   // Le tableau de bord n'en est plus : il s'ouvre en fenêtre, avec ses onglets.
-  const VUES_DANS_LA_PAGE = ['historique', 'ajouter', 'comptes', 'acheter'];
+  const VUES_DANS_LA_PAGE = ['historique', 'ajouter', 'nouveau', 'comptes', 'acheter'];
   function updateSubTabsVisibility(){
     const subTabs = document.getElementById('stockSubTabs');
-    if(subTabs) subTabs.style.display = VUES_DANS_LA_PAGE.indexOf(vueAffichee()) >= 0 ? '' : 'none';
+    // Les « Nouvel article » ouverts par le + (nouveau2, nouveau3...) en sont aussi.
+    const vue = vueAffichee().replace(/^nouveau\d+$/, 'nouveau');
+    if(subTabs) subTabs.style.display = VUES_DANS_LA_PAGE.indexOf(vue) >= 0 ? '' : 'none';
   }
   updateSubTabsVisibility();
 
@@ -5918,7 +5920,7 @@
     }
     if(nom === 'accueil' && typeof renderCommunityPanel === 'function') renderCommunityPanel();
     if(nom === 'historique' && typeof renderMovementsHistory === 'function') renderMovementsHistory();
-    if(nom === 'ajouter' && typeof renderStock === 'function') renderStock();
+    if((nom === 'ajouter' || /^nouveau\d*$/.test(nom)) && typeof renderStock === 'function') renderStock();
     if(nom === 'articles' && typeof renderStock === 'function') renderStock();
     if(nom === 'acheter' && typeof populateAcheterItemSelect === 'function') populateAcheterItemSelect();
     if(nom === 'comptes' && typeof renderClientsList === 'function') renderClientsList();

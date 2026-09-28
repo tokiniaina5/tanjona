@@ -261,29 +261,59 @@
     return div.innerHTML;
   }
 
-  function nextRef(){
+  // Sans préfixe : 1, 2, 3... (« Ajouter », les achats). Avec « N » : N1, N2...
+  // la série à part des « Nouvel article », qui ne croise jamais l'autre.
+  function nextRef(prefixe){
+    prefixe = prefixe || '';
     let maxNum = 0;
     items.forEach(function(it){
-      const n = parseInt(it.ref, 10);
+      const r = String(it.ref == null ? '' : it.ref);
+      const n = prefixe
+        ? (r.indexOf(prefixe) === 0 ? parseInt(r.slice(prefixe.length), 10) : NaN)
+        : parseInt(r, 10);
       if(!isNaN(n) && n > maxNum) maxNum = n;
     });
-    return String(maxNum + 1);
+    return prefixe + (maxNum + 1);
   }
 
+  // Plusieurs onglets portent le même formulaire : « Entrée en stock »
+  // (identifiants itemRef, itemName...), « Nouvel article » (les mêmes,
+  // suivis de Nouveau) et ceux que le « + » ouvre à côté (Nouveau2,
+  // Nouveau3...). Les « Nouvel article » ne créent que des marchandises
+  // encore absentes du stock, dans la série N1, N2...
+  const FORMULAIRES_AJOUTER = ['', 'Nouveau'];
+  function estNouvelArticle(sfx){ return sfx.indexOf('Nouveau') === 0; }
+  function prefixeRef(sfx){ return estNouvelArticle(sfx) ? 'N' : ''; }
+
+  // Chaque onglet « Nouvel article » montre son propre numéro : les plus
+  // petits N encore libres, dans l'ordre des onglets (N1, N2, N3...). C'est
+  // ce numéro-là que reçoit l'article créé depuis cet onglet.
   function refreshItemRefField(){
-    const el = document.getElementById('itemRef');
-    if(el) el.value = nextRef();
+    const pris = new Set(items.map(function(it){ return String(it.ref); }));
+    let n = 1;
+    FORMULAIRES_AJOUTER.forEach(function(sfx){
+      const el = document.getElementById('itemRef' + sfx);
+      if(!el) return;
+      if(!estNouvelArticle(sfx)){ el.value = nextRef(); return; }
+      while(pris.has('N' + n)) n++;
+      el.value = 'N' + n;
+      n++;
+    });
   }
   refreshItemRefField();
 
-  document.getElementById('addItemBtn').addEventListener('click', function(){
-    const name = document.getElementById('itemName').value.trim();
-    const category = document.getElementById('itemCategory').value.trim();
-    const qty = Number(document.getElementById('itemQty').value) || 0;
-    const unit = document.getElementById('itemUnit').value || 'pièce';
-    const price = Number(document.getElementById('itemPrice').value) || 0;
-    const seuil = Number(document.getElementById('itemSeuil').value) || 0;
-    const supplier = document.getElementById('itemSupplier').value.trim();
+  FORMULAIRES_AJOUTER.forEach(brancherFormulaireAjouter);
+  function brancherFormulaireAjouter(sfx){
+  const bouton = document.getElementById('addItemBtn' + sfx);
+  if(!bouton) return;
+  bouton.addEventListener('click', function(){
+    const name = document.getElementById('itemName' + sfx).value.trim();
+    const category = document.getElementById('itemCategory' + sfx).value.trim();
+    const qty = Number(document.getElementById('itemQty' + sfx).value) || 0;
+    const unit = document.getElementById('itemUnit' + sfx).value || 'pièce';
+    const price = Number(document.getElementById('itemPrice' + sfx).value) || 0;
+    const seuil = Number(document.getElementById('itemSeuil' + sfx).value) || 0;
+    const supplier = document.getElementById('itemSupplier' + sfx).value.trim();
     if(!name) return;
 
     // raha efa misy article mitovy anarana, ampio ny stock efa ao
@@ -291,6 +321,11 @@
     const existing = items.find(function(it){
       return it.name.toLowerCase() === name.toLowerCase();
     });
+
+    if(existing && estNouvelArticle(sfx)){
+      alert('« ' + existing.name + ' » efa misy ao amin\'ny stock (réf. ' + existing.ref + '). Ampidiro ao amin\'ny « 📦 Entrée en stock » ny fanampiny.');
+      return;
+    }
 
     let id, ref;
     if(existing){
@@ -304,7 +339,10 @@
       if(supplier) existing.supplier = supplier;
     } else {
       id = genId();
-      ref = nextRef();
+      const affiche = document.getElementById('itemRef' + sfx).value;
+      ref = (estNouvelArticle(sfx) && /^Nd+$/.test(affiche) &&
+             !items.some(function(it){ return String(it.ref) === affiche; }))
+        ? affiche : nextRef(prefixeRef(sfx));
       items.push({ id, ref, name, category, qty, unit, price, seuil, supplier });
     }
     saveItems(items);
@@ -317,12 +355,12 @@
       });
       saveMovements(movements);
     }
-    document.getElementById('itemName').value = '';
-    document.getElementById('itemCategory').value = '';
-    document.getElementById('itemQty').value = 1;
-    document.getElementById('itemPrice').value = 0;
-    document.getElementById('itemSeuil').value = 5;
-    document.getElementById('itemSupplier').value = '';
+    document.getElementById('itemName' + sfx).value = '';
+    document.getElementById('itemCategory' + sfx).value = '';
+    document.getElementById('itemQty' + sfx).value = 1;
+    document.getElementById('itemPrice' + sfx).value = 0;
+    document.getElementById('itemSeuil' + sfx).value = 5;
+    document.getElementById('itemSupplier' + sfx).value = '';
     refreshItemRefField();
     renderStock();
     renderMovementsHistory();
@@ -332,7 +370,7 @@
     // « 📢 Avoaka ao amin'ny fil » coché : on passe tout de suite à la fiche
     // de cet article. La case se décoche : le prochain article choisira pour
     // lui-même.
-    const publier = document.getElementById('itemPublier');
+    const publier = document.getElementById('itemPublier' + sfx);
     const ajoute = items.find(function(it){ return it.id === id; });
     if(publier && publier.checked){
       publier.checked = false;
@@ -346,6 +384,173 @@
       });
     }
   });
+  }
+
+  // ---- Le « + » des Nouvel article ----
+  // Posé après l'onglet « 🆕 Nouvel article » dans chaque rangée : chaque
+  // pression ouvre un onglet de plus (Nouvel article 2, 3...), copie du
+  // premier formulaire, que son ✕ referme. Les onglets ouverts reviennent
+  // au rechargement de la page.
+  const CLE_ONGLETS_NOUVEAU = 'stockmanager_onglets_nouveau';
+  function lireOngletsNouveau(){
+    try{
+      const v = JSON.parse(localStorage.getItem(CLE_ONGLETS_NOUVEAU) || '[]');
+      return Array.isArray(v) ? v.filter(function(n){ return Number.isInteger(n) && n >= 2; }) : [];
+    }catch(e){ return []; }
+  }
+  function ecrireOngletsNouveau(){
+    const nums = FORMULAIRES_AJOUTER
+      .map(function(sfx){ return parseInt(sfx.slice('Nouveau'.length), 10); })
+      .filter(function(n){ return !isNaN(n); });
+    try{ localStorage.setItem(CLE_ONGLETS_NOUVEAU, JSON.stringify(nums)); }catch(e){}
+  }
+
+  function ouvrirVue(nom){
+    if(typeof showDashView === 'function') showDashView(nom);
+    if(typeof saveLastView === 'function') saveLastView();
+  }
+
+  function creerOngletNouveau(num){
+    const modele = document.getElementById('dash-nouveau');
+    if(!modele || document.getElementById('dash-nouveau' + num)) return;
+    const sfx = 'Nouveau' + num;
+    const vue = modele.cloneNode(true);
+    vue.id = 'dash-nouveau' + num;
+    vue.classList.remove('active');
+    vue.querySelectorAll('[id]').forEach(function(el){
+      if(/Nouveau$/.test(el.id)) el.id = el.id + num;
+    });
+    vue.querySelectorAll('label[for]').forEach(function(l){
+      if(/Nouveau$/.test(l.htmlFor)) l.htmlFor = l.htmlFor + num;
+    });
+    vue.querySelectorAll('input').forEach(function(el){
+      if(el.type === 'checkbox') el.checked = false;
+      else el.value = el.defaultValue;
+    });
+    vue.querySelectorAll('select').forEach(function(el){ el.selectedIndex = 0; });
+    const vues = document.querySelectorAll('[id^="dash-nouveau"]');
+    vues[vues.length - 1].after(vue);
+
+    document.querySelectorAll('.onglet-plus-nouveau').forEach(function(plus){
+      const onglet = document.createElement('div');
+      onglet.className = 'dash-tab';
+      onglet.dataset.dash = 'nouveau' + num;
+      onglet.innerHTML = '<span class="onglet-nom"></span>' +
+        ' <span class="onglet-fermer" title="Hidio" aria-label="Hidio">✕</span>';
+      ajouterCrayon(onglet);
+      onglet.addEventListener('click', function(e){
+        if(e.target.closest('.onglet-fermer')){ fermerOngletNouveau(num); return; }
+        ouvrirVue('nouveau' + num);
+      });
+      plus.before(onglet);
+    });
+
+    FORMULAIRES_AJOUTER.push(sfx);
+    brancherFormulaireAjouter(sfx);
+    refreshItemRefField();
+    renumeroterOngletsNouveau();
+    ecrireOngletsNouveau();
+  }
+
+  // Les onglets se nomment d'après leur place (2, 3, 4...) et non d'après
+  // leur identifiant : un onglet refermé ne laisse pas de trou dans les noms,
+  // qui suivent ainsi les N affichés dedans.
+  // Un nom choisi au ✏️ remplace celui-là, onglet par onglet (clé : la vue,
+  // « nouveau », « nouveau3 »...), et se garde au rechargement.
+  const CLE_NOMS_NOUVEAU = 'stockmanager_noms_nouveau';
+  function lireNomsNouveau(){
+    try{
+      const v = JSON.parse(localStorage.getItem(CLE_NOMS_NOUVEAU) || '{}');
+      return v && typeof v === 'object' ? v : {};
+    }catch(e){ return {}; }
+  }
+  function ecrireNomsNouveau(noms){
+    try{ localStorage.setItem(CLE_NOMS_NOUVEAU, JSON.stringify(noms)); }catch(e){}
+  }
+
+  function renumeroterOngletsNouveau(){
+    const noms = lireNomsNouveau();
+    let place = 0;
+    FORMULAIRES_AJOUTER.forEach(function(sfx){
+      if(!estNouvelArticle(sfx)) return;
+      place++;
+      const vue = 'nouveau' + sfx.slice('Nouveau'.length);
+      const choisi = noms[vue];
+      const nom = choisi || ('🆕 Nouvel article' + (place > 1 ? ' ' + place : ''));
+      const titre = document.querySelector('#dash-' + vue + ' h3');
+      if(titre) titre.textContent = choisi ? nom : nom + ' (entana vaovao)';
+      document.querySelectorAll('.dash-tab[data-dash="' + vue + '"] .onglet-nom').forEach(function(el){
+        el.textContent = nom;
+      });
+    });
+  }
+
+  function renommerOngletNouveau(vue){
+    const noms = lireNomsNouveau();
+    const el = document.querySelector('.dash-tab[data-dash="' + vue + '"] .onglet-nom');
+    const reponse = prompt('Anarana vaovao ho an\'ity onglet ity (avelao ho foana raha hiverina amin\'ny taloha) :',
+      noms[vue] || (el ? el.textContent : ''));
+    if(reponse === null) return;
+    const nom = reponse.trim().slice(0, 40);
+    if(nom) noms[vue] = nom; else delete noms[vue];
+    ecrireNomsNouveau(noms);
+    renumeroterOngletsNouveau();
+  }
+
+  // Le ✏️ ne se montre que sur l'onglet ouvert (components.css).
+  function ajouterCrayon(onglet){
+    const crayon = document.createElement('span');
+    crayon.className = 'onglet-crayon';
+    crayon.textContent = '✏️';
+    crayon.title = 'Ovay ny anarana';
+    crayon.setAttribute('aria-label', 'Ovay ny anarana');
+    crayon.addEventListener('click', function(e){
+      e.stopPropagation();
+      renommerOngletNouveau(onglet.dataset.dash);
+    });
+    const fermer = onglet.querySelector('.onglet-fermer');
+    if(fermer) fermer.before(crayon); else onglet.appendChild(crayon);
+  }
+
+  function fermerOngletNouveau(num){
+    const vue = document.getElementById('dash-nouveau' + num);
+    const etaitAffichee = vue && vue.classList.contains('active');
+    if(vue) vue.remove();
+    document.querySelectorAll('.dash-tab[data-dash="nouveau' + num + '"]').forEach(function(t){ t.remove(); });
+    const noms = lireNomsNouveau();
+    if(noms['nouveau' + num]){ delete noms['nouveau' + num]; ecrireNomsNouveau(noms); }
+    const i = FORMULAIRES_AJOUTER.indexOf('Nouveau' + num);
+    if(i >= 0) FORMULAIRES_AJOUTER.splice(i, 1);
+    refreshItemRefField();
+    renumeroterOngletsNouveau();
+    ecrireOngletsNouveau();
+    if(etaitAffichee) ouvrirVue('nouveau');
+  }
+
+  document.querySelectorAll('.dash-tab[data-dash="nouveau"]').forEach(function(onglet){
+    onglet.innerHTML = '<span class="onglet-nom">' + onglet.innerHTML + '</span>';
+    ajouterCrayon(onglet);
+    const plus = document.createElement('div');
+    plus.className = 'dash-tab onglet-plus-nouveau';
+    plus.textContent = '+';
+    plus.title = 'Nouvel article hafa';
+    plus.setAttribute('role', 'button');
+    plus.setAttribute('aria-label', 'Sokafy onglet Nouvel article hafa');
+    plus.addEventListener('click', function(){
+      // Toujours après le dernier ouvert : les onglets restent dans l'ordre
+      // de leurs numéros, et leurs N aussi.
+      let num = 2;
+      FORMULAIRES_AJOUTER.forEach(function(sfx){
+        const n = parseInt(sfx.slice('Nouveau'.length), 10);
+        if(!isNaN(n) && n >= num) num = n + 1;
+      });
+      creerOngletNouveau(num);
+      ouvrirVue('nouveau' + num);
+    });
+    onglet.after(plus);
+  });
+  lireOngletsNouveau().forEach(creerOngletNouveau);
+  renumeroterOngletsNouveau();
 
   function movementTypeLabel(type){
     if(type === 'entree') return '<span style="color:#6ee7b7;">▲ Entrée</span>';

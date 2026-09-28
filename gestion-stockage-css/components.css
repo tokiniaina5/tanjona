@@ -6,6 +6,13 @@
   }
   .dash-tab:hover, .pc-onglet:hover{ color:var(--text); }
   .dash-tab.active, .pc-onglet.active{ color:var(--cyan); border-color:var(--cyan); }
+  /* Le + qui ouvre un « Nouvel article » de plus, et le ✕ qui le referme. */
+  .onglet-plus-nouveau{ font-weight:700; padding-left:0.7rem; padding-right:0.7rem; }
+  .onglet-fermer{ margin-left:0.35rem; opacity:0.6; font-size:0.85em; }
+  .onglet-fermer:hover{ opacity:1; color:var(--amber); }
+  .onglet-crayon{ display:none; margin-left:0.35rem; font-size:0.8em; opacity:0.7; cursor:pointer; }
+  .dash-tab.active .onglet-crayon{ display:inline; }
+  .onglet-crayon:hover{ opacity:1; }
   /* L'Administratif Commun regarde, il ne touche pas : rien de ce qui s'y
      montre ne répond au doigt, sauf les graphiques qu'on survole. */
   .lecture-seule button, .lecture-seule input, .lecture-seule select,

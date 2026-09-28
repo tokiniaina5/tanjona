@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="9cffdf08">
+<meta name="ny-asako-version" content="e65f97d6">
 <title>Ny asako — Tanjona</title>
 <!-- Application installable : le manifeste décrit le nom, l'icône et la façon
      de s'ouvrir ; le reste est affaire de service worker, enregistré plus bas. -->
@@ -136,7 +136,7 @@
 <!-- fin des écrans de démarrage iOS -->
 <link rel="icon" href="/icone-192.png" type="image/png">
 <link rel="stylesheet" href="gestion-stockage-css/base.css?v=059a4b85">
-<link rel="stylesheet" href="gestion-stockage-css/components.css?v=fff412af">
+<link rel="stylesheet" href="gestion-stockage-css/components.css?v=19cf80e1">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" crossorigin="anonymous"></script>
@@ -781,7 +781,8 @@
         <div class="dash-tabs" id="stockSubTabs">
           <div class="dash-tab" data-dash="dashboard">📊 Tableau de bord</div>
           <div class="dash-tab" data-dash="historique">📜 Historique des mouvements</div>
-          <div class="dash-tab" data-dash="ajouter">➕ Ajouter</div>
+          <div class="dash-tab" data-dash="ajouter">📦 Entrée en stock</div>
+          <div class="dash-tab" data-dash="nouveau">🆕 Nouvel article</div>
           <div class="dash-tab" data-dash="comptes">👥 Gestion de compte</div>
         </div>
 
@@ -908,7 +909,8 @@
           <div class="dash-tabs">
             <div class="dash-tab" data-dash="dashboard">📊 Tableau de bord</div>
             <div class="dash-tab" data-dash="historique">📜 Historique des mouvements</div>
-            <div class="dash-tab" data-dash="ajouter">➕ Ajouter</div>
+            <div class="dash-tab" data-dash="ajouter">📦 Entrée en stock</div>
+            <div class="dash-tab" data-dash="nouveau">🆕 Nouvel article</div>
             <div class="dash-tab" data-dash="comptes">👥 Gestion de compte</div>
           </div>
           <div class="global-search" style="position:relative; margin:0 0 1.2rem;">
@@ -1497,7 +1499,8 @@
             <div class="dash-tab" data-dash="articles">📋 Articles</div>
             <div class="dash-tab" data-dash="dashboard">📊 Tableau de bord</div>
             <div class="dash-tab" data-dash="historique">📜 Historique des mouvements</div>
-            <div class="dash-tab" data-dash="ajouter">➕ Ajouter</div>
+            <div class="dash-tab" data-dash="ajouter">📦 Entrée en stock</div>
+            <div class="dash-tab" data-dash="nouveau">🆕 Nouvel article</div>
             <div class="dash-tab" data-dash="comptes">👥 Gestion de compte</div>
           </div>
 
@@ -1594,7 +1597,7 @@
         <!-- ===== AJOUTER ===== -->
         <div class="dash-view" id="dash-ajouter">
             <div class="panel">
-              <h3>Ajouter un article (entrée en stock)</h3>
+              <h3>📦 Entrée en stock</h3>
               <div class="form-grid">
                 <div class="field" style="margin-bottom:0;">
                   <label>Référence (automatique)</label>
@@ -1645,6 +1648,65 @@
                   <input type="checkbox" id="itemPublier"> 📝 Hameno famaritana
                 </label>
                 <button class="btn btn-primary" id="addItemBtn" style="width:auto;">Ajouter</button>
+              </div>
+            </div>
+
+        </div>
+
+        <!-- ===== NOUVEL ARTICLE ===== -->
+        <!-- Pour une marchandise qui n'existe pas encore : elle reçoit sa
+             propre référence. Un nom déjà dans le stock est refusé (stock.js) :
+             celle-là se réapprovisionne par « Ajouter ». -->
+        <div class="dash-view" id="dash-nouveau">
+            <div class="panel">
+              <h3>🆕 Nouvel article (entana vaovao)</h3>
+              <div class="form-grid">
+                <div class="field" style="margin-bottom:0;">
+                  <label>Référence (automatique)</label>
+                  <input id="itemRefNouveau" type="text" readonly>
+                </div>
+                <div class="field" style="margin-bottom:0;">
+                  <label>Nom</label>
+                  <input id="itemNameNouveau" type="text" placeholder="Ex: Câble USB">
+                </div>
+                <div class="field" style="margin-bottom:0;">
+                  <label>Catégorie</label>
+                  <input id="itemCategoryNouveau" type="text" placeholder="Ex: Électronique">
+                </div>
+                <div class="field" style="margin-bottom:0;">
+                  <label>Quantité</label>
+                  <input id="itemQtyNouveau" type="number" min="0" value="1">
+                </div>
+                <div class="field" style="margin-bottom:0;">
+                  <label>Unité</label>
+                  <select id="itemUnitNouveau">
+                    <option value="pièce">Pièce</option>
+                    <option value="kg">Kg</option>
+                    <option value="g">g</option>
+                    <option value="l">Litre</option>
+                    <option value="m">Mètre</option>
+                    <option value="boîte">Boîte</option>
+                    <option value="carton">Carton</option>
+                    <option value="sac">Sac</option>
+                    <option value="paire">Paire</option>
+                  </select>
+                </div>
+                <div class="field" style="margin-bottom:0;">
+                  <label>Prix unitaire (Ar)</label>
+                  <input id="itemPriceNouveau" type="number" min="0" value="0">
+                </div>
+                <div class="field" style="margin-bottom:0;">
+                  <label>Seuil d'alerte</label>
+                  <input id="itemSeuilNouveau" type="number" min="0" value="5">
+                </div>
+                <div class="field" style="margin-bottom:0;">
+                  <label>Fournisseur (optionnel)</label>
+                  <input id="itemSupplierNouveau" type="text" placeholder="Ex: Grossiste Analakely">
+                </div>
+                <label class="case-publier" for="itemPublierNouveau">
+                  <input type="checkbox" id="itemPublierNouveau"> 📝 Hameno famaritana
+                </label>
+                <button class="btn btn-primary" id="addItemBtnNouveau" style="width:auto;">Créer l'article</button>
               </div>
             </div>
 
@@ -2941,8 +3003,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=8975d31c"></script>
-<script src="gestion-stockage-js/stock.js?v=ae755b14"></script>
+<script src="gestion-stockage-js/common.js?v=0f22c5ae"></script>
+<script src="gestion-stockage-js/stock.js?v=a9b788e6"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=7204c861"></script>
 <script src="gestion-stockage-js/factures.js?v=69af0cd7"></script>
