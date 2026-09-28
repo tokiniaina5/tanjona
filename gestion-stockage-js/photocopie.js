@@ -272,7 +272,9 @@
   // noir et blanc (les pixels passés en gris, un PDF n'a pas de filtre CSS),
   // une ou deux images par page.
   function exporterPdf(nom, blobs, options) {
-    const o = Object.assign({ isa: 1, loko: 'loko', deux: false }, options);
+    // « telecharger: false » : le PDF va seulement dans « 📄 PDF », sans
+    // fichier téléchargé (c'est ainsi que part chaque scan enregistré).
+    const o = Object.assign({ isa: 1, loko: 'loko', deux: false, telecharger: true, karazana: 'photocopie' }, options);
     if (!window.jspdf) { alert('Tsy tafiditra ny bibliotheka PDF.'); return Promise.resolve(false); }
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
@@ -298,9 +300,9 @@
           });
         }
       }
-      pdf.save(nomFichier(nom) + '.pdf');
+      if (o.telecharger) pdf.save(nomFichier(nom) + '.pdf');
       // Tout PDF du site se retrouve aussi dans « 📄 PDF » (pdf.js).
-      if (window.__pdfTahiry) window.__pdfTahiry.ampio(nomFichier(nom) + '.pdf', pdf.output('blob'), 'photocopie').catch(function () {});
+      if (window.__pdfTahiry) window.__pdfTahiry.ampio(nomFichier(nom) + '.pdf', pdf.output('blob'), o.karazana).catch(function () {});
       return true;
     }, function (e) {
       console.error('photocopie PDF', e);
@@ -775,17 +777,19 @@
       if (!pages.length) { dire('scan', 'Mbola tsy misy pejy voascan.', true); return; }
       const d = { id: nouvelId(), type: 'scan', nom: nomScan(), at: Date.now(), pages: pages };
       garderDocument(d).then(function () {
+        // Chaque scan enregistré part aussi, en PDF, dans « 📄 PDF ».
+        exporterPdf(d.nom, pages, { telecharger: false, karazana: 'scan' });
         scanPejy = [];
         $('pcScanNom').value = '';
         fermerCamera();
-        dire('scan', '✅ Voatahiry : ' + d.nom);
+        dire('scan', '✅ Voatahiry : ' + d.nom + ' — ary ao amin\'ny 📄 PDF koa.');
         rendreScanPejy(); rendreListe('scan'); rendreTableau();
       }, function () { dire('scan', 'Tsy voatahiry : feno angamba ny toerana.', true); });
     });
     $('pcScanPdf').addEventListener('click', function () {
       const pages = pagesPretes();
       if (!pages.length) { dire('scan', 'Mbola tsy misy pejy voascan.', true); return; }
-      exporterPdf(nomScan(), pages);
+      exporterPdf(nomScan(), pages, { karazana: 'scan' });
     });
     $('pcScanKopia').addEventListener('click', function () {
       const pages = pagesPretes();
