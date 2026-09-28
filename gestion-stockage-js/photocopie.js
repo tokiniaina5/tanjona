@@ -776,17 +776,24 @@
     const vus = lireVus();
     const dejaVu = new Set(vus);
     const fichiers = [];
+    let derniereImage = null;   // la plus récente du dossier, déjà vue ou non
     for await (const entree of dossier.values()) {
       if (entree.kind !== 'file') continue;
       if (!IMAGE_SCAN.test(entree.name) && !/\.pdf$/i.test(entree.name)) continue;
       const f = await entree.getFile();
+      if (IMAGE_SCAN.test(f.name) && (!derniereImage || f.lastModified > derniereImage.lastModified)) derniereImage = f;
       if (!dejaVu.has(signature(f))) fichiers.push(f);
     }
     // Un dossier choisi pour la première fois contient déjà tout l'historique :
     // seuls les scans de la dernière heure sont « vaovao ».
-    const recents = nouveau
+    let recents = nouveau
       ? fichiers.filter(function (f) { return Date.now() - f.lastModified < 60 * 60 * 1000; })
       : fichiers;
+    // La photocopie va toujours jusqu'à la boîte d'impression : sans page
+    // nouvelle, c'est la dernière page scannée du dossier qui repart.
+    if (!recents.filter(function (f) { return IMAGE_SCAN.test(f.name); }).length && pour === 'kopia' && derniereImage) {
+      recents = [derniereImage];
+    }
     fichiers.forEach(function (f) { vus.push(signature(f)); });
     ecrireVus(vus);
     if (!recents.length) { dire(ici, 'Tsy misy ' + mot + ' vaovao ao amin\'ny « ' + dossier.name + ' ».'); return; }
