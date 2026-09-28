@@ -440,7 +440,12 @@
           // Sur PC, un seul bouton, qui compte une photocopie faite sur la
           // machine (voir brancher) ; le reste de l'onglet reste caché.
           (PC_DOSSIER
-            ? '<button type="button" class="btn btn-primary" id="pcKopiaManao" style="width:auto;">🖨️ Manao photocopie</button>'
+            ? '<div style="display:flex; gap:0.6rem; align-items:center; flex-wrap:wrap;">' +
+                '<button type="button" class="btn btn-primary" id="pcKopiaManao" style="width:auto;">🖨️ Manao photocopie</button>' +
+                // Le nombre de feuilles de cette photocopie, noté avec elle.
+                '<label for="pcKopiaManaoIsa" style="font-size:0.8rem; color:var(--muted);">Isan\'ny taratasy</label>' +
+                '<input type="number" id="pcKopiaManaoIsa" min="1" value="1" style="' + CHAMP + ' width:5rem; text-align:right;">' +
+              '</div>'
             : '') +
           '<div' + (PC_DOSSIER ? ' style="display:none;"' : '') + '>' +
           '<div style="display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center;">' +
@@ -1293,7 +1298,9 @@
     // ensuite dans le tableau.
     if ($('pcKopiaManao')) {
       $('pcKopiaManao').addEventListener('click', function () {
-        noterAsa('Photocopie', 1, 1, 'nb');
+        const isa = Math.max(1, parseInt($('pcKopiaManaoIsa').value, 10) || 1);
+        noterAsa('Photocopie', isa, 1, 'nb');
+        $('pcKopiaManaoIsa').value = 1;
         $('pcKopiaStatut').textContent = '';
         rendreKopiaAndro();
       });
