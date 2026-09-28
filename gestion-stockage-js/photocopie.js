@@ -1032,16 +1032,28 @@
     }
     let pejy = 0, vola = 0;
     box.innerHTML = '<table style="width:100%; font-size:0.85rem; margin-top:0;"><thead><tr>' +
-      '<th>Ora</th><th style="text-align:right;">Pejy natonta</th><th style="text-align:right;">Vola</th></tr></thead><tbody>' +
+      '<th>Ora</th><th style="text-align:right;">Pejy natonta</th><th style="text-align:right;">Vola</th><th>Samihafa</th></tr></thead><tbody>' +
       lignes.map(function (a) {
         const n = a.pejy * a.isa;
         pejy += n; vola += a.vola;
         return '<tr><td>' + new Date(a.at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) + '</td>' +
           '<td style="text-align:right;"><input type="number" min="0" value="' + n + '" data-kopia-pejy="' + a.id + '" ' +
             'aria-label="Pejy natonta" style="' + CHAMP + ' width:5rem; text-align:right; padding:0.2rem 0.4rem;"></td>' +
-          '<td style="text-align:right;">' + ariary(a.vola) + '</td></tr>';
+          '<td style="text-align:right;">' + ariary(a.vola) + '</td>' +
+          // « Samihafa » : un mot libre sur cette copie (client, remarque…).
+          '<td><input type="text" value="' + html(a.samihafa || '') + '" data-kopia-samihafa="' + a.id + '" ' +
+            'aria-label="Samihafa" style="' + CHAMP + ' width:100%; min-width:8rem; box-sizing:border-box; padding:0.2rem 0.4rem;"></td></tr>';
       }).join('') +
-      '</tbody><tfoot><tr><th>Androany</th><th style="text-align:right;">' + pejy + '</th><th style="text-align:right;">' + ariary(vola) + '</th></tr></tfoot></table>';
+      '</tbody><tfoot><tr><th>Androany</th><th style="text-align:right;">' + pejy + '</th><th style="text-align:right;">' + ariary(vola) + '</th><th></th></tr></tfoot></table>';
+    box.querySelectorAll('[data-kopia-samihafa]').forEach(function (inp) {
+      inp.addEventListener('change', function () {
+        const tous = lireAsa();
+        const a = tous.filter(function (x) { return x.id === inp.dataset.kopiaSamihafa; })[0];
+        if (!a) return;
+        a.samihafa = inp.value.trim();
+        ecrireJson(CLE_ASA, tous);
+      });
+    });
     // Le nombre se corrige à la main (plus d'exemplaires choisis dans la boîte
     // d'impression, une feuille ratée…) : le montant suit, au même prix la page.
     box.querySelectorAll('[data-kopia-pejy]').forEach(function (inp) {
