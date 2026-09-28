@@ -25,7 +25,7 @@
   const SUFFIXE = (typeof SUFFIXE_MPIASA !== 'undefined') ? SUFFIXE_MPIASA : '';
   const EST_MPIASA = !!SUFFIXE;
   const BUCKET = 'pdf';
-  const SARY = { facture: '🧾 ', photocopie: '📠 ', scan: '📑 ', taratasy: '📜 ' };
+  const SARY = { facture: '🧾 ', photocopie: '📠 ', scan: '📑 ', sary: '📷 ', taratasy: '📜 ' };
 
   function html(v) {
     return String(v ?? '')
@@ -391,7 +391,7 @@
         '</div>' +
         '<p style="font-size:0.8rem; color:var(--muted); margin:0 0 0.8rem; line-height:1.6;">' +
           'Eto no mipetraka ny PDF rehetra noforonin\'ny site : facture (vao mivoaka ho amin\'ny impression), ' +
-          'scan, photocopie ary taratasy. ' +
+          'scan, sary, photocopie ary taratasy. ' +
           'Ahodino ankavia na ankavanana ny andalana, na tsindrio ✕, raha hamafa. ' +
           (enLigne
             ? '<strong style="color:var(--text);">☁ An-tserasera</strong> : hita amin\'ny fitaovana rehetra idiranao amin\'ity kaonty ity.'

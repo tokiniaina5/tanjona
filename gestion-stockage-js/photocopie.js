@@ -93,7 +93,7 @@
   // Une ligne : { id, at, nom, pejy (feuilles par exemplaire), isa (exemplaires), loko: 'nb' | 'loko' | 'scan' | 'sary', vola }.
   // « scan » : une page scannée ; « sary » : une photo prise. Chacun à son prix.
   function lireAsa() { return lireJson(CLE_ASA, []); }
-  // Les prix de tous les services, réglés dans « 💲 Vidiny » (tableau de bord).
+  // Les prix de tous les services ; chacun se règle dans l'onglet de son service (panneauPrix).
   // Ce qui n'a pas de prix connu part à 0 : à régler avant d'encaisser.
   const PRIX = [
     ['nb', 'Photocopie mainty'], ['loko', 'Photocopie miloko'],
@@ -391,17 +391,6 @@
           '<h3>📜 Asa natao</h3>' +
           '<div id="pcHistorique" style="overflow-x:auto;"></div>' +
         '</div>' +
-        // Les prix de tous les services, en un seul endroit.
-        '<div class="panel" style="margin-top:1rem;">' +
-          '<h3>💲 Vidiny</h3>' +
-          '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(10rem, 1fr)); gap:0.7rem; align-items:end;">' +
-            PRIX.map(function (p) {
-              return champ('pcVidiny_' + p[0], p[1] + ' (Ar)', '<input type="number" id="pcVidiny_' + p[0] + '" min="0" step="10" style="' + CHAMP + ' width:100%; box-sizing:border-box;">');
-            }).join('') +
-            '<button type="button" class="btn btn-sm" id="pcVidinyTehirizo" style="width:auto;">💾 Tehirizo</button>' +
-          '</div>' +
-          '<p id="pcVidinyStatut" style="font-size:0.78rem; color:var(--muted); margin-top:0.6rem; min-height:1.1em;"></p>' +
-        '</div>' +
       '</div>' +
 
       // ----- Scan -----
@@ -431,6 +420,7 @@
           '</div>' +
         '</div>' +
         '<div class="panel" style="margin-top:1rem;"><h3>🗂️ Scan voatahiry</h3><div id="pcScanLisitra"></div></div>' +
+        panneauPrix(['scan']) +
       '</div>' +
 
       // ----- Photos -----
@@ -440,6 +430,7 @@
           boutonsCamera('sary', '📸 Alaina ny sary') +
         '</div>' +
         '<div class="panel" style="margin-top:1rem;"><h3>🖼️ Sary voatahiry</h3><div id="pcSaryLisitra"></div></div>' +
+        panneauPrix(['sary']) +
       '</div>' +
 
       // ----- Photocopie -----
@@ -486,7 +477,7 @@
             '<button type="button" class="btn btn-primary btn-sm" id="pcMilinaAmpidiro" style="width:auto;">➕ Ampidiro</button>' +
           '</div>' +
         '</div>' +
-
+        panneauPrix(['nb', 'loko']) +
       '</div>' +
 
       // ----- Reliure -----
@@ -501,6 +492,7 @@
           '<button type="button" class="btn btn-primary btn-sm" id="pcReliureAmpidiro" style="width:auto;">➕ Ampidiro</button>' +
           '<p id="pcReliureStatut" style="font-size:0.78rem; color:var(--muted); margin-top:0.6rem; min-height:1.1em;"></p>' +
         '</div>' +
+        panneauPrix(['reliure']) +
       '</div>' +
 
       // ----- Plastification -----
@@ -517,8 +509,25 @@
           '<button type="button" class="btn btn-primary btn-sm" id="pcPlastAmpidiro" style="width:auto;">➕ Ampidiro</button>' +
           '<p id="pcPlastStatut" style="font-size:0.78rem; color:var(--muted); margin-top:0.6rem; min-height:1.1em;"></p>' +
         '</div>' +
+        panneauPrix(['plastA4', 'plastA5', 'plastA3', 'plastKaratra']) +
       '</div>';
     return true;
+  }
+  // Le prix d'un service, dans son propre onglet : ses cases et un bouton
+  // qui n'enregistre qu'elles (les autres prix restent tels quels).
+  function panneauPrix(cles) {
+    const noms = {};
+    PRIX.forEach(function (p) { noms[p[0]] = p[1]; });
+    return '<div class="panel" style="margin-top:1rem;">' +
+      '<h3>💲 Vidiny</h3>' +
+      '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(10rem, 1fr)); gap:0.7rem; align-items:end;">' +
+        cles.map(function (k) {
+          return champ('pcVidiny_' + k, noms[k] + ' (Ar)', '<input type="number" id="pcVidiny_' + k + '" min="0" step="10" style="' + CHAMP + ' width:100%; box-sizing:border-box;">');
+        }).join('') +
+        '<button type="button" class="btn btn-sm" data-prix-tehirizo="' + cles.join(',') + '" style="width:auto;">💾 Tehirizo</button>' +
+      '</div>' +
+      '<p data-prix-statut="' + cles.join(',') + '" style="font-size:0.78rem; color:var(--muted); margin-top:0.6rem; min-height:1.1em;"></p>' +
+    '</div>';
   }
   // Une carte par service : ce qui a été fait et ce que ça a rapporté,
   // aujourd'hui puis ce mois-ci. Les chiffres sont posés par rendreTableau().
@@ -589,7 +598,8 @@
     z.querySelectorAll('.pc-onglet').forEach(function (o) { o.classList.toggle('active', o.dataset.pc === nom); });
     z.querySelectorAll('[data-volet]').forEach(function (v) { v.style.display = v.dataset.volet === nom ? '' : 'none'; });
     fermerCamera();
-    if (nom === 'tableau') { rendreTableau(); remplirPrix(); }
+    if (nom === 'tableau') rendreTableau();
+    remplirPrix();
     if (nom === 'reliure') kajyReliure();
     if (nom === 'plast') kajyPlast();
     if (nom === 'scan') { rendreScanPejy(); rendreListe('scan'); }
@@ -910,7 +920,8 @@
         etat = 'pret';
         garderDocument({ id: nouvelId(), type: 'sary', nom: d.nom + ' ✨', at: Date.now(), pages: [blob] }).then(function () {
           rendreListe('sary'); rendreTableau();
-          statut.textContent = '✅ Voatahiry ho sary vaovao : ' + d.nom + ' ✨';
+          exporterPdf(d.nom + ' ✨', [blob], { telecharger: false, karazana: 'sary' });
+          statut.textContent = '✅ Voatahiry ho sary vaovao : ' + d.nom + ' ✨ — ary ao amin\'ny 📄 PDF koa.';
           bTehirizo.disabled = false;
         }, function () {
           statut.textContent = 'Tsy voatahiry : feno angamba ny toerana.';
@@ -1178,8 +1189,10 @@
       });
       return suite.then(function () {
         // Les photos entrent au journal, comme les scans et les photocopies.
-        noterAsa(blobs.length > 1 ? blobs.length + ' sary' : 'Sary ' + quand(Date.now()), blobs.length, 1, 'sary');
-        dire('sary', '✅ Voatahiry ny sary.');
+        const nomSary = blobs.length > 1 ? blobs.length + ' sary ' + quand(Date.now()) : 'Sary ' + quand(Date.now());
+        noterAsa(nomSary, blobs.length, 1, 'sary');
+        exporterPdf(nomSary, blobs, { telecharger: false, karazana: 'sary' });
+        dire('sary', '✅ Voatahiry ny sary — ary ao amin\'ny 📄 PDF koa.');
         rendreListe('sary'); rendreTableau();
       }, function () { dire('sary', 'Tsy voatahiry : feno angamba ny toerana.', true); });
     }
@@ -1212,6 +1225,8 @@
       if (!src) { st.textContent = 'Safidio aloha ny photocopie na sary hatonta.'; st.style.color = 'var(--red)'; return; }
       const p = parametresKopia();
       imprimer(src.pages, p.isa, p.loko, p.deux);
+      // Tout ce qui sort se retrouve dans « 📄 PDF ».
+      exporterPdf(src.nom, src.pages, { isa: p.isa, loko: p.loko, deux: p.deux, telecharger: false, karazana: 'photocopie' });
       noterAsa(src.nom, feuillesPour(src.pages.length, p.deux), p.isa, p.loko);
       st.style.color = 'var(--muted)';
       st.textContent = '✅ Nalefa any amin\'ny imprimante ary voasoratra ao amin\'ny tableau de bord.';
@@ -1240,12 +1255,16 @@
       $('pcKopiaStatut').style.color = 'var(--muted)';
       $('pcKopiaStatut').textContent = '✅ Voasoratra : ' + (pejy * isa) + ' pejy.';
     });
-    $('pcVidinyTehirizo').addEventListener('click', function () {
-      const v = {};
-      PRIX.forEach(function (p) { v[p[0]] = Math.max(0, Number($('pcVidiny_' + p[0]).value) || 0); });
-      ecrireJson(CLE_VIDINY, v);
-      kajyVola(); kajyReliure(); kajyPlast();
-      $('pcVidinyStatut').textContent = '✅ Voatahiry ny vidiny.';
+    racine().querySelectorAll('[data-prix-tehirizo]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const cles = b.dataset.prixTehirizo.split(',');
+        const v = lireVidiny();
+        cles.forEach(function (k) { v[k] = Math.max(0, Number($('pcVidiny_' + k).value) || 0); });
+        ecrireJson(CLE_VIDINY, v);
+        kajyVola(); kajyReliure(); kajyPlast();
+        const st = racine().querySelector('[data-prix-statut="' + b.dataset.prixTehirizo + '"]');
+        if (st) st.textContent = '✅ Voatahiry ny vidiny.';
+      });
     });
 
     // Reliure
