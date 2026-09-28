@@ -134,7 +134,7 @@
     tous.unshift(ligne);
     ecrireJson(CLE_ASA, tous.slice(0, 5000));
     rendreTableau();
-    rendreRam();
+    rendreKopiaAndro();
   }
 
   // ---------- Traiter une image ----------
@@ -437,6 +437,8 @@
           '<h3>📷 Maka sary</h3>' +
           boutonsCamera('sary', '📸 Alaina ny sary') +
           blocRam('sary') +
+          // Les photos du jour, l'heure prise toute seule.
+          '<div id="pcSaryAndro" style="overflow-x:auto; margin-top:0.8rem;"></div>' +
         '</div>' +
         '<div class="panel" style="margin-top:1rem;"><h3>🖼️ Sary voatahiry</h3><div id="pcSaryLisitra"></div></div>' +
         panneauPrix(['sary']) +
@@ -617,7 +619,7 @@
     if (nom === 'reliure') kajyReliure();
     if (nom === 'plast') kajyPlast();
     if (nom === 'scan') { rendreScanPejy(); rendreListe('scan'); }
-    if (nom === 'sary') { rendreListe('sary'); rendreRam(); }
+    if (nom === 'sary') { rendreListe('sary'); rendreKopiaAndro(); }
     if (nom === 'kopia') { rendreKopia(); rendreKopiaAndro(); }
   }
 
@@ -1066,80 +1068,89 @@
           : sisa <= fetra ? ' <strong style="color:var(--red);">— ⚠️ Efa ho lany</strong>' : '');
     });
   }
+  // Les tableaux du jour, un par service : l'heure (notée seule), le nombre
+  // (qui se corrige), la couleur pour la photocopie, le montant, un mot
+  // libre et la corbeille. rendreKopiaAndro les redessine tous les deux.
+  const ANDRO = {
+    kopia: { box: 'pcKopiaAndro', isa: 'Pejy natonta', vide: 'Mbola tsy misy photocopie androany.', fafao: 'Fafana ve ity photocopie ity ?', loko: true },
+    sary: { box: 'pcSaryAndro', isa: 'Isan\'ny sary', vide: 'Mbola tsy misy sary androany.', fafao: 'Fafana ve ity sary ity ?', loko: false }
+  };
   function rendreKopiaAndro() {
     rendreRam();
-    const box = $('pcKopiaAndro');
+    rendreAndro('kopia');
+    rendreAndro('sary');
+  }
+  function rendreAndro(svc) {
+    const cfg = ANDRO[svc];
+    const box = $(cfg.box);
     if (!box) return;
     const auj = debutJour(Date.now());
-    const lignes = lireAsa().filter(function (a) { return a.at >= auj && serviceDe(a) === 'kopia'; });
+    const lignes = lireAsa().filter(function (a) { return a.at >= auj && serviceDe(a) === svc; });
     if (!lignes.length) {
-      box.innerHTML = '<p style="font-size:0.8rem; color:var(--muted);">Mbola tsy misy photocopie androany.</p>';
+      box.innerHTML = '<p style="font-size:0.8rem; color:var(--muted);">' + cfg.vide + '</p>';
       return;
     }
-    let pejy = 0, vola = 0;
+    let total = 0, vola = 0;
     box.innerHTML = '<table style="width:100%; font-size:0.85rem; margin-top:0;"><thead><tr>' +
-      '<th>Ora</th><th style="text-align:right;">Pejy natonta</th><th>Loko</th><th style="text-align:right;">Vola</th><th>Samihafa</th><th></th></tr></thead><tbody>' +
+      '<th>Ora</th><th style="text-align:right;">' + cfg.isa + '</th>' + (cfg.loko ? '<th>Loko</th>' : '') +
+      '<th style="text-align:right;">Vola</th><th>Samihafa</th><th></th></tr></thead><tbody>' +
       lignes.map(function (a) {
         const n = a.pejy * a.isa;
         const miloko = a.loko === 'loko' || a.loko === 'imp-loko';
-        pejy += n; vola += a.vola;
+        total += n; vola += a.vola;
         return '<tr><td>' + new Date(a.at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) + '</td>' +
-          '<td style="text-align:right;"><input type="number" min="0" value="' + n + '" data-kopia-pejy="' + a.id + '" ' +
-            'aria-label="Pejy natonta" style="' + CHAMP + ' width:5rem; text-align:right; padding:0.2rem 0.4rem;"></td>' +
+          '<td style="text-align:right;"><input type="number" min="0" value="' + n + '" data-andro-isa="' + a.id + '" ' +
+            'aria-label="' + cfg.isa + '" style="' + CHAMP + ' width:5rem; text-align:right; padding:0.2rem 0.4rem;"></td>' +
           // Mainty ou miloko : le prix de la page suit ce choix.
-          '<td><select data-kopia-loko="' + a.id + '" aria-label="Loko" style="' + CHAMP + ' padding:0.2rem 0.4rem;">' +
-            '<option value="nb"' + (miloko ? '' : ' selected') + '>⚫ Mainty</option>' +
-            '<option value="loko"' + (miloko ? ' selected' : '') + '>🌈 Miloko</option></select></td>' +
+          (cfg.loko
+            ? '<td><select data-andro-loko="' + a.id + '" aria-label="Loko" style="' + CHAMP + ' padding:0.2rem 0.4rem;">' +
+                '<option value="nb"' + (miloko ? '' : ' selected') + '>⚫ Mainty</option>' +
+                '<option value="loko"' + (miloko ? ' selected' : '') + '>🌈 Miloko</option></select></td>'
+            : '') +
           '<td style="text-align:right;">' + ariary(a.vola) + '</td>' +
-          // « Samihafa » : un mot libre sur cette copie (client, remarque…).
-          '<td><input type="text" value="' + html(a.samihafa || '') + '" data-kopia-samihafa="' + a.id + '" ' +
+          // « Samihafa » : un mot libre (client, remarque…).
+          '<td><input type="text" value="' + html(a.samihafa || '') + '" data-andro-samihafa="' + a.id + '" ' +
             'aria-label="Samihafa" style="' + CHAMP + ' width:100%; min-width:8rem; box-sizing:border-box; padding:0.2rem 0.4rem;"></td>' +
-          '<td><button type="button" class="btn btn-sm" data-kopia-fafao="' + a.id + '" style="width:auto;" aria-label="Fafao">🗑</button></td></tr>';
+          '<td><button type="button" class="btn btn-sm" data-andro-fafao="' + a.id + '" style="width:auto;" aria-label="Fafao">🗑</button></td></tr>';
       }).join('') +
-      '</tbody><tfoot><tr><th>Androany</th><th style="text-align:right;">' + pejy + '</th><th></th><th style="text-align:right;">' + ariary(vola) + '</th><th></th><th></th></tr></tfoot></table>';
-    box.querySelectorAll('[data-kopia-loko]').forEach(function (sel) {
+      '</tbody><tfoot><tr><th>Androany</th><th style="text-align:right;">' + total + '</th>' + (cfg.loko ? '<th></th>' : '') +
+      '<th style="text-align:right;">' + ariary(vola) + '</th><th></th><th></th></tr></tfoot></table>';
+
+    function modifier(id, faire) {
+      const tous = lireAsa();
+      const a = tous.filter(function (x) { return x.id === id; })[0];
+      if (!a) return;
+      faire(a);
+      ecrireJson(CLE_ASA, tous);
+    }
+    box.querySelectorAll('[data-andro-loko]').forEach(function (sel) {
       sel.addEventListener('change', function () {
-        const tous = lireAsa();
-        const a = tous.filter(function (x) { return x.id === sel.dataset.kopiaLoko; })[0];
-        if (!a) return;
-        a.loko = sel.value;
-        a.vola = a.pejy * a.isa * prixDe(a.loko);
-        ecrireJson(CLE_ASA, tous);
-        rendreKopiaAndro();
-        rendreTableau();
+        modifier(sel.dataset.androLoko, function (a) { a.loko = sel.value; a.vola = a.pejy * a.isa * prixDe(a.loko); });
+        rendreKopiaAndro(); rendreTableau();
       });
     });
-    box.querySelectorAll('[data-kopia-fafao]').forEach(function (b) {
+    box.querySelectorAll('[data-andro-fafao]').forEach(function (b) {
       b.addEventListener('click', function () {
-        if (!confirm('Fafana ve ity photocopie ity ?')) return;
-        ecrireJson(CLE_ASA, lireAsa().filter(function (x) { return x.id !== b.dataset.kopiaFafao; }));
-        rendreKopiaAndro();
-        rendreTableau();
+        if (!confirm(cfg.fafao)) return;
+        ecrireJson(CLE_ASA, lireAsa().filter(function (x) { return x.id !== b.dataset.androFafao; }));
+        rendreKopiaAndro(); rendreTableau();
       });
     });
-    box.querySelectorAll('[data-kopia-samihafa]').forEach(function (inp) {
+    box.querySelectorAll('[data-andro-samihafa]').forEach(function (inp) {
       inp.addEventListener('change', function () {
-        const tous = lireAsa();
-        const a = tous.filter(function (x) { return x.id === inp.dataset.kopiaSamihafa; })[0];
-        if (!a) return;
-        a.samihafa = inp.value.trim();
-        ecrireJson(CLE_ASA, tous);
+        modifier(inp.dataset.androSamihafa, function (a) { a.samihafa = inp.value.trim(); });
       });
     });
-    // Le nombre se corrige à la main (plus d'exemplaires choisis dans la boîte
-    // d'impression, une feuille ratée…) : le montant suit, au même prix la page.
-    box.querySelectorAll('[data-kopia-pejy]').forEach(function (inp) {
+    // Le nombre se corrige à la main : le montant suit, au même prix l'unité.
+    box.querySelectorAll('[data-andro-isa]').forEach(function (inp) {
       inp.addEventListener('change', function () {
         const n = Math.max(0, parseInt(inp.value, 10) || 0);
-        const tous = lireAsa();
-        const a = tous.filter(function (x) { return x.id === inp.dataset.kopiaPejy; })[0];
-        if (!a) return;
-        const avant = a.pejy * a.isa;
-        const prixPage = avant ? a.vola / avant : prixDe(a.loko);
-        a.pejy = n; a.isa = 1; a.vola = n * prixPage;
-        ecrireJson(CLE_ASA, tous);
-        rendreKopiaAndro();
-        rendreTableau();
+        modifier(inp.dataset.androIsa, function (a) {
+          const avant = a.pejy * a.isa;
+          const prix = avant ? a.vola / avant : prixDe(a.loko);
+          a.pejy = n; a.isa = 1; a.vola = n * prix;
+        });
+        rendreKopiaAndro(); rendreTableau();
       });
     });
   }
