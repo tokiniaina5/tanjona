@@ -449,7 +449,7 @@
             // Sur PC, comme le scan : Windows Scan, puis les pages reprises du
             // dossier. Ailleurs, on choisit des images à la main.
             ('showDirectoryPicker' in window
-              ? (surWindows() ? boutonWindowsScan() : '') +
+              ? (surWindows() ? boutonWindowsScan('🖨️ Installation photocopie') : '') +
                 '<button type="button" class="btn btn-sm" id="pcKopiaDossier" style="width:auto;" title="Alaina ny pejy vao voascan dia atonta avy hatrany">📥 Alaina ny photocopie vaovao</button>' +
                 '<button type="button" class="btn btn-sm" id="pcKopiaDossierOvay" style="width:auto;" title="Safidio indray ny dossier misy ny photocopie">📁 Ovay ny dossier</button>'
               : '<button type="button" class="btn btn-sm" id="pcKopiaHampiditra" style="width:auto;">📂 Hampiditra sary</button>') +
@@ -556,9 +556,12 @@
   function surWindows() {
     return /Windows/i.test(navigator.userAgent) && !/Windows Phone/i.test(navigator.userAgent);
   }
-  function boutonWindowsScan() {
+  // « libelle » : le nom montré sur le bouton — la photocopie l'appelle
+  // « Installation photocopie », c'est pourtant la même application.
+  function boutonWindowsScan(libelle) {
     return '<a class="btn btn-sm" href="ms-windows-store://pdp/?productid=9WZDNCRFJ3PV" ' +
-      'style="width:auto; text-decoration:none;" title="Sokafy ny Windows Scan hanaovana scan amin\'ny scanner">🖨️ Windows Scan</a>';
+      'style="width:auto; text-decoration:none;" title="Sokafy ny Windows Scan hanaovana scan amin\'ny scanner">' +
+      (libelle || '🖨️ Windows Scan') + '</a>';
   }
   function boutonsCamera(pour, libelle) {
     return '<div style="display:flex; gap:0.6rem; flex-wrap:wrap;">' +
