@@ -97,7 +97,6 @@
   // Ce qui n'a pas de prix connu part à 0 : à régler avant d'encaisser.
   const PRIX = [
     ['nb', 'Photocopie mainty'], ['loko', 'Photocopie miloko'],
-    ['impNb', 'Impression mainty'], ['impLoko', 'Impression miloko'],
     ['scan', 'Scan / pejy'], ['sary', 'Sary / iray'],
     ['plastA4', 'Plastification A4'], ['plastA5', 'Plastification A5'],
     ['plastA3', 'Plastification A3'], ['plastKaratra', 'Plastification karatra / CIN']
@@ -108,12 +107,12 @@
     PRIX.forEach(function (p) { if (!(p[0] in v)) v[p[0]] = 0; });
     return Object.assign(v, lireJson(CLE_VIDINY, {}));
   }
-  // loko : 'nb' | 'loko' (photocopie), 'imp-nb' | 'imp-loko' (impression),
+  // loko : 'nb' | 'loko' (photocopie), 'imp-nb' | 'imp-loko' (ancienne impression, comptée en photocopie),
   // 'scan', 'sary', 'plast' (avec sa taille, habe).
   function prixDe(loko, habe) {
     const v = lireVidiny();
-    if (loko === 'imp-nb') return v.impNb;
-    if (loko === 'imp-loko') return v.impLoko;
+    if (loko === 'imp-nb') return v.nb;
+    if (loko === 'imp-loko') return v.loko;
     if (loko === 'plast') return v['plast' + habe] || 0;
     return v[loko] || 0;
   }
@@ -355,7 +354,7 @@
     if (!z) return false;
     z.innerHTML =
       '<div class="section-head"><div><h2>📠 Multi-service</h2>' +
-        '<p>Scan, sary, photocopie, impression ary plastification. Ao amin\'ity navigateur ity ihany no voatahiry ny sary.</p></div></div>' +
+        '<p>Scan, sary, photocopie ary plastification. Ao amin\'ity navigateur ity ihany no voatahiry ny sary.</p></div></div>' +
       // pc-onglet et non dash-tab : common.js retire « active » à tous les
       // .dash-tab quand il change de vue.
       '<div class="dash-tabs" id="pcOnglets">' +
@@ -363,7 +362,6 @@
         '<div class="pc-onglet" data-pc="scan">📠 Scan</div>' +
         '<div class="pc-onglet" data-pc="sary">📷 Maka sary</div>' +
         '<div class="pc-onglet" data-pc="kopia">🖨️ Photocopie</div>' +
-        '<div class="pc-onglet" data-pc="impression">🖨 Impression</div>' +
         '<div class="pc-onglet" data-pc="plast">🪪 Plastification</div>' +
       '</div>' +
 
@@ -381,7 +379,6 @@
           carteService('kopia', '🖨️ Photocopie', 'pejy') +
           carteService('scan', '📠 Scan', 'pejy') +
           carteService('sary', '📷 Maka sary', 'sary') +
-          carteService('impression', '🖨 Impression', 'pejy') +
           carteService('plast', '🪪 Plastification', 'isa') +
         '</div>' +
         '<div class="chart-grid">' +
@@ -490,32 +487,6 @@
 
       '</div>' +
 
-      // ----- Impression -----
-      // Un document du client (PDF ou images), imprimé puis compté ; ou une
-      // impression faite ailleurs, seulement comptée.
-      '<div data-volet="impression" style="display:none;">' +
-        '<div class="panel">' +
-          '<h3>🖨 Impression</h3>' +
-          '<div style="display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center; margin-bottom:0.8rem;">' +
-            '<button type="button" class="btn btn-sm" id="pcImpSafidy" style="width:auto;">📂 Safidio ny fichier (PDF na sary)</button>' +
-            '<input type="file" id="pcImpFichier" accept="application/pdf,image/*" multiple style="display:none;">' +
-            '<span id="pcImpFichierAnarana" style="font-size:0.8rem; color:var(--muted);">Tsy misy fichier voafidy.</span>' +
-          '</div>' +
-          '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(9rem, 1fr)); gap:0.7rem;">' +
-            champ('pcImpAnarana', 'Anarana', '<input type="text" id="pcImpAnarana" placeholder="Ohatra : CV Rakoto" style="' + CHAMP + ' width:100%; box-sizing:border-box;">') +
-            champ('pcImpPejy', 'Pejy', '<input type="number" id="pcImpPejy" min="1" value="1" style="' + CHAMP + ' width:100%; box-sizing:border-box;">') +
-            champ('pcImpIsa', 'Isa (exemplaire)', '<input type="number" id="pcImpIsa" min="1" value="1" style="' + CHAMP + ' width:100%; box-sizing:border-box;">') +
-            champ('pcImpLoko', 'Loko', '<select id="pcImpLoko" style="' + CHAMP + ' width:100%;"><option value="imp-nb">⚫ Mainty sy fotsy</option><option value="imp-loko">🌈 Miloko</option></select>') +
-          '</div>' +
-          '<p id="pcImpVola" style="font-size:0.9rem; margin:0.9rem 0;"></p>' +
-          '<div style="display:flex; gap:0.6rem; flex-wrap:wrap;">' +
-            '<button type="button" class="btn btn-primary btn-sm" id="pcImpAtonta" style="width:auto;">🖨 Atonta sy soraty</button>' +
-            '<button type="button" class="btn btn-sm" id="pcImpSoraty" style="width:auto;">➕ Soraty fotsiny</button>' +
-          '</div>' +
-          '<p id="pcImpStatut" style="font-size:0.78rem; color:var(--muted); margin-top:0.6rem; min-height:1.1em;"></p>' +
-        '</div>' +
-      '</div>' +
-
       // ----- Plastification -----
       '<div data-volet="plast" style="display:none;">' +
         '<div class="panel">' +
@@ -603,7 +574,6 @@
     z.querySelectorAll('[data-volet]').forEach(function (v) { v.style.display = v.dataset.volet === nom ? '' : 'none'; });
     fermerCamera();
     if (nom === 'tableau') { rendreTableau(); remplirPrix(); }
-    if (nom === 'impression') kajyImp();
     if (nom === 'plast') kajyPlast();
     if (nom === 'scan') { rendreScanPejy(); rendreListe('scan'); }
     if (nom === 'sary') rendreListe('sary');
@@ -613,11 +583,10 @@
   // ---------- Tableau de bord ----------
   const graphiques = {};
   // Le service d'une ligne du journal : son « loko » le dit.
-  const SERVICES = ['kopia', 'scan', 'sary', 'impression', 'plast'];
-  const NOM_SERVICE = { kopia: '🖨️ Photocopie', scan: '📠 Scan', sary: '📷 Sary', impression: '🖨 Impression', plast: '🪪 Plastification' };
+  const SERVICES = ['kopia', 'scan', 'sary', 'plast'];
+  const NOM_SERVICE = { kopia: '🖨️ Photocopie', scan: '📠 Scan', sary: '📷 Sary', plast: '🪪 Plastification' };
   function serviceDe(a) {
     if (a.loko === 'scan' || a.loko === 'sary' || a.loko === 'plast') return a.loko;
-    if (a.loko === 'imp-nb' || a.loko === 'imp-loko') return 'impression';
     return 'kopia';
   }
   function debutJour(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); }
@@ -656,7 +625,7 @@
         '<th>Daty</th><th>Service</th><th>Antontan-taratasy</th><th>Isa</th><th>Vola</th><th></th></tr></thead><tbody>' +
         asa.slice(0, 100).map(function (a) {
           const s = serviceDe(a);
-          const detail = (s === 'kopia' || s === 'impression')
+          const detail = s === 'kopia'
             ? a.pejy + ' × ' + a.isa + (a.loko === 'loko' || a.loko === 'imp-loko' ? ' 🌈' : ' ⚫')
             : String(a.pejy * a.isa);
           return '<tr><td>' + quand(a.at) + '</td><td>' + NOM_SERVICE[s] + '</td><td>' + html(a.nom) + '</td><td>' + detail +
@@ -670,9 +639,8 @@
     const accent = (styles.getPropertyValue('--cyan') || '#3fd0c9').trim();
     const muted = (styles.getPropertyValue('--muted') || '#7c8b92').trim();
     const violet = (styles.getPropertyValue('--violet') || '#a78bfa').trim();
-    const amber = (styles.getPropertyValue('--amber') || '#f5b454').trim();
-    const couleurs = { kopia: accent, scan: violet, sary: muted, impression: amber, plast: '#6ee7b7' };
-    const jours = [], parService = { kopia: [], scan: [], sary: [], impression: [], plast: [] };
+    const couleurs = { kopia: accent, scan: violet, sary: muted, plast: '#6ee7b7' };
+    const jours = [], parService = { kopia: [], scan: [], sary: [], plast: [] };
     for (let i = 13; i >= 0; i--) {
       const d = new Date(auj); d.setDate(d.getDate() - i);
       const debut = d.getTime();
@@ -924,15 +892,6 @@
     el.innerHTML = '📄 ' + feuilles + ' pejy × ' + p.isa + ' = <strong>' + (feuilles * p.isa) + ' pejy</strong> · 💰 <strong>' +
       ariary(feuilles * p.isa * prix) + '</strong> <span style="color:var(--muted); font-size:0.78rem;">(' + ariary(prix) + ' isaky ny pejy)</span>';
   }
-  function kajyImp() {
-    const el = $('pcImpVola');
-    if (!el) return;
-    const pejy = Math.max(1, parseInt($('pcImpPejy').value, 10) || 1);
-    const isa = Math.max(1, parseInt($('pcImpIsa').value, 10) || 1);
-    const prix = prixDe($('pcImpLoko').value);
-    el.innerHTML = '📄 ' + pejy + ' pejy × ' + isa + ' = <strong>' + (pejy * isa) + ' pejy</strong> · 💰 <strong>' +
-      ariary(pejy * isa * prix) + '</strong> <span style="color:var(--muted); font-size:0.78rem;">(' + ariary(prix) + ' isaky ny pejy)</span>';
-  }
   function kajyPlast() {
     const el = $('pcPlastVola');
     if (!el) return;
@@ -1161,49 +1120,8 @@
       const v = {};
       PRIX.forEach(function (p) { v[p[0]] = Math.max(0, Number($('pcVidiny_' + p[0]).value) || 0); });
       ecrireJson(CLE_VIDINY, v);
-      kajyVola(); kajyImp(); kajyPlast();
+      kajyVola(); kajyPlast();
       $('pcVidinyStatut').textContent = '✅ Voatahiry ny vidiny.';
-    });
-
-    // Impression
-    let impFichiers = [];
-    $('pcImpSafidy').addEventListener('click', function () { $('pcImpFichier').click(); });
-    $('pcImpFichier').addEventListener('change', function () {
-      impFichiers = Array.prototype.slice.call(this.files || []);
-      this.value = '';
-      $('pcImpFichierAnarana').textContent = impFichiers.length
-        ? impFichiers.map(function (f) { return f.name; }).join(', ') : 'Tsy misy fichier voafidy.';
-      if (impFichiers.length && !$('pcImpAnarana').value.trim()) $('pcImpAnarana').value = impFichiers[0].name.replace(/\.[^.]+$/, '');
-      // Des images : une page chacune. Un PDF : son nombre de pages se lit
-      // quand on l'imprime ; jusque-là on garde ce qui est écrit.
-      const images = impFichiers.filter(function (f) { return /^image\//.test(f.type); });
-      if (images.length === impFichiers.length && images.length) $('pcImpPejy').value = images.length;
-      kajyImp();
-    });
-    ['pcImpPejy', 'pcImpIsa', 'pcImpLoko'].forEach(function (id) {
-      $(id).addEventListener('input', kajyImp);
-      $(id).addEventListener('change', kajyImp);
-    });
-    function soratyImp() {
-      const pejy = Math.max(1, parseInt($('pcImpPejy').value, 10) || 1);
-      const isa = Math.max(1, parseInt($('pcImpIsa').value, 10) || 1);
-      const loko = $('pcImpLoko').value;
-      const nom = $('pcImpAnarana').value.trim() || 'Impression';
-      noterAsa(nom, pejy, isa, loko);
-      $('pcImpStatut').textContent = '✅ Voasoratra : ' + nom + ' — ' + (pejy * isa) + ' pejy = ' + ariary(pejy * isa * prixDe(loko)) + '.';
-      $('pcImpAnarana').value = '';
-      impFichiers = [];
-      $('pcImpFichierAnarana').textContent = 'Tsy misy fichier voafidy.';
-    }
-    $('pcImpSoraty').addEventListener('click', soratyImp);
-    $('pcImpAtonta').addEventListener('click', function () {
-      if (!impFichiers.length) { $('pcImpStatut').textContent = 'Safidio aloha ny fichier hatonta, na tsindrio « ➕ Soraty fotsiny ».'; return; }
-      const isa = Math.max(1, parseInt($('pcImpIsa').value, 10) || 1);
-      const images = impFichiers.filter(function (f) { return /^image\//.test(f.type); });
-      const pdfs = impFichiers.filter(function (f) { return /pdf$/i.test(f.type) || /\.pdf$/i.test(f.name); });
-      if (images.length) imprimer(images, isa, $('pcImpLoko').value === 'imp-nb' ? 'nb' : 'loko', false);
-      if (pdfs.length && window.__pdfTahiry) pdfs.forEach(function (f) { window.__pdfTahiry.imprimer(f); });
-      soratyImp();
     });
 
     // Plastification
