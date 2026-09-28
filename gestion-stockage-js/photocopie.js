@@ -450,8 +450,8 @@
             // dossier. Ailleurs, on choisit des images à la main.
             ('showDirectoryPicker' in window
               ? (surWindows() ? boutonWindowsScan() : '') +
-                '<button type="button" class="btn btn-sm" id="pcKopiaDossier" style="width:auto;">📥 Alaina ny scan vaovao</button>' +
-                '<button type="button" class="btn btn-sm" id="pcKopiaDossierOvay" style="width:auto;" title="Safidio indray ny dossier misy ny scan">📁 Ovay ny dossier</button>'
+                '<button type="button" class="btn btn-sm" id="pcKopiaDossier" style="width:auto;" title="Alaina ny pejy vao voascan dia atonta avy hatrany">📥 Alaina ny photocopie vaovao</button>' +
+                '<button type="button" class="btn btn-sm" id="pcKopiaDossierOvay" style="width:auto;" title="Safidio indray ny dossier misy ny photocopie">📁 Ovay ny dossier</button>'
               : '<button type="button" class="btn btn-sm" id="pcKopiaHampiditra" style="width:auto;">📂 Hampiditra sary</button>') +
             '<input type="file" id="pcKopiaFichier" accept="image/*" multiple style="display:none;">' +
           '</div>' +
@@ -749,13 +749,14 @@
   async function prendreScansDuDossier(changer, pour) {
     pour = pour || 'scan';
     const ici = pour === 'kopia' ? 'Kopia' : 'scan';
+    const mot = pour === 'kopia' ? 'photocopie' : 'scan';
     let dossier = changer ? null : await lireDossier();
     let nouveau = false;
     try {
       if (dossier && (await dossier.queryPermission({ mode: 'read' })) !== 'granted' &&
           (await dossier.requestPermission({ mode: 'read' })) !== 'granted') dossier = null;
       if (!dossier) {
-        dire(ici, 'Safidio ny dossier misy ny scan (matetika : Images › Scans).');
+        dire(ici, 'Safidio ny dossier misy ny ' + mot + ' (matetika : Images › Scans).');
         dossier = await window.showDirectoryPicker({ id: 'nyasako-scans', startIn: 'pictures', mode: 'read' });
         await garderDossier(dossier);
         nouveau = true;
@@ -782,7 +783,7 @@
       : fichiers;
     fichiers.forEach(function (f) { vus.push(signature(f)); });
     ecrireVus(vus);
-    if (!recents.length) { dire(ici, 'Tsy misy scan vaovao ao amin\'ny « ' + dossier.name + ' ».'); return; }
+    if (!recents.length) { dire(ici, 'Tsy misy ' + mot + ' vaovao ao amin\'ny « ' + dossier.name + ' ».'); return; }
 
     recents.sort(function (a, b) { return a.lastModified - b.lastModified; });
     const pdfs = recents.filter(function (f) { return /\.pdf$/i.test(f.name); });
@@ -795,10 +796,12 @@
       // la source à copier ; reste à choisir le nombre et la couleur.
       dire(ici, 'Mikarakara ny pejy…');
       const pages = await Promise.all(images.map(function (b) { return traiter(b, 0, 'taratasy'); }));
-      kopiaImport = { nom: 'Scan ' + quand(Date.now()), pages: pages };
+      kopiaImport = { nom: 'Photocopie ' + quand(Date.now()), pages: pages };
       kopiaChoix = 'import';
       rendreKopia();
-      dire(ici, '✅ ' + pages.length + ' pejy vonona : safidio ny isa sy ny loko, dia tsindrio « 🖨️ Atonta ».');
+      // Et elle part aussitôt à l'imprimante, avec le nombre et la couleur
+      // déjà choisis ; « 🖨️ Atonta » la compte au tableau de bord.
+      $('pcKopiaAtonta').click();
     } else if (images.length) {
       await ajouterPagesScan(images);
       // Aussitôt pris, aussitôt rangé : un seul document pour les pages
@@ -878,7 +881,7 @@
     if (!kopiaChoix || (kopiaChoix !== 'import' && !sourceKopia())) {
       kopiaChoix = kopiaImport ? 'import' : (documents[0] ? documents[0].id : '');
     }
-    sel.innerHTML = (documents.length || kopiaImport ? '' : '<option value="">— Mbola tsy misy scan na sary —</option>') +
+    sel.innerHTML = (documents.length || kopiaImport ? '' : '<option value="">— Mbola tsy misy photocopie na sary —</option>') +
       (kopiaImport ? '<option value="import">📂 ' + html(kopiaImport.nom) + '</option>' : '') +
       documents.map(function (d) {
         return '<option value="' + d.id + '">' + (d.type === 'scan' ? '📠 ' : '📷 ') + html(d.nom) +
@@ -1113,7 +1116,7 @@
     $('pcKopiaAtonta').addEventListener('click', function () {
       const src = sourceKopia();
       const st = $('pcKopiaStatut');
-      if (!src) { st.textContent = 'Safidio aloha ny scan na sary hatao photocopie.'; st.style.color = 'var(--red)'; return; }
+      if (!src) { st.textContent = 'Safidio aloha ny photocopie na sary hatonta.'; st.style.color = 'var(--red)'; return; }
       const p = parametresKopia();
       imprimer(src.pages, p.isa, p.loko, p.deux);
       noterAsa(src.nom, feuillesPour(src.pages.length, p.deux), p.isa, p.loko);
@@ -1124,7 +1127,7 @@
     $('pcKopiaPdf').addEventListener('click', function () {
       const src = sourceKopia();
       const st = $('pcKopiaStatut');
-      if (!src) { st.textContent = 'Safidio aloha ny scan na sary hatao photocopie.'; st.style.color = 'var(--red)'; return; }
+      if (!src) { st.textContent = 'Safidio aloha ny photocopie na sary hatonta.'; st.style.color = 'var(--red)'; return; }
       const p = parametresKopia();
       const bouton = this;
       bouton.disabled = true;
