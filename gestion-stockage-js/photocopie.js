@@ -455,8 +455,11 @@
               : '<button type="button" class="btn btn-sm" id="pcKopiaHampiditra" style="width:auto;">📂 Hampiditra sary</button>') +
             '<input type="file" id="pcKopiaFichier" accept="image/*" multiple style="display:none;">' +
           '</div>' +
-          '<div id="pcKopiaTopy" style="display:flex; gap:0.6rem; flex-wrap:wrap; margin:0.9rem 0;"></div>' +
-          '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(10rem, 1fr)); gap:0.7rem;">' +
+          // Sur PC, « 📥 » imprime aussitôt : ni aperçu des pages ni réglages
+          // ici — une copie, noir et blanc, une image par page. Le nombre
+          // d'exemplaires se choisit dans la boîte d'impression.
+          '<div id="pcKopiaTopy" style="display:' + ('showDirectoryPicker' in window ? 'none' : 'flex') + '; gap:0.6rem; flex-wrap:wrap; margin:0.9rem 0;"></div>' +
+          '<div style="display:' + ('showDirectoryPicker' in window ? 'none' : 'grid') + '; grid-template-columns:repeat(auto-fit, minmax(10rem, 1fr)); gap:0.7rem;">' +
             champ('pcKopiaIsa', 'Isa (exemplaire)', '<input type="number" id="pcKopiaIsa" min="1" max="500" value="1" style="' + CHAMP + ' width:100%; box-sizing:border-box;">') +
             champ('pcKopiaLoko', 'Loko', '<select id="pcKopiaLoko" style="' + CHAMP + ' width:100%;"><option value="nb">⚫ Mainty sy fotsy</option><option value="loko">🌈 Miloko</option></select>') +
             champ('pcKopiaFandaminana', 'Fandaminana', '<select id="pcKopiaFandaminana" style="' + CHAMP + ' width:100%;"><option value="1">Sary 1 isaky ny pejy</option><option value="2">Sary 2 isaky ny pejy (CIN recto-verso)</option></select>') +
