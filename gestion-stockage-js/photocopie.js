@@ -97,7 +97,7 @@
   // Ce qui n'a pas de prix connu part à 0 : à régler avant d'encaisser.
   const PRIX = [
     ['nb', 'Photocopie mainty'], ['loko', 'Photocopie miloko'],
-    ['scan', 'Scan / pejy'], ['sary', 'Sary / iray'],
+    ['scan', 'Scan / pejy'], ['sary', 'Sary / iray'], ['reliure', 'Reliure / iray'],
     ['plastA4', 'Plastification A4'], ['plastA5', 'Plastification A5'],
     ['plastA3', 'Plastification A3'], ['plastKaratra', 'Plastification karatra / CIN']
   ];
@@ -108,7 +108,7 @@
     return Object.assign(v, lireJson(CLE_VIDINY, {}));
   }
   // loko : 'nb' | 'loko' (photocopie), 'imp-nb' | 'imp-loko' (ancienne impression, comptée en photocopie),
-  // 'scan', 'sary', 'plast' (avec sa taille, habe).
+  // 'scan', 'sary', 'reliure', 'plast' (avec sa taille, habe).
   function prixDe(loko, habe) {
     const v = lireVidiny();
     if (loko === 'imp-nb') return v.nb;
@@ -354,7 +354,7 @@
     if (!z) return false;
     z.innerHTML =
       '<div class="section-head"><div><h2>📠 Multi-service</h2>' +
-        '<p>Scan, sary, photocopie ary plastification. Ao amin\'ity navigateur ity ihany no voatahiry ny sary.</p></div></div>' +
+        '<p>Scan, sary, photocopie, reliure ary plastification. Ao amin\'ity navigateur ity ihany no voatahiry ny sary.</p></div></div>' +
       // pc-onglet et non dash-tab : common.js retire « active » à tous les
       // .dash-tab quand il change de vue.
       '<div class="dash-tabs" id="pcOnglets">' +
@@ -362,6 +362,7 @@
         '<div class="pc-onglet" data-pc="scan">📠 Scan</div>' +
         '<div class="pc-onglet" data-pc="sary">📷 Maka sary</div>' +
         '<div class="pc-onglet" data-pc="kopia">🖨️ Photocopie</div>' +
+        '<div class="pc-onglet" data-pc="reliure">📚 Reliure</div>' +
         '<div class="pc-onglet" data-pc="plast">🪪 Plastification</div>' +
       '</div>' +
 
@@ -379,6 +380,7 @@
           carteService('kopia', '🖨️ Photocopie', 'pejy') +
           carteService('scan', '📠 Scan', 'pejy') +
           carteService('sary', '📷 Maka sary', 'sary') +
+          carteService('reliure', '📚 Reliure', 'isa') +
           carteService('plast', '🪪 Plastification', 'isa') +
         '</div>' +
         '<div class="chart-grid">' +
@@ -487,6 +489,20 @@
 
       '</div>' +
 
+      // ----- Reliure -----
+      '<div data-volet="reliure" style="display:none;">' +
+        '<div class="panel">' +
+          '<h3>📚 Reliure</h3>' +
+          '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(9rem, 1fr)); gap:0.7rem;">' +
+            champ('pcReliureAnarana', 'Anarana', '<input type="text" id="pcReliureAnarana" placeholder="Ohatra : Mémoire" style="' + CHAMP + ' width:100%; box-sizing:border-box;">') +
+            champ('pcReliureIsa', 'Isa', '<input type="number" id="pcReliureIsa" min="1" value="1" style="' + CHAMP + ' width:100%; box-sizing:border-box;">') +
+          '</div>' +
+          '<p id="pcReliureVola" style="font-size:0.9rem; margin:0.9rem 0;"></p>' +
+          '<button type="button" class="btn btn-primary btn-sm" id="pcReliureAmpidiro" style="width:auto;">➕ Ampidiro</button>' +
+          '<p id="pcReliureStatut" style="font-size:0.78rem; color:var(--muted); margin-top:0.6rem; min-height:1.1em;"></p>' +
+        '</div>' +
+      '</div>' +
+
       // ----- Plastification -----
       '<div data-volet="plast" style="display:none;">' +
         '<div class="panel">' +
@@ -574,6 +590,7 @@
     z.querySelectorAll('[data-volet]').forEach(function (v) { v.style.display = v.dataset.volet === nom ? '' : 'none'; });
     fermerCamera();
     if (nom === 'tableau') { rendreTableau(); remplirPrix(); }
+    if (nom === 'reliure') kajyReliure();
     if (nom === 'plast') kajyPlast();
     if (nom === 'scan') { rendreScanPejy(); rendreListe('scan'); }
     if (nom === 'sary') rendreListe('sary');
@@ -583,10 +600,10 @@
   // ---------- Tableau de bord ----------
   const graphiques = {};
   // Le service d'une ligne du journal : son « loko » le dit.
-  const SERVICES = ['kopia', 'scan', 'sary', 'plast'];
-  const NOM_SERVICE = { kopia: '🖨️ Photocopie', scan: '📠 Scan', sary: '📷 Sary', plast: '🪪 Plastification' };
+  const SERVICES = ['kopia', 'scan', 'sary', 'reliure', 'plast'];
+  const NOM_SERVICE = { kopia: '🖨️ Photocopie', scan: '📠 Scan', sary: '📷 Sary', reliure: '📚 Reliure', plast: '🪪 Plastification' };
   function serviceDe(a) {
-    if (a.loko === 'scan' || a.loko === 'sary' || a.loko === 'plast') return a.loko;
+    if (a.loko === 'scan' || a.loko === 'sary' || a.loko === 'reliure' || a.loko === 'plast') return a.loko;
     return 'kopia';
   }
   function debutJour(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); }
@@ -639,8 +656,8 @@
     const accent = (styles.getPropertyValue('--cyan') || '#3fd0c9').trim();
     const muted = (styles.getPropertyValue('--muted') || '#7c8b92').trim();
     const violet = (styles.getPropertyValue('--violet') || '#a78bfa').trim();
-    const couleurs = { kopia: accent, scan: violet, sary: muted, plast: '#6ee7b7' };
-    const jours = [], parService = { kopia: [], scan: [], sary: [], plast: [] };
+    const couleurs = { kopia: accent, scan: violet, sary: muted, reliure: (styles.getPropertyValue('--amber') || '#f5b454').trim(), plast: '#6ee7b7' };
+    const jours = [], parService = { kopia: [], scan: [], sary: [], reliure: [], plast: [] };
     for (let i = 13; i >= 0; i--) {
       const d = new Date(auj); d.setDate(d.getDate() - i);
       const debut = d.getTime();
@@ -892,6 +909,13 @@
     el.innerHTML = '📄 ' + feuilles + ' pejy × ' + p.isa + ' = <strong>' + (feuilles * p.isa) + ' pejy</strong> · 💰 <strong>' +
       ariary(feuilles * p.isa * prix) + '</strong> <span style="color:var(--muted); font-size:0.78rem;">(' + ariary(prix) + ' isaky ny pejy)</span>';
   }
+  function kajyReliure() {
+    const el = $('pcReliureVola');
+    if (!el) return;
+    const isa = Math.max(1, parseInt($('pcReliureIsa').value, 10) || 1);
+    const prix = prixDe('reliure');
+    el.innerHTML = '📚 ' + isa + ' × ' + ariary(prix) + ' = 💰 <strong>' + ariary(isa * prix) + '</strong>';
+  }
   function kajyPlast() {
     const el = $('pcPlastVola');
     if (!el) return;
@@ -1120,8 +1144,20 @@
       const v = {};
       PRIX.forEach(function (p) { v[p[0]] = Math.max(0, Number($('pcVidiny_' + p[0]).value) || 0); });
       ecrireJson(CLE_VIDINY, v);
-      kajyVola(); kajyPlast();
+      kajyVola(); kajyReliure(); kajyPlast();
       $('pcVidinyStatut').textContent = '✅ Voatahiry ny vidiny.';
+    });
+
+    // Reliure
+    $('pcReliureIsa').addEventListener('input', kajyReliure);
+    $('pcReliureAmpidiro').addEventListener('click', function () {
+      const isa = Math.max(1, parseInt($('pcReliureIsa').value, 10) || 1);
+      const nom = $('pcReliureAnarana').value.trim() || 'Reliure';
+      noterAsa(nom, 1, isa, 'reliure');
+      $('pcReliureStatut').textContent = '✅ Voasoratra : ' + nom + ' × ' + isa + ' = ' + ariary(isa * prixDe('reliure')) + '.';
+      $('pcReliureAnarana').value = '';
+      $('pcReliureIsa').value = 1;
+      kajyReliure();
     });
 
     // Plastification
