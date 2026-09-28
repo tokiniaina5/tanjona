@@ -324,7 +324,7 @@
     const z = racine();
     if (!z) return false;
     z.innerHTML =
-      '<div class="section-head"><div><h2>📠 Photocopie</h2>' +
+      '<div class="section-head"><div><h2>📠 Multi-service</h2>' +
         '<p>Scan, sary ary photocopie. Ao amin\'ity navigateur ity ihany no voatahiry ny sary.</p></div></div>' +
       // pc-onglet et non dash-tab : common.js retire « active » à tous les
       // .dash-tab quand il change de vue.
