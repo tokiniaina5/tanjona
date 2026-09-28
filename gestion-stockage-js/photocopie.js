@@ -364,6 +364,9 @@
         '<div class="panel">' +
           '<h3>📠 Scan taratasy</h3>' +
           boutonsCamera('scan', '📸 Scan ity pejy ity') +
+          // Sur PC, « 📥 Alaina ny scan vaovao » enregistre tout seul (liste et
+          // « 📄 PDF ») : les réglages et boutons ci-dessous restent cachés.
+          '<div id="pcScanAsa"' + ('showDirectoryPicker' in window ? ' style="display:none;"' : '') + '>' +
           '<div style="display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center; margin:0.8rem 0;">' +
             '<label for="pcScanFiltre" style="font-size:0.8rem; color:var(--muted);">Endrika</label>' +
             '<select id="pcScanFiltre" style="' + CHAMP + '">' +
@@ -379,6 +382,7 @@
             '<button type="button" class="btn btn-sm" id="pcScanPdf" style="width:auto;">⬇ PDF</button>' +
             '<button type="button" class="btn btn-sm" id="pcScanKopia" style="width:auto;">🖨️ Photocopie</button>' +
             '<button type="button" class="btn btn-sm" id="pcScanVidio" style="width:auto;">🗑 Esory daholo</button>' +
+          '</div>' +
           '</div>' +
         '</div>' +
         '<div class="panel" style="margin-top:1rem;"><h3>🗂️ Scan voatahiry</h3><div id="pcScanLisitra"></div></div>' +
@@ -661,7 +665,9 @@
     }
     if (images.length) {
       await ajouterPagesScan(images);
-      if (pdfs.length) dire('scan', images.length + ' pejy nampidirina, ary ' + pdfs.length + ' PDF lasa ao amin\'ny 📄 PDF.');
+      // Aussitôt pris, aussitôt rangé : un seul document pour les pages
+      // arrivées ensemble, dans la liste et dans « 📄 PDF » (« 💾 Tehirizo »).
+      $('pcScanTehirizo').click();
     } else {
       dire('scan', '✅ ' + pdfs.length + ' PDF voascan lasa ao amin\'ny 📄 PDF.');
     }
