@@ -464,6 +464,8 @@
           '</div>' +
           '</div>' +
           '<p id="pcKopiaStatut" style="font-size:0.78rem; color:var(--muted); margin-top:0.6rem; min-height:1.1em;"></p>' +
+          // Les photocopies du jour, l'heure prise toute seule à l'impression.
+          '<div id="pcKopiaAndro" style="overflow-x:auto; margin-top:0.4rem;"></div>' +
         '</div>' +
 
         // Les copies faites sur la vraie machine : elles comptent aussi.
@@ -604,7 +606,7 @@
     if (nom === 'plast') kajyPlast();
     if (nom === 'scan') { rendreScanPejy(); rendreListe('scan'); }
     if (nom === 'sary') rendreListe('sary');
-    if (nom === 'kopia') rendreKopia();
+    if (nom === 'kopia') { rendreKopia(); rendreKopiaAndro(); }
   }
 
   // ---------- Tableau de bord ----------
@@ -1017,6 +1019,28 @@
     el.innerHTML = '📄 ' + feuilles + ' pejy × ' + p.isa + ' = <strong>' + (feuilles * p.isa) + ' pejy</strong> · 💰 <strong>' +
       ariary(feuilles * p.isa * prix) + '</strong> <span style="color:var(--muted); font-size:0.78rem;">(' + ariary(prix) + ' isaky ny pejy)</span>';
   }
+  // Le tableau des photocopies d'aujourd'hui : l'heure (notée seule au moment
+  // de l'impression), le nombre de pages sorties et ce que ça fait.
+  function rendreKopiaAndro() {
+    const box = $('pcKopiaAndro');
+    if (!box) return;
+    const auj = debutJour(Date.now());
+    const lignes = lireAsa().filter(function (a) { return a.at >= auj && serviceDe(a) === 'kopia'; });
+    if (!lignes.length) {
+      box.innerHTML = '<p style="font-size:0.8rem; color:var(--muted);">Mbola tsy misy photocopie androany.</p>';
+      return;
+    }
+    let pejy = 0, vola = 0;
+    box.innerHTML = '<table style="width:100%; font-size:0.85rem; margin-top:0;"><thead><tr>' +
+      '<th>Ora</th><th style="text-align:right;">Pejy natonta</th><th style="text-align:right;">Vola</th></tr></thead><tbody>' +
+      lignes.map(function (a) {
+        const n = a.pejy * a.isa;
+        pejy += n; vola += a.vola;
+        return '<tr><td>' + new Date(a.at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) + '</td>' +
+          '<td style="text-align:right;">' + n + '</td><td style="text-align:right;">' + ariary(a.vola) + '</td></tr>';
+      }).join('') +
+      '</tbody><tfoot><tr><th>Androany</th><th style="text-align:right;">' + pejy + '</th><th style="text-align:right;">' + ariary(vola) + '</th></tr></tfoot></table>';
+  }
   function kajyReliure() {
     const el = $('pcReliureVola');
     if (!el) return;
@@ -1236,10 +1260,8 @@
       exporterPdf(src.nom, src.pages, { isa: p.isa, loko: p.loko, deux: p.deux, telecharger: false, karazana: 'photocopie' });
       noterAsa(src.nom, feuillesPour(src.pages.length, p.deux), p.isa, p.loko);
       st.style.color = 'var(--muted)';
-      // Ce qui compte au comptoir : combien de pages sont sorties, et quand.
-      const pejy = feuillesPour(src.pages.length, p.deux) * p.isa;
-      const ora = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-      st.textContent = '✅ ' + pejy + ' pejy natonta — tamin\'ny ' + ora + '.';
+      st.textContent = '';
+      rendreKopiaAndro();
     });
     // Le PDF compte aussi : il est fait pour sortir sur la machine.
     $('pcKopiaPdf').addEventListener('click', function () {
