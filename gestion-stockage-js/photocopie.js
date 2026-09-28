@@ -87,16 +87,16 @@
   }
 
   // ---------- Le journal des copies et les prix ----------
-  // Une ligne : { id, at, nom, pejy (feuilles par exemplaire), isa (exemplaires), loko: 'nb' | 'loko' | 'scan', vola }.
-  // « scan » : une page scannée, à son prix à elle.
+  // Une ligne : { id, at, nom, pejy (feuilles par exemplaire), isa (exemplaires), loko: 'nb' | 'loko' | 'scan' | 'sary', vola }.
+  // « scan » : une page scannée ; « sary » : une photo prise. Chacun à son prix.
   function lireAsa() { return lireJson(CLE_ASA, []); }
-  function lireVidiny() { return Object.assign({ nb: 100, loko: 500, scan: 200 }, lireJson(CLE_VIDINY, {})); }
+  function lireVidiny() { return Object.assign({ nb: 100, loko: 500, scan: 200, sary: 0 }, lireJson(CLE_VIDINY, {})); }
   function noterAsa(nom, pejy, isa, loko) {
     const v = lireVidiny();
     const ligne = {
       id: nouvelId(), at: Date.now(), nom: nom,
       pejy: pejy, isa: isa, loko: loko,
-      vola: pejy * isa * (loko === 'loko' ? v.loko : loko === 'scan' ? v.scan : v.nb)
+      vola: pejy * isa * (loko === 'loko' ? v.loko : loko === 'scan' ? v.scan : loko === 'sary' ? v.sary : v.nb)
     };
     const tous = lireAsa();
     tous.unshift(ligne);
@@ -340,22 +340,26 @@
       '</div>' +
 
       // ----- Tableau de bord -----
+      // Le tableau de bord réunit les trois services : la recette d'abord,
+      // puis une carte par service (aujourd'hui / ce mois), puis les courbes
+      // et le journal de tout ce qui a été fait.
       '<div data-volet="tableau">' +
         '<div class="kpi-row">' +
-          kpi('Pejy natao androany', 'pcKpiPejyAndro', '0') +
-          kpi('Pejy natao ity volana ity', 'pcKpiPejyVolana', '0') +
-          kpi('Vola androany', 'pcKpiVolaAndro', '0 Ar') +
-          kpi('Vola ity volana ity', 'pcKpiVolaVolana', '0 Ar') +
-          kpi('Vola hatramin\'izao', 'pcKpiVolaTotal', '0 Ar') +
-          kpi('Scan voatahiry', 'pcKpiScan', '0') +
-          kpi('Sary voatahiry', 'pcKpiSary', '0') +
+          kpi('💰 Vola androany', 'pcKpiVolaAndro', '0 Ar') +
+          kpi('💰 Vola ity volana ity', 'pcKpiVolaVolana', '0 Ar') +
+          kpi('💰 Vola hatramin\'izao', 'pcKpiVolaTotal', '0 Ar') +
+        '</div>' +
+        '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(14rem, 1fr)); gap:0.8rem; margin:1rem 0;">' +
+          carteService('kopia', '🖨️ Photocopie', 'pejy') +
+          carteService('scan', '📠 Scan', 'pejy') +
+          carteService('sary', '📷 Maka sary', 'sary') +
         '</div>' +
         '<div class="chart-grid">' +
-          '<div class="chart-panel"><h4>Pejy isan\'andro (14 andro farany)</h4><div class="chart-box" style="height:220px;"><canvas id="pcChartAndro"></canvas></div></div>' +
-          '<div class="chart-panel"><h4>Mainty / Miloko (ity volana ity)</h4><div class="chart-box" style="height:220px;"><canvas id="pcChartLoko"></canvas></div></div>' +
+          '<div class="chart-panel"><h4>Vola isan\'andro (14 andro farany)</h4><div class="chart-box" style="height:220px;"><canvas id="pcChartAndro"></canvas></div></div>' +
+          '<div class="chart-panel"><h4>Vola isaky ny service (ity volana ity)</h4><div class="chart-box" style="height:220px;"><canvas id="pcChartLoko"></canvas></div></div>' +
         '</div>' +
         '<div class="panel" style="margin-top:1rem;">' +
-          '<h3>📜 Photocopie natao</h3>' +
+          '<h3>📜 Asa natao</h3>' +
           '<div id="pcHistorique" style="overflow-x:auto;"></div>' +
         '</div>' +
       '</div>' +
@@ -433,16 +437,31 @@
         '</div>' +
 
         '<div class="panel" style="margin-top:1rem;">' +
-          '<h3>💲 Vidiny isaky ny pejy</h3>' +
+          '<h3>💲 Vidiny</h3>' +
           '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(9rem, 1fr)); gap:0.7rem; align-items:end;">' +
             champ('pcVidinyNb', 'Mainty sy fotsy (Ar)', '<input type="number" id="pcVidinyNb" min="0" step="10" style="' + CHAMP + ' width:100%; box-sizing:border-box;">') +
             champ('pcVidinyLoko', 'Miloko (Ar)', '<input type="number" id="pcVidinyLoko" min="0" step="10" style="' + CHAMP + ' width:100%; box-sizing:border-box;">') +
-            champ('pcVidinyScan', 'Scan (Ar)', '<input type="number" id="pcVidinyScan" min="0" step="10" style="' + CHAMP + ' width:100%; box-sizing:border-box;">') +
+            champ('pcVidinyScan', 'Scan / pejy (Ar)', '<input type="number" id="pcVidinyScan" min="0" step="10" style="' + CHAMP + ' width:100%; box-sizing:border-box;">') +
+            champ('pcVidinySary', 'Sary / iray (Ar)', '<input type="number" id="pcVidinySary" min="0" step="10" style="' + CHAMP + ' width:100%; box-sizing:border-box;">') +
             '<button type="button" class="btn btn-sm" id="pcVidinyTehirizo" style="width:auto;">💾 Tehirizo</button>' +
           '</div>' +
         '</div>' +
       '</div>';
     return true;
+  }
+  // Une carte par service : ce qui a été fait et ce que ça a rapporté,
+  // aujourd'hui puis ce mois-ci. Les chiffres sont posés par rendreTableau().
+  function carteService(cle, titre, unite) {
+    const ligne = function (label, quand) {
+      return '<div style="display:flex; justify-content:space-between; align-items:baseline; gap:0.6rem; padding:0.35rem 0; border-top:1px solid var(--line);">' +
+        '<span style="font-size:0.78rem; color:var(--muted);">' + label + '</span>' +
+        '<span style="text-align:right;"><strong id="pcS' + cle + quand + 'Isa">0</strong> <span style="font-size:0.75rem; color:var(--muted);">' + unite + '</span>' +
+        ' · <strong id="pcS' + cle + quand + 'Vola" style="color:var(--cyan);">0 Ar</strong></span></div>';
+    };
+    return '<div class="panel" style="margin:0;">' +
+      '<h3 style="margin-bottom:0.5rem;">' + titre + '</h3>' +
+      ligne('Androany', 'Andro') + ligne('Ity volana ity', 'Volana') +
+    '</div>';
   }
   function kpi(label, id, v) {
     return '<div class="kpi-card"><div class="kpi-label">' + label + '</div><div class="kpi-value" id="' + id + '">' + v + '</div></div>';
@@ -504,41 +523,49 @@
 
   // ---------- Tableau de bord ----------
   const graphiques = {};
+  // Le service d'une ligne du journal : son « loko » le dit.
+  const SERVICES = ['kopia', 'scan', 'sary'];
+  const NOM_SERVICE = { kopia: '🖨️ Photocopie', scan: '📠 Scan', sary: '📷 Sary' };
+  function serviceDe(a) { return a.loko === 'scan' ? 'scan' : a.loko === 'sary' ? 'sary' : 'kopia'; }
   function debutJour(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); }
   function rendreTableau() {
     const z = racine();
-    if (!z || !$('pcKpiPejyAndro')) return;
+    if (!z || !$('pcKpiVolaAndro')) return;
     const asa = lireAsa();
     const auj = debutJour(Date.now());
     const mois = new Date(); mois.setDate(1); mois.setHours(0, 0, 0, 0);
-    let pejyAndro = 0, pejyVolana = 0, volaAndro = 0, volaVolana = 0, volaTotal = 0, nbVolana = 0, lokoVolana = 0;
+    let volaAndro = 0, volaVolana = 0, volaTotal = 0;
+    const services = {};
+    SERVICES.forEach(function (s) { services[s] = { AndroIsa: 0, AndroVola: 0, VolanaIsa: 0, VolanaVola: 0 }; });
     asa.forEach(function (a) {
-      const pejy = a.pejy * a.isa;
+      const isa = a.pejy * a.isa;
+      const s = services[serviceDe(a)];
       volaTotal += a.vola;
-      if (a.at >= auj) { pejyAndro += pejy; volaAndro += a.vola; }
-      if (a.at >= mois.getTime()) {
-        pejyVolana += pejy; volaVolana += a.vola;
-        if (a.loko === 'loko') lokoVolana += pejy; else if (a.loko === 'nb') nbVolana += pejy;
-      }
+      if (a.at >= auj) { volaAndro += a.vola; s.AndroIsa += isa; s.AndroVola += a.vola; }
+      if (a.at >= mois.getTime()) { volaVolana += a.vola; s.VolanaIsa += isa; s.VolanaVola += a.vola; }
     });
-    $('pcKpiPejyAndro').textContent = pejyAndro.toLocaleString('fr-FR');
-    $('pcKpiPejyVolana').textContent = pejyVolana.toLocaleString('fr-FR');
     $('pcKpiVolaAndro').textContent = ariary(volaAndro);
     $('pcKpiVolaVolana').textContent = ariary(volaVolana);
     $('pcKpiVolaTotal').textContent = ariary(volaTotal);
-    $('pcKpiScan').textContent = documents.filter(function (d) { return d.type === 'scan'; }).length;
-    $('pcKpiSary').textContent = documents.filter(function (d) { return d.type === 'sary'; }).length;
+    SERVICES.forEach(function (k) {
+      ['Andro', 'Volana'].forEach(function (q) {
+        $('pcS' + k + q + 'Isa').textContent = services[k][q + 'Isa'].toLocaleString('fr-FR');
+        $('pcS' + k + q + 'Vola').textContent = ariary(services[k][q + 'Vola']);
+      });
+    });
 
     // Historique
     const h = $('pcHistorique');
     if (!asa.length) {
-      h.innerHTML = '<p style="font-size:0.8rem; color:var(--muted);">Mbola tsy misy photocopie natao.</p>';
+      h.innerHTML = '<p style="font-size:0.8rem; color:var(--muted);">Mbola tsy misy asa natao.</p>';
     } else {
       h.innerHTML = '<table style="width:100%; font-size:0.8rem; margin-top:0;"><thead><tr>' +
-        '<th>Daty</th><th>Antontan-taratasy</th><th>Pejy × Isa</th><th>Loko</th><th>Vola</th><th></th></tr></thead><tbody>' +
+        '<th>Daty</th><th>Service</th><th>Antontan-taratasy</th><th>Isa</th><th>Vola</th><th></th></tr></thead><tbody>' +
         asa.slice(0, 100).map(function (a) {
-          return '<tr><td>' + quand(a.at) + '</td><td>' + html(a.nom) + '</td><td>' + a.pejy + ' × ' + a.isa +
-            '</td><td>' + (a.loko === 'loko' ? '🌈 Miloko' : a.loko === 'scan' ? '📑 Scan' : '⚫ Mainty') + '</td><td>' + ariary(a.vola) +
+          const s = serviceDe(a);
+          const detail = s === 'kopia' ? a.pejy + ' × ' + a.isa + (a.loko === 'loko' ? ' 🌈' : ' ⚫') : String(a.pejy * a.isa);
+          return '<tr><td>' + quand(a.at) + '</td><td>' + NOM_SERVICE[s] + '</td><td>' + html(a.nom) + '</td><td>' + detail +
+            '</td><td>' + ariary(a.vola) +
             '</td><td><button type="button" class="btn btn-sm" data-esory-asa="' + a.id + '" style="width:auto;" aria-label="Fafao">🗑</button></td></tr>';
         }).join('') + '</tbody></table>';
     }
@@ -547,23 +574,33 @@
     const styles = getComputedStyle(document.documentElement);
     const accent = (styles.getPropertyValue('--cyan') || '#3fd0c9').trim();
     const muted = (styles.getPropertyValue('--muted') || '#7c8b92').trim();
-    const jours = [], valeurs = [];
+    const violet = (styles.getPropertyValue('--violet') || '#a78bfa').trim();
+    const couleurs = { kopia: accent, scan: violet, sary: muted };
+    const jours = [], parService = { kopia: [], scan: [], sary: [] };
     for (let i = 13; i >= 0; i--) {
       const d = new Date(auj); d.setDate(d.getDate() - i);
       const debut = d.getTime();
       const fin = new Date(debut); fin.setDate(fin.getDate() + 1);
       jours.push(d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }));
-      valeurs.push(asa.reduce(function (s, a) { return s + (a.at >= debut && a.at < fin.getTime() ? a.pejy * a.isa : 0); }, 0));
+      SERVICES.forEach(function (k) {
+        parService[k].push(asa.reduce(function (s, a) {
+          return s + (a.at >= debut && a.at < fin.getTime() && serviceDe(a) === k ? a.vola : 0);
+        }, 0));
+      });
     }
     dessiner('pcChartAndro', {
       type: 'bar',
-      data: { labels: jours, datasets: [{ label: 'Pejy', data: valeurs, backgroundColor: accent, borderRadius: 4 }] },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
-        scales: { x: { ticks: { color: muted } }, y: { beginAtZero: true, ticks: { color: muted, precision: 0 } } } }
+      data: { labels: jours, datasets: SERVICES.map(function (k) {
+        return { label: NOM_SERVICE[k], data: parService[k], backgroundColor: couleurs[k], borderRadius: 4 };
+      }) },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: muted } } },
+        scales: { x: { stacked: true, ticks: { color: muted } }, y: { stacked: true, beginAtZero: true, ticks: { color: muted } } } }
     });
     dessiner('pcChartLoko', {
       type: 'doughnut',
-      data: { labels: ['Mainty sy fotsy', 'Miloko'], datasets: [{ data: [nbVolana, lokoVolana], backgroundColor: [muted, accent], borderWidth: 0 }] },
+      data: { labels: SERVICES.map(function (k) { return NOM_SERVICE[k]; }),
+        datasets: [{ data: SERVICES.map(function (k) { return services[k].VolanaVola; }),
+          backgroundColor: SERVICES.map(function (k) { return couleurs[k]; }), borderWidth: 0 }] },
       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: muted } } } }
     });
   }
@@ -755,6 +792,7 @@
     $('pcVidinyNb').value = v.nb;
     $('pcVidinyLoko').value = v.loko;
     $('pcVidinyScan').value = v.scan;
+    $('pcVidinySary').value = v.sary;
     const src = sourceKopia();
     $('pcKopiaTopy').innerHTML = src ? src.pages.map(function (b) {
       return '<img src="' + urlDe(b) + '" alt="" style="width:6rem; aspect-ratio:1/1.414; object-fit:contain; background:#fff; border:1px solid var(--line); border-radius:6px;' +
@@ -929,6 +967,8 @@
         });
       });
       return suite.then(function () {
+        // Les photos entrent au journal, comme les scans et les photocopies.
+        noterAsa(blobs.length > 1 ? blobs.length + ' sary' : 'Sary ' + quand(Date.now()), blobs.length, 1, 'sary');
         dire('sary', '✅ Voatahiry ny sary.');
         rendreListe('sary'); rendreTableau();
       }, function () { dire('sary', 'Tsy voatahiry : feno angamba ny toerana.', true); });
@@ -991,7 +1031,8 @@
       ecrireJson(CLE_VIDINY, {
         nb: Math.max(0, Number($('pcVidinyNb').value) || 0),
         loko: Math.max(0, Number($('pcVidinyLoko').value) || 0),
-        scan: Math.max(0, Number($('pcVidinyScan').value) || 0)
+        scan: Math.max(0, Number($('pcVidinyScan').value) || 0),
+        sary: Math.max(0, Number($('pcVidinySary').value) || 0)
       });
       kajyVola();
       $('pcKopiaStatut').style.color = 'var(--muted)';
