@@ -1037,9 +1037,27 @@
         const n = a.pejy * a.isa;
         pejy += n; vola += a.vola;
         return '<tr><td>' + new Date(a.at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) + '</td>' +
-          '<td style="text-align:right;">' + n + '</td><td style="text-align:right;">' + ariary(a.vola) + '</td></tr>';
+          '<td style="text-align:right;"><input type="number" min="0" value="' + n + '" data-kopia-pejy="' + a.id + '" ' +
+            'aria-label="Pejy natonta" style="' + CHAMP + ' width:5rem; text-align:right; padding:0.2rem 0.4rem;"></td>' +
+          '<td style="text-align:right;">' + ariary(a.vola) + '</td></tr>';
       }).join('') +
       '</tbody><tfoot><tr><th>Androany</th><th style="text-align:right;">' + pejy + '</th><th style="text-align:right;">' + ariary(vola) + '</th></tr></tfoot></table>';
+    // Le nombre se corrige à la main (plus d'exemplaires choisis dans la boîte
+    // d'impression, une feuille ratée…) : le montant suit, au même prix la page.
+    box.querySelectorAll('[data-kopia-pejy]').forEach(function (inp) {
+      inp.addEventListener('change', function () {
+        const n = Math.max(0, parseInt(inp.value, 10) || 0);
+        const tous = lireAsa();
+        const a = tous.filter(function (x) { return x.id === inp.dataset.kopiaPejy; })[0];
+        if (!a) return;
+        const avant = a.pejy * a.isa;
+        const prixPage = avant ? a.vola / avant : prixDe(a.loko);
+        a.pejy = n; a.isa = 1; a.vola = n * prixPage;
+        ecrireJson(CLE_ASA, tous);
+        rendreKopiaAndro();
+        rendreTableau();
+      });
+    });
   }
   function kajyReliure() {
     const el = $('pcReliureVola');
