@@ -87,15 +87,16 @@
   }
 
   // ---------- Le journal des copies et les prix ----------
-  // Une ligne : { id, at, nom, pejy (feuilles par exemplaire), isa (exemplaires), loko: 'nb' | 'loko', vola }.
+  // Une ligne : { id, at, nom, pejy (feuilles par exemplaire), isa (exemplaires), loko: 'nb' | 'loko' | 'scan', vola }.
+  // « scan » : une page scannée, à son prix à elle.
   function lireAsa() { return lireJson(CLE_ASA, []); }
-  function lireVidiny() { return Object.assign({ nb: 100, loko: 500 }, lireJson(CLE_VIDINY, {})); }
+  function lireVidiny() { return Object.assign({ nb: 100, loko: 500, scan: 200 }, lireJson(CLE_VIDINY, {})); }
   function noterAsa(nom, pejy, isa, loko) {
     const v = lireVidiny();
     const ligne = {
       id: nouvelId(), at: Date.now(), nom: nom,
       pejy: pejy, isa: isa, loko: loko,
-      vola: pejy * isa * (loko === 'loko' ? v.loko : v.nb)
+      vola: pejy * isa * (loko === 'loko' ? v.loko : loko === 'scan' ? v.scan : v.nb)
     };
     const tous = lireAsa();
     tous.unshift(ligne);
@@ -436,6 +437,7 @@
           '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(9rem, 1fr)); gap:0.7rem; align-items:end;">' +
             champ('pcVidinyNb', 'Mainty sy fotsy (Ar)', '<input type="number" id="pcVidinyNb" min="0" step="10" style="' + CHAMP + ' width:100%; box-sizing:border-box;">') +
             champ('pcVidinyLoko', 'Miloko (Ar)', '<input type="number" id="pcVidinyLoko" min="0" step="10" style="' + CHAMP + ' width:100%; box-sizing:border-box;">') +
+            champ('pcVidinyScan', 'Scan (Ar)', '<input type="number" id="pcVidinyScan" min="0" step="10" style="' + CHAMP + ' width:100%; box-sizing:border-box;">') +
             '<button type="button" class="btn btn-sm" id="pcVidinyTehirizo" style="width:auto;">💾 Tehirizo</button>' +
           '</div>' +
         '</div>' +
@@ -516,7 +518,7 @@
       if (a.at >= auj) { pejyAndro += pejy; volaAndro += a.vola; }
       if (a.at >= mois.getTime()) {
         pejyVolana += pejy; volaVolana += a.vola;
-        if (a.loko === 'loko') lokoVolana += pejy; else nbVolana += pejy;
+        if (a.loko === 'loko') lokoVolana += pejy; else if (a.loko === 'nb') nbVolana += pejy;
       }
     });
     $('pcKpiPejyAndro').textContent = pejyAndro.toLocaleString('fr-FR');
@@ -536,7 +538,7 @@
         '<th>Daty</th><th>Antontan-taratasy</th><th>Pejy × Isa</th><th>Loko</th><th>Vola</th><th></th></tr></thead><tbody>' +
         asa.slice(0, 100).map(function (a) {
           return '<tr><td>' + quand(a.at) + '</td><td>' + html(a.nom) + '</td><td>' + a.pejy + ' × ' + a.isa +
-            '</td><td>' + (a.loko === 'loko' ? '🌈 Miloko' : '⚫ Mainty') + '</td><td>' + ariary(a.vola) +
+            '</td><td>' + (a.loko === 'loko' ? '🌈 Miloko' : a.loko === 'scan' ? '📑 Scan' : '⚫ Mainty') + '</td><td>' + ariary(a.vola) +
             '</td><td><button type="button" class="btn btn-sm" data-esory-asa="' + a.id + '" style="width:auto;" aria-label="Fafao">🗑</button></td></tr>';
         }).join('') + '</tbody></table>';
     }
@@ -752,6 +754,7 @@
     const v = lireVidiny();
     $('pcVidinyNb').value = v.nb;
     $('pcVidinyLoko').value = v.loko;
+    $('pcVidinyScan').value = v.scan;
     const src = sourceKopia();
     $('pcKopiaTopy').innerHTML = src ? src.pages.map(function (b) {
       return '<img src="' + urlDe(b) + '" alt="" style="width:6rem; aspect-ratio:1/1.414; object-fit:contain; background:#fff; border:1px solid var(--line); border-radius:6px;' +
@@ -888,10 +891,14 @@
       garderDocument(d).then(function () {
         // Chaque scan enregistré part aussi, en PDF, dans « 📄 PDF ».
         exporterPdf(d.nom, pages, { telecharger: false, karazana: 'scan' });
+        // Le scan se paie à la page : il entre au journal, avec les photocopies.
+        noterAsa(d.nom, pages.length, 1, 'scan');
+        const prix = lireVidiny().scan;
         scanPejy = [];
         $('pcScanNom').value = '';
         fermerCamera();
-        dire('scan', '✅ Voatahiry : ' + d.nom + ' — ary ao amin\'ny 📄 PDF koa.');
+        dire('scan', '✅ Voatahiry : ' + d.nom + ' — ' + pages.length + ' pejy × ' + ariary(prix) + ' = ' +
+          ariary(pages.length * prix) + ' — ary ao amin\'ny 📄 PDF koa.');
         rendreScanPejy(); rendreListe('scan'); rendreTableau();
       }, function () { dire('scan', 'Tsy voatahiry : feno angamba ny toerana.', true); });
     });
@@ -983,7 +990,8 @@
     $('pcVidinyTehirizo').addEventListener('click', function () {
       ecrireJson(CLE_VIDINY, {
         nb: Math.max(0, Number($('pcVidinyNb').value) || 0),
-        loko: Math.max(0, Number($('pcVidinyLoko').value) || 0)
+        loko: Math.max(0, Number($('pcVidinyLoko').value) || 0),
+        scan: Math.max(0, Number($('pcVidinyScan').value) || 0)
       });
       kajyVola();
       $('pcKopiaStatut').style.color = 'var(--muted)';
