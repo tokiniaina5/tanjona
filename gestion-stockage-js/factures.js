@@ -180,6 +180,24 @@
       return '<div class="field" style="margin:0;"><label>' + escapeHtml(label) + '</label>' +
         '<input ' + attr + ' ' + champ + ' value="' + escapeHtml(valeur) + '"></div>';
     };
+    // Le profil de la facture (celui de « 👤 Mon profil ») : son logo se
+    // change ici, pris dans un dossier de l'appareil. L'employé émet au nom
+    // de la boutique : il corrige sa facture, pas le profil du patron.
+    const profil = function(){
+      const logo = brouillon.emetteur.logo;
+      return '<div style="display:flex; align-items:center; gap:0.9rem; flex-wrap:wrap; margin-bottom:0.8rem;">' +
+        (logo ? '<img src="' + escapeHtml(logo) + '" alt="Logo" style="width:64px; height:64px; border-radius:50%; ' +
+                'object-fit:cover; background:var(--panel-2); border:1px solid var(--line);">'
+              : '<div style="width:64px; height:64px; border-radius:50%; background:var(--panel-2); border:1px solid var(--line); ' +
+                'display:flex; align-items:center; justify-content:center; font-size:1.7rem;">👤</div>') +
+        '<div style="display:flex; gap:0.5rem; flex-wrap:wrap;">' +
+          '<label class="btn btn-sm" style="width:auto; cursor:pointer; margin:0;">📁 Changer le logo' +
+            '<input type="file" accept="image/*" data-logo style="display:none;"></label>' +
+          (logo ? '<button type="button" class="btn btn-sm" data-logo-ala style="width:auto;">✕ Sans logo</button>' : '') +
+          (MODE_MPIASA ? '' : '<button type="button" class="btn btn-sm" data-profil-tehirizo style="width:auto;">💾 Enregistrer dans mon profil</button>') +
+        '</div>' +
+      '</div>';
+    };
     let total = 0;
     const articles = brouillon.lignes.map(function(l){
       const m = l.qty * l.price;
@@ -192,6 +210,7 @@
     zone.innerHTML =
       '<details open style="margin-bottom:0.8rem;">' +
         '<summary style="cursor:pointer; font-weight:bold; margin-bottom:0.5rem;">✏️ Corriger l\'en-tête</summary>' +
+        (modele ? '' : profil()) +
         '<div data-entete class="form-grid" style="margin-bottom:0.8rem;">' +
           (modele ? '<p style="color:var(--muted); font-size:0.8rem;">Mamaky…</p>'
             : case_('Société', 'data-e="company"', brouillon.emetteur.company) +
@@ -222,7 +241,7 @@
         inp.addEventListener('input', function(){ brouillon.corrections[inp.getAttribute('data-fcase')] = inp.value; rafraichirApercu(); });
       });
     };
-    if(!modele){ brancher(); return; }
+    if(!modele){ brancher(); brancherProfil(zone); return; }
 
     // La facture du client : chaque case écrite de son en-tête, telle quelle.
     window.__factureModely.enTete(modele).then(function(cases){
@@ -241,6 +260,52 @@
     }, function(err){
       const boite = zone.querySelector('[data-entete]');
       if(boite) boite.innerHTML = '<p style="color:var(--amber); font-size:0.8rem;">' + escapeHtml((err && err.message) || 'erreur') + '</p>';
+    });
+  }
+
+  // Le logo, et le bouton qui range l'en-tête corrigé dans « 👤 Mon profil ».
+  function brancherProfil(zone){
+    const fichier = zone.querySelector('[data-logo]');
+    if(fichier) fichier.addEventListener('change', function(){
+      const f = fichier.files[0];
+      if(!f) return;
+      const lecteur = new FileReader();
+      lecteur.onload = function(ev){
+        shrinkImage(ev.target.result, 320, function(petit){
+          brouillon.emetteur.logo = petit;
+          dessinerEdition();
+          rafraichirApercu();
+        });
+      };
+      lecteur.readAsDataURL(f);
+    });
+    const ala = zone.querySelector('[data-logo-ala]');
+    if(ala) ala.addEventListener('click', function(){
+      brouillon.emetteur.logo = null;
+      dessinerEdition();
+      rafraichirApercu();
+    });
+    const tehirizo = zone.querySelector('[data-profil-tehirizo]');
+    if(tehirizo) tehirizo.addEventListener('click', function(){
+      if(!currentUser) return;
+      const e = brouillon.emetteur;
+      if(!e.name || !e.email){ alert('Le nom et l\'email sont obligatoires.'); return; }
+      // Les cases de « 👤 Mon profil » reçoivent l'en-tête, et c'est son
+      // propre bouton qui enregistre : un seul chemin vers le compte. Le logo
+      // passe par currentUser, que ce bouton garde quand aucun fichier n'est
+      // choisi.
+      [['profileName', e.name], ['profileCompany', e.company], ['profileEmail', e.email],
+       ['profilePhone', e.phone], ['profileNif', e.nif], ['profileStat', e.stat]].forEach(function(p){
+        const inp = document.getElementById(p[0]);
+        if(inp) inp.value = p[1] || '';
+      });
+      const logoInp = document.getElementById('profileLogo');
+      if(logoInp) logoInp.value = '';
+      currentUser.logo = e.logo || null;
+      const btn = document.getElementById('saveProfileBtn');
+      if(!btn) return;
+      btn.click();
+      alert('Voatahiry ao amin\'ny « 👤 Mon profil ».');
     });
   }
 
