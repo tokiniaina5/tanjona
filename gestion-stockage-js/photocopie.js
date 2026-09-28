@@ -1029,19 +1029,45 @@
     }
     let pejy = 0, vola = 0;
     box.innerHTML = '<table style="width:100%; font-size:0.85rem; margin-top:0;"><thead><tr>' +
-      '<th>Ora</th><th style="text-align:right;">Pejy natonta</th><th style="text-align:right;">Vola</th><th>Samihafa</th></tr></thead><tbody>' +
+      '<th>Ora</th><th style="text-align:right;">Pejy natonta</th><th>Loko</th><th style="text-align:right;">Vola</th><th>Samihafa</th><th></th></tr></thead><tbody>' +
       lignes.map(function (a) {
         const n = a.pejy * a.isa;
+        const miloko = a.loko === 'loko' || a.loko === 'imp-loko';
         pejy += n; vola += a.vola;
         return '<tr><td>' + new Date(a.at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) + '</td>' +
           '<td style="text-align:right;"><input type="number" min="0" value="' + n + '" data-kopia-pejy="' + a.id + '" ' +
             'aria-label="Pejy natonta" style="' + CHAMP + ' width:5rem; text-align:right; padding:0.2rem 0.4rem;"></td>' +
+          // Mainty ou miloko : le prix de la page suit ce choix.
+          '<td><select data-kopia-loko="' + a.id + '" aria-label="Loko" style="' + CHAMP + ' padding:0.2rem 0.4rem;">' +
+            '<option value="nb"' + (miloko ? '' : ' selected') + '>⚫ Mainty</option>' +
+            '<option value="loko"' + (miloko ? ' selected' : '') + '>🌈 Miloko</option></select></td>' +
           '<td style="text-align:right;">' + ariary(a.vola) + '</td>' +
           // « Samihafa » : un mot libre sur cette copie (client, remarque…).
           '<td><input type="text" value="' + html(a.samihafa || '') + '" data-kopia-samihafa="' + a.id + '" ' +
-            'aria-label="Samihafa" style="' + CHAMP + ' width:100%; min-width:8rem; box-sizing:border-box; padding:0.2rem 0.4rem;"></td></tr>';
+            'aria-label="Samihafa" style="' + CHAMP + ' width:100%; min-width:8rem; box-sizing:border-box; padding:0.2rem 0.4rem;"></td>' +
+          '<td><button type="button" class="btn btn-sm" data-kopia-fafao="' + a.id + '" style="width:auto;" aria-label="Fafao">🗑</button></td></tr>';
       }).join('') +
-      '</tbody><tfoot><tr><th>Androany</th><th style="text-align:right;">' + pejy + '</th><th style="text-align:right;">' + ariary(vola) + '</th><th></th></tr></tfoot></table>';
+      '</tbody><tfoot><tr><th>Androany</th><th style="text-align:right;">' + pejy + '</th><th></th><th style="text-align:right;">' + ariary(vola) + '</th><th></th><th></th></tr></tfoot></table>';
+    box.querySelectorAll('[data-kopia-loko]').forEach(function (sel) {
+      sel.addEventListener('change', function () {
+        const tous = lireAsa();
+        const a = tous.filter(function (x) { return x.id === sel.dataset.kopiaLoko; })[0];
+        if (!a) return;
+        a.loko = sel.value;
+        a.vola = a.pejy * a.isa * prixDe(a.loko);
+        ecrireJson(CLE_ASA, tous);
+        rendreKopiaAndro();
+        rendreTableau();
+      });
+    });
+    box.querySelectorAll('[data-kopia-fafao]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        if (!confirm('Fafana ve ity photocopie ity ?')) return;
+        ecrireJson(CLE_ASA, lireAsa().filter(function (x) { return x.id !== b.dataset.kopiaFafao; }));
+        rendreKopiaAndro();
+        rendreTableau();
+      });
+    });
     box.querySelectorAll('[data-kopia-samihafa]').forEach(function (inp) {
       inp.addEventListener('change', function () {
         const tous = lireAsa();
