@@ -292,8 +292,13 @@
   const CLE_DERNIER_NOUVEAU = 'stockmanager_onglets_nouveau_dernier';
   const CLE_NOMS_NOUVEAU = 'stockmanager_noms_nouveau';
 
+  // « Entrée en stock » (suffixe vide, vue ajouter) a aussi son nom, sa série
+  // de références et son tableau de bord : ses articles sont ceux qui
+  // n'appartiennent à aucun onglet « Nouvel article ».
   function estNouvelArticle(sfx){ return sfx.indexOf('Nouveau') === 0; }
-  function vueDe(sfx){ return 'nouveau' + sfx.slice('Nouveau'.length); }
+  function vueDe(sfx){ return sfx ? 'nouveau' + sfx.slice('Nouveau'.length) : 'ajouter'; }
+  function sfxDe(vue){ return vue === 'ajouter' ? '' : 'Nouveau' + vue.slice('nouveau'.length); }
+  function appartient(it, vue){ return vue === 'ajouter' ? !it.groupe : it.groupe === vue; }
 
   function lireNomsNouveau(){
     try{
@@ -311,19 +316,21 @@
     noms = noms || lireNomsNouveau();
     const vue = vueDe(sfx);
     if(noms[vue]) return noms[vue];
+    if(!sfx) return '📦 Entrée en stock';
     const place = FORMULAIRES_AJOUTER.filter(estNouvelArticle).indexOf(sfx) + 1;
     return '🆕 Nouvel article' + (place > 1 ? ' ' + place : '');
   }
 
   // Le préfixe des références : le nom de l'onglet en capitales, sans accent
-  // ni signe (8 lettres au plus), suivi d'un tiret. Sans nom : N pour le
-  // premier onglet (N1, N2...), N3- pour l'onglet nouveau3...
+  // ni signe (8 lettres au plus), suivi d'un tiret. Sans nom : rien pour
+  // « Entrée en stock » (1, 2, 3...), N pour le premier « Nouvel article »
+  // (N1, N2...), N3- pour l'onglet nouveau3...
   function prefixeRef(sfx){
-    if(!estNouvelArticle(sfx)) return '';
     const choisi = lireNomsNouveau()[vueDe(sfx)];
-    const propre = String(choisi || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
+    const propre = String(choisi || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
       .replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 8);
     if(propre) return propre + '-';
+    if(!estNouvelArticle(sfx)) return '';
     const num = sfx.slice('Nouveau'.length);
     return num ? 'N' + num + '-' : 'N';
   }
@@ -457,7 +464,7 @@
   // après chaque changement du stock.
   function renderTableauxNouveau(){
     const noms = lireNomsNouveau();
-    FORMULAIRES_AJOUTER.filter(estNouvelArticle).forEach(function(sfx){
+    FORMULAIRES_AJOUTER.forEach(function(sfx){
       const vue = vueDe(sfx);
       const hote = document.getElementById('dash-' + vue);
       if(!hote) return;
@@ -467,7 +474,7 @@
         bloc.className = 'panel tableau-nouveau';
         hote.appendChild(bloc);
       }
-      const groupe = items.filter(function(it){ return it.groupe === vue; });
+      const groupe = items.filter(function(it){ return appartient(it, vue); });
       const ids = new Set(groupe.map(function(it){ return it.id; }));
       let stock = 0, valeur = 0, entrees = 0, sorties = 0;
       groupe.forEach(function(it){
@@ -494,7 +501,10 @@
         '</tr>';
       }).join('');
       bloc.innerHTML =
-        '<h3>📊 Tableau de bord — ' + escapeHtml(nomOngletNouveau(sfx, noms)) + '</h3>' +
+        '<div style="display:flex; justify-content:space-between; align-items:center; gap:0.6rem; flex-wrap:wrap;">' +
+          '<h3 style="margin:0;">📊 Tableau de bord — ' + escapeHtml(nomOngletNouveau(sfx, noms)) + '</h3>' +
+          '<button type="button" class="btn btn-sm btn-primary tableau-feno-btn" style="width:auto;">📊 Tableau de bord feno</button>' +
+        '</div>' +
         '<div class="kpi-row">' +
           kpi('Articles', groupe.length) +
           kpi('Stock total', stock) +
@@ -505,8 +515,52 @@
         (groupe.length
           ? '<div class="table-scroll"><table><thead><tr><th>Réf.</th><th>Nom</th><th>Catégorie</th><th>Quantité</th><th>Prix unitaire</th><th>Valeur</th></tr></thead><tbody>' + lignes + '</tbody></table></div>'
           : '<p class="empty-hint">Mbola tsy misy entana noforonina tao amin\'ity onglet ity.</p>');
+      bloc.querySelector('.tableau-feno-btn').addEventListener('click', function(){ ouvrirTableauDuGroupe(vue); });
     });
   }
+
+  // Le grand tableau de bord (graphiques, filtres, top 3...) réduit aux
+  // articles d'un onglet, sous son nom. « ✕ Entana rehetra », l'onglet
+  // 📊 Tableau de bord ou le menu le rendent à tout le stock.
+  function majTitreTableau(){
+    const titre = document.getElementById('titreTableauBord');
+    const tout = document.getElementById('tableauToutBtn');
+    let nom = '';
+    if(groupeTableau){
+      const sfx = sfxDe(groupeTableau);
+      nom = FORMULAIRES_AJOUTER.indexOf(sfx) >= 0 ? nomOngletNouveau(sfx) : (lireNomsNouveau()[groupeTableau] || groupeTableau);
+    }
+    if(titre) titre.textContent = '📊 Tableau de bord' + (nom ? ' — ' + nom : '');
+    if(tout) tout.style.display = groupeTableau ? '' : 'none';
+  }
+  function viderLesFiltres(){
+    selectedDays.clear();
+    selectedCategories.clear();
+    selectedRefs.clear();
+  }
+  function ouvrirTableauDuGroupe(vue){
+    groupeTableau = vue;
+    viderLesFiltres();
+    majTitreTableau();
+    ouvrirVue('dashboard');
+  }
+  function tableauDeToutLeStock(){
+    if(!groupeTableau) return;
+    groupeTableau = null;
+    viderLesFiltres();
+    majTitreTableau();
+    renderFilters();
+    renderDashboard();
+  }
+  (function(){
+    const tout = document.getElementById('tableauToutBtn');
+    if(tout) tout.addEventListener('click', tableauDeToutLeStock);
+    document.querySelectorAll('.dash-tab[data-dash="dashboard"]').forEach(function(t){
+      t.addEventListener('click', tableauDeToutLeStock);
+    });
+    const menu = document.getElementById('menuTableauBord');
+    if(menu) menu.addEventListener('click', tableauDeToutLeStock);
+  })();
 
   // ---- Le « + » des Nouvel article ----
   // Posé après l'onglet « 🆕 Nouvel article » dans chaque rangée : chaque
@@ -591,17 +645,47 @@
   // proposées et les tableaux de bord suivent les noms choisis.
   function renumeroterOngletsNouveau(){
     const noms = lireNomsNouveau();
-    FORMULAIRES_AJOUTER.filter(estNouvelArticle).forEach(function(sfx){
+    FORMULAIRES_AJOUTER.forEach(function(sfx){
       const vue = vueDe(sfx);
       const nom = nomOngletNouveau(sfx, noms);
       const titre = document.querySelector('#dash-' + vue + ' h3');
-      if(titre) titre.textContent = noms[vue] ? '🆕 ' + nom + ' (entana vaovao)' : nom + ' (entana vaovao)';
+      if(titre && !sfx) titre.textContent = noms[vue] ? '📦 ' + nom : nom;
+      else if(titre) titre.textContent = noms[vue] ? '🆕 ' + nom + ' (entana vaovao)' : nom + ' (entana vaovao)';
       document.querySelectorAll('.dash-tab[data-dash="' + vue + '"] .onglet-nom').forEach(function(el){
         el.textContent = nom;
       });
     });
     refreshItemRefField();
     renderTableauxNouveau();
+    majTitreTableau();
+    majMenuTableaux();
+  }
+
+  // Dans le menu, sous « 📊 Tableau de bord » : celui de chaque onglet
+  // « Nouvel article », à son nom. Refait à chaque onglet ouvert, refermé ou
+  // renommé.
+  function majMenuTableaux(){
+    const ancre = document.getElementById('menuTableauBord');
+    if(!ancre) return;
+    document.querySelectorAll('.menu-tableau-groupe').forEach(function(b){ b.remove(); });
+    const noms = lireNomsNouveau();
+    let apres = ancre;
+    FORMULAIRES_AJOUTER.forEach(function(sfx){
+      const vue = vueDe(sfx);
+      const bouton = document.createElement('button');
+      bouton.type = 'button';
+      bouton.className = 'nav-action menu-tableau-groupe';
+      bouton.textContent = '📊 Tableau de bord — ' + nomOngletNouveau(sfx, noms);
+      bouton.addEventListener('click', function(){
+        groupeTableau = vue;
+        viderLesFiltres();
+        majTitreTableau();
+        if(typeof ouvrirDepuisLeMenu === 'function') ouvrirDepuisLeMenu('dashboard');
+        else ouvrirVue('dashboard');
+      });
+      apres.after(bouton);
+      apres = bouton;
+    });
   }
 
   // Le nom s'écrit dans l'onglet même (prompt() n'existe pas partout) :
@@ -680,6 +764,10 @@
     if(etaitAffichee) ouvrirVue('nouveau');
   }
 
+  document.querySelectorAll('.dash-tab[data-dash="ajouter"]').forEach(function(onglet){
+    onglet.innerHTML = '<span class="onglet-nom">' + onglet.innerHTML + '</span>';
+    ajouterCrayon(onglet);
+  });
   document.querySelectorAll('.dash-tab[data-dash="nouveau"]').forEach(function(onglet){
     onglet.innerHTML = '<span class="onglet-nom">' + onglet.innerHTML + '</span>';
     ajouterCrayon(onglet);
@@ -806,7 +894,22 @@
   }
 
   // ---------------- TABLEAU DE BORD ----------------
+  // Le tableau de bord d'un seul onglet « Nouvel article » (sa vue :
+  // nouveau, nouveau3...) : null pour tout le stock. Un mouvement n'a pas de
+  // groupe : il suit celui de son article.
+  var groupeTableau = null;
+  function dansLeGroupe(o){
+    if(!groupeTableau) return true;
+    // Un mouvement (itemId + type) : celui de son article, s'il existe encore.
+    if(o.itemId && o.type){
+      const it = items.find(function(x){ return x.id === o.itemId; });
+      return !!it && appartient(it, groupeTableau);
+    }
+    return appartient(o, groupeTableau);
+  }
+
   function passesCatRef(o){
+    if(!dansLeGroupe(o)) return false;
     const cat = o.category || 'Sans catégorie';
     const ref = o.ref || '—';
     if(selectedCategories.size && !selectedCategories.has(cat)) return false;
@@ -939,12 +1042,14 @@
   }
 
   function renderFilters(){
-    const daysAll = Array.from(new Set(movements.map(function(m){ return m.day; }))).sort();
+    const itemsVus = items.filter(dansLeGroupe);
+    const mouvementsVus = movements.filter(dansLeGroupe);
+    const daysAll = Array.from(new Set(mouvementsVus.map(function(m){ return m.day; }))).sort();
     const catsAll = Array.from(new Set(
-      items.map(function(it){ return it.category || 'Sans catégorie'; })
-        .concat(movements.map(function(m){ return m.category || 'Sans catégorie'; }))
+      itemsVus.map(function(it){ return it.category || 'Sans catégorie'; })
+        .concat(mouvementsVus.map(function(m){ return m.category || 'Sans catégorie'; }))
     ));
-    const refsAll = Array.from(new Set(items.map(function(it){ return it.ref || '—'; })));
+    const refsAll = Array.from(new Set(itemsVus.map(function(it){ return it.ref || '—'; })));
 
     buildChipGroup('filterDays', daysAll, selectedDays, dayLabel);
     buildChipGroup('filterCategories', catsAll, selectedCategories, function(c){ return c; });
