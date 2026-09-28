@@ -23,6 +23,9 @@
   }
   function nouvelId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
   function quand(ms) { return new Date(ms).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }); }
+  // Un PC dont le navigateur sait lire un dossier (Chrome, Edge) : le scan et
+  // la photocopie y passent par Windows Scan et le dossier des scans.
+  const PC_DOSSIER = 'showDirectoryPicker' in window;
   function ariary(n) { return Math.round(n || 0).toLocaleString('fr-FR') + ' Ar'; }
   function nomFichier(t) { return String(t || '').trim().replace(/[\\/:*?"<>|]+/g, '-').slice(0, 60) || 'scan'; }
   function lireJson(cle, defaut) {
@@ -444,22 +447,22 @@
       '<div data-volet="kopia" style="display:none;">' +
         '<div class="panel">' +
           '<h3>🖨️ Photocopie</h3>' +
+          // Sur PC, un seul bouton : il reprend les pages que Windows Scan
+          // vient de poser dans le dossier et les imprime aussitôt (une copie,
+          // noir et blanc, une image par page). Tout le reste — choix du
+          // document, réglages, PDF — reste caché, mais c'est lui qui imprime
+          // et compte : « 🖨️ Atonta » est cliqué pour de bon.
+          (PC_DOSSIER
+            ? '<button type="button" class="btn btn-primary" id="pcKopiaManao" style="width:auto;">🖨️ Manao photocopie</button>'
+            : '') +
+          '<div' + (PC_DOSSIER ? ' style="display:none;"' : '') + '>' +
           '<div style="display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center;">' +
             '<select id="pcKopiaLoharano" style="' + CHAMP + ' flex:1; min-width:12rem;" aria-label="Antontan-taratasy"></select>' +
-            // Sur PC, comme le scan : Windows Scan, puis les pages reprises du
-            // dossier. Ailleurs, on choisit des images à la main.
-            ('showDirectoryPicker' in window
-              ? (surWindows() ? boutonWindowsScan('🖨️ Installation photocopie') : '') +
-                '<button type="button" class="btn btn-sm" id="pcKopiaDossier" style="width:auto;" title="Alaina ny pejy vao voascan dia atonta avy hatrany">📥 Alaina ny photocopie vaovao</button>' +
-                '<button type="button" class="btn btn-sm" id="pcKopiaDossierOvay" style="width:auto;" title="Safidio indray ny dossier misy ny photocopie">📁 Ovay ny dossier</button>'
-              : '<button type="button" class="btn btn-sm" id="pcKopiaHampiditra" style="width:auto;">📂 Hampiditra sary</button>') +
+            '<button type="button" class="btn btn-sm" id="pcKopiaHampiditra" style="width:auto;">📂 Hampiditra sary</button>' +
             '<input type="file" id="pcKopiaFichier" accept="image/*" multiple style="display:none;">' +
           '</div>' +
-          // Sur PC, « 📥 » imprime aussitôt : ni aperçu des pages ni réglages
-          // ici — une copie, noir et blanc, une image par page. Le nombre
-          // d'exemplaires se choisit dans la boîte d'impression.
-          '<div id="pcKopiaTopy" style="display:' + ('showDirectoryPicker' in window ? 'none' : 'flex') + '; gap:0.6rem; flex-wrap:wrap; margin:0.9rem 0;"></div>' +
-          '<div style="display:' + ('showDirectoryPicker' in window ? 'none' : 'grid') + '; grid-template-columns:repeat(auto-fit, minmax(10rem, 1fr)); gap:0.7rem;">' +
+          '<div id="pcKopiaTopy" style="display:flex; gap:0.6rem; flex-wrap:wrap; margin:0.9rem 0;"></div>' +
+          '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(10rem, 1fr)); gap:0.7rem;">' +
             champ('pcKopiaIsa', 'Isa (exemplaire)', '<input type="number" id="pcKopiaIsa" min="1" max="500" value="1" style="' + CHAMP + ' width:100%; box-sizing:border-box;">') +
             champ('pcKopiaLoko', 'Loko', '<select id="pcKopiaLoko" style="' + CHAMP + ' width:100%;"><option value="nb">⚫ Mainty sy fotsy</option><option value="loko">🌈 Miloko</option></select>') +
             champ('pcKopiaFandaminana', 'Fandaminana', '<select id="pcKopiaFandaminana" style="' + CHAMP + ' width:100%;"><option value="1">Sary 1 isaky ny pejy</option><option value="2">Sary 2 isaky ny pejy (CIN recto-verso)</option></select>') +
@@ -469,11 +472,13 @@
             '<button type="button" class="btn btn-primary btn-sm" id="pcKopiaAtonta" style="width:auto;">🖨️ Atonta amin\'ny imprimante</button>' +
             '<button type="button" class="btn btn-sm" id="pcKopiaPdf" style="width:auto;">📄 PDF (hatonta amin\'ny milina)</button>' +
           '</div>' +
+          '</div>' +
           '<p id="pcKopiaStatut" style="font-size:0.78rem; color:var(--muted); margin-top:0.6rem; min-height:1.1em;"></p>' +
         '</div>' +
 
         // Les copies faites sur la vraie machine : elles comptent aussi.
-        '<div class="panel" style="margin-top:1rem;">' +
+        // Sur PC, le bouton unique suffit : ce panneau n'y paraît pas.
+        '<div class="panel" style="margin-top:1rem;' + (PC_DOSSIER ? ' display:none;' : '') + '">' +
           '<h3>✍️ Photocopie natao tamin\'ny milina</h3>' +
           '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(9rem, 1fr)); gap:0.7rem; align-items:end;">' +
             champ('pcMilinaPejy', 'Pejy', '<input type="number" id="pcMilinaPejy" min="1" value="1" style="' + CHAMP + ' width:100%; box-sizing:border-box;">') +
@@ -1103,9 +1108,8 @@
     // Photocopie
     $('pcKopiaLoharano').addEventListener('change', function () { kopiaChoix = this.value; rendreKopia(); });
     if ($('pcKopiaHampiditra')) $('pcKopiaHampiditra').addEventListener('click', function () { $('pcKopiaFichier').click(); });
-    if ($('pcKopiaDossier')) {
-      $('pcKopiaDossier').addEventListener('click', function () { prendreScansDuDossier(false, 'kopia'); });
-      $('pcKopiaDossierOvay').addEventListener('click', function () { prendreScansDuDossier(true, 'kopia'); });
+    if ($('pcKopiaManao')) {
+      $('pcKopiaManao').addEventListener('click', function () { prendreScansDuDossier(false, 'kopia'); });
     }
     $('pcKopiaFichier').addEventListener('change', function () {
       const f = lireFichiers(this);
