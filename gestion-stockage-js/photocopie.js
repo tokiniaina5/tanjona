@@ -437,11 +437,8 @@
       '<div data-volet="kopia" style="display:none;">' +
         '<div class="panel">' +
           '<h3>🖨️ Photocopie</h3>' +
-          // Sur PC, un seul bouton : il reprend les pages que Windows Scan
-          // vient de poser dans le dossier et les imprime aussitôt (une copie,
-          // noir et blanc, une image par page). Tout le reste — choix du
-          // document, réglages, PDF — reste caché, mais c'est lui qui imprime
-          // et compte : « 🖨️ Atonta » est cliqué pour de bon.
+          // Sur PC, un seul bouton, qui compte une photocopie faite sur la
+          // machine (voir brancher) ; le reste de l'onglet reste caché.
           (PC_DOSSIER
             ? '<button type="button" class="btn btn-primary" id="pcKopiaManao" style="width:auto;">🖨️ Manao photocopie</button>'
             : '') +
@@ -1265,8 +1262,15 @@
     // Photocopie
     $('pcKopiaLoharano').addEventListener('change', function () { kopiaChoix = this.value; rendreKopia(); });
     if ($('pcKopiaHampiditra')) $('pcKopiaHampiditra').addEventListener('click', function () { $('pcKopiaFichier').click(); });
+    // « Manao photocopie » ne fait que compter : la copie sort de la machine,
+    // le bouton en note l'heure (1 page, noir et blanc). Le nombre se corrige
+    // ensuite dans le tableau.
     if ($('pcKopiaManao')) {
-      $('pcKopiaManao').addEventListener('click', function () { prendreScansDuDossier(false, 'kopia'); });
+      $('pcKopiaManao').addEventListener('click', function () {
+        noterAsa('Photocopie', 1, 1, 'nb');
+        $('pcKopiaStatut').textContent = '';
+        rendreKopiaAndro();
+      });
     }
     $('pcKopiaFichier').addEventListener('change', function () {
       const f = lireFichiers(this);
