@@ -200,7 +200,8 @@
           ? 'Apetraho eo anoloana ny taratasy, dia tsindrio « Scan ity pejy ity ».'
           : 'Tsindrio « Alaina ny sary ».');
       }, function () {
-        dire(pour, 'Tsy nisokatra ny appareil photo : safidio sary avy amin\'ny rakitra.', true);
+        dire(pour, 'Tsy nisokatra ny appareil photo : safidio sary avy amin\'ny rakitra.' +
+          (pour === 'scan' && surWindows() ? ' Raha scanner no ampiasainao, tsindrio « 🖨️ Windows Scan », dia ampidiro avy ao amin\'ny Images › Scans ny pejy voascan.' : ''), true);
         $('pc' + pour + 'Fichier').click();
       });
   }
@@ -441,11 +442,24 @@
   function champ(id, label, controle) {
     return '<div><label for="' + id + '" style="display:block; font-size:0.75rem; color:var(--muted); margin-bottom:0.3rem;">' + label + '</label>' + controle + '</div>';
   }
+  // Un PC sans caméra scanne avec son scanner, par « Windows Scan ». Le
+  // navigateur ne peut pas parler au scanner : le lien ouvre l'application
+  // dans le Microsoft Store — « Ouvrir » si elle est installée, « Obtenir »
+  // sinon. La page scannée se range dans Images › Scans, d'où « Hampiditra
+  // sary » la reprend.
+  function surWindows() {
+    return /Windows/i.test(navigator.userAgent) && !/Windows Phone/i.test(navigator.userAgent);
+  }
+  function boutonWindowsScan() {
+    return '<a class="btn btn-sm" href="ms-windows-store://pdp/?productid=9WZDNCRFJ3PV" ' +
+      'style="width:auto; text-decoration:none;" title="Sokafy ny Windows Scan hanaovana scan amin\'ny scanner">🖨️ Windows Scan</a>';
+  }
   function boutonsCamera(pour, libelle) {
     return '<div style="display:flex; gap:0.6rem; flex-wrap:wrap;">' +
         '<button type="button" class="btn btn-primary btn-sm" data-camera="' + pour + '" style="width:auto;">📷 Sokafy ny appareil photo</button>' +
         '<button type="button" class="btn btn-sm" data-fichier="' + pour + '" style="width:auto;">🖼️ Hampiditra sary</button>' +
         '<input type="file" id="pc' + pour + 'Fichier" accept="image/*" multiple style="display:none;">' +
+        (pour === 'scan' && surWindows() ? boutonWindowsScan() : '') +
       '</div>' +
       '<p id="pc' + pour + 'Statut" style="font-size:0.78rem; color:var(--muted); margin:0.6rem 0 0; min-height:1.1em;"></p>' +
       '<div id="pc' + pour + 'Camera" style="display:none; margin-top:0.6rem;">' +
