@@ -1236,7 +1236,10 @@
       exporterPdf(src.nom, src.pages, { isa: p.isa, loko: p.loko, deux: p.deux, telecharger: false, karazana: 'photocopie' });
       noterAsa(src.nom, feuillesPour(src.pages.length, p.deux), p.isa, p.loko);
       st.style.color = 'var(--muted)';
-      st.textContent = '✅ Nalefa any amin\'ny imprimante ary voasoratra ao amin\'ny tableau de bord.';
+      // Ce qui compte au comptoir : combien de pages sont sorties, et quand.
+      const pejy = feuillesPour(src.pages.length, p.deux) * p.isa;
+      const ora = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+      st.textContent = '✅ ' + pejy + ' pejy natonta — tamin\'ny ' + ora + '.';
     });
     // Le PDF compte aussi : il est fait pour sortir sur la machine.
     $('pcKopiaPdf').addEventListener('click', function () {
