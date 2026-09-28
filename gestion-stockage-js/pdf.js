@@ -158,19 +158,42 @@
     if (!w) telecharger('document.pdf', blob);
     setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
   }
+  // Le PDF lui-même, posé dans le cadre, ne s'imprimait plus : Chrome et Edge
+  // l'ouvrent dans un lecteur à part, que « print() » du cadre n'atteint pas —
+  // le bouton ne faisait rien. Ses pages partent donc en images dans une page
+  // ordinaire, comme les photocopies (photocopie.js), et c'est elle qui
+  // s'imprime.
   function imprimer(blob, onglet) {
     if (tactile()) { ongletDe(blob, onglet); return; }
-    const url = URL.createObjectURL(blob);
-    const ifr = document.createElement('iframe');
-    ifr.style.cssText = 'position:fixed; right:0; bottom:0; width:0; height:0; border:0;';
-    ifr.src = url;
-    ifr.onload = function () {
-      try { ifr.contentWindow.focus(); ifr.contentWindow.print(); }
-      catch (e) { window.open(url, '_blank'); }
-      // Le cadre reste le temps que l'impression le lise.
-      setTimeout(function () { ifr.remove(); URL.revokeObjectURL(url); }, 60000);
-    };
-    document.body.appendChild(ifr);
+    pagesEnCanvas(blob, 1600).then(function (pages) {
+      const ifr = document.createElement('iframe');
+      ifr.style.cssText = 'position:fixed; right:0; bottom:0; width:0; height:0; border:0; visibility:hidden;';
+      document.body.appendChild(ifr);
+      const d = ifr.contentDocument;
+      const taille = FORMATS[format].mm ? 'size:' + FORMATS[format].mm[0] + 'mm ' + FORMATS[format].mm[1] + 'mm;' : '';
+      d.open();
+      d.write('<!doctype html><html><head><meta charset="utf-8"><title>PDF</title><style>' +
+        '@page{' + taille + 'margin:0}html,body{margin:0;background:#fff}' +
+        'img{display:block;width:100%;height:100vh;object-fit:contain;break-after:page;page-break-after:always}' +
+        'img:last-child{break-after:auto;page-break-after:auto}</style></head><body>' +
+        pages.map(function (c) { return '<img src="' + c.toDataURL('image/jpeg', 0.92) + '">'; }).join('') +
+        '</body></html>');
+      d.close();
+      const lancer = function () {
+        try { ifr.contentWindow.focus(); ifr.contentWindow.print(); }
+        catch (e) { ongletDe(blob, null); }
+        // Le cadre reste le temps que l'impression le lise.
+        setTimeout(function () { ifr.remove(); }, 60000);
+      };
+      const imgs = Array.prototype.slice.call(d.images);
+      Promise.all(imgs.map(function (i) {
+        return i.complete ? null : new Promise(function (ok) { i.onload = i.onerror = ok; });
+      })).then(lancer);
+    }, function () {
+      // PDF.js n'a pas pu lire le fichier : il s'ouvre dans un onglet, où le
+      // lecteur du navigateur propose « Imprimer ».
+      ongletDe(blob, null);
+    });
   }
   function telecharger(nom, blob) {
     const url = URL.createObjectURL(blob);
