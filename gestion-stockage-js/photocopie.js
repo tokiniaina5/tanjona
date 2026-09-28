@@ -856,7 +856,9 @@
             '<button type="button" class="btn btn-sm" data-atonta="' + d.id + '" style="width:auto;" title="Atonta amin\'ny imprimante">🖨️ Atonta</button>' +
             '<button type="button" class="btn btn-sm" data-pdf="' + d.id + '" style="width:auto;" title="PDF">📄 PDF</button>' +
             (type === 'sary'
-              ? '<button type="button" class="btn btn-sm" data-alaina="' + d.id + '" style="width:auto;" title="Alaina ny sary (.jpg)">⬇</button>'
+              ? '<button type="button" class="btn btn-sm" data-alaina="' + d.id + '" style="width:auto;" title="Alaina ny sary (.jpg)">⬇</button>' +
+                '<button type="button" class="btn btn-sm" data-photoshop="' + d.id + '" style="width:auto;" title="Hatsaraina amin\'ny Photoshop an-tserasera (Photopea)">🎨 Photoshop</button>' +
+                '<button type="button" class="btn btn-sm" data-canva="' + d.id + '" style="width:auto;" title="Hatsaraina amin\'ny Canva">🖌 Canva</button>'
               : '') +
             '<button type="button" class="btn btn-sm" data-kopia="' + d.id + '" style="width:auto;" title="Photocopie">📑</button>' +
             '<button type="button" class="btn btn-sm" data-esory-doc="' + d.id + '" style="width:auto;" aria-label="Fafao">🗑</button>' +
@@ -864,8 +866,96 @@
       }).join('') + '</div>';
   }
 
+  // ---------- Retoucher une photo : Photoshop (Photopea) et Canva ----------
+  // Photoshop n'a pas de porte ouverte au navigateur. Photopea, son équivalent
+  // en ligne (mêmes outils, mêmes raccourcis, fichiers PSD), s'ouvre ici même,
+  // dans un cadre : la photo lui est envoyée, et « 💾 Tehirizo » la reprend
+  // retouchée comme une nouvelle photo — l'originale reste.
+  // Protocole de Photopea : il dit « done » quand il est prêt et après chaque
+  // ordre ; un ArrayBuffer envoyé s'ouvre ; « saveToOE » renvoie le fichier.
+  function ouvrirPhotoshop(d) {
+    const fond = document.createElement('div');
+    fond.style.cssText = 'position:fixed; inset:0; z-index:100000; background:var(--bg); display:flex; flex-direction:column;';
+    fond.innerHTML =
+      '<div style="display:flex; gap:0.6rem; align-items:center; flex-wrap:wrap; padding:0.5rem 0.8rem; border-bottom:1px solid var(--line); background:var(--panel);">' +
+        '<strong style="flex:1; min-width:10rem;">🎨 ' + html(d.nom) + '</strong>' +
+        // Dans un cadre, Photopea montre d'abord sa page d'accueil : la photo
+        // ne s'ouvre qu'une fois « Start using Photopea » pressé.
+        '<span data-ps-statut style="font-size:0.78rem; color:var(--muted);">Tsindrio « Start using Photopea » eo ambany, dia hisokatra ny sary.</span>' +
+        '<button type="button" class="btn btn-primary btn-sm" data-ps-tehirizo style="width:auto;" disabled>💾 Tehirizo</button>' +
+        '<button type="button" class="btn btn-sm" data-ps-hidio style="width:auto;">✖ Hidio</button>' +
+      '</div>' +
+      '<iframe src="https://www.photopea.com/" title="Photoshop" style="flex:1; width:100%; border:0; background:#fff;" allow="clipboard-read; clipboard-write"></iframe>';
+    document.body.appendChild(fond);
+    const cadre = fond.querySelector('iframe');
+    const statut = fond.querySelector('[data-ps-statut]');
+    const bTehirizo = fond.querySelector('[data-ps-tehirizo]');
+    let etat = 'chargement';   // chargement → ouverture → pret → sauvegarde
+    let recu = null;
+
+    function surMessage(e) {
+      if (e.source !== cadre.contentWindow) return;
+      if (e.data instanceof ArrayBuffer) { recu = e.data; return; }
+      if (e.data !== 'done') return;
+      if (etat === 'chargement') {
+        etat = 'ouverture';
+        d.pages[0].arrayBuffer().then(function (buf) { cadre.contentWindow.postMessage(buf, '*'); });
+      } else if (etat === 'ouverture') {
+        etat = 'pret';
+        bTehirizo.disabled = false;
+        statut.textContent = 'Hatsarao ny sary, dia tsindrio « 💾 Tehirizo ».';
+      } else if (etat === 'sauvegarde' && recu) {
+        const blob = new Blob([recu], { type: 'image/jpeg' });
+        recu = null;
+        etat = 'pret';
+        garderDocument({ id: nouvelId(), type: 'sary', nom: d.nom + ' ✨', at: Date.now(), pages: [blob] }).then(function () {
+          rendreListe('sary'); rendreTableau();
+          statut.textContent = '✅ Voatahiry ho sary vaovao : ' + d.nom + ' ✨';
+          bTehirizo.disabled = false;
+        }, function () {
+          statut.textContent = 'Tsy voatahiry : feno angamba ny toerana.';
+          bTehirizo.disabled = false;
+        });
+      }
+    }
+    window.addEventListener('message', surMessage);
+    bTehirizo.addEventListener('click', function () {
+      if (etat !== 'pret') return;
+      etat = 'sauvegarde';
+      bTehirizo.disabled = true;
+      statut.textContent = 'Mitahiry…';
+      cadre.contentWindow.postMessage('app.activeDocument.saveToOE("jpg:0.92");', '*');
+    });
+    fond.querySelector('[data-ps-hidio]').addEventListener('click', function () {
+      window.removeEventListener('message', surMessage);
+      fond.remove();
+    });
+  }
+
+  // Canva ne reçoit rien d'un autre site : la photo part dans le
+  // presse-papiers (Ctrl+V dans un design Canva la colle) et en fichier,
+  // puis Canva s'ouvre. La photo retouchée revient par « Hampiditra sary ».
+  function ouvrirCanva(d) {
+    const enPng = chargerImage(d.pages[0]).then(function (im) {
+      const c = document.createElement('canvas');
+      c.width = im.naturalWidth; c.height = im.naturalHeight;
+      c.getContext('2d').drawImage(im, 0, 0);
+      return new Promise(function (ok) { c.toBlob(ok, 'image/png'); });
+    });
+    const copie = (navigator.clipboard && window.ClipboardItem)
+      ? navigator.clipboard.write([new ClipboardItem({ 'image/png': enPng })]).then(function () { return true; }, function () { return false; })
+      : Promise.resolve(false);
+    telecharger(nomFichier(d.nom) + '.jpg', d.pages[0]);
+    window.open('https://www.canva.com/', '_blank', 'noopener');
+    copie.then(function (ok) {
+      dire('sary', ok
+        ? '✅ Voadika ny sary : ao amin\'ny Canva, sokafy design iray dia tsindrio Ctrl+V. (Voatahiry ho fichier koa izy.)'
+        : 'Voatahiry ho fichier ny sary : ao amin\'ny Canva, tsindrio « Importer » dia safidio izy.');
+    });
+  }
+
   // ---------- Photocopie ----------
-  let kopiaImport = null;          // { nom, pages } importé pour cette fois
+  let kopiaImport = null;         // { nom, pages } importé pour cette fois
   let kopiaChoix = '';             // id du document choisi, ou 'import'
   function sourceKopia() {
     if (kopiaChoix === 'import') return kopiaImport;
@@ -987,6 +1077,16 @@
       if (ds.pdf) {
         const d = documents.filter(function (x) { return x.id === ds.pdf; })[0];
         if (d) exporterPdf(d.nom, d.pages);
+        return;
+      }
+      if (ds.photoshop) {
+        const d = documents.filter(function (x) { return x.id === ds.photoshop; })[0];
+        if (d) ouvrirPhotoshop(d);
+        return;
+      }
+      if (ds.canva) {
+        const d = documents.filter(function (x) { return x.id === ds.canva; })[0];
+        if (d) ouvrirCanva(d);
         return;
       }
       if (ds.atonta) {
