@@ -123,13 +123,14 @@
     if (loko === 'plast') return v['plast' + habe] || 0;
     return v[loko] || 0;
   }
-  function noterAsa(nom, pejy, isa, loko, habe) {
+  function noterAsa(nom, pejy, isa, loko, habe, samihafa) {
     const ligne = {
       id: nouvelId(), at: Date.now(), nom: nom,
       pejy: pejy, isa: isa, loko: loko,
       vola: pejy * isa * prixDe(loko, habe)
     };
     if (habe) ligne.habe = habe;
+    if (samihafa) ligne.samihafa = samihafa;
     const tous = lireAsa();
     tous.unshift(ligne);
     ecrireJson(CLE_ASA, tous.slice(0, 5000));
@@ -503,6 +504,7 @@
           '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(9rem, 1fr)); gap:0.7rem;">' +
             champ('pcReliureAnarana', 'Anarana', '<input type="text" id="pcReliureAnarana" placeholder="Ohatra : Mémoire" style="' + CHAMP + ' width:100%; box-sizing:border-box;">') +
             champ('pcReliureIsa', 'Isa', '<input type="number" id="pcReliureIsa" min="1" value="1" style="' + CHAMP + ' width:100%; box-sizing:border-box;">') +
+            champ('pcReliureSamihafa', 'Samihafa', '<input type="text" id="pcReliureSamihafa" placeholder="Ohatra : anaran\'ny client" style="' + CHAMP + ' width:100%; box-sizing:border-box;">') +
           '</div>' +
           '<p id="pcReliureVola" style="font-size:0.9rem; margin:0.9rem 0;"></p>' +
           '<button type="button" class="btn btn-primary btn-sm" id="pcReliureAmpidiro" style="width:auto;">➕ Ampidiro</button>' +
@@ -520,6 +522,7 @@
             champ('pcPlastHabe', 'Habe', '<select id="pcPlastHabe" style="' + CHAMP + ' width:100%;">' +
               Object.keys(HABE_PLAST).map(function (k) { return '<option value="' + k + '">' + HABE_PLAST[k] + '</option>'; }).join('') + '</select>') +
             champ('pcPlastIsa', 'Isa', '<input type="number" id="pcPlastIsa" min="1" value="1" style="' + CHAMP + ' width:100%; box-sizing:border-box;">') +
+            champ('pcPlastSamihafa', 'Samihafa', '<input type="text" id="pcPlastSamihafa" placeholder="Ohatra : anaran\'ny client" style="' + CHAMP + ' width:100%; box-sizing:border-box;">') +
           '</div>' +
           '<p id="pcPlastVola" style="font-size:0.9rem; margin:0.9rem 0;"></p>' +
           '<button type="button" class="btn btn-primary btn-sm" id="pcPlastAmpidiro" style="width:auto;">➕ Ampidiro</button>' +
@@ -1072,8 +1075,10 @@
   // (qui se corrige), la couleur pour la photocopie, le montant, un mot
   // libre et la corbeille. rendreKopiaAndro les redessine tous les deux.
   const ANDRO = {
-    kopia: { box: 'pcKopiaAndro', isa: 'Pejy natonta', vide: 'Mbola tsy misy photocopie androany.', fafao: 'Fafana ve ity photocopie ity ?', loko: true },
-    sary: { box: 'pcSaryAndro', isa: 'Isan\'ny sary', vide: 'Mbola tsy misy sary androany.', fafao: 'Fafana ve ity sary ity ?', loko: false }
+    kopia: { box: 'pcKopiaAndro', isa: 'Pejy natonta', vide: 'Mbola tsy misy photocopie androany.', fafao: 'Fafana ve ity andalana ity ?', loko: true,
+             services: { kopia: true, reliure: true, plast: true } },
+    sary: { box: 'pcSaryAndro', isa: 'Isan\'ny sary', vide: 'Mbola tsy misy sary androany.', fafao: 'Fafana ve ity sary ity ?', loko: false,
+            services: { sary: true } }
   };
   function rendreKopiaAndro() {
     rendreRam();
@@ -1085,7 +1090,7 @@
     const box = $(cfg.box);
     if (!box) return;
     const auj = debutJour(Date.now());
-    const lignes = lireAsa().filter(function (a) { return a.at >= auj && serviceDe(a) === svc; });
+    const lignes = lireAsa().filter(function (a) { return a.at >= auj && cfg.services[serviceDe(a)]; });
     if (!lignes.length) {
       box.innerHTML = '<p style="font-size:0.8rem; color:var(--muted);">' + cfg.vide + '</p>';
       return;
@@ -1102,14 +1107,16 @@
           '<td style="text-align:right;"><input type="number" min="0" value="' + n + '" data-andro-isa="' + a.id + '" ' +
             'aria-label="' + cfg.isa + '" style="' + CHAMP + ' width:5rem; text-align:right; padding:0.2rem 0.4rem;"></td>' +
           // Mainty ou miloko : le prix de la page suit ce choix.
-          (cfg.loko
+          (cfg.loko && serviceDe(a) !== 'kopia'
+            ? '<td style="color:var(--muted);">—</td>'
+            : cfg.loko
             ? '<td><select data-andro-loko="' + a.id + '" aria-label="Loko" style="' + CHAMP + ' padding:0.2rem 0.4rem;">' +
                 '<option value="nb"' + (miloko ? '' : ' selected') + '>⚫ Mainty</option>' +
                 '<option value="loko"' + (miloko ? ' selected' : '') + '>🌈 Miloko</option></select></td>'
             : '') +
           '<td style="text-align:right;">' + ariary(a.vola) + '</td>' +
           // « Samihafa » : un mot libre (client, remarque…).
-          '<td><input type="text" value="' + html(a.samihafa || '') + '" data-andro-samihafa="' + a.id + '" ' +
+          '<td><input type="text" value="' + html(a.samihafa || (serviceDe(a) === 'reliure' ? 'Reliure' : serviceDe(a) === 'plast' ? 'Plastification' + (a.habe ? ' ' + HABE_PLAST[a.habe] : '') : '')) + '" data-andro-samihafa="' + a.id + '" ' +
             'aria-label="Samihafa" style="' + CHAMP + ' width:100%; min-width:8rem; box-sizing:border-box; padding:0.2rem 0.4rem;"></td>' +
           '<td><button type="button" class="btn btn-sm" data-andro-fafao="' + a.id + '" style="width:auto;" aria-label="Fafao">🗑</button></td></tr>';
       }).join('') +
@@ -1446,7 +1453,9 @@
     $('pcReliureAmpidiro').addEventListener('click', function () {
       const isa = Math.max(1, parseInt($('pcReliureIsa').value, 10) || 1);
       const nom = $('pcReliureAnarana').value.trim() || 'Reliure';
-      noterAsa(nom, 1, isa, 'reliure');
+      const noteRel = $('pcReliureSamihafa').value.trim();
+      noterAsa(nom, 1, isa, 'reliure', null, 'Reliure' + (noteRel ? ' — ' + noteRel : ''));
+      $('pcReliureSamihafa').value = '';
       $('pcReliureStatut').textContent = '✅ Voasoratra : ' + nom + ' × ' + isa + ' = ' + ariary(isa * prixDe('reliure')) + '.';
       $('pcReliureAnarana').value = '';
       $('pcReliureIsa').value = 1;
@@ -1462,7 +1471,9 @@
       const isa = Math.max(1, parseInt($('pcPlastIsa').value, 10) || 1);
       const habe = $('pcPlastHabe').value;
       const nom = ($('pcPlastAnarana').value.trim() || 'Plastification') + ' (' + HABE_PLAST[habe] + ')';
-      noterAsa(nom, 1, isa, 'plast', habe);
+      const notePlast = $('pcPlastSamihafa').value.trim();
+      noterAsa(nom, 1, isa, 'plast', habe, 'Plastification ' + HABE_PLAST[habe] + (notePlast ? ' — ' + notePlast : ''));
+      $('pcPlastSamihafa').value = '';
       $('pcPlastStatut').textContent = '✅ Voasoratra : ' + nom + ' × ' + isa + ' = ' + ariary(isa * prixDe('plast', habe)) + '.';
       $('pcPlastAnarana').value = '';
       $('pcPlastIsa').value = 1;
