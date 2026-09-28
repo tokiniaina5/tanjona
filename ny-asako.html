@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="a28d8540">
+<meta name="ny-asako-version" content="7ff1bfd2">
 <title>Ny asako — Tanjona</title>
 <!-- Application installable : le manifeste décrit le nom, l'icône et la façon
      de s'ouvrir ; le reste est affaire de service worker, enregistré plus bas. -->
@@ -2771,10 +2771,12 @@
               <label for="profileName">Nom</label>
               <input id="profileName" type="text">
             </div>
-            <div class="field" style="margin-bottom:0;">
-              <label for="profileCompany">Nom de la société</label>
-              <input id="profileCompany" type="text" placeholder="Ex: Ma Société SARL">
-            </div>
+            <!-- Société, NIF et STAT se corrigent dans l'en-tête de la facture
+                 (« ✏️ Corriger l'en-tête ») : ici ils restent cachés, pour que
+                 « Enregistrer » les garde au lieu de les effacer. -->
+            <input id="profileCompany" type="hidden">
+            <input id="profileNif" type="hidden">
+            <input id="profileStat" type="hidden">
             <div class="field" style="margin-bottom:0;">
               <label for="profileEmail">Email</label>
               <input id="profileEmail" type="email">
@@ -2782,14 +2784,6 @@
             <div class="field" style="margin-bottom:0;">
               <label for="profilePhone">Téléphone</label>
               <input id="profilePhone" type="tel">
-            </div>
-            <div class="field" style="margin-bottom:0;">
-              <label for="profileNif">NIF</label>
-              <input id="profileNif" type="text" placeholder="Ex: 1234567890">
-            </div>
-            <div class="field" style="margin-bottom:0;">
-              <label for="profileStat">STAT</label>
-              <input id="profileStat" type="text" placeholder="Ex: 12345 11 2020 0 12345">
             </div>
             <div class="field" style="margin-bottom:0;">
               <label for="profileAccessCode">Nouveau mot de passe</label>
