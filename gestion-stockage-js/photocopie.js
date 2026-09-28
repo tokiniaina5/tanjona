@@ -13,6 +13,9 @@
   const SUFFIXE = (typeof SUFFIXE_MPIASA !== 'undefined') ? SUFFIXE_MPIASA : '';
   const CLE_ASA = 'stockmanager_photocopie_asa' + SUFFIXE;
   const CLE_VIDINY = 'stockmanager_photocopie_vidiny' + SUFFIXE;
+  // La rame en cours : { habe (feuilles dans une rame), at (ouverte quand) }.
+  // Ce qui reste se calcule : la rame moins les photocopies notées depuis.
+  const CLE_RAM = 'stockmanager_photocopie_ram' + SUFFIXE;
   const CHAMP = 'background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:0.5rem 0.6rem; font:inherit;';
 
   function $(id) { return document.getElementById(id); }
@@ -445,6 +448,13 @@
                 // Le nombre de feuilles de cette photocopie, noté avec elle.
                 '<label for="pcKopiaManaoIsa" style="font-size:0.8rem; color:var(--muted);">Isan\'ny taratasy</label>' +
                 '<input type="number" id="pcKopiaManaoIsa" min="1" value="1" style="' + CHAMP + ' width:5rem; text-align:right;">' +
+              '</div>' +
+              // Le papier : combien de feuilles restent dans la rame ouverte.
+              '<div style="display:flex; gap:0.6rem; align-items:center; flex-wrap:wrap; margin-top:0.8rem; padding-top:0.8rem; border-top:1px solid var(--line);">' +
+                '<span id="pcRamSisa" style="font-size:0.9rem;"></span>' +
+                '<label for="pcRamHabe" style="font-size:0.8rem; color:var(--muted); margin-left:auto;">Taratasy ao anaty ram iray</label>' +
+                '<input type="number" id="pcRamHabe" min="1" style="' + CHAMP + ' width:5.5rem; text-align:right;">' +
+                '<button type="button" class="btn btn-sm" id="pcRamVaovao" style="width:auto;">📦 Ram vaovao</button>' +
               '</div>'
             : '') +
           '<div' + (PC_DOSSIER ? ' style="display:none;"' : '') + '>' +
@@ -1023,7 +1033,28 @@
   }
   // Le tableau des photocopies d'aujourd'hui : l'heure (notée seule au moment
   // de l'impression), le nombre de pages sorties et ce que ça fait.
+  function lireRam() { return Object.assign({ habe: 500, at: 0 }, lireJson(CLE_RAM, {})); }
+  function rendreRam() {
+    const el = $('pcRamSisa');
+    if (!el) return;
+    const ram = lireRam();
+    if ($('pcRamHabe') && document.activeElement !== $('pcRamHabe')) $('pcRamHabe').value = ram.habe;
+    if (!ram.at) {
+      el.innerHTML = '📦 <span style="color:var(--muted);">Tsindrio « Ram vaovao » rehefa manokatra ram ianao.</span>';
+      return;
+    }
+    const lany = lireAsa().reduce(function (s, a) {
+      return s + (a.at >= ram.at && serviceDe(a) === 'kopia' ? a.pejy * a.isa : 0);
+    }, 0);
+    const sisa = ram.habe - lany;
+    const fetra = Math.max(20, Math.round(ram.habe * 0.1));
+    el.innerHTML = '📦 Taratasy sisa : <strong style="color:' + (sisa <= fetra ? 'var(--red)' : 'var(--cyan)') + ';">' +
+      Math.max(0, sisa) + '</strong> / ' + ram.habe +
+      (sisa <= 0 ? ' <strong style="color:var(--red);">— ⚠️ Lany ny taratasy</strong>'
+        : sisa <= fetra ? ' <strong style="color:var(--red);">— ⚠️ Efa ho lany</strong>' : '');
+  }
   function rendreKopiaAndro() {
+    rendreRam();
     const box = $('pcKopiaAndro');
     if (!box) return;
     const auj = debutJour(Date.now());
@@ -1296,6 +1327,21 @@
     // « Manao photocopie » ne fait que compter : la copie sort de la machine,
     // le bouton en note l'heure (1 page, noir et blanc). Le nombre se corrige
     // ensuite dans le tableau.
+    // La rame : sa taille se garde dès qu'on la change ; « Ram vaovao »
+    // repart d'une rame pleine, à partir de maintenant.
+    if ($('pcRamHabe')) {
+      $('pcRamHabe').addEventListener('change', function () {
+        const ram = lireRam();
+        ram.habe = Math.max(1, parseInt(this.value, 10) || 500);
+        ecrireJson(CLE_RAM, ram);
+        rendreRam();
+      });
+      $('pcRamVaovao').addEventListener('click', function () {
+        const habe = Math.max(1, parseInt($('pcRamHabe').value, 10) || lireRam().habe);
+        ecrireJson(CLE_RAM, { habe: habe, at: Date.now() });
+        rendreRam();
+      });
+    }
     if ($('pcKopiaManao')) {
       $('pcKopiaManao').addEventListener('click', function () {
         const isa = Math.max(1, parseInt($('pcKopiaManaoIsa').value, 10) || 1);
