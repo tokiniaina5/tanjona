@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="3938c2a4">
+<meta name="ny-asako-version" content="ae8aa04b">
 <title>Ny asako — Tanjona</title>
 <!-- Application installable : le manifeste décrit le nom, l'icône et la façon
      de s'ouvrir ; le reste est affaire de service worker, enregistré plus bas. -->
@@ -136,7 +136,7 @@
 <!-- fin des écrans de démarrage iOS -->
 <link rel="icon" href="/icone-192.png" type="image/png">
 <link rel="stylesheet" href="gestion-stockage-css/base.css?v=059a4b85">
-<link rel="stylesheet" href="gestion-stockage-css/components.css?v=50e00cc2">
+<link rel="stylesheet" href="gestion-stockage-css/components.css?v=23a110ce">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" crossorigin="anonymous"></script>
@@ -1641,12 +1641,18 @@
                   <label>Fournisseur (optionnel)</label>
                   <input id="itemSupplier" type="text" placeholder="Ex: Grossiste Analakely">
                 </div>
-                <!-- Tout article ajouté paraît dans la Botika (stock.js). Coché :
-                     la boîte « Écrire » s'ouvre d'abord sur sa fiche, pour une
-                     annonce complète (marque, photo, description). -->
-                <label class="case-publier" for="itemPublier">
-                  <input type="checkbox" id="itemPublier"> 📝 Hameno famaritana
-                </label>
+                <!-- On choisit si l'article paraît dans la Botika (stock.js) :
+                     non, tout de suite, ou après la boîte « Écrire » ouverte sur
+                     sa fiche, pour une annonce complète (marque, photo,
+                     description). Le choix reste pour les articles suivants. -->
+                <div class="field" style="margin-bottom:0;">
+                  <label for="itemPublier">Botika</label>
+                  <select id="itemPublier">
+                    <option value="tsia">🚫 Tsy avoaka</option>
+                    <option value="eny">🛒 Avoaka ao amin'ny Botika</option>
+                    <option value="famaritana">📝 Avoaka + hameno famaritana</option>
+                  </select>
+                </div>
                 <button class="btn btn-primary" id="addItemBtn" style="width:auto;">Ajouter</button>
               </div>
             </div>
@@ -1703,9 +1709,14 @@
                   <label>Fournisseur (optionnel)</label>
                   <input id="itemSupplierNouveau" type="text" placeholder="Ex: Grossiste Analakely">
                 </div>
-                <label class="case-publier" for="itemPublierNouveau">
-                  <input type="checkbox" id="itemPublierNouveau"> 📝 Hameno famaritana
-                </label>
+                <div class="field" style="margin-bottom:0;">
+                  <label for="itemPublierNouveau">Botika</label>
+                  <select id="itemPublierNouveau">
+                    <option value="tsia">🚫 Tsy avoaka</option>
+                    <option value="eny">🛒 Avoaka ao amin'ny Botika</option>
+                    <option value="famaritana">📝 Avoaka + hameno famaritana</option>
+                  </select>
+                </div>
                 <button class="btn btn-primary" id="addItemBtnNouveau" style="width:auto;">Créer l'article</button>
               </div>
             </div>
@@ -3004,7 +3015,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
 <script src="gestion-stockage-js/common.js?v=0f22c5ae"></script>
-<script src="gestion-stockage-js/stock.js?v=236c9ee9"></script>
+<script src="gestion-stockage-js/stock.js?v=d44c5a3f"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=7204c861"></script>
 <script src="gestion-stockage-js/factures.js?v=69af0cd7"></script>

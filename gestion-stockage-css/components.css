@@ -634,7 +634,6 @@
   }
   .bouton-fil.navoaka{ border-color:var(--cyan); color:var(--cyan); }
   .bouton-fil:disabled{ opacity:0.6; cursor:wait; }
-  .case-publier{ display:inline-flex; align-items:center; gap:0.4rem; font-size:0.82rem; color:var(--text); cursor:pointer; align-self:center; }
   /* Ce qui vient du stock se lit mais ne se retape pas. */
   .entana-fiche input[readonly], #newsPrice[readonly]{ background:var(--panel-2); color:var(--muted); cursor:not-allowed; }
   .entana-fiche-large, .entana-fiche-rappel{ grid-column:1 / -1; }

@@ -346,10 +346,34 @@
   }
   refreshItemRefField();
 
+  // Le choix « Botika » de chaque formulaire se garde (clé : son suffixe)
+  // pour les articles suivants et au rechargement. Rien de choisi : 🚫.
+  const CLE_CHOIX_BOTIKA = 'stockmanager_choix_botika';
+  function lireChoixBotika(){
+    try{
+      const v = JSON.parse(localStorage.getItem(CLE_CHOIX_BOTIKA) || '{}');
+      return v && typeof v === 'object' ? v : {};
+    }catch(e){ return {}; }
+  }
+  function choixBotika(sfx){
+    const el = document.getElementById('itemPublier' + sfx);
+    return el ? el.value : 'tsia';
+  }
+
   FORMULAIRES_AJOUTER.forEach(brancherFormulaireAjouter);
   function brancherFormulaireAjouter(sfx){
   const bouton = document.getElementById('addItemBtn' + sfx);
   if(!bouton) return;
+  const selectBotika = document.getElementById('itemPublier' + sfx);
+  if(selectBotika){
+    const garde = lireChoixBotika()[sfx];
+    selectBotika.value = ['tsia', 'eny', 'famaritana'].indexOf(garde) >= 0 ? garde : 'tsia';
+    selectBotika.addEventListener('change', function(){
+      const choix = lireChoixBotika();
+      choix[sfx] = selectBotika.value;
+      try{ localStorage.setItem(CLE_CHOIX_BOTIKA, JSON.stringify(choix)); }catch(e){}
+    });
+  }
   bouton.addEventListener('click', function(){
     const name = document.getElementById('itemName' + sfx).value.trim();
     const category = document.getElementById('itemCategory' + sfx).value.trim();
@@ -410,18 +434,16 @@
     renderFilters();
     renderDashboard();
 
-    // « 📢 Avoaka ao amin'ny fil » coché : on passe tout de suite à la fiche
-    // de cet article. La case se décoche : le prochain article choisira pour
-    // lui-même.
-    const publier = document.getElementById('itemPublier' + sfx);
+    // Le choix « Botika » du formulaire : 🚫 l'article reste hors de la
+    // Botika (le 📢 de la liste des articles pourra l'y mettre plus tard) ;
+    // 🛒 il y paraît tout de suite ; 📝 la boîte « Écrire » s'ouvre sur sa
+    // fiche, pour une annonce complète.
+    const choix = choixBotika(sfx);
     const ajoute = items.find(function(it){ return it.id === id; });
-    if(publier && publier.checked){
-      publier.checked = false;
+    if(choix === 'famaritana'){
       if(ajoute && typeof window.__ouvrirLaFicheDeLEntana === 'function') window.__ouvrirLaFicheDeLEntana(ajoute);
-    } else if(ajoute && Number(ajoute.qty) >= 1 && typeof window.__publierLEntana === 'function'){
-      // Case décochée : l'article paraît quand même dans la Botika, tout de
-      // suite — tout ce qu'on ajoute s'y voit. Déjà annoncé, il n'y est pas
-      // mis deux fois (__publierLEntana le vérifie).
+    } else if(choix === 'eny' && ajoute && Number(ajoute.qty) >= 1 && typeof window.__publierLEntana === 'function'){
+      // Déjà annoncé, il n'y est pas mis deux fois (__publierLEntana le vérifie).
       window.__publierLEntana(ajoute).then(majLesBoutonsFil, function(err){
         alert('Tsy navoaka tao amin\'ny Botika : ' + ((err && err.message) || 'andramo indray.'));
       });
