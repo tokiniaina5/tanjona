@@ -458,8 +458,12 @@
   }
   function boutonsCamera(pour, libelle) {
     return '<div style="display:flex; gap:0.6rem; flex-wrap:wrap;">' +
-        '<button type="button" class="btn btn-primary btn-sm" data-camera="' + pour + '" style="width:auto;">📷 Sokafy ny appareil photo</button>' +
-        '<button type="button" class="btn btn-sm" data-fichier="' + pour + '" style="width:auto;">🖼️ Hampiditra sary</button>' +
+        // Sur PC, le scan passe par Windows Scan et son dossier : ni caméra ni
+        // choix d'image à la main. Un téléphone, lui, n'a que sa caméra pour
+        // scanner : il la garde.
+        (pour === 'scan' && 'showDirectoryPicker' in window ? '' :
+          '<button type="button" class="btn btn-primary btn-sm" data-camera="' + pour + '" style="width:auto;">📷 Sokafy ny appareil photo</button>' +
+          '<button type="button" class="btn btn-sm" data-fichier="' + pour + '" style="width:auto;">🖼️ Hampiditra sary</button>') +
         '<input type="file" id="pc' + pour + 'Fichier" accept="image/*" multiple style="display:none;">' +
         (pour === 'scan' && surWindows() ? boutonWindowsScan() : '') +
         (pour === 'scan' && 'showDirectoryPicker' in window
