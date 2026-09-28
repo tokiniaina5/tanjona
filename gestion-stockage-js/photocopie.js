@@ -446,7 +446,13 @@
           '<h3>🖨️ Photocopie</h3>' +
           '<div style="display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center;">' +
             '<select id="pcKopiaLoharano" style="' + CHAMP + ' flex:1; min-width:12rem;" aria-label="Antontan-taratasy"></select>' +
-            '<button type="button" class="btn btn-sm" id="pcKopiaHampiditra" style="width:auto;">📂 Hampiditra sary</button>' +
+            // Sur PC, comme le scan : Windows Scan, puis les pages reprises du
+            // dossier. Ailleurs, on choisit des images à la main.
+            ('showDirectoryPicker' in window
+              ? (surWindows() ? boutonWindowsScan() : '') +
+                '<button type="button" class="btn btn-sm" id="pcKopiaDossier" style="width:auto;">📥 Alaina ny scan vaovao</button>' +
+                '<button type="button" class="btn btn-sm" id="pcKopiaDossierOvay" style="width:auto;" title="Safidio indray ny dossier misy ny scan">📁 Ovay ny dossier</button>'
+              : '<button type="button" class="btn btn-sm" id="pcKopiaHampiditra" style="width:auto;">📂 Hampiditra sary</button>') +
             '<input type="file" id="pcKopiaFichier" accept="image/*" multiple style="display:none;">' +
           '</div>' +
           '<div id="pcKopiaTopy" style="display:flex; gap:0.6rem; flex-wrap:wrap; margin:0.9rem 0;"></div>' +
@@ -739,21 +745,24 @@
   }
   function signature(f) { return f.name + '|' + f.size + '|' + f.lastModified; }
 
-  async function prendreScansDuDossier(changer) {
+  // « pour » : 'scan' (enregistré tout seul) ou 'kopia' (prêt à photocopier).
+  async function prendreScansDuDossier(changer, pour) {
+    pour = pour || 'scan';
+    const ici = pour === 'kopia' ? 'Kopia' : 'scan';
     let dossier = changer ? null : await lireDossier();
     let nouveau = false;
     try {
       if (dossier && (await dossier.queryPermission({ mode: 'read' })) !== 'granted' &&
           (await dossier.requestPermission({ mode: 'read' })) !== 'granted') dossier = null;
       if (!dossier) {
-        dire('scan', 'Safidio ny dossier misy ny scan (matetika : Images › Scans).');
+        dire(ici, 'Safidio ny dossier misy ny scan (matetika : Images › Scans).');
         dossier = await window.showDirectoryPicker({ id: 'nyasako-scans', startIn: 'pictures', mode: 'read' });
         await garderDossier(dossier);
         nouveau = true;
       }
     } catch (e) {
-      if (e && e.name === 'AbortError') { dire('scan', ''); return; }
-      dire('scan', 'Tsy azo novakiana ny dossier : ' + ((e && e.message) || 'erreur'), true);
+      if (e && e.name === 'AbortError') { dire(ici, ''); return; }
+      dire(ici, 'Tsy azo novakiana ny dossier : ' + ((e && e.message) || 'erreur'), true);
       return;
     }
 
@@ -773,7 +782,7 @@
       : fichiers;
     fichiers.forEach(function (f) { vus.push(signature(f)); });
     ecrireVus(vus);
-    if (!recents.length) { dire('scan', 'Tsy misy scan vaovao ao amin\'ny « ' + dossier.name + ' ».'); return; }
+    if (!recents.length) { dire(ici, 'Tsy misy scan vaovao ao amin\'ny « ' + dossier.name + ' ».'); return; }
 
     recents.sort(function (a, b) { return a.lastModified - b.lastModified; });
     const pdfs = recents.filter(function (f) { return /\.pdf$/i.test(f.name); });
@@ -781,13 +790,22 @@
     if (pdfs.length && window.__pdfTahiry) {
       pdfs.forEach(function (f) { window.__pdfTahiry.ampio(f.name, f, 'scan').catch(function () {}); });
     }
-    if (images.length) {
+    if (images.length && pour === 'kopia') {
+      // La photocopie : les pages scannées, nettoyées comme un scan, deviennent
+      // la source à copier ; reste à choisir le nombre et la couleur.
+      dire(ici, 'Mikarakara ny pejy…');
+      const pages = await Promise.all(images.map(function (b) { return traiter(b, 0, 'taratasy'); }));
+      kopiaImport = { nom: 'Scan ' + quand(Date.now()), pages: pages };
+      kopiaChoix = 'import';
+      rendreKopia();
+      dire(ici, '✅ ' + pages.length + ' pejy vonona : safidio ny isa sy ny loko, dia tsindrio « 🖨️ Atonta ».');
+    } else if (images.length) {
       await ajouterPagesScan(images);
       // Aussitôt pris, aussitôt rangé : un seul document pour les pages
       // arrivées ensemble, dans la liste et dans « 📄 PDF » (« 💾 Tehirizo »).
       $('pcScanTehirizo').click();
     } else {
-      dire('scan', '✅ ' + pdfs.length + ' PDF voascan lasa ao amin\'ny 📄 PDF.');
+      dire(ici, '✅ ' + pdfs.length + ' PDF voascan lasa ao amin\'ny 📄 PDF.');
     }
   }
 
@@ -1075,7 +1093,11 @@
 
     // Photocopie
     $('pcKopiaLoharano').addEventListener('change', function () { kopiaChoix = this.value; rendreKopia(); });
-    $('pcKopiaHampiditra').addEventListener('click', function () { $('pcKopiaFichier').click(); });
+    if ($('pcKopiaHampiditra')) $('pcKopiaHampiditra').addEventListener('click', function () { $('pcKopiaFichier').click(); });
+    if ($('pcKopiaDossier')) {
+      $('pcKopiaDossier').addEventListener('click', function () { prendreScansDuDossier(false, 'kopia'); });
+      $('pcKopiaDossierOvay').addEventListener('click', function () { prendreScansDuDossier(true, 'kopia'); });
+    }
     $('pcKopiaFichier').addEventListener('change', function () {
       const f = lireFichiers(this);
       if (!f.length) return;
