@@ -462,6 +462,10 @@
         '<button type="button" class="btn btn-sm" data-fichier="' + pour + '" style="width:auto;">🖼️ Hampiditra sary</button>' +
         '<input type="file" id="pc' + pour + 'Fichier" accept="image/*" multiple style="display:none;">' +
         (pour === 'scan' && surWindows() ? boutonWindowsScan() : '') +
+        (pour === 'scan' && 'showDirectoryPicker' in window
+          ? '<button type="button" class="btn btn-sm" id="pcScanDossier" style="width:auto;">📥 Alaina ny scan vaovao</button>' +
+            '<button type="button" class="btn btn-sm" id="pcScanDossierOvay" style="width:auto;" title="Safidio indray ny dossier misy ny scan">📁 Ovay ny dossier</button>'
+          : '') +
       '</div>' +
       '<p id="pc' + pour + 'Statut" style="font-size:0.78rem; color:var(--muted); margin:0.6rem 0 0; min-height:1.1em;"></p>' +
       '<div id="pc' + pour + 'Camera" style="display:none; margin-top:0.6rem;">' +
@@ -568,6 +572,97 @@
   function rendrePage(p) {
     return traiter(p.original, p.rotation, filtreScan()).then(function (b) { p.rendu = b; return b; });
   }
+  // ---------- Le dossier des scans (Images › Scans de Windows Scan) ----------
+  // Choisi une fois : le navigateur garde l'accès au dossier (dans IndexedDB)
+  // et chaque appui reprend ce qui y est arrivé depuis. Les images deviennent
+  // des pages du scan en cours ; un PDF scanné va droit dans « 📄 PDF ». Ce qui
+  // a déjà été pris est noté, pour ne jamais le reprendre deux fois.
+  const CLE_VUS = 'nyasako_scan_dossier_vus';
+  const IMAGE_SCAN = /\.(jpe?g|png|bmp|gif|webp)$/i;
+  function baseDossier() {
+    return new Promise(function (ok, non) {
+      const r = indexedDB.open('nyasako_scan_dossier', 1);
+      r.onupgradeneeded = function () { r.result.createObjectStore('d'); };
+      r.onsuccess = function () { ok(r.result); };
+      r.onerror = function () { non(r.error); };
+    });
+  }
+  function lireDossier() {
+    return baseDossier().then(function (db) {
+      return new Promise(function (ok) {
+        const q = db.transaction('d').objectStore('d').get('dossier');
+        q.onsuccess = function () { ok(q.result || null); };
+        q.onerror = function () { ok(null); };
+      });
+    }).catch(function () { return null; });
+  }
+  function garderDossier(h) {
+    return baseDossier().then(function (db) {
+      return new Promise(function (ok) {
+        const tx = db.transaction('d', 'readwrite');
+        tx.objectStore('d').put(h, 'dossier');
+        tx.oncomplete = ok; tx.onerror = ok;
+      });
+    }).catch(function () {});
+  }
+  function lireVus() {
+    try { return JSON.parse(localStorage.getItem(CLE_VUS)) || []; } catch (e) { return []; }
+  }
+  function ecrireVus(l) {
+    try { localStorage.setItem(CLE_VUS, JSON.stringify(l.slice(-2000))); } catch (e) {}
+  }
+  function signature(f) { return f.name + '|' + f.size + '|' + f.lastModified; }
+
+  async function prendreScansDuDossier(changer) {
+    let dossier = changer ? null : await lireDossier();
+    let nouveau = false;
+    try {
+      if (dossier && (await dossier.queryPermission({ mode: 'read' })) !== 'granted' &&
+          (await dossier.requestPermission({ mode: 'read' })) !== 'granted') dossier = null;
+      if (!dossier) {
+        dire('scan', 'Safidio ny dossier misy ny scan (matetika : Images › Scans).');
+        dossier = await window.showDirectoryPicker({ id: 'nyasako-scans', startIn: 'pictures', mode: 'read' });
+        await garderDossier(dossier);
+        nouveau = true;
+      }
+    } catch (e) {
+      if (e && e.name === 'AbortError') { dire('scan', ''); return; }
+      dire('scan', 'Tsy azo novakiana ny dossier : ' + ((e && e.message) || 'erreur'), true);
+      return;
+    }
+
+    const vus = lireVus();
+    const dejaVu = new Set(vus);
+    const fichiers = [];
+    for await (const entree of dossier.values()) {
+      if (entree.kind !== 'file') continue;
+      if (!IMAGE_SCAN.test(entree.name) && !/\.pdf$/i.test(entree.name)) continue;
+      const f = await entree.getFile();
+      if (!dejaVu.has(signature(f))) fichiers.push(f);
+    }
+    // Un dossier choisi pour la première fois contient déjà tout l'historique :
+    // seuls les scans de la dernière heure sont « vaovao ».
+    const recents = nouveau
+      ? fichiers.filter(function (f) { return Date.now() - f.lastModified < 60 * 60 * 1000; })
+      : fichiers;
+    fichiers.forEach(function (f) { vus.push(signature(f)); });
+    ecrireVus(vus);
+    if (!recents.length) { dire('scan', 'Tsy misy scan vaovao ao amin\'ny « ' + dossier.name + ' ».'); return; }
+
+    recents.sort(function (a, b) { return a.lastModified - b.lastModified; });
+    const pdfs = recents.filter(function (f) { return /\.pdf$/i.test(f.name); });
+    const images = recents.filter(function (f) { return IMAGE_SCAN.test(f.name); });
+    if (pdfs.length && window.__pdfTahiry) {
+      pdfs.forEach(function (f) { window.__pdfTahiry.ampio(f.name, f, 'scan').catch(function () {}); });
+    }
+    if (images.length) {
+      await ajouterPagesScan(images);
+      if (pdfs.length) dire('scan', images.length + ' pejy nampidirina, ary ' + pdfs.length + ' PDF lasa ao amin\'ny 📄 PDF.');
+    } else {
+      dire('scan', '✅ ' + pdfs.length + ' PDF voascan lasa ao amin\'ny 📄 PDF.');
+    }
+  }
+
   function ajouterPagesScan(blobs) {
     blobs.forEach(function (b) { scanPejy.push({ original: b, rotation: 0, rendu: null }); });
     dire('scan', 'Mikarakara ny pejy…');
@@ -765,6 +860,10 @@
       const f = lireFichiers(this);
       if (f.length) ajouterPagesScan(f);
     });
+    if ($('pcScanDossier')) {
+      $('pcScanDossier').addEventListener('click', function () { prendreScansDuDossier(false); });
+      $('pcScanDossierOvay').addEventListener('click', function () { prendreScansDuDossier(true); });
+    }
     $('pcScanFiltre').addEventListener('change', function () {
       dire('scan', 'Mikarakara ny pejy…');
       Promise.all(scanPejy.map(rendrePage)).then(function () { dire('scan', ''); rendreScanPejy(); });
