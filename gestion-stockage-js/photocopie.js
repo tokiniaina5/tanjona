@@ -1043,8 +1043,11 @@
       el.innerHTML = '📦 <span style="color:var(--muted);">Tsindrio « Ram vaovao » rehefa manokatra ram ianao.</span>';
       return;
     }
+    // Photocopie, reliure et plastification prennent toutes leurs feuilles
+    // dans la même rame.
+    const PRENNENT = { kopia: true, reliure: true, plast: true };
     const lany = lireAsa().reduce(function (s, a) {
-      return s + (a.at >= ram.at && serviceDe(a) === 'kopia' ? a.pejy * a.isa : 0);
+      return s + (a.at >= ram.at && PRENNENT[serviceDe(a)] ? a.pejy * a.isa : 0);
     }, 0);
     const sisa = ram.habe - lany;
     const fetra = Math.max(20, Math.round(ram.habe * 0.1));
