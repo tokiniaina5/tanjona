@@ -51,11 +51,12 @@ function choisirOngletCommun(nom) {
   // « Fangatahana » est à l'admin seul : un autre compte n'y entre pas.
   if (nom === 'fangatahana' && !(currentUser && isOwnerEmail(currentUser.email))) nom = 'tableau';
   // Dans le Commun, les onglets d'un fokontany ne s'ouvrent qu'une fois un
-  // fokontany choisi ; avant, c'est la liste. Choisi, on reste chez lui.
+  // fokontany choisi ; avant, le tableau de bord de tous, puis la liste.
+  // Choisi, on reste chez lui.
   if (APP_COMMUN) {
     var dansUn = !!window.__fokontanyJerena;
     var SIENS = { tableau: 1, adidy: 1, historique: 1, taratasy: 1, fianakaviana: 1 };
-    if (!dansUn && SIENS[nom]) nom = 'fokontany';
+    if (!dansUn && SIENS[nom] && nom !== 'tableau') nom = 'fokontany';
     if (dansUn && !SIENS[nom]) nom = 'tableau';
   }  ongletCommun = PANNEAUX[nom] ? nom : 'tableau';
   Object.keys(PANNEAUX).forEach(function (cle) {
