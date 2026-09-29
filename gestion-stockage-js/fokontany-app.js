@@ -158,6 +158,49 @@ function chargerLesFokontany() {
   }, function () { return null; });
 }
 
+// ---------- Le nom du Commun ----------
+// Dans l'en-tête, « 🏛️ Commun <son nom> ». Le nom vient du lien d'installation
+// (« c=… », gardé dans ce navigateur) ; sinon de ce que le serveur sait :
+// l'installation du Commun, la demande de code (« … — Commun X (…) »), ou
+// le commun que ses fokontany ont déclaré le plus souvent.
+var CLE_NOM_COMMUN = 'stockmanager_fokontany_commun';
+function afficherNomCommun(nom) {
+  var el = document.getElementById('fkMarque');
+  if (!el) return;
+  var propre = String(nom || '').replace(/[<>&]/g, '').replace(/^commun\s+/i, '').trim();
+  el.innerHTML = '🏛️ Commun' + (propre ? ' <span translate="no" class="notranslate">' + propre + '</span>' : '');
+  if (propre) document.title = 'Commun ' + propre;
+}
+function trouverNomCommun() {
+  var garde = '';
+  try { garde = String(localStorage.getItem(CLE_NOM_COMMUN) || '').trim(); } catch (e) {}
+  afficherNomCommun(garde);
+  if (garde || !window.__sb || !currentUser) return;
+  var sb = window.__sb;
+  var moi = cleEmail(currentUser.email);
+  Promise.all([
+    sb.from('fokontany_installation').select('email,commun,karazana'),
+    sb.from('commun_alalana').select('email,anarana')
+  ]).then(function (res) {
+    var installs = (res[0] && !res[0].error && res[0].data) || [];
+    var demandes = (res[1] && !res[1].error && res[1].data) || [];
+    var nom = '';
+    installs.forEach(function (i) { if (!nom && i.karazana === 'commun' && cleEmail(i.email) === moi && i.commun) nom = i.commun; });
+    demandes.forEach(function (a) {
+      var m = !nom && cleEmail(a.email) === moi && String(a.anarana || '').match(/Commun\s+([^\/(]+)/i);
+      if (m) nom = m[1].trim();
+    });
+    if (!nom) {
+      var compte = {};
+      installs.forEach(function (i) { if (i.karazana !== 'commun' && i.commun) compte[i.commun] = (compte[i.commun] || 0) + 1; });
+      nom = Object.keys(compte).sort(function (a, b) { return compte[b] - compte[a]; })[0] || '';
+    }
+    if (!nom) return;
+    try { localStorage.setItem(CLE_NOM_COMMUN, nom); } catch (e) {}
+    afficherNomCommun(nom);
+  }, function () {});
+}
+
 // ---------- Ce que la recherche du Commun parcourt ----------
 // Tout ce que ses fokontany ont écrit, lu d'un coup et gardé une minute :
 // on ne relit pas le serveur à chaque lettre tapée. Chaque trouvaille sait
@@ -346,7 +389,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
   if (APP_COMMUN) {
     $('fkNomApp').textContent = 'Administratif Commun';
-    $('fkMarque').innerHTML = '🏛️ <span>Commun</span>';
+    afficherNomCommun('');
+    try { afficherNomCommun(localStorage.getItem(CLE_NOM_COMMUN) || ''); } catch (e) {}
     // Son icône à lui, le « C » : celle du Fokontany est posée dans la page.
     document.querySelectorAll('link[rel="icon"], link[rel="apple-touch-icon"]').forEach(function (l) {
       l.setAttribute('href', '/fokontany/commun/icone-192.png');
@@ -662,6 +706,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (isOwnerEmail(currentUser.email)) rendreInstallable();
     choisirOngletCommun(ongletCommun);
     if (APP_COMMUN && isOwnerEmail(currentUser.email)) suivreLesFokontany();
+    if (APP_COMMUN) trouverNomCommun();
   }
 
   // ---------- Le Commun suit les fokontany ----------
