@@ -227,12 +227,14 @@
 <div id="appScreen">
   <header class="fk-barre">
     <!-- Le Commun ne touche à rien, mais il cherche : la barre filtre les
-         lignes de l'onglet ouvert (fokontany-app.js). Sous le nom, dans
-         l'en-tête qui reste en vue, et hors de .lecture-seule. -->
-    <div id="communRechercheBox">
-      <input type="search" id="communRecherche" placeholder="🔍 Hikaroka ato anatiny (anarana, fonenana, CIN…)" autocomplete="off"
+         lignes de l'onglet ouvert, et cherche aussi dans tout le Commun —
+         fokontany, livrets, membres, adidy, papiers (fokontany-app.js). Sous
+         le nom, dans l'en-tête qui reste en vue, et hors de .lecture-seule. -->
+    <div id="communRechercheBox" style="position:relative;">
+      <input type="search" id="communRecherche" placeholder="🔍 Hikaroka ato amin'ny Commun rehetra (fokontany, anarana, fonenana, CIN…)" autocomplete="off"
         style="flex:1; min-width:0; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:10px; padding:0.6rem 0.8rem; font:inherit;">
       <span id="communRechercheIsa" style="font-size:0.78rem; color:var(--muted); white-space:nowrap;"></span>
+      <div id="communRechercheValiny" role="listbox" style="display:none; position:absolute; top:calc(100% + 6px); left:0; right:0; max-height:60vh; overflow-y:auto; background:var(--panel); border:1px solid var(--line); border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.4); z-index:70;"></div>
     </div>
     <div class="brand" id="fkMarque">🗂️ Administratif <span>Fokontany</span></div>
     <div style="display:flex; align-items:center; gap:0.8rem;">
@@ -852,7 +854,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="/gestion-stockage-js/fokontany-app.js?v=ed82a73c"></script>
+<script src="/gestion-stockage-js/fokontany-app.js?v=6ecb8f9a"></script>
 <script src="/gestion-stockage-js/commun-alalana.js?v=682d598c"></script>
 <script src="/gestion-stockage-js/pdf.js?v=b7c1f056"></script>
 <script src="/gestion-stockage-js/taratasy.js?v=9ab90132"></script>
