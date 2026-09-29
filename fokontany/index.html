@@ -118,6 +118,10 @@
      onglets — mais il regarde sans toucher : la classe .lecture-seule est
      posée sur chaque panneau (fokontany-app.js), jamais sur les onglets. */
   html:not(.app-commun) #communRechercheBox{ display:none !important; }
+  /* La recherche reste en vue en descendant, juste sous l'en-tête (dont la
+     hauteur change quand il passe sur deux lignes : fokontany-app.js la mesure). */
+  #communRechercheBox{ position:sticky; top:var(--fk-barre-h, 64px); z-index:35;
+    background:var(--bg); padding:0.5rem 0; margin-top:-0.5rem !important; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" crossorigin="anonymous"></script>
 <script src="/gestion-stockage-js/supabase-init.js?v=94f3c704"></script>
@@ -786,7 +790,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="/gestion-stockage-js/fokontany-app.js?v=3ae48349"></script>
+<script src="/gestion-stockage-js/fokontany-app.js?v=0a4f167c"></script>
 <script src="/gestion-stockage-js/commun-alalana.js?v=682d598c"></script>
 <script src="/gestion-stockage-js/pdf.js?v=b7c1f056"></script>
 <script src="/gestion-stockage-js/taratasy.js?v=8ea12638"></script>

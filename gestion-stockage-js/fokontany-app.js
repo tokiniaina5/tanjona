@@ -48,6 +48,8 @@ function choisirOngletCommun(nom) {
     adidy: 'communAdidy', historique: 'communHistorique',
     taratasy: 'communTaratasy', fianakaviana: 'communFianakaviana', fangatahana: 'communFangatahana'
   };
+  // « Fangatahana » est à l'admin seul : un autre compte n'y entre pas.
+  if (nom === 'fangatahana' && !(currentUser && isOwnerEmail(currentUser.email))) nom = 'tableau';
   ongletCommun = PANNEAUX[nom] ? nom : 'tableau';
   Object.keys(PANNEAUX).forEach(function (cle) {
     var el = document.getElementById(PANNEAUX[cle]);
@@ -130,6 +132,13 @@ document.addEventListener('DOMContentLoaded', function () {
     // de l'onglet ouvert (tableaux, listes, cartes) qui ne le contiennent pas.
     // Les onglets se redessinent en arrivant du serveur : on refiltre alors.
     var champ = $('communRecherche');
+    // La barre colle sous l'en-tête : on lui donne sa hauteur réelle.
+    var barre = document.querySelector('.fk-barre');
+    if (barre && window.ResizeObserver) {
+      new ResizeObserver(function () {
+        document.documentElement.style.setProperty('--fk-barre-h', barre.offsetHeight + 'px');
+      }).observe(barre);
+    }
     var sansAccent = function (s) {
       return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
     };

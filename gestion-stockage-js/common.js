@@ -5834,6 +5834,8 @@
       adidy: 'communAdidy', historique: 'communHistorique',
       taratasy: 'communTaratasy', fianakaviana: 'communFianakaviana', fangatahana: 'communFangatahana'
     };
+    // « Fangatahana » est à l'admin seul : un autre compte n'y entre pas.
+    if(nom === 'fangatahana' && !(currentUser && isOwnerEmail(currentUser.email))) nom = 'tableau';
     ongletCommun = PANNEAUX[nom] ? nom : 'tableau';
     Object.keys(PANNEAUX).forEach(function(cle){
       const el = document.getElementById(PANNEAUX[cle]);
