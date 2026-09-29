@@ -591,6 +591,30 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   rendreNotifs();
 
+  // ---------- Andro sy alina ----------
+  // Les clés de Ny asako : même site, même choix. Le jour tout en haut du
+  // curseur de Ny asako (100), la nuit tout en bas (0), en mode manuel.
+  function modeLoko() { return document.documentElement.getAttribute('data-theme') === 'jour' ? 'jour' : 'nuit'; }
+  function marquerLoko() {
+    var actuel = modeLoko();
+    document.querySelectorAll('[data-fk-loko]').forEach(function (b) {
+      b.classList.toggle('btn-primary', b.dataset.fkLoko === actuel);
+    });
+  }
+  document.querySelectorAll('[data-fk-loko]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var jour = b.dataset.fkLoko === 'jour';
+      try {
+        localStorage.setItem('stockmanager_theme_mode', 'manuel');
+        localStorage.setItem('stockmanager_theme_niveau', jour ? '100' : '0');
+        localStorage.setItem('stockmanager_theme', jour ? 'jour' : 'nuit');
+      } catch (e) {}
+      if (typeof window.__appliquerNiveau === 'function') window.__appliquerNiveau(jour ? 100 : 0);
+      marquerLoko();
+    });
+  });
+  marquerLoko();
+
   // ---------- Fikirana ----------
   // Le ⚙️ après la cloche : le compte ouvert (nom, email) s'y lit. Il se
   // referme comme la cloche, d'un clic ailleurs.
