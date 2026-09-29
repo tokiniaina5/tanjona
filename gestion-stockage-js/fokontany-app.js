@@ -50,6 +50,8 @@ function choisirOngletCommun(nom) {
   };
   // « Fangatahana » est à l'admin seul : un autre compte n'y entre pas.
   if (nom === 'fangatahana' && !(currentUser && isOwnerEmail(currentUser.email))) nom = 'tableau';
+  // Le Commun n'a pas ces trois onglets (leur rangée est cachée dans la page).
+  if (APP_COMMUN && (nom === 'adidy' || nom === 'historique' || nom === 'taratasy')) nom = 'tableau';
   ongletCommun = PANNEAUX[nom] ? nom : 'tableau';
   Object.keys(PANNEAUX).forEach(function (cle) {
     var el = document.getElementById(PANNEAUX[cle]);
@@ -149,6 +151,85 @@ function rendreLesFokontany() {
         '<td style="white-space:nowrap; color:var(--muted);">' + (isNaN(d) ? '—' : d.toLocaleDateString('fr-FR')) + '</td></tr>';
     }).join('');
   }, function () { msg.textContent = 'Tsy tratra ny serveur : jereo ny réseau.'; });
+}
+
+// ---------- Ce qui change chez les fokontany ----------
+// Le Commun est prévenu, sous sa cloche, de ce que les fokontany écrivent :
+// un livre de famille, un membre, un adidy, un versement, un papier remis.
+// On relit toutes les 30 s ce qui est plus récent que la dernière fois (la
+// date est gardée dans ce navigateur) : la première fois ne fait que poser
+// le repère, pour ne pas noyer l'admin sous tout l'historique. Ce qu'écrit
+// l'admin lui-même ne le prévient pas. Une suppression, elle, ne laisse pas
+// de ligne à lire : elle ne se voit pas ici.
+var CLE_SUIVI_COMMUN = 'stockmanager_commun_vaovao_farany';
+var SUIVI_TABLES = [
+  { table: 'fianakaviana', maj: true, mot: function (n) { return n + ' livre de famille vaovao na novaina'; } },
+  { table: 'fianakaviana_mpikambana', mot: function (n) { return n + ' mpianakavy vaovao'; } },
+  { table: 'adidy', maj: true, mot: function (n) { return n + ' adidy vaovao na novaina'; } },
+  { table: 'adidy_fandoavana', mot: function (n) { return n + ' fandoavana adidy'; } },
+  { table: 'taratasy', mot: function (n) { return n + ' taratasy nomena'; } }
+];
+var suiviMinuterie = null;
+function suivreLesFokontany() {
+  if (!APP_COMMUN || suiviMinuterie) return;
+  suiviMinuterie = setInterval(relireLesChangements, 30000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) relireLesChangements(); });
+  relireLesChangements();
+}
+var suiviEnCours = false;
+function relireLesChangements() {
+  var sb = window.__sb;
+  if (!sb || suiviEnCours || !(currentUser && isOwnerEmail(currentUser.email))) return;
+  var depuis = '';
+  try { depuis = localStorage.getItem(CLE_SUIVI_COMMUN) || ''; } catch (e) {}
+  if (!depuis) {
+    try { localStorage.setItem(CLE_SUIVI_COMMUN, new Date().toISOString()); } catch (e) {}
+    return;
+  }
+  suiviEnCours = true;
+  var requetes = SUIVI_TABLES.map(function (s) {
+    var q = sb.from(s.table).select('*');
+    return (s.maj ? q.or('created_at.gt."' + depuis + '",updated_at.gt."' + depuis + '"') : q.gt('created_at', depuis));
+  });
+  requetes.push(sb.from('commun_alalana').select('email,anarana'));
+  requetes.push(sb.from('fokontany_installation').select('email,fokontany'));
+  Promise.all(requetes).then(function (res) {
+    var noms = {};
+    ((res[SUIVI_TABLES.length].data) || []).forEach(function (a) { if (a.anarana) noms[String(a.email).toLowerCase()] = a.anarana; });
+    ((res[SUIVI_TABLES.length + 1].data) || []).forEach(function (i) { if (i.fokontany) noms[String(i.email).toLowerCase()] = i.fokontany; });
+    // Le repère suivant : la ligne la plus récente, plus une milliseconde (le
+    // serveur compte en microsecondes ; sans ce pas, elle reviendrait).
+    var plusRecent = Date.parse(depuis);
+    var parFokontany = {};
+    SUIVI_TABLES.forEach(function (s, k) {
+      ((res[k] && !res[k].error && res[k].data) || []).forEach(function (l) {
+        [l.created_at, l.updated_at].forEach(function (t) { var ms = Date.parse(t); if (ms > plusRecent) plusRecent = ms; });
+        var email = String(l.owner_email || '').toLowerCase();
+        if (!email || isOwnerEmail(email)) return;
+        var f = parFokontany[email] || (parFokontany[email] = {});
+        f[s.table] = (f[s.table] || 0) + 1;
+      });
+    });
+    if (plusRecent > Date.parse(depuis)) {
+      try { localStorage.setItem(CLE_SUIVI_COMMUN, new Date(plusRecent + 1).toISOString()); } catch (e) {}
+    }
+    var emails = Object.keys(parFokontany);
+    emails.forEach(function (email) {
+      var f = parFokontany[email];
+      var morceaux = SUIVI_TABLES.filter(function (s) { return f[s.table]; })
+        .map(function (s) { return s.mot(f[s.table]); });
+      var message = '🗂️ ' + (noms[email] || email) + ' : ' + morceaux.join(', ') + '.';
+      if (typeof window.__ajouterNotificationAction === 'function') window.__ajouterNotificationAction('fokontany', message);
+      // Et hors de la page, si le navigateur l'a déjà permis.
+      try {
+        if (document.hidden && window.Notification && Notification.permission === 'granted') {
+          new Notification('Administratif Commun', { body: message, icon: '/fokontany/commun/icone-192.png' });
+        }
+      } catch (e) {}
+    });
+    // Ce qu'on regarde se remet à jour avec.
+    if (emails.length) remplirOngletCommun();
+  }).then(function () { suiviEnCours = false; }, function () { suiviEnCours = false; });
 }
 
 // Regarder un seul fokontany : ce qu'il a dans son Administratif Fokontany,
@@ -394,6 +475,7 @@ document.addEventListener('DOMContentLoaded', function () {
     $('dash-commun').style.display = interdit ? 'none' : '';
     if (isOwnerEmail(currentUser.email)) rendreInstallable();
     choisirOngletCommun(ongletCommun);
+    if (APP_COMMUN && isOwnerEmail(currentUser.email)) suivreLesFokontany();
   }
 
   // ---------- Le Commun suit les fokontany ----------

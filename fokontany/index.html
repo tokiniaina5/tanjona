@@ -119,6 +119,11 @@
      posée sur chaque panneau (fokontany-app.js), jamais sur les onglets. */
   html:not(.app-commun) #communRechercheBox{ display:none !important; }
   html:not(.app-commun) #ongletFokontany, html:not(.app-commun) #communFokontany{ display:none !important; }
+  /* Le Commun n'a pas les onglets Adidy, Historique et Taratasy
+     (fokontany-app.js le ramène au tableau de bord s'il y était). */
+  html.app-commun #dash-commun [data-commun="adidy"],
+  html.app-commun #dash-commun [data-commun="historique"],
+  html.app-commun #dash-commun [data-commun="taratasy"]{ display:none !important; }
   /* Dans l'en-tête, sous le nom et le compte, sur toute la largeur. */
   #communRechercheBox{ display:flex; align-items:center; gap:0.6rem; flex:1 1 100%; order:99; }
 </style>
@@ -816,7 +821,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="/gestion-stockage-js/fokontany-app.js?v=c2e9f1f0"></script>
+<script src="/gestion-stockage-js/fokontany-app.js?v=646520a2"></script>
 <script src="/gestion-stockage-js/commun-alalana.js?v=682d598c"></script>
 <script src="/gestion-stockage-js/pdf.js?v=b7c1f056"></script>
 <script src="/gestion-stockage-js/taratasy.js?v=695db7e0"></script>
