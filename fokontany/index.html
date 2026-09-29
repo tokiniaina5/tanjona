@@ -237,7 +237,6 @@
     </div>
     <div class="brand" id="fkMarque">🗂️ Administratif <span>Fokontany</span></div>
     <div style="display:flex; align-items:center; gap:0.8rem;">
-      <div class="fk-qui"><strong id="fkNom">—</strong><span id="fkEmail"></span></div>
       <!-- Les avis restent ici, dans le site : une bande qui passe s'oublie,
            et le fokontany veut relire ce qu'on lui a dit (fokontany-app.js). -->
       <div style="position:relative;">
@@ -250,6 +249,17 @@
             <button type="button" id="fkNotifFafao" style="background:none; border:none; color:var(--cyan); font-size:0.72rem; cursor:pointer;">Fafana</button>
           </div>
           <div id="fkNotifList"></div>
+        </div>
+      </div>
+      <!-- Le réglage, juste après la cloche : le compte ouvert s'y lit
+           (fokontany-app.js ouvre et referme le panneau). -->
+      <div style="position:relative;">
+        <button type="button" class="btn btn-sm" id="fkParametresBtn" aria-label="Fikirana" aria-expanded="false" style="width:auto;">⚙️</button>
+        <div id="fkParametresPanel" style="display:none; position:absolute; top:40px; right:0; width:260px; background:var(--panel); border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.35); z-index:60; text-align:left;">
+          <div style="padding:0.7rem 0.9rem; border-bottom:1px solid var(--line);">
+            <strong style="font-size:0.85rem;">⚙️ Fikirana</strong>
+          </div>
+          <div class="fk-qui" style="text-align:left; padding:0.8rem 0.9rem;"><strong id="fkNom">—</strong><span id="fkEmail" style="word-break:break-all;"></span></div>
         </div>
       </div>
       <!-- Au propriétaire seul, quand le navigateur sait installer. -->
@@ -313,7 +323,7 @@
           <!-- Le fokontany regardé seul (onglet « Fokontany ») : tout ce qui suit ne
                montre que le sien, à regarder sans rien changer (fokontany-app.js). -->
           <div id="communJerenaBox" style="display:none; align-items:center; gap:0.6rem; flex-wrap:wrap; margin:0 0 1rem; padding:0.6rem 0.8rem; border:1px solid var(--cyan); border-radius:10px; font-size:0.85rem;">
-            <span>👁️ Jerena fotsiny : <strong id="communJerenaAnarana"></strong></span>
+            <span><strong id="communJerenaAnarana"></strong></span>
             <button type="button" class="btn btn-sm" id="communJerenaRehetra" style="width:auto; margin-left:auto;">← Fokontany rehetra</button>
           </div>
           <!-- Le comptage des personnes. -->
@@ -829,7 +839,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="/gestion-stockage-js/fokontany-app.js?v=eae46ff3"></script>
+<script src="/gestion-stockage-js/fokontany-app.js?v=caba4b79"></script>
 <script src="/gestion-stockage-js/commun-alalana.js?v=682d598c"></script>
 <script src="/gestion-stockage-js/pdf.js?v=b7c1f056"></script>
 <script src="/gestion-stockage-js/taratasy.js?v=695db7e0"></script>

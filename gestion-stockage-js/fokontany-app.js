@@ -421,6 +421,14 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   window.__notifActions = window.__notifActions || {};
   window.__ajouterNotificationAction = function (type, message) {
+    // Ce qu'un fokontany change porte son nom : l'avis se lit ailleurs
+    // aussi (le Commun, un autre compte sur ce navigateur).
+    if (type === 'modification' && !APP_COMMUN) {
+      var fk = '';
+      try { fk = String(localStorage.getItem('stockmanager_fokontany_nom') || '').trim(); } catch (e) {}
+      if (!fk && currentUser) fk = currentUser.name || currentUser.email || '';
+      if (fk) message = '🗂️ ' + (/^fokontany\b/i.test(fk) ? fk : 'Fokontany ' + fk) + ' · ' + message;
+    }
     var liste = lireNotifs();
     liste.unshift({ type: type, message: String(message || ''), date: new Date().toISOString(), lu: false });
     ecrireNotifs(liste);
@@ -452,6 +460,24 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
   rendreNotifs();
+
+  // ---------- Fikirana ----------
+  // Le ⚙️ après la cloche : le compte ouvert (nom, email) s'y lit. Il se
+  // referme comme la cloche, d'un clic ailleurs.
+  $('fkParametresBtn').addEventListener('click', function () {
+    var panneau = $('fkParametresPanel');
+    var ouvert = panneau.style.display !== 'none';
+    panneau.style.display = ouvert ? 'none' : 'block';
+    $('fkParametresBtn').setAttribute('aria-expanded', ouvert ? 'false' : 'true');
+  });
+  document.addEventListener('click', function (e) {
+    var panneau = $('fkParametresPanel');
+    if (panneau.style.display === 'none') return;
+    if (e.target.closest && !e.target.closest('#fkParametresPanel') && !e.target.closest('#fkParametresBtn')) {
+      panneau.style.display = 'none';
+      $('fkParametresBtn').setAttribute('aria-expanded', 'false');
+    }
+  });
 
   // ---------- Connexion ----------
   // Le même compte que Ny asako : même base, mêmes identifiants. Créer un
