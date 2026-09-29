@@ -103,7 +103,7 @@
 <link rel="apple-touch-icon" href="/fokontany/icone-192.png">
 <link rel="icon" href="/fokontany/icone-192.png" type="image/png">
 <link rel="stylesheet" href="/gestion-stockage-css/base.css?v=059a4b85">
-<link rel="stylesheet" href="/gestion-stockage-css/components.css?v=ecf23281">
+<link rel="stylesheet" href="/gestion-stockage-css/components.css?v=cc1a0737">
 <style>
   .fk-barre{ display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;
     padding:0.9rem 1rem; border-bottom:1px solid var(--line); background:var(--panel); position:sticky; top:0; z-index:200; }
@@ -119,8 +119,8 @@
      posée sur chaque panneau (fokontany-app.js), jamais sur les onglets. */
   html:not(.app-commun) #communRechercheBox{ display:none !important; }
   html:not(.app-commun) #ongletFokontany, html:not(.app-commun) #communFokontany{ display:none !important; }
-  /* Tout en haut de l'en-tête, sur toute la largeur. */
-  #communRechercheBox{ display:flex; align-items:center; gap:0.6rem; flex:1 1 100%; order:-1; }
+  /* Dans l'en-tête, sous le nom et le compte, sur toute la largeur. */
+  #communRechercheBox{ display:flex; align-items:center; gap:0.6rem; flex:1 1 100%; order:99; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" crossorigin="anonymous"></script>
 <script src="/gestion-stockage-js/supabase-init.js?v=94f3c704"></script>
@@ -215,7 +215,7 @@
 <div id="appScreen">
   <header class="fk-barre">
     <!-- Le Commun ne touche à rien, mais il cherche : la barre filtre les
-         lignes de l'onglet ouvert (fokontany-app.js). Tout en haut, dans
+         lignes de l'onglet ouvert (fokontany-app.js). Sous le nom, dans
          l'en-tête qui reste en vue, et hors de .lecture-seule. -->
     <div id="communRechercheBox">
       <input type="search" id="communRecherche" placeholder="🔍 Hikaroka ato anatiny (anarana, fonenana, CIN…)" autocomplete="off"
@@ -296,6 +296,12 @@
             <div class="dash-tab" data-commun="fokontany" id="ongletFokontany">🏘️ Fokontany</div>
             <!-- Le propriétaire seul : le style le montre, commun-alalana.js le décide. -->
             <div class="dash-tab" data-commun="fangatahana" id="ongletFangatahana" style="display:none;">🛡️ Fangatahana</div>
+          </div>
+          <!-- Le fokontany regardé seul (onglet « Fokontany ») : tout ce qui suit ne
+               montre que le sien, à regarder sans rien changer (fokontany-app.js). -->
+          <div id="communJerenaBox" style="display:none; align-items:center; gap:0.6rem; flex-wrap:wrap; margin:0 0 1rem; padding:0.6rem 0.8rem; border:1px solid var(--cyan); border-radius:10px; font-size:0.85rem;">
+            <span>👁️ Jerena fotsiny : <strong id="communJerenaAnarana"></strong></span>
+            <button type="button" class="btn btn-sm" id="communJerenaRehetra" style="width:auto; margin-left:auto;">✖ Fokontany rehetra</button>
           </div>
           <!-- Le comptage des personnes. -->
           <div id="communCorps">
@@ -810,12 +816,12 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="/gestion-stockage-js/fokontany-app.js?v=8f2edc1c"></script>
+<script src="/gestion-stockage-js/fokontany-app.js?v=c2e9f1f0"></script>
 <script src="/gestion-stockage-js/commun-alalana.js?v=682d598c"></script>
 <script src="/gestion-stockage-js/pdf.js?v=b7c1f056"></script>
-<script src="/gestion-stockage-js/taratasy.js?v=8ea12638"></script>
-<script src="/gestion-stockage-js/fianakaviana.js?v=ba626a1c"></script>
+<script src="/gestion-stockage-js/taratasy.js?v=695db7e0"></script>
+<script src="/gestion-stockage-js/fianakaviana.js?v=ddbe281d"></script>
 <script src="/gestion-stockage-js/validation-install.js?v=6973f976"></script>
-<script src="/gestion-stockage-js/adidy.js?v=b485b266"></script>
+<script src="/gestion-stockage-js/adidy.js?v=8b4b346a"></script>
 </body>
 </html>

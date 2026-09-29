@@ -18,7 +18,10 @@
   // Le Commun lit les registres de tous les fokontany ; partout ailleurs, on
   // ne lit que les siens (fokontany-app.js pose __lectureCommun).
   function mien(requete, email) {
-    if (typeof window.__lectureCommun === 'function' && window.__lectureCommun()) return requete;
+    // Le Commun lit tout, ou le seul fokontany qu'il regarde (fokontany-app.js).
+    if (typeof window.__lectureCommun === 'function' && window.__lectureCommun()) {
+      return window.__fokontanyJerena ? requete.eq('owner_email', window.__fokontanyJerena) : requete;
+    }
     return requete.eq('owner_email', email);
   }
 
@@ -237,8 +240,8 @@
     const adidyId = $('adidySafidy').value;
     const periode = periodeChoisie();
     if (!client || !email || !adidyId || !periode) { versements = []; afficherPersonnes(); return Promise.resolve(); }
-    return client.from('adidy_fandoavana').select('*')
-      .eq('owner_email', email).eq('adidy_id', adidyId).eq('vanim_potoana', periode)
+    return mien(client.from('adidy_fandoavana').select('*'), email)
+      .eq('adidy_id', adidyId).eq('vanim_potoana', periode)
       .then(function (res) {
         if (res.error) { dire('adidyFandoavanaMessage', expliquer(res), true); return; }
         versements = res.data || [];

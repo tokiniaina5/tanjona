@@ -140,14 +140,36 @@ function rendreLesFokontany() {
     document.getElementById('communFokontanyVide').style.display = liste.length ? 'none' : '';
     corps.innerHTML = liste.map(function (f, n) {
       var d = new Date(f.daty);
-      return '<tr><td>' + (n + 1) + '</td>' +
-        '<td>' + echap(f.nom || '—') + '</td>' +
+      // Une ligne se touche pour regarder ce fokontany seul (voir jereoFokontany).
+      return '<tr data-jereo="' + echap(cle(f.email)) + '" data-anarana="' + echap(f.nom || f.email) + '" style="cursor:pointer;" title="Jereo ity fokontany ity">' +
+        '<td>' + (n + 1) + '</td>' +
+        '<td>' + echap(f.nom || '—') + ' <span style="color:var(--cyan); font-size:0.8rem;">👁️</span></td>' +
         '<td style="color:var(--muted);">' + echap(f.email) + '</td>' +
         '<td style="text-align:right;">' + (livres[cle(f.email)] || 0) + '</td>' +
         '<td style="white-space:nowrap; color:var(--muted);">' + (isNaN(d) ? '—' : d.toLocaleDateString('fr-FR')) + '</td></tr>';
     }).join('');
   }, function () { msg.textContent = 'Tsy tratra ny serveur : jereo ny réseau.'; });
 }
+
+// Regarder un seul fokontany : ce qu'il a dans son Administratif Fokontany,
+// et rien d'autre. Les lectures du Commun (mien, dans fianakaviana.js,
+// adidy.js, taratasy.js) se limitent alors à son email. Les panneaux restent
+// en lecture seule : on regarde, on ne touche pas. '' : tous les fokontany.
+window.__fokontanyJerena = '';
+function jereoFokontany(email, anarana) {
+  window.__fokontanyJerena = String(email || '').trim().toLowerCase();
+  var boite = document.getElementById('communJerenaBox');
+  if (boite) boite.style.display = window.__fokontanyJerena ? 'flex' : 'none';
+  var nom = document.getElementById('communJerenaAnarana');
+  if (nom) nom.textContent = anarana || email || '';
+  // Son tableau de bord d'abord ; revenir à tous ramène à la liste.
+  choisirOngletCommun(window.__fokontanyJerena ? 'tableau' : 'fokontany');
+}
+document.addEventListener('click', function (e) {
+  var ligne = e.target.closest && e.target.closest('#communFokontanyLisitra tr[data-jereo]');
+  if (ligne) { jereoFokontany(ligne.dataset.jereo, ligne.dataset.anarana); return; }
+  if (e.target.closest && e.target.closest('#communJerenaRehetra')) jereoFokontany('', '');
+});
 
 // commun-alalana.js l'appelle au retour d'un lien reçu par email. Il n'y a
 // ici qu'une seule vue : l'ouvrir, c'est la redessiner.

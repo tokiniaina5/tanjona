@@ -33,6 +33,9 @@
   .lecture-seule textarea, .lecture-seule a, .lecture-seule [contenteditable]{
     pointer-events:none;
   }
+  /* Sauf ce qui ne fait que montrer : ouvrir un livre de famille pour en
+     lire les membres ne change rien. */
+  .lecture-seule [data-fam-sokafy]{ pointer-events:auto; }
   /* Administratif Fokontany et Administratif Commun : le propriétaire seul
      les voit (parametres.js pose .est-proprietaire). Les clients n'en voient
      ni l'entrée, ni l'icône épinglée, ni la fenêtre. La page /fokontany/

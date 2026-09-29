@@ -17,7 +17,10 @@
   // Le Commun lit les registres de tous les fokontany ; partout ailleurs, on
   // ne lit que les siens (fokontany-app.js pose __lectureCommun).
   function mien(requete, email) {
-    if (typeof window.__lectureCommun === 'function' && window.__lectureCommun()) return requete;
+    // Le Commun lit tout, ou le seul fokontany qu'il regarde (fokontany-app.js).
+    if (typeof window.__lectureCommun === 'function' && window.__lectureCommun()) {
+      return window.__fokontanyJerena ? requete.eq('owner_email', window.__fokontanyJerena) : requete;
+    }
     return requete.eq('owner_email', email);
   }
 
