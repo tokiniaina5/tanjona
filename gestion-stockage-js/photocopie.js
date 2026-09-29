@@ -1056,6 +1056,15 @@
       const ram = lireRam(t);
       const champ = z.querySelector('[data-ram-habe="' + t + '"]');
       if (champ && document.activeElement !== champ) champ.value = ram.habe;
+      // Pas encore de paquet ouvert : il s'ouvre tout seul au premier travail
+      // du jour, pour que le papier baisse dès la première photo.
+      if (!ram.at) {
+        const auj = debutJour(Date.now());
+        const premier = lireAsa().reduce(function (m, a) {
+          return a.at >= auj && RAM_SERVICES[t][serviceDe(a)] && (!m || a.at < m) ? a.at : m;
+        }, 0);
+        if (premier) { ram.at = premier; ecrireJson(CLE_RAM[t], ram); }
+      }
       if (!ram.at) {
         el.innerHTML = '📦 <span style="color:var(--muted);">Tsindrio « ' + (t === 'sary' ? 'Paquet vaovao' : 'Ram vaovao') + ' » rehefa manokatra vaovao ianao.</span>';
         return;
