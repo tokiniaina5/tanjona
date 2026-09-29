@@ -49,10 +49,7 @@ function choisirOngletCommun(nom) {
     taratasy: 'communTaratasy', fianakaviana: 'communFianakaviana', fokontany: 'communFokontany', fangatahana: 'communFangatahana'
   };
   // « Fangatahana » est à l'admin seul : un autre compte n'y entre pas.
-  if (nom === 'fangatahana' && !(currentUser && isOwnerEmail(currentUser.email))) nom = 'tableau';
-  // Le Commun n'a pas ces trois onglets (leur rangée est cachée dans la page).
-  if (APP_COMMUN && (nom === 'adidy' || nom === 'historique' || nom === 'taratasy')) nom = 'tableau';
-  ongletCommun = PANNEAUX[nom] ? nom : 'tableau';
+  if (nom === 'fangatahana' && !(currentUser && isOwnerEmail(currentUser.email))) nom = 'tableau';  ongletCommun = PANNEAUX[nom] ? nom : 'tableau';
   Object.keys(PANNEAUX).forEach(function (cle) {
     var el = document.getElementById(PANNEAUX[cle]);
     if (el) el.style.display = cle === ongletCommun ? '' : 'none';
