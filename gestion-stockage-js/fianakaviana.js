@@ -19,7 +19,12 @@
   function mien(requete, email) {
     // Le Commun lit tout, ou le seul fokontany qu'il regarde (fokontany-app.js).
     if (typeof window.__lectureCommun === 'function' && window.__lectureCommun()) {
-      return window.__fokontanyJerena ? requete.eq('owner_email', window.__fokontanyJerena) : requete;
+      if (window.__fokontanyJerena) return requete.eq('owner_email', window.__fokontanyJerena);
+      // Tous : seulement les fokontany du Commun, une fois leur liste lue.
+      if (Array.isArray(window.__fokontanyCommun)) {
+        return requete.in('owner_email', window.__fokontanyCommun.length ? window.__fokontanyCommun : ['-']);
+      }
+      return requete;
     }
     return requete.eq('owner_email', email);
   }

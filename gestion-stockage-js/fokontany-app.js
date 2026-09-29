@@ -99,14 +99,22 @@ function remplirOngletCommun() {
     return;
   } else if (nom === 'fianakaviana') {
     if (typeof renderFianakaviana === 'function') renderFianakaviana();
-  } else if (typeof renderFianakaviana === 'function') {
+  } else if (nom !== 'tableau' && typeof renderFianakaviana === 'function') {
+    // Le tableau relit les livrets lui-même (renderFianakavianaIsa), une
+    // fois connus les fokontany à compter : pas de seconde lecture.
     renderFianakaviana();
   }
   if (nom === 'tableau') {
-    if (typeof window.__montrerLesInstallations === 'function') window.__montrerLesInstallations();
-    if (typeof renderFianakavianaIsa === 'function') renderFianakavianaIsa();
-    if (typeof renderVolaVoaangona === 'function') renderVolaVoaangona();
-    if (typeof renderTaratasyIsa === 'function') renderTaratasyIsa();
+    var dessiner = function () {
+      if (typeof window.__montrerLesInstallations === 'function') window.__montrerLesInstallations();
+      if (typeof renderFianakavianaIsa === 'function') renderFianakavianaIsa();
+      if (typeof renderVolaVoaangona === 'function') renderVolaVoaangona();
+      if (typeof renderTaratasyIsa === 'function') renderTaratasyIsa();
+    };
+    // Le tableau de tous, dans le Commun : ses fokontany d'abord, pour ne
+    // compter qu'eux.
+    if (APP_COMMUN && !window.__fokontanyJerena) chargerLesFokontany().then(dessiner, dessiner);
+    else dessiner();
   }
 }
 
@@ -116,20 +124,21 @@ function remplirOngletCommun() {
 // par son email. Le nom vient de l'installation, sinon de la demande. On y
 // joint le nombre de livres de famille que chacun tient. Le serveur ne rend
 // ces tables qu'au propriétaire.
-function rendreLesFokontany() {
-  var corps = document.getElementById('communFokontanyLisitra');
-  if (!corps || !window.__sb || !(currentUser && isOwnerEmail(currentUser.email))) return;
+// La liste sert aussi au tableau de bord du Commun : ses chiffres ne comptent
+// que ces fokontany-là (window.__fokontanyCommun, lu par « mien » dans
+// fianakaviana.js, adidy.js, taratasy.js). Tant qu'elle n'est pas lue, il
+// vaut undefined et tout est compté, comme avant.
+function cleEmail(e) { return String(e || '').trim().toLowerCase(); }
+function chargerLesFokontany() {
   var sb = window.__sb;
-  var msg = document.getElementById('communFokontanyMessage');
-  var echap = function (t) { var d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; };
-  var cle = function (e) { return String(e || '').trim().toLowerCase(); };
-  Promise.all([
+  if (!sb || !(currentUser && isOwnerEmail(currentUser.email))) return Promise.resolve(null);
+  var cle = cleEmail;
+  return Promise.all([
     sb.from('commun_alalana').select('email,anarana,active,voamarina,created_at'),
     sb.from('fokontany_installation').select('email,fokontany,karazana,created_at'),
     sb.from('fianakaviana').select('owner_email')
   ]).then(function (res) {
-    if (res[0].error && res[1].error) { msg.textContent = 'Tsy voaaka ny lisitry ny fokontany.'; return; }
-    msg.textContent = '';
+    if (res[0].error && res[1].error) return null;
     var parEmail = {};
     ((res[0].data) || []).forEach(function (a) {
       if (!a.active || !a.voamarina || !cle(a.email)) return;
@@ -144,6 +153,21 @@ function rendreLesFokontany() {
     ((res[2] && res[2].data) || []).forEach(function (r) { var k = cle(r.owner_email); livres[k] = (livres[k] || 0) + 1; });
     var liste = Object.keys(parEmail).map(function (k) { return parEmail[k]; })
       .sort(function (a, b) { return (a.nom || a.email).localeCompare(b.nom || b.email, 'fr'); });
+    window.__fokontanyCommun = Object.keys(parEmail);
+    return { liste: liste, livres: livres };
+  }, function () { return null; });
+}
+
+function rendreLesFokontany() {
+  var corps = document.getElementById('communFokontanyLisitra');
+  if (!corps || !window.__sb || !(currentUser && isOwnerEmail(currentUser.email))) return;
+  var msg = document.getElementById('communFokontanyMessage');
+  var echap = function (t) { var d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; };
+  var cle = cleEmail;
+  chargerLesFokontany().then(function (r) {
+    if (!r) { msg.textContent = 'Tsy voaaka ny lisitry ny fokontany.'; return; }
+    msg.textContent = '';
+    var liste = r.liste, livres = r.livres;
     document.getElementById('communKpiFokontanyIsa').textContent = liste.length;
     document.getElementById('communFokontanyVide').style.display = liste.length ? 'none' : '';
     corps.innerHTML = liste.map(function (f, n) {
@@ -156,7 +180,7 @@ function rendreLesFokontany() {
         '<td style="text-align:right;">' + (livres[cle(f.email)] || 0) + '</td>' +
         '<td style="white-space:nowrap; color:var(--muted);">' + (isNaN(d) ? '—' : d.toLocaleDateString('fr-FR')) + '</td></tr>';
     }).join('');
-  }, function () { msg.textContent = 'Tsy tratra ny serveur : jereo ny réseau.'; });
+  });
 }
 
 // ---------- Ce qui change chez les fokontany ----------
