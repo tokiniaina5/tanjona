@@ -120,7 +120,9 @@
   html:not(.app-commun) #communRechercheBox{ display:none !important; }
   html:not(.app-commun) #ongletFokontany, html:not(.app-commun) #communFokontany{ display:none !important; }
   /* Ce qui sert à écrire n'a rien à faire dans le Commun, qui regarde. */
-  html.app-commun .tsy-commun{ display:none !important; }
+  html.app-commun .tsy-commun,
+  html.app-commun [data-fam-ovay], html.app-commun [data-fam-fafao],
+  html.app-commun [data-mp-fafao]{ display:none !important; }
   /* Dans le Commun, les onglets d'un fokontany sont DANS ce fokontany : la
      liste d'abord, et ses onglets une fois qu'on l'a choisi (fokontany-app.js
      pose .commun-jerena). */
@@ -658,7 +660,7 @@
                registre des CIN / passeports : on ne tient pas deux listes de
                gens. Le mariage des parents date le livret. -->
           <div id="communFianakaviana" style="display:none;">
-            <div class="panel">
+            <div class="panel tsy-commun">
               <h3>📖 Livre de famille vaovao</h3>
               <div class="form-grid">
                 <div class="field">
@@ -712,7 +714,7 @@
             <!-- Le livret ouvert : ses membres, pris dans le registre. -->
             <div class="panel" id="famOuvert" style="display:none;">
               <h3 id="famOuvertTitre">👪 Mpianakavy</h3>
-              <div class="form-grid">
+              <div class="form-grid tsy-commun">
                 <div class="field">
                   <label for="famMpAnarana">Anarana feno</label>
                   <textarea id="famMpAnarana" class="champ-anarana" rows="1" placeholder="Nom et prénoms" autocomplete="off"></textarea>
@@ -751,7 +753,7 @@
                   <input type="text" id="famTerakaToerana" placeholder="Antananarivo" autocomplete="off">
                 </div>
               </div>
-              <button type="button" class="btn btn-primary btn-sm" id="famAmpio" style="width:auto;">➕ Ampio ao amin'ny livre</button>
+              <button type="button" class="btn btn-primary btn-sm tsy-commun" id="famAmpio" style="width:auto;">➕ Ampio ao amin'ny livre</button>
               <p id="famOuvertMessage" style="font-size:0.78rem; margin:0.7rem 0; min-height:1.1em;"></p>
               <div class="table-scroll">
                 <table>
