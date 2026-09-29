@@ -30,7 +30,8 @@
   /* L'Administratif Commun regarde, il ne touche pas : rien de ce qui s'y
      montre ne répond au doigt, sauf les graphiques qu'on survole. */
   .lecture-seule button, .lecture-seule input, .lecture-seule select,
-  .lecture-seule textarea, .lecture-seule a, .lecture-seule [contenteditable]{
+  .lecture-seule textarea, .lecture-seule a, .lecture-seule [contenteditable],
+  .lecture-seule label{
     pointer-events:none;
   }
   /* Sauf ce qui ne fait que montrer : ouvrir un livre de famille pour en

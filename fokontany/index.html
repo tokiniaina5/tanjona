@@ -103,7 +103,7 @@
 <link rel="apple-touch-icon" href="/fokontany/icone-192.png">
 <link rel="icon" href="/fokontany/icone-192.png" type="image/png">
 <link rel="stylesheet" href="/gestion-stockage-css/base.css?v=059a4b85">
-<link rel="stylesheet" href="/gestion-stockage-css/components.css?v=cc1a0737">
+<link rel="stylesheet" href="/gestion-stockage-css/components.css?v=8ed01b75">
 <style>
   .fk-barre{ display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;
     padding:0.9rem 1rem; border-bottom:1px solid var(--line); background:var(--panel); position:sticky; top:0; z-index:200; }
@@ -119,6 +119,8 @@
      posée sur chaque panneau (fokontany-app.js), jamais sur les onglets. */
   html:not(.app-commun) #communRechercheBox{ display:none !important; }
   html:not(.app-commun) #ongletFokontany, html:not(.app-commun) #communFokontany{ display:none !important; }
+  /* Ce qui sert à écrire n'a rien à faire dans le Commun, qui regarde. */
+  html.app-commun .tsy-commun{ display:none !important; }
   /* Dans le Commun, les onglets d'un fokontany sont DANS ce fokontany : la
      liste d'abord, et ses onglets une fois qu'on l'a choisi (fokontany-app.js
      pose .commun-jerena). */
@@ -401,7 +403,7 @@
           <div id="communAdidy" style="display:none;">
             <div class="panel">
               <h3>💰 Adidy</h3>
-              <div class="form-grid">
+              <div class="form-grid tsy-commun">
                 <div class="field">
                   <label for="adidyAnarana">Anaran'ny adidy</label>
                   <input type="text" id="adidyAnarana" placeholder="Ohatra : Adidim-pianakaviana" autocomplete="off">
@@ -422,7 +424,7 @@
                   <input type="text" id="adidyNote" placeholder="Ohatra : asa na fotoana, fa tsy vola" autocomplete="off">
                 </div>
               </div>
-              <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+              <div class="tsy-commun" style="display:flex; gap:0.6rem; flex-wrap:wrap;">
                 <button type="button" class="btn btn-primary btn-sm" id="adidyAjouter" style="width:auto;">＋ Ajouter</button>
                 <button type="button" class="btn btn-sm" id="adidyAnnuler" style="width:auto; display:none;">Annuler</button>
               </div>
@@ -441,7 +443,7 @@
 
             <div class="panel">
               <h3>🧾 Iza no efa nandoa</h3>
-              <div class="form-grid">
+              <div class="form-grid tsy-commun">
                 <div class="field">
                   <label for="adidySafidy">Adidy</label>
                   <select id="adidySafidy"></select>
@@ -456,8 +458,8 @@
                 </div>
               </div>
               <!-- Tout ce qui est entré, toutes cotisations confondues. -->
-              <p id="adidyTotaux" style="font-size:0.8rem; color:var(--amber); margin:0 0 0.4rem; min-height:1.1em;"></p>
-              <p id="adidyRecap" style="font-size:0.8rem; color:var(--cyan); margin:0 0 0.6rem; min-height:1.1em;"></p>
+              <p id="adidyTotaux" class="tsy-commun" style="font-size:0.8rem; color:var(--amber); margin:0 0 0.4rem; min-height:1.1em;"></p>
+              <p id="adidyRecap" class="tsy-commun" style="font-size:0.8rem; color:var(--cyan); margin:0 0 0.6rem; min-height:1.1em;"></p>
               <p id="adidyFandoavanaMessage" style="font-size:0.78rem; margin:0 0 0.6rem; min-height:1.1em;"></p>
 
               <div class="table-scroll">
@@ -831,6 +833,6 @@
 <script src="/gestion-stockage-js/taratasy.js?v=695db7e0"></script>
 <script src="/gestion-stockage-js/fianakaviana.js?v=ddbe281d"></script>
 <script src="/gestion-stockage-js/validation-install.js?v=6973f976"></script>
-<script src="/gestion-stockage-js/adidy.js?v=8b4b346a"></script>
+<script src="/gestion-stockage-js/adidy.js?v=ef2e4b78"></script>
 </body>
 </html>
