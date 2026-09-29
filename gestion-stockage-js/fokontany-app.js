@@ -124,6 +124,44 @@ document.addEventListener('DOMContentLoaded', function () {
       var el = $(id);
       if (el) el.classList.add('lecture-seule');
     });
+
+    // ---------- La recherche du Commun ----------
+    // Il ne touche à rien, mais il cherche : ce qui est tapé masque les lignes
+    // de l'onglet ouvert (tableaux, listes, cartes) qui ne le contiennent pas.
+    // Les onglets se redessinent en arrivant du serveur : on refiltre alors.
+    var champ = $('communRecherche');
+    var sansAccent = function (s) {
+      return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    };
+    var filtrer = function () {
+      var mots = sansAccent(champ.value).split(/\s+/).filter(Boolean);
+      var panneau = ['communCorps', 'communAdidy', 'communHistorique', 'communTaratasy',
+        'communFianakaviana', 'communFangatahana'].map($).filter(function (el) {
+        return el && el.style.display !== 'none';
+      })[0];
+      var hita = 0, total = 0;
+      if (panneau) {
+        panneau.querySelectorAll('tbody tr, .list-row').forEach(function (ligne) {
+          total++;
+          var ok = mots.every(function (m) { return sansAccent(ligne.textContent).indexOf(m) !== -1; });
+          ligne.style.display = ok ? '' : 'none';
+          if (ok) hita++;
+        });
+      }
+      // Écrit seulement s'il change : le compteur est lui-même sous
+      // l'observateur, et le réécrire relancerait le filtre sans fin.
+      var texte = mots.length ? hita + ' / ' + total + ' hita' : '';
+      if ($('communRechercheIsa').textContent !== texte) $('communRechercheIsa').textContent = texte;
+    };
+    champ.addEventListener('input', filtrer);
+    var attente = null;
+    new MutationObserver(function () {
+      if (!champ.value || attente) return;
+      attente = requestAnimationFrame(function () { attente = null; filtrer(); });
+    }).observe($('communContenu'), { childList: true, subtree: true });
+    document.querySelectorAll('#dash-commun [data-commun]').forEach(function (tab) {
+      tab.addEventListener('click', function () { setTimeout(filtrer, 0); });
+    });
   }
 
   // ---------- Le nom du fokontany ----------
@@ -281,9 +319,6 @@ document.addEventListener('DOMContentLoaded', function () {
     $('fkReserve').style.display = interdit ? '' : 'none';
     $('dash-commun').style.display = interdit ? 'none' : '';
     if (isOwnerEmail(currentUser.email)) rendreInstallable();
-    // Le Commun surplombe les fokontany : l'admin y valide et y prend les
-    // liens d'installation, la même page que dans Ny asako.
-    $('fkValidation').style.display = (APP_COMMUN && isOwnerEmail(currentUser.email)) ? '' : 'none';
     choisirOngletCommun(ongletCommun);
   }
 
@@ -615,13 +650,6 @@ document.addEventListener('DOMContentLoaded', function () {
       try { history.replaceState(null, '', window.location.pathname); } catch (e) {}
       if (up.data && up.data.user) ouvrir(up.data.user);
     }, function () { st.textContent = 'Tsy tratra ny serveur : jereo ny réseau.'; });
-  });
-
-  $('fkValidation').addEventListener('click', function () {
-    if (typeof window.__validerAvantInstall !== 'function') return;
-    window.__validerAvantInstall(function (suffixe) {
-      window.__versLInstallation('/fokontany/', suffixe);
-    });
   });
 
   $('fkSortir').addEventListener('click', function () {

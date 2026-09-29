@@ -117,6 +117,7 @@
   /* L'Administratif Commun voit tout ce que voit le Fokontany — les mêmes
      onglets — mais il regarde sans toucher : la classe .lecture-seule est
      posée sur chaque panneau (fokontany-app.js), jamais sur les onglets. */
+  html:not(.app-commun) #communRechercheBox{ display:none !important; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" crossorigin="anonymous"></script>
 <script src="/gestion-stockage-js/supabase-init.js?v=94f3c704"></script>
@@ -213,9 +214,6 @@
     <div class="brand" id="fkMarque">🗂️ Administratif <span>Fokontany</span></div>
     <div style="display:flex; align-items:center; gap:0.8rem;">
       <div class="fk-qui"><strong id="fkNom">—</strong><span id="fkEmail"></span></div>
-      <!-- Dans le Commun, l'admin valide les fokontany et prend leur lien
-           d'installation, sans repasser par Ny asako (validation-install.js). -->
-      <button type="button" class="btn btn-sm" id="fkValidation" style="width:auto; display:none;">🛡️ Fanamarinana</button>
       <!-- Les avis restent ici, dans le site : une bande qui passe s'oublie,
            et le fokontany veut relire ce qu'on lui a dit (fokontany-app.js). -->
       <div style="position:relative;">
@@ -285,6 +283,14 @@
             <div class="dash-tab" data-commun="fianakaviana">📖 Livre de famille</div>
             <!-- Le propriétaire seul : le style le montre, commun-alalana.js le décide. -->
             <div class="dash-tab" data-commun="fangatahana" id="ongletFangatahana" style="display:none;">🛡️ Fangatahana</div>
+          </div>
+          <!-- Le Commun ne touche à rien, mais il cherche : la barre filtre les
+               lignes de l'onglet ouvert (fokontany-app.js). Hors des panneaux,
+               donc hors de .lecture-seule. -->
+          <div id="communRechercheBox" style="display:flex; align-items:center; gap:0.6rem; margin:0 0 1rem;">
+            <input type="search" id="communRecherche" placeholder="🔍 Hikaroka ato anatiny (anarana, fonenana, CIN…)" autocomplete="off"
+              style="flex:1; min-width:0; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:10px; padding:0.6rem 0.8rem; font:inherit;">
+            <span id="communRechercheIsa" style="font-size:0.78rem; color:var(--muted); white-space:nowrap;"></span>
           </div>
           <!-- Le comptage des personnes. -->
           <div id="communCorps">
@@ -780,7 +786,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="/gestion-stockage-js/fokontany-app.js?v=a4cc8c52"></script>
+<script src="/gestion-stockage-js/fokontany-app.js?v=3ae48349"></script>
 <script src="/gestion-stockage-js/commun-alalana.js?v=682d598c"></script>
 <script src="/gestion-stockage-js/pdf.js?v=b7c1f056"></script>
 <script src="/gestion-stockage-js/taratasy.js?v=8ea12638"></script>
