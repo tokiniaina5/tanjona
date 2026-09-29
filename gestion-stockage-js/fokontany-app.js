@@ -46,7 +46,7 @@ function choisirOngletCommun(nom) {
   var PANNEAUX = {
     tableau: 'communCorps',
     adidy: 'communAdidy', historique: 'communHistorique',
-    taratasy: 'communTaratasy', fianakaviana: 'communFianakaviana', fangatahana: 'communFangatahana'
+    taratasy: 'communTaratasy', fianakaviana: 'communFianakaviana', fokontany: 'communFokontany', fangatahana: 'communFangatahana'
   };
   // « Fangatahana » est à l'admin seul : un autre compte n'y entre pas.
   if (nom === 'fangatahana' && !(currentUser && isOwnerEmail(currentUser.email))) nom = 'tableau';
@@ -86,6 +86,9 @@ function remplirOngletCommun() {
     if (typeof renderTaratasyHistorique === 'function') renderTaratasyHistorique();
   } else if (nom === 'taratasy') {
     if (typeof renderTaratasy === 'function') renderTaratasy();
+  } else if (nom === 'fokontany') {
+    rendreLesFokontany();
+    return;
   } else if (nom === 'fianakaviana') {
     if (typeof renderFianakaviana === 'function') renderFianakaviana();
   } else if (typeof renderFianakaviana === 'function') {
@@ -97,6 +100,53 @@ function remplirOngletCommun() {
     if (typeof renderVolaVoaangona === 'function') renderVolaVoaangona();
     if (typeof renderTaratasyIsa === 'function') renderTaratasyIsa();
   }
+}
+
+// ---------- Les fokontany du Commun ----------
+// Combien, et lesquels : ceux dont l'accès est confirmé (commun_alalana,
+// voamarina) et ceux qui ont installé leur application, chacun une fois,
+// par son email. Le nom vient de l'installation, sinon de la demande. On y
+// joint le nombre de livres de famille que chacun tient. Le serveur ne rend
+// ces tables qu'au propriétaire.
+function rendreLesFokontany() {
+  var corps = document.getElementById('communFokontanyLisitra');
+  if (!corps || !window.__sb || !(currentUser && isOwnerEmail(currentUser.email))) return;
+  var sb = window.__sb;
+  var msg = document.getElementById('communFokontanyMessage');
+  var echap = function (t) { var d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; };
+  var cle = function (e) { return String(e || '').trim().toLowerCase(); };
+  Promise.all([
+    sb.from('commun_alalana').select('email,anarana,active,voamarina,created_at'),
+    sb.from('fokontany_installation').select('email,fokontany,karazana,created_at'),
+    sb.from('fianakaviana').select('owner_email')
+  ]).then(function (res) {
+    if (res[0].error && res[1].error) { msg.textContent = 'Tsy voaaka ny lisitry ny fokontany.'; return; }
+    msg.textContent = '';
+    var parEmail = {};
+    ((res[0].data) || []).forEach(function (a) {
+      if (!a.active || !a.voamarina || !cle(a.email)) return;
+      parEmail[cle(a.email)] = { email: a.email, nom: a.anarana || '', daty: a.created_at };
+    });
+    ((res[1].data) || []).forEach(function (i) {
+      if (i.karazana === 'commun' || !cle(i.email) || isOwnerEmail(i.email)) return;
+      var f = parEmail[cle(i.email)] || (parEmail[cle(i.email)] = { email: i.email, nom: '', daty: i.created_at });
+      if (i.fokontany) f.nom = i.fokontany;
+    });
+    var livres = {};
+    ((res[2] && res[2].data) || []).forEach(function (r) { var k = cle(r.owner_email); livres[k] = (livres[k] || 0) + 1; });
+    var liste = Object.keys(parEmail).map(function (k) { return parEmail[k]; })
+      .sort(function (a, b) { return (a.nom || a.email).localeCompare(b.nom || b.email, 'fr'); });
+    document.getElementById('communKpiFokontanyIsa').textContent = liste.length;
+    document.getElementById('communFokontanyVide').style.display = liste.length ? 'none' : '';
+    corps.innerHTML = liste.map(function (f, n) {
+      var d = new Date(f.daty);
+      return '<tr><td>' + (n + 1) + '</td>' +
+        '<td>' + echap(f.nom || '—') + '</td>' +
+        '<td style="color:var(--muted);">' + echap(f.email) + '</td>' +
+        '<td style="text-align:right;">' + (livres[cle(f.email)] || 0) + '</td>' +
+        '<td style="white-space:nowrap; color:var(--muted);">' + (isNaN(d) ? '—' : d.toLocaleDateString('fr-FR')) + '</td></tr>';
+    }).join('');
+  }, function () { msg.textContent = 'Tsy tratra ny serveur : jereo ny réseau.'; });
 }
 
 // commun-alalana.js l'appelle au retour d'un lien reçu par email. Il n'y a
@@ -122,7 +172,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // mêmes pages. Mais il regarde sans toucher — la classe va sur chaque
     // panneau, jamais sur la rangée d'onglets, qui doit rester cliquable.
     ['communCorps', 'communAdidy', 'communHistorique', 'communTaratasy',
-      'communFianakaviana', 'communFangatahana'].forEach(function (id) {
+      'communFianakaviana', 'communFokontany', 'communFangatahana'].forEach(function (id) {
       var el = $(id);
       if (el) el.classList.add('lecture-seule');
     });
@@ -132,20 +182,13 @@ document.addEventListener('DOMContentLoaded', function () {
     // de l'onglet ouvert (tableaux, listes, cartes) qui ne le contiennent pas.
     // Les onglets se redessinent en arrivant du serveur : on refiltre alors.
     var champ = $('communRecherche');
-    // La barre colle sous l'en-tête : on lui donne sa hauteur réelle.
-    var barre = document.querySelector('.fk-barre');
-    if (barre && window.ResizeObserver) {
-      new ResizeObserver(function () {
-        document.documentElement.style.setProperty('--fk-barre-h', barre.offsetHeight + 'px');
-      }).observe(barre);
-    }
     var sansAccent = function (s) {
       return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
     };
     var filtrer = function () {
       var mots = sansAccent(champ.value).split(/\s+/).filter(Boolean);
       var panneau = ['communCorps', 'communAdidy', 'communHistorique', 'communTaratasy',
-        'communFianakaviana', 'communFangatahana'].map($).filter(function (el) {
+        'communFianakaviana', 'communFokontany', 'communFangatahana'].map($).filter(function (el) {
         return el && el.style.display !== 'none';
       })[0];
       var hita = 0, total = 0;

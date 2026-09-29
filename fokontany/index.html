@@ -106,7 +106,7 @@
 <link rel="stylesheet" href="/gestion-stockage-css/components.css?v=ecf23281">
 <style>
   .fk-barre{ display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;
-    padding:0.9rem 1rem; border-bottom:1px solid var(--line); background:var(--panel); position:sticky; top:0; z-index:40; }
+    padding:0.9rem 1rem; border-bottom:1px solid var(--line); background:var(--panel); position:sticky; top:0; z-index:200; }
   .fk-qui{ font-size:0.76rem; color:var(--muted); text-align:right; line-height:1.4; }
   .fk-qui strong{ color:var(--text); display:block; font-size:0.84rem; }
   .fk-corps{ max-width:1200px; margin:0 auto; padding:1.2rem 16px 3rem; }
@@ -118,10 +118,9 @@
      onglets — mais il regarde sans toucher : la classe .lecture-seule est
      posée sur chaque panneau (fokontany-app.js), jamais sur les onglets. */
   html:not(.app-commun) #communRechercheBox{ display:none !important; }
-  /* La recherche reste en vue en descendant, juste sous l'en-tête (dont la
-     hauteur change quand il passe sur deux lignes : fokontany-app.js la mesure). */
-  #communRechercheBox{ position:sticky; top:var(--fk-barre-h, 64px); z-index:35;
-    background:var(--bg); padding:0.5rem 0; margin-top:-0.5rem !important; }
+  html:not(.app-commun) #ongletFokontany, html:not(.app-commun) #communFokontany{ display:none !important; }
+  /* Tout en haut de l'en-tête, sur toute la largeur. */
+  #communRechercheBox{ display:flex; align-items:center; gap:0.6rem; flex:1 1 100%; order:-1; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" crossorigin="anonymous"></script>
 <script src="/gestion-stockage-js/supabase-init.js?v=94f3c704"></script>
@@ -215,6 +214,14 @@
 
 <div id="appScreen">
   <header class="fk-barre">
+    <!-- Le Commun ne touche à rien, mais il cherche : la barre filtre les
+         lignes de l'onglet ouvert (fokontany-app.js). Tout en haut, dans
+         l'en-tête qui reste en vue, et hors de .lecture-seule. -->
+    <div id="communRechercheBox">
+      <input type="search" id="communRecherche" placeholder="🔍 Hikaroka ato anatiny (anarana, fonenana, CIN…)" autocomplete="off"
+        style="flex:1; min-width:0; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:10px; padding:0.6rem 0.8rem; font:inherit;">
+      <span id="communRechercheIsa" style="font-size:0.78rem; color:var(--muted); white-space:nowrap;"></span>
+    </div>
     <div class="brand" id="fkMarque">🗂️ Administratif <span>Fokontany</span></div>
     <div style="display:flex; align-items:center; gap:0.8rem;">
       <div class="fk-qui"><strong id="fkNom">—</strong><span id="fkEmail"></span></div>
@@ -285,16 +292,10 @@
             <div class="dash-tab" data-commun="historique">📜 Historique</div>
             <div class="dash-tab" data-commun="taratasy">📄 Taratasy</div>
             <div class="dash-tab" data-commun="fianakaviana">📖 Livre de famille</div>
+            <!-- Les fokontany du Commun : combien, et lesquels (fokontany-app.js). -->
+            <div class="dash-tab" data-commun="fokontany" id="ongletFokontany">🏘️ Fokontany</div>
             <!-- Le propriétaire seul : le style le montre, commun-alalana.js le décide. -->
             <div class="dash-tab" data-commun="fangatahana" id="ongletFangatahana" style="display:none;">🛡️ Fangatahana</div>
-          </div>
-          <!-- Le Commun ne touche à rien, mais il cherche : la barre filtre les
-               lignes de l'onglet ouvert (fokontany-app.js). Hors des panneaux,
-               donc hors de .lecture-seule. -->
-          <div id="communRechercheBox" style="display:flex; align-items:center; gap:0.6rem; margin:0 0 1rem;">
-            <input type="search" id="communRecherche" placeholder="🔍 Hikaroka ato anatiny (anarana, fonenana, CIN…)" autocomplete="off"
-              style="flex:1; min-width:0; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:10px; padding:0.6rem 0.8rem; font:inherit;">
-            <span id="communRechercheIsa" style="font-size:0.78rem; color:var(--muted); white-space:nowrap;"></span>
           </div>
           <!-- Le comptage des personnes. -->
           <div id="communCorps">
@@ -747,6 +748,25 @@
             </div>
           </div>
 
+          <!-- Les fokontany du Commun : ceux dont l'accès est confirmé, et ceux qui
+               ont installé l'application, chacun une fois (fokontany-app.js). -->
+          <div id="communFokontany" style="display:none;">
+            <div class="kpi-row">
+              <div class="kpi-card"><div class="kpi-label">Isan'ny fokontany</div><div class="kpi-value" id="communKpiFokontanyIsa">0</div></div>
+            </div>
+            <div class="panel">
+              <h3>🏘️ Fokontany ao amin'ny Commun</h3>
+              <div style="overflow-x:auto;">
+                <table>
+                  <thead><tr><th>#</th><th>Fokontany</th><th>Email</th><th>Livre de famille</th><th>Daty</th></tr></thead>
+                  <tbody id="communFokontanyLisitra"></tbody>
+                </table>
+              </div>
+              <p class="empty-hint" id="communFokontanyVide">Mbola tsy misy fokontany.</p>
+              <p id="communFokontanyMessage" style="font-size:0.78rem; color:var(--red); margin-top:0.6rem;"></p>
+            </div>
+          </div>
+
           <!-- Qui demande à entrer, et à qui c'est accordé. Propriétaire seul. -->
           <div id="communFangatahana" style="display:none;">
             <div class="panel">
@@ -790,7 +810,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="/gestion-stockage-js/fokontany-app.js?v=0a4f167c"></script>
+<script src="/gestion-stockage-js/fokontany-app.js?v=8f2edc1c"></script>
 <script src="/gestion-stockage-js/commun-alalana.js?v=682d598c"></script>
 <script src="/gestion-stockage-js/pdf.js?v=b7c1f056"></script>
 <script src="/gestion-stockage-js/taratasy.js?v=8ea12638"></script>
