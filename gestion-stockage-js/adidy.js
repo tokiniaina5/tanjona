@@ -4,9 +4,9 @@
 // revient chaque mois ou chaque année), puis les versements — qui a payé,
 // pour quelle période.
 //
-// Les personnes viennent du livre de famille (fianakaviana.js) : on ne tient
+// Ceux qui paient sont les familles du livre de famille (fianakaviana.js) : on ne tient
 // pas deux listes de gens, elles finiraient par ne plus se ressembler. Une
-// personne inscrite dans plusieurs livrets n'y paraît qu'une fois, par son nom.
+// ligne par livret : son nom et sa fonenana.
 //
 // Tout vit dans Supabase (supabase/sql/supabase-adidy.sql).
 
@@ -220,11 +220,11 @@
 
   // ---------- Les personnes, prises au registre ----------
 
-  // Les personnes viennent du livre de famille (fianakaviana.js) : c'est là
-  // qu'on inscrit les gens, et il n'y a pas de seconde liste.
+  // Ce sont les familles du livre de famille (fianakaviana.js) qui paient
+  // l'adidy : une ligne par famille, avec son nom et sa fonenana.
   function chargerPersonnes() {
-    if (typeof window.__personnesDuFokontany !== 'function') { personnes = []; return Promise.resolve(); }
-    return window.__personnesDuFokontany().then(function (liste) {
+    if (typeof window.__fianakavianaDuFokontany !== 'function') { personnes = []; return Promise.resolve(); }
+    return window.__fianakavianaDuFokontany().then(function (liste) {
       personnes = liste || [];
     }, function () { personnes = []; });
   }
@@ -261,7 +261,8 @@
     corps.innerHTML = personnes.map(function (p) {
       const v = verseDe(p.cle);
       return '<tr>' +
-        '<td>' + echapper(p.anarana) + '</td>' +
+        '<td>' + echapper(p.anarana) +
+          (p.fonenana ? '<div style="font-size:0.75rem; color:var(--muted);">' + echapper(p.fonenana) + '</div>' : '') + '</td>' +
         '<td style="white-space:nowrap;">' +
           '<label style="display:flex; align-items:center; gap:0.4rem; cursor:pointer;">' +
             '<input type="checkbox" data-olona="' + echapper(p.cle) + '"' + (v ? ' checked' : '') + '> ' +

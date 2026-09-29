@@ -474,7 +474,25 @@
     return charger();
   };
 
-  // Les personnes du fokontany, pour les adidy et les taratasy : celles qui
+  // Les familles, pour les adidy : c'est la famille (son nom, sa fonenana)
+  // qui paie, pas chacun de ses membres. La clé porte l'id du livret, pour
+  // que deux familles du même nom ne se confondent pas.
+  window.__fianakavianaDuFokontany = function () {
+    const client = sb();
+    const email = monEmail();
+    if (!client || !email) return Promise.resolve([]);
+    return mien(client.from('fianakaviana').select('id,anarana,fonenana'), email)
+      .then(function (res) {
+        if (res.error) return [];
+        return (res.data || []).filter(function (f) { return String(f.anarana || '').trim(); })
+          .map(function (f) {
+            return { cle: 'fam:' + f.id, anarana: String(f.anarana).trim(), fonenana: f.fonenana || '' };
+          })
+          .sort(function (a, b) { return a.anarana.localeCompare(b.anarana, 'fr'); });
+      }, function () { return []; });
+  };
+
+  // Les personnes du fokontany, pour les taratasy : celles qui
   // sont inscrites dans un livre de famille, chacune une fois, la CIN d'abord.
   window.__personnesDuFokontany = function () {
     const client = sb();
