@@ -1529,6 +1529,8 @@
         } else if(res.grant === 'sub_days'){
           sub.subscriptionCreditDays = (sub.subscriptionCreditDays || 0) + WALLET_SUB_DAYS;
           detail = ' : ' + WALLET_SUB_DAYS + ' jours mis de côté pour votre prochain abonnement';
+        } else if(res.grant === 'unlock'){
+          detail = ' : accès rétabli';
         }
         saveSubscription(sub);
         majPageAbonnement();
@@ -2450,11 +2452,12 @@
   // et ses propres crédits s'en trouvent augmentés d'autant. L'écriture est
   // faite au mieux — hors ligne, le déblocage a tout de même lieu, car les
   // crédits, eux, ont bien été retirés.
-  function recordWalletUnlock(name, email){
+  function recordWalletUnlock(name, email, method){
     if(!window.__sb) return;
     window.__sb.from('unlock_requests').insert({
-      name: name, email: normEmail(email), phone: '', message: 'Payé avec le solde du portefeuille',
-      amount: UNLOCK_COST_CREDITS, paypal_reference: '', payment_method: 'wallet',
+      name: name, email: normEmail(email), phone: '',
+      message: method === 'card' ? 'Payé par carte Visa (Papi)' : 'Payé avec le solde du portefeuille',
+      amount: UNLOCK_COST_CREDITS, paypal_reference: '', payment_method: method || 'wallet',
       status: 'confirmed', auto_confirmed: true,
       confirmed_at: new Date().toISOString()
     }).then(function(){}, function(){});
@@ -2524,6 +2527,71 @@
       loginFromProfile(profile);
     });
   }
+
+  // ---- Le même déblocage, payé par carte Visa ----
+  // Le numéro de carte ne passe jamais par ici : il se tape sur la page de
+  // paiement de Papi (carte BRED / Visa). Il faut une session Supabase pour
+  // créer le lien, et le compte bloqué en a été sorti : on se reconnecte donc
+  // avec le mot de passe. Au retour, papi-paiement.js vérifie le paiement,
+  // achète l'article « unlock » au serveur, puis appelle apresDeblocageCarte.
+  const UNLOCK_CARD_KEY = 'stockmanager_deblocage_carte';
+  const payByCardBtn = document.getElementById('payUnlockCardBtn');
+  if(payByCardBtn){
+    payByCardBtn.addEventListener('click', async function(){
+      const statusEl = document.getElementById('forgotStatus');
+      const name = document.getElementById('forgotName').value.trim();
+      const email = document.getElementById('forgotEmail').value.trim();
+      const password = document.getElementById('forgotPassword').value;
+      if(!name || !email){
+        statusEl.textContent = 'Votre nom et votre email sont obligatoires.';
+        return;
+      }
+      if(!findProfileByEmail(email)){
+        statusEl.textContent = 'Aucun compte n\'est enregistré sur cet appareil pour cet email. ' +
+          'Utilisez « Première connexion / autre compte ».';
+        return;
+      }
+      if(typeof window.papiPayerAbonnement !== 'function'){
+        statusEl.textContent = 'Papi indisponible : rechargez la page.';
+        return;
+      }
+      const auth = sbAuth();
+      if(!auth){ statusEl.textContent = 'Paiement par carte indisponible hors ligne.'; return; }
+      payByCardBtn.disabled = true;
+      try {
+        const s = await auth.getSession();
+        const connecte = s && s.data && s.data.session &&
+          normEmail(s.data.session.user && s.data.session.user.email) === normEmail(email);
+        if(!connecte){
+          if(password.length < 6){
+            statusEl.textContent = 'Tapez votre mot de passe pour payer par carte.';
+            payByCardBtn.disabled = false;
+            return;
+          }
+          statusEl.textContent = 'Connexion…';
+          const r = await auth.signInWithPassword({ email: email, password: password });
+          if(r.error) throw new Error('Mot de passe incorrect.');
+        }
+      } catch(err){
+        statusEl.textContent = err.message;
+        payByCardBtn.disabled = false;
+        return;
+      }
+      try { localStorage.setItem(UNLOCK_CARD_KEY, JSON.stringify({ name: name, email: email })); } catch(e){}
+      window.papiPayerAbonnement('unlock', brutPourNet(UNLOCK_COST_CREDITS * AR_PER_CREDIT), statusEl,
+        function(){ payByCardBtn.disabled = false; }, 'BRED');
+    });
+  }
+  window.apresDeblocageCarte = function(){
+    let who = null;
+    try { who = JSON.parse(localStorage.getItem(UNLOCK_CARD_KEY) || 'null'); localStorage.removeItem(UNLOCK_CARD_KEY); } catch(e){}
+    const profile = who && findProfileByEmail(who.email);
+    if(!profile) return;
+    recordWalletUnlock(who.name || profile.name || '', who.email, 'card');
+    const paye = (UNLOCK_COST_CREDITS * AR_PER_CREDIT).toLocaleString('fr-FR') + ' Ar';
+    pushNotification('parrainage', 'Déblocage payé par carte Visa (' + paye + ') — accès rétabli.');
+    loginFromProfile(profile);
+  };
 
 
   let quickLoginBusy = false;

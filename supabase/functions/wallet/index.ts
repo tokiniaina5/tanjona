@@ -84,6 +84,8 @@ const SITE_ITEMS: Record<string, { label: string; priceAr: number; days?: number
   trial_day: { label: "Un jour d'essai en plus", priceAr: 10000, grant: "trial_day" },
   booster: { label: "Booster — direct Facebook 24 h", priceAr: 5000, grant: "booster" },
   sub_days: { label: "7 jours mis de côté pour l'abonnement", priceAr: 20000, grant: "sub_days" },
+  // Le déblocage payé par carte Visa (via Papi) : même prix que les 20 crédits.
+  unlock: { label: "Déblocage du compte", priceAr: 20000, grant: "unlock" },
 };
 
 function norm(value: unknown): string {

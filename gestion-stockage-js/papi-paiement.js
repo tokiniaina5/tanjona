@@ -8,7 +8,7 @@
   // Le message va au panneau du portefeuille ET à l'écran d'abonnement : au
   // retour de Papi, on ne sait pas lequel des deux est à l'écran.
   function msg(texte, couleur) {
-    ['papiStatus', 'paywallWalletStatus'].forEach(function (id) {
+    ['papiStatus', 'paywallWalletStatus', 'forgotStatus'].forEach(function (id) {
       const el = document.getElementById(id);
       if (!el) return;
       el.textContent = texte;
@@ -21,12 +21,13 @@
   // et l'on retient quel abonnement acheter au retour. Rien n'est accordé
   // ici : au retour, le serveur vérifie le paiement, puis l'achat passe par
   // la fonction « wallet » qui ne puise que dans l'argent Papi.
-  window.papiPayerAbonnement = function (item, brut, statusEl, siEchec) {
+  // provider : '' (Papi propose tout) ou 'BRED' pour la carte Visa.
+  window.papiPayerAbonnement = function (item, brut, statusEl, siEchec, provider) {
     if (statusEl) statusEl.textContent = 'Création du lien de paiement Papi…';
     appeler({
       action: 'create',
       amountAr: brut,
-      provider: '',
+      provider: provider || '',
       phone: '',
       returnUrl: location.href.split('?')[0].split('#')[0]
     }).then(function (r) {
@@ -50,10 +51,16 @@
     try {
       await window.buySiteItem(item, null, null);
       try { localStorage.removeItem('papi_abonnement'); } catch (e) {}
+      // Le déblocage payé par carte : common.js rouvre l'accès.
+      if (item === 'unlock' && typeof window.apresDeblocageCarte === 'function') {
+        window.apresDeblocageCarte();
+        return true;
+      }
       msg('Paiement reçu : votre abonnement est actif.');
       return true;
     } catch (err) {
-      msg('Paiement reçu, mais l\'abonnement n\'a pas pu être réglé : ' + err.message +
+      msg('Paiement reçu, mais ' + (item === 'unlock' ? 'le déblocage' : 'l\'abonnement') +
+        ' n\'a pas pu être réglé : ' + err.message +
         ' — réessayez depuis Portefeuille.', 'var(--amber)');
       return false;
     }
