@@ -254,11 +254,25 @@
            (fokontany-app.js ouvre et referme le panneau). -->
       <div style="position:relative;">
         <button type="button" class="btn btn-sm" id="fkParametresBtn" aria-label="Fikirana" aria-expanded="false" style="width:auto;">⚙️</button>
-        <div id="fkParametresPanel" style="display:none; position:absolute; top:40px; right:0; width:260px; background:var(--panel); border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.35); z-index:60; text-align:left;">
+        <div id="fkParametresPanel" style="display:none; position:absolute; top:40px; right:0; width:280px; max-width:calc(100vw - 32px); background:var(--panel); border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.35); z-index:60; text-align:left;">
           <div style="padding:0.7rem 0.9rem; border-bottom:1px solid var(--line);">
             <strong style="font-size:0.85rem;">⚙️ Fikirana</strong>
           </div>
           <div class="fk-qui" style="text-align:left; padding:0.8rem 0.9rem;"><strong id="fkNom">—</strong><span id="fkEmail" style="word-break:break-all;"></span></div>
+          <!-- Changer le mot de passe : l'ancien d'abord, le nouveau deux fois.
+               Le nouveau ne sert qu'une fois l'ancien vérifié et les deux
+               saisies identiques (fokontany-app.js). -->
+          <form id="fkMdpForm" style="padding:0.8rem 0.9rem; border-top:1px solid var(--line);">
+            <strong style="font-size:0.8rem; display:block; margin-bottom:0.6rem;">🔑 Hanova ny mot de passe</strong>
+            <input type="password" id="fkMdpTaloha" placeholder="Mot de passe taloha" autocomplete="current-password" required
+              style="width:100%; box-sizing:border-box; margin-bottom:0.5rem; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:0.5rem 0.6rem; font:inherit; font-size:0.82rem;">
+            <input type="password" id="fkMdpVaovao" placeholder="Mot de passe vaovao (6 farafahakeliny)" autocomplete="new-password" minlength="6" required
+              style="width:100%; box-sizing:border-box; margin-bottom:0.5rem; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:0.5rem 0.6rem; font:inherit; font-size:0.82rem;">
+            <input type="password" id="fkMdpAverina" placeholder="Avereno ilay vaovao" autocomplete="new-password" minlength="6" required
+              style="width:100%; box-sizing:border-box; margin-bottom:0.6rem; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:0.5rem 0.6rem; font:inherit; font-size:0.82rem;">
+            <button type="submit" class="btn btn-primary btn-sm" id="fkMdpOvay" style="width:100%;">✅ Hamafiso</button>
+            <p id="fkMdpStatus" style="font-size:0.74rem; margin:0.5rem 0 0; min-height:1em; line-height:1.4;"></p>
+          </form>
         </div>
       </div>
       <!-- Au propriétaire seul, quand le navigateur sait installer. -->
@@ -838,7 +852,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="/gestion-stockage-js/fokontany-app.js?v=32a73d04"></script>
+<script src="/gestion-stockage-js/fokontany-app.js?v=ed82a73c"></script>
 <script src="/gestion-stockage-js/commun-alalana.js?v=682d598c"></script>
 <script src="/gestion-stockage-js/pdf.js?v=b7c1f056"></script>
 <script src="/gestion-stockage-js/taratasy.js?v=9ab90132"></script>

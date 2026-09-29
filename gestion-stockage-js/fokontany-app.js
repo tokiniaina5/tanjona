@@ -756,6 +756,42 @@ document.addEventListener('DOMContentLoaded', function () {
     if (brut.indexOf('password') >= 0 && brut.indexOf('6') >= 0) return 'Tokony ho 6 litera farafahakeliny ny mot de passe.';
     return 'Tsy nety : ' + ((e && e.message) || 'antony tsy fantatra');
   }
+
+  // ---------- Hanova ny mot de passe (⚙️ Fikirana) ----------
+  // L'ancien d'abord : on se reconnecte avec lui, ce qui prouve qu'il est
+  // juste. Le nouveau, tapé deux fois à l'identique, ne remplace l'ancien
+  // qu'ensuite ; jusque-là, c'est l'ancien qui ouvre le compte.
+  $('fkMdpForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var st = $('fkMdpStatus');
+    var dire = function (t, ok) { st.textContent = t; st.style.color = ok ? 'var(--cyan)' : 'var(--red)'; };
+    var taloha = $('fkMdpTaloha').value;
+    var vaovao = $('fkMdpVaovao').value;
+    var averina = $('fkMdpAverina').value;
+    var email = currentUser && currentUser.email;
+    if (!auth || !email) { dire('Midira aloha.'); return; }
+    if (!taloha) { dire('Soraty ny mot de passe taloha.'); return; }
+    if (vaovao.length < 6) { dire('Tokony ho 6 litera farafahakeliny ny mot de passe vaovao.'); return; }
+    if (vaovao !== averina) { dire('Tsy mitovy ilay vaovao sy ny famerenana azy.'); return; }
+    if (vaovao === taloha) { dire('Mitovy amin\'ny taloha ilay vaovao.'); return; }
+    var bouton = $('fkMdpOvay');
+    bouton.disabled = true;
+    dire('Fanamarinana…', true);
+    auth.signInWithPassword({ email: email, password: taloha }).then(function (r) {
+      if (r && r.error) {
+        var brut = String(r.error.message || '').toLowerCase();
+        throw new Error(brut.indexOf('invalid login credentials') >= 0 ? 'Diso ny mot de passe taloha.' : erreurAuth(r.error));
+      }
+      return auth.updateUser({ password: vaovao });
+    }).then(function (up) {
+      if (up && up.error) throw new Error(erreurAuth(up.error));
+      $('fkMdpForm').reset();
+      dire('✓ Voaova ny mot de passe : ilay vaovao no ampiasaina manomboka izao.', true);
+    }).catch(function (err) {
+      dire((err && err.message) || 'Tsy tratra ny serveur : jereo ny réseau.');
+    }).then(function () { bouton.disabled = false; });
+  });
+
   function tsindry(id, idMiafina) {
     var box = $(id);
     var misokatra = box.style.display === 'none';
