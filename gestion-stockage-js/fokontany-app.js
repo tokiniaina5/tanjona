@@ -49,7 +49,15 @@ function choisirOngletCommun(nom) {
     taratasy: 'communTaratasy', fianakaviana: 'communFianakaviana', fokontany: 'communFokontany', fangatahana: 'communFangatahana'
   };
   // « Fangatahana » est à l'admin seul : un autre compte n'y entre pas.
-  if (nom === 'fangatahana' && !(currentUser && isOwnerEmail(currentUser.email))) nom = 'tableau';  ongletCommun = PANNEAUX[nom] ? nom : 'tableau';
+  if (nom === 'fangatahana' && !(currentUser && isOwnerEmail(currentUser.email))) nom = 'tableau';
+  // Dans le Commun, les onglets d'un fokontany ne s'ouvrent qu'une fois un
+  // fokontany choisi ; avant, c'est la liste. Choisi, on reste chez lui.
+  if (APP_COMMUN) {
+    var dansUn = !!window.__fokontanyJerena;
+    var SIENS = { tableau: 1, adidy: 1, historique: 1, taratasy: 1, fianakaviana: 1 };
+    if (!dansUn && SIENS[nom]) nom = 'fokontany';
+    if (dansUn && !SIENS[nom]) nom = 'tableau';
+  }  ongletCommun = PANNEAUX[nom] ? nom : 'tableau';
   Object.keys(PANNEAUX).forEach(function (cle) {
     var el = document.getElementById(PANNEAUX[cle]);
     if (el) el.style.display = cle === ongletCommun ? '' : 'none';
@@ -240,6 +248,7 @@ function jereoFokontany(email, anarana) {
   if (boite) boite.style.display = window.__fokontanyJerena ? 'flex' : 'none';
   var nom = document.getElementById('communJerenaAnarana');
   if (nom) nom.textContent = anarana || email || '';
+  document.documentElement.classList.toggle('commun-jerena', !!window.__fokontanyJerena);
   // Son tableau de bord d'abord ; revenir à tous ramène à la liste.
   choisirOngletCommun(window.__fokontanyJerena ? 'tableau' : 'fokontany');
 }

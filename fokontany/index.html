@@ -118,7 +118,17 @@
      onglets — mais il regarde sans toucher : la classe .lecture-seule est
      posée sur chaque panneau (fokontany-app.js), jamais sur les onglets. */
   html:not(.app-commun) #communRechercheBox{ display:none !important; }
-  html:not(.app-commun) #ongletFokontany, html:not(.app-commun) #communFokontany{ display:none !important; }  /* Dans l'en-tête, sous le nom et le compte, sur toute la largeur. */
+  html:not(.app-commun) #ongletFokontany, html:not(.app-commun) #communFokontany{ display:none !important; }
+  /* Dans le Commun, les onglets d'un fokontany sont DANS ce fokontany : la
+     liste d'abord, et ses onglets une fois qu'on l'a choisi (fokontany-app.js
+     pose .commun-jerena). */
+  html.app-commun:not(.commun-jerena) #dash-commun [data-commun="tableau"],
+  html.app-commun:not(.commun-jerena) #dash-commun [data-commun="adidy"],
+  html.app-commun:not(.commun-jerena) #dash-commun [data-commun="historique"],
+  html.app-commun:not(.commun-jerena) #dash-commun [data-commun="taratasy"],
+  html.app-commun:not(.commun-jerena) #dash-commun [data-commun="fianakaviana"],
+  html.app-commun.commun-jerena #dash-commun [data-commun="fokontany"],
+  html.app-commun.commun-jerena #ongletFangatahana{ display:none !important; }  /* Dans l'en-tête, sous le nom et le compte, sur toute la largeur. */
   #communRechercheBox{ display:flex; align-items:center; gap:0.6rem; flex:1 1 100%; order:99; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" crossorigin="anonymous"></script>
@@ -300,7 +310,7 @@
                montre que le sien, à regarder sans rien changer (fokontany-app.js). -->
           <div id="communJerenaBox" style="display:none; align-items:center; gap:0.6rem; flex-wrap:wrap; margin:0 0 1rem; padding:0.6rem 0.8rem; border:1px solid var(--cyan); border-radius:10px; font-size:0.85rem;">
             <span>👁️ Jerena fotsiny : <strong id="communJerenaAnarana"></strong></span>
-            <button type="button" class="btn btn-sm" id="communJerenaRehetra" style="width:auto; margin-left:auto;">✖ Fokontany rehetra</button>
+            <button type="button" class="btn btn-sm" id="communJerenaRehetra" style="width:auto; margin-left:auto;">← Fokontany rehetra</button>
           </div>
           <!-- Le comptage des personnes. -->
           <div id="communCorps">
@@ -815,7 +825,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="/gestion-stockage-js/fokontany-app.js?v=e4bd17d6"></script>
+<script src="/gestion-stockage-js/fokontany-app.js?v=eae46ff3"></script>
 <script src="/gestion-stockage-js/commun-alalana.js?v=682d598c"></script>
 <script src="/gestion-stockage-js/pdf.js?v=b7c1f056"></script>
 <script src="/gestion-stockage-js/taratasy.js?v=695db7e0"></script>
