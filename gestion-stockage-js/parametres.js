@@ -2686,12 +2686,8 @@
             (type === 'entana'
               ? '<span class="fb-share-action fb-partager fb-panier-action" data-panier style="cursor:pointer;">' + LOGO_PANIER + '<span>Panier</span></span>'
               : '') +
-            // L'achat part de l'annonce elle-même : c'est là qu'on voit la
-            // marchandise et son prix, pas dans un onglet qu'il faut aller
-            // chercher ensuite en retapant tout de tête.
-            (type === 'entana'
-              ? '<span class="fb-buy-action" data-buy style="cursor:pointer; color:var(--cyan);">🛒 Acheter</span>'
-              : '') +
+            // « Acheter » n'est plus ici : on passe par le panier, qui achète
+            // avec la quantité voulue (« Hividy », buyFromPost).
             '<span class="fb-share-action fb-partager" data-share style="cursor:pointer;">' + FLECHE_PARTAGE + '<span>Partager</span></span>' +
             // La feuille de WhatsApp coche cinq personnes et s'arrête là.
             // Celui-ci passe par la liste des clients (zara-rehetra.js) :
@@ -2734,10 +2730,6 @@
             deleteEl.addEventListener('click', function(){ effacerMonBillet(n, div, deleteEl); });
           }
           glisserPourEffacer(n, div);
-          const buyEl = div.querySelector('[data-buy]');
-          if(buyEl){
-            buyEl.addEventListener('click', function(){ buyFromPost(n); });
-          }
           const panierEl = div.querySelector('[data-panier]');
           if(panierEl){
             if(lirePanier().some(function(x){ return String(x.id) === String(n.id); })) panierEl.classList.add('dans-panier');
