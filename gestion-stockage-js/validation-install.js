@@ -181,6 +181,11 @@
     document.body.appendChild(page);
     page.querySelector('[data-nom]').textContent = u.name || '';
     page.querySelector('[data-email]').textContent = u.email || '';
+    // L'email de l'admin, posé d'avance : c'est lui qui ouvre le site ; le
+    // client s'inscrit ensuite, une fois l'application ouverte.
+    const champMail = page.querySelector('[data-f-email]');
+    const mailAdmin = typeof OWNER_EMAIL === 'string' ? OWNER_EMAIL : (u.email || '');
+    if(champMail && !champMail.value) champMail.value = mailAdmin;
     const champ = page.querySelector('[data-code]');
     const statut = page.querySelector('[data-statut]');
     const dire = function(texte, erreur){ statut.textContent = texte; statut.style.color = erreur ? 'var(--red)' : 'var(--cyan)'; };
@@ -378,9 +383,39 @@
         'Email hanokafana ny site : ' + email,
         'Asa eo anivon\'ny ' + ANY + ' : ' + asa
       ].filter(Boolean).join('\n');
-      sb.functions.invoke('commun-code', {
-        body: { email: email, anarana: nomComplet, pour_le_proprietaire: true, lettre: lettre }
+      // Seul l'admin tire le code, et la fonction le reconnaît à la session
+      // Supabase, pas au compte affiché. Une session perdue (jeton expiré)
+      // revenait en « Edge Function returned a non-2xx status code » : on la
+      // regarde d'abord, pour dire quoi faire.
+      const lireSession = (sb.auth && sb.auth.getSession)
+        ? sb.auth.getSession().then(function(r){
+            const su = r && r.data && r.data.session && r.data.session.user;
+            return su && su.email ? String(su.email).trim().toLowerCase() : '';
+          }, function(){ return ''; })
+        : Promise.resolve('');
+      lireSession.then(function(emailSession){
+        if(!emailSession){
+          dire('Tapaka ny fidiranao amin\'ny serveur : tsindrio « Se déconnecter », midira indray amin\'ny email sy tenimiafina an\'ny admin, dia avereno.', true);
+          return null;
+        }
+        if(typeof isOwnerEmail === 'function' && !isOwnerEmail(emailSession)){
+          dire('Ny admin ihany no afaka mangataka ny code : midira amin\'ny kaontin\'ny admin (' + emailSession + ' no misokatra izao).', true);
+          return null;
+        }
+        return sb.functions.invoke('commun-code', {
+          body: { email: email, anarana: nomComplet, pour_le_proprietaire: true, lettre: lettre }
+        });
       }).then(function(res){
+        if(res === null) return;
+        const status = res && res.error && res.error.context && res.error.context.status;
+        if(status === 401){
+          dire('Tapaka ny fidiranao amin\'ny serveur : tsindrio « Se déconnecter », midira indray, dia avereno.', true);
+          return;
+        }
+        if(status === 403){
+          dire('Ny admin ihany no afaka mangataka ny code : midira amin\'ny kaontin\'ny admin.', true);
+          return;
+        }
         const data = (res && res.data) || {};
         if(!data.code){
           dire('Tsy nety : ' + ((res && res.error && res.error.message) || data.error || 'tsy fantatra'), true);
