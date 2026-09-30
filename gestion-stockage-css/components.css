@@ -836,6 +836,24 @@
     from{ transform:translate(0, 0) scale(1); opacity:1; }
     to  { transform:translate(var(--ex), var(--ey)) scale(0.3); opacity:0; }
   }
+  /* La pluie de réactions, sur toute la page. */
+  .fb-reaction-pluie{ position:fixed; inset:0; z-index:168; pointer-events:none; overflow:hidden; }
+  .fb-reaction-pluie > span{
+    position:absolute; bottom:-3rem; line-height:1; opacity:0;
+    animation-name: reaction-pluie; animation-timing-function: ease-out; animation-fill-mode: forwards;
+  }
+  .fb-reaction-pluie .fb-like-bubble{ width:1.4em; height:1.4em; }
+  .fb-reaction-pluie .fb-like-bubble .fb-pouce{ width:0.8em; height:0.8em; }
+  @keyframes reaction-pluie{
+    0%  { transform:translate(0, 0) scale(0.6); opacity:0; }
+    12% { opacity:1; }
+    70% { opacity:1; }
+    100%{ transform:translate(var(--derive), -105vh) scale(1.15); opacity:0; }
+  }
+  /* Posée sur le compteur, elle grossit un instant. */
+  .fb-reaction-posee{ animation: reaction-posee 0.6s ease-out; }
+  @keyframes reaction-posee{ 0%{ transform:scale(1); } 40%{ transform:scale(1.9); } 100%{ transform:scale(1); } }
+
   /* Le bouton sursaute sous le doigt. */
   .fb-like-rebond{ animation: like-rebond 0.35s ease-out; }
   @keyframes like-rebond{ 0%{ transform:scale(1); } 40%{ transform:scale(1.25); } 100%{ transform:scale(1); } }
@@ -843,8 +861,9 @@
   @media (prefers-reduced-motion: reduce){
     .fb-reactions-choix{ animation:none; }
     .fb-reactions-choix button{ transition:none; }
-    .fb-reaction-vole, .fb-reaction-eclat{ display:none; }
-    .fb-like-rebond{ animation:none; }
+    /* L'éclat, la pluie et la pose restent : c'est la réponse même au geste,
+       et Windows coupe souvent les animations sans qu'on l'ait demandé — la
+       réaction semblait alors ne rien faire. */
   }
   .fb-comment-form{ display:flex; gap:0.5rem; margin-top:0.5rem; }
   .fb-comment-input{

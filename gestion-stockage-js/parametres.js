@@ -1350,6 +1350,33 @@
     el.classList.remove('fb-like-rebond');
     void el.offsetWidth;
     el.classList.add('fb-like-rebond');
+
+    // Puis toute la page en profite : une pluie du même visage qui monte du
+    // bas de l'écran, d'un bord à l'autre.
+    const pluie = document.createElement('div');
+    pluie.className = 'fb-reaction-pluie';
+    for(let j = 0; j < 22; j++){
+      const g = document.createElement('span');
+      g.innerHTML = r.id === 'like' ? bulle('like') : r.emoji;
+      g.style.left = Math.round(Math.random() * 96) + '%';
+      g.style.fontSize = (1.2 + Math.random() * 1.6).toFixed(2) + 'rem';
+      g.style.animationDelay = Math.round(Math.random() * 700) + 'ms';
+      g.style.animationDuration = (1.6 + Math.random() * 1.2).toFixed(2) + 's';
+      g.style.setProperty('--derive', Math.round(Math.random() * 80 - 40) + 'px');
+      pluie.appendChild(g);
+    }
+    document.body.appendChild(pluie);
+    setTimeout(function(){ pluie.remove(); }, 3600);
+
+    // Et elle reste en haut, sur le compteur : elle y grossit un instant
+    // pour qu'on la voie arriver.
+    setTimeout(function(){
+      const pile = post && post.querySelector('[data-like-count] .fb-reaction-pile > span');
+      if(!pile) return;
+      pile.classList.remove('fb-reaction-posee');
+      void pile.offsetWidth;
+      pile.classList.add('fb-reaction-posee');
+    }, 700);
   }
 
   // Le pouce seul : il met « J'aime », ou retire la réaction quelle qu'elle
