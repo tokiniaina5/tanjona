@@ -3260,6 +3260,12 @@
         if(!cache) el.style.display = correspond ? '' : 'none';
         if(correspond && !cache) trouves += 1;
       });
+      // La loupe a rejoint le menu : hors des pages, on cherche aussi dans le
+      // stock, le fil et les adresses (plus bas, « __chercherPartout »).
+      const autres = document.getElementById('menuResultats');
+      if(autres && typeof window.__chercherPartout === 'function'){
+        trouves += window.__chercherPartout(champ.value, autres, function(){ ouvrirMenu(false); });
+      }
       if(vide) vide.style.display = (q && !trouves) ? 'block' : 'none';
       placerPanneau();
     }
@@ -3386,7 +3392,10 @@
         const restants = entreesDuMenu().filter(function(el){
           return el.style.display !== 'none' && el.id !== 'navStock';
         });
-        if(restants.length === 1) restants[0].click();
+        if(restants.length === 1){ restants[0].click(); return; }
+        // Aucune page : le premier des autres résultats (article, billet…).
+        const premier = !restants.length && document.querySelector('#menuResultats .nav-action');
+        if(premier) premier.click();
       });
       champ.addEventListener('click', function(e){ e.stopPropagation(); });
     }
@@ -5799,17 +5808,17 @@
       bouton.setAttribute('aria-expanded', 'false');
     }
 
-    function chercher(){
-      const q = nu(champ.value.trim());
+    // Les résultats pour un texte donné, rangés par groupe dans « sortie ».
+    // Le menu s'en sert aussi, sans le groupe des pages : il les filtre
+    // lui-même, dans sa propre liste. « avant » ferme ce qui doit l'être
+    // avant d'ouvrir le résultat choisi.
+    function remplir(texte, sortie, sansPages, avant){
+      const q = nu((texte || '').trim());
       sortie.innerHTML = '';
-      if(!q){
-        if(rienTrouve) rienTrouve.style.display = 'none';
-        placer();
-        return;
-      }
+      if(!q) return 0;
       const fil = leFil();
       const groupes = [
-        { titre: 'Pejy', lignes: lesPages() },
+        { titre: 'Pejy', lignes: sansPages ? [] : lesPages() },
         { titre: 'Entana ao amin\'ny stock', lignes: lesArticles() },
         { titre: 'Vaovao sy entana navoaka', lignes: fil.billets },
         { titre: 'Hevitra', lignes: fil.hevitra },
@@ -5839,13 +5848,29 @@
           }
           // La fenêtre se referme AVANT d'ouvrir : ce qu'on ouvre est parfois
           // une page, et elle paraîtrait sous la recherche restée dessus.
-          b.addEventListener('click', function(){ fermer(); l.ouvrir(); });
+          b.addEventListener('click', function(e){ e.stopPropagation(); avant(); l.ouvrir(); });
           sortie.appendChild(b);
         });
       });
-      if(rienTrouve) rienTrouve.style.display = total ? 'none' : 'block';
+      return total;
+    }
+
+    function chercher(){
+      const total = remplir(champ.value, sortie, false, fermer);
+      if(rienTrouve) rienTrouve.style.display = (champ.value.trim() && !total) ? 'block' : 'none';
       placer();
     }
+
+    // Pour le menu : la loupe et lui ne font plus qu'un bouton (plus haut,
+    // « filtrer »). Le fil est demandé une fois si la page n'en a encore rien.
+    window.__chercherPartout = function(texte, dans, avant){
+      const filVide = !document.querySelector('#communityNewsList .fb-post');
+      if(texte && filVide && !window.__filDemande && window.__sb && typeof window.renderCommunityNews === 'function'){
+        window.__filDemande = true;
+        try { window.renderCommunityNews(); } catch(e){}
+      }
+      return remplir(texte, dans, true, avant);
+    };
 
     bouton.addEventListener('click', function(e){
       e.stopPropagation();
