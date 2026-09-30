@@ -370,6 +370,14 @@
     border-radius: inherit;
     pointer-events: none;
   }
+  /* Une fenêtre est ouverte : le bouton s'efface à demi pour ne pas la
+     cacher, et reprend toute sa couleur dès qu'on l'approche ou l'ouvre. */
+  .menu-toggle.floating{ transition: opacity 0.25s ease; }
+  body.fenetre-ouverte .menu-toggle.floating{ opacity: 0.35; }
+  body.fenetre-ouverte .menu-toggle.floating:hover,
+  body.fenetre-ouverte .menu-toggle.floating:focus-visible,
+  body.fenetre-ouverte .menu-toggle.floating.dragging,
+  body.fenetre-ouverte .menu-toggle.floating[aria-expanded="true"]{ opacity: 1; }
   .menu-toggle.floating.dragging{
     cursor: grabbing;
     opacity: 0.85;

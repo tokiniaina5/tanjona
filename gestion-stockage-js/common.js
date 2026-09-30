@@ -3877,6 +3877,11 @@
       const pageDevant = suivis.some(function(x){
         return x.page && x.el.id !== 'dash-accueil' && visible(x.el);
       });
+      // Une fenêtre ouverte, et le bouton flottant du menu s'efface à demi
+      // pour ne pas la masquer (base.css) ; il reste là, et on l'ouvre pareil.
+      document.body.classList.toggle('fenetre-ouverte', suivis.some(function(x){
+        return x.page && visible(x.el);
+      }));
       suivis.forEach(function(s){
         const vu = visible(s.el);
         // Le fil reste ouvert derrière, tant qu'une page est posée dessus : la
