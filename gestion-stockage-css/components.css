@@ -809,6 +809,9 @@
     background:color-mix(in srgb, #2bb673 14%, transparent); border:1px solid #2bb673;
   }
   .panier-message-texte{ flex:1; }
+  .panier-message{ flex-wrap:wrap; }
+  .panier-message.naverina{ background:var(--panel-2); border-color:var(--line); }
+  .panier-confirmer{ width:auto !important; align-self:center; }
   .panier-message-date{ display:block; font-size:0.68rem; color:var(--muted); margin-top:0.15rem; }
   .panier-message-esory{ border:none; background:none; color:var(--muted); cursor:pointer; font-size:0.85rem; }
   .panier-foano{ border:none; background:none; color:var(--muted); font-size:0.74rem; text-decoration:underline; cursor:pointer; padding:0; }

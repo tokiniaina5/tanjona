@@ -1137,13 +1137,65 @@
     try{ localStorage.setItem(clePanier(), JSON.stringify(l)); }catch(e){}
     majCompteurPanier();
   }
-  // Les messages des achats payés, gardés avec le panier, par compte.
-  function lireVoaloa(){
-    try{ const l = JSON.parse(localStorage.getItem(clePanier() + '_voaloa')); return Array.isArray(l) ? l : []; }
-    catch(e){ return []; }
+  // Les achats payés, tels que le serveur les tient. On montre ceux dont
+  // l'argent est encore tenu, et ceux réglés depuis moins de trois jours.
+  function chargerAchatsDuPanier(boite){
+    if(!boite || !window.__sb) return;
+    const moi = (currentUser && currentUser.email) ? currentUser.email.trim().toLowerCase() : '';
+    if(!moi) return;
+    const depuis = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+    window.__sb.from('wallet_achats')
+      .select('id,titre,isa,amount_ar,status,created_at,settled_at')
+      .eq('buyer_email', moi)
+      .or('status.eq.tazonina,settled_at.gte.' + depuis)
+      .order('created_at', { ascending: false }).limit(20)
+      .then(function(res){
+        if(!res || res.error || !boite.isConnected) return;
+        boite.innerHTML = '';
+        (res.data || []).forEach(function(a){ boite.appendChild(messageAchat(a, boite)); });
+      }, function(){});
   }
-  function ecrireVoaloa(l){
-    try{ localStorage.setItem(clePanier() + '_voaloa', JSON.stringify(l)); }catch(e){}
+  function messageAchat(a, boite){
+    const m = document.createElement('div');
+    m.className = 'panier-message' + (a.status === 'naverina' ? ' naverina' : '');
+    const quoi = '<strong>' + enAriary(a.amount_ar) + '</strong> ho an\'ny « ' + escapeHtml(a.titre || 'Entana') + ' » × ' + (a.isa || 1);
+    const texte = a.status === 'tazonina'
+      ? '✓ Voaloa ' + quoi + ' — voatazona ny vola mandra-pahazoanao ny entana. Rehefa voarainao, tsindrio « Confirmer ».'
+      : a.status === 'voaray'
+        ? '💸 Lasa ny vola : ' + quoi + ' — tonga any amin\'ny mpivarotra.'
+        : '↩ Naverina taminao ny ' + quoi + '.';
+    m.innerHTML =
+      '<span class="panier-message-texte">' + texte +
+        '<span class="panier-message-date">' + new Date(a.settled_at || a.created_at).toLocaleString('fr-FR') + '</span></span>';
+    if(a.status === 'tazonina'){
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn btn-sm btn-primary panier-confirmer';
+      b.textContent = '✓ Confirmer';
+      b.addEventListener('click', function(e){
+        e.stopPropagation();
+        if(b.dataset.sur !== '1'){
+          // Un second appui confirme : l'argent part, et ne revient plus.
+          b.dataset.sur = '1';
+          b.textContent = 'Voaray tokoa ? Tsindrio indray';
+          return;
+        }
+        b.disabled = true;
+        b.textContent = '⏳';
+        if(typeof window.__callWallet !== 'function'){ b.disabled = false; b.textContent = '✓ Confirmer'; return; }
+        window.__callWallet({ action: 'achat_voaray', id: a.id }).then(function(){
+          chargerAchatsDuPanier(boite);
+          if(typeof window.__rafraichirPortefeuille === 'function') window.__rafraichirPortefeuille();
+        }, function(err){
+          b.disabled = false;
+          b.dataset.sur = '';
+          b.textContent = '✓ Confirmer';
+          direPresDuBouton(b, (err && err.message) || 'Tsy nety : andramo indray.');
+        });
+      });
+      m.appendChild(b);
+    }
+    return m;
   }
   function prixNombre(p){
     const n = parseFloat(String(p == null ? '' : p).replace(/[^\d.,]/g, '').replace(',', '.'));
@@ -1210,24 +1262,11 @@
       '<div class="panier-lignes"></div>' +
       (l.length ? '<div class="panier-total"><span>Totaly</span><strong>' + enAriary(total) + '</strong></div>' +
         '<button type="button" class="panier-foano">Foanana ny panier</button>' : '');
-    // Les achats payés : leur message reste ici, en haut du panier, tant
-    // qu'on ne l'écarte pas (✕).
-    const voaloa = panneauPanier.querySelector('.panier-voaloa');
-    lireVoaloa().forEach(function(v){
-      const m = document.createElement('div');
-      m.className = 'panier-message';
-      m.innerHTML =
-        '<span class="panier-message-texte">✓ Voaloa <strong>' + enAriary(v.montant) + '</strong> ho an\'ny « ' +
-          escapeHtml(v.titre) + ' » × ' + (v.isa || 1) + ' — voatazona ny vola mandra-pahazoanao ny entana. ' +
-          'Rehefa voarainao, tsindrio « Voaraiko » ao amin\'ny portefeuille.' +
-          '<span class="panier-message-date">' + (v.date ? new Date(v.date).toLocaleString('fr-FR') : '') + '</span></span>' +
-        '<button type="button" class="panier-message-esory" aria-label="Esorina" title="Esorina">✕</button>';
-      m.querySelector('button').addEventListener('click', function(){
-        ecrireVoaloa(lireVoaloa().filter(function(z){ return z.id !== v.id; }));
-        dessinerPanier();
-      });
-      voaloa.appendChild(m);
-    });
+    // Les achats payés, lus sur le serveur (wallet_achats, les siens) : leur
+    // message reste ici, en haut du panier, avec « Confirmer » tant que
+    // l'argent est tenu. Confirmer, c'est dire qu'on a reçu l'entana : la
+    // somme part chez le vendeur, qui en est prévenu avec son livreur.
+    chargerAchatsDuPanier(panneauPanier.querySelector('.panier-voaloa'));
     const lignes = panneauPanier.querySelector('.panier-lignes');
     l.forEach(function(x){
       const d = document.createElement('div');
@@ -1302,13 +1341,8 @@
             hividy.disabled = true;
             window.__callWallet({ action: 'achat', newsId: x.id, isa: x.isa || 1,
               name: (currentUser && currentUser.name) || '' }).then(function(res){
-              // Payé : il quitte le panier, et le message y reste, en haut,
-              // jusqu'à ce qu'on l'écarte.
-              const paye = (res && res.achat && res.achat.amount_ar) || montant;
-              const msgs = lireVoaloa();
-              msgs.unshift({ id: (res && res.achat && res.achat.id) || String(Date.now()),
-                titre: x.titre, isa: x.isa || 1, montant: paye, date: new Date().toISOString() });
-              ecrireVoaloa(msgs.slice(0, 20));
+              // Payé : il quitte le panier, et son message paraît en haut
+              // (lu sur le serveur), avec « Confirmer ».
               ecrirePanier(lirePanier().filter(function(z){ return String(z.id) !== String(x.id); }));
               const b = document.querySelector('#communityNewsList .fb-post[data-news-id="' + x.id + '"] [data-panier]');
               if(b) b.classList.remove('dans-panier');

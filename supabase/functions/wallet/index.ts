@@ -142,6 +142,22 @@ async function achatsFor(admin: Admin, email: string): Promise<{ depense: number
   return { depense, recu };
 }
 
+// ---- Prévenir une boutique (notifications_boutique, type « vola ») ----
+// Le patron la lit directement ; son équipe — le livreur compris — par la
+// fonction mpiasa. Un échec ici ne défait pas l'achat : l'argent a bougé, la
+// notification n'en est que l'écho.
+async function prevenir(admin: Admin, boutique: string, message: string): Promise<void> {
+  if (!boutique) return;
+  try {
+    await admin.from("notifications_boutique").insert({
+      owner_email: boutique, auteur_nom: "Ny asako", type: "vola", message: message.slice(0, 500),
+    });
+  } catch { /* l'écho seul se perd */ }
+}
+function ar(n: number): string {
+  return (Number(n) || 0).toLocaleString("fr-FR") + " Ar";
+}
+
 // ---- Le solde, déduit de la base ----
 async function balanceFor(admin: Admin, email: string): Promise<number> {
   // 1) ce que les parrainages ont rapporté, sur toutes les installations
@@ -383,6 +399,12 @@ Deno.serve(async (req: Request) => {
     }).select("id,titre,isa,prix_ar,amount_ar,status,created_at").single();
     if (error) return json({ error: error.message }, 500);
 
+    // Le vendeur et son équipe (le livreur) : l'argent est là, on peut livrer.
+    const acheteur = String(body.name ?? "").trim() || email;
+    await prevenir(admin, vendeur,
+      `💸 Voaloa ${ar(montant)} ho an'ny « ${titre} » × ${isa} (${acheteur}). ` +
+      `Voatazona ny vola mandra-pahazon'ny mpividy ny entana : alefaso ny entana.`);
+
     return json({ achat: data, balanceAr: balance - montant });
   }
 
@@ -395,9 +417,13 @@ Deno.serve(async (req: Request) => {
     const { data, error } = await admin.from("wallet_achats")
       .update({ status: "voaray", settled_at: new Date().toISOString() })
       .eq("id", id).eq("buyer_email", email).eq("status", "tazonina")
-      .select("id,status,amount_ar").maybeSingle();
+      .select("id,status,amount_ar,titre,isa,seller_email,buyer_name").maybeSingle();
     if (error) return json({ error: error.message }, 500);
     if (!data) return json({ error: "Efa voavaha na tsy anao io fividianana io." }, 409);
+    // Le vendeur et son équipe : l'argent est parti chez eux.
+    await prevenir(admin, norm(data.seller_email),
+      `💸 Lasa ny vola : ${ar(data.amount_ar)} ho an'ny « ${data.titre ?? "Entana"} » × ${data.isa ?? 1}. ` +
+      `Voarain'ny mpividy (${data.buyer_name || email}) ny entana, tafiditra ao amin'ny portefeuille ny vola.`);
     return json({ achat: data });
   }
 
@@ -418,9 +444,15 @@ Deno.serve(async (req: Request) => {
       .update({ status: "naverina", note: note || (isOwner ? "Naverin'ny tompony" : "Naverin'ny mpivarotra"),
         settled_at: new Date().toISOString() })
       .eq("id", id).eq("status", "tazonina")
-      .select("id,status,amount_ar").maybeSingle();
+      .select("id,status,amount_ar,titre,isa,buyer_email,seller_email").maybeSingle();
     if (error) return json({ error: error.message }, 500);
     if (!data) return json({ error: "Efa voavaha io fividianana io." }, 409);
+    // L'acheteur récupère son argent ; le vendeur (et son livreur) sait
+    // qu'il n'y a plus rien à livrer.
+    await prevenir(admin, norm(data.buyer_email),
+      `💸 Naverina taminao ny ${ar(data.amount_ar)} ho an'ny « ${data.titre ?? "Entana"} » × ${data.isa ?? 1}.`);
+    await prevenir(admin, norm(data.seller_email),
+      `💸 Naverina tamin'ny mpividy ny ${ar(data.amount_ar)} ho an'ny « ${data.titre ?? "Entana"} » : aza alefa ny entana.`);
     return json({ achat: data });
   }
 

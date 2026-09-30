@@ -517,7 +517,10 @@
       rows.forEach(function(r){
         // Les siennes, on les a déjà : celles du patron n'ont pas d'auteur,
         // celles d'un employé portent le sien.
-        const deMoi = MODE_MPIASA ? (r.auteur_id && r.auteur_id === moi) : !r.auteur_id;
+        // L'argent (« vola ») vient du serveur, jamais de soi : sans auteur
+        // lui aussi, il passerait pour une des siennes et serait tu.
+        const deMoi = r.type === 'vola' ? false
+          : (MODE_MPIASA ? (r.auteur_id && r.auteur_id === moi) : !r.auteur_id);
         if(deMoi) return;
         // Un direct dit déjà qui le fait ; le reste, on le signe.
         const texte = r.type === 'live' ? r.message : (r.auteur_nom || 'Patron') + ' : ' + r.message;
@@ -544,6 +547,7 @@
     if(type === 'facture') return '🧾';
     if(type === 'rupture') return '⚠️';
     if(type === 'parrainage') return '💰';
+    if(type === 'vola') return '💸';
     if(type === 'modification') return '✏️';
     if(type === 'live') return '🔴';
     if(type === 'antso') return '📞';
