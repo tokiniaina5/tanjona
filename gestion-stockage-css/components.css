@@ -821,6 +821,9 @@
      plein et bleu une fois aimé. Le trait épais du texte redit l'état pour
      qui distingue mal les teintes. */
   .fb-like-action{ display:inline-flex; align-items:center; gap:0.35rem; font-weight:600; }
+  /* « J'aime » se tient seul au bord gauche de la rangée ; la marge
+     automatique prend toute la place libre et pousse les autres à droite. */
+  .fb-post-actions > .fb-like-action{ margin-right:auto; }
   .fb-pouce{ width:1.25em; height:1.25em; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linejoin:round; }
   .fb-like-action:hover{ color:var(--text); }
   .fb-like-action.liked{ color:#0866ff; font-weight:700; }
