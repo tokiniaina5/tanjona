@@ -1423,8 +1423,24 @@
   // s'ouvre à part. Les siennes d'abord, puis les autres, les plus récentes
   // en tête. (La visionneuse garde sa forme de « groupe » : une story seule
   // en est un, et la suivante de la rangée vient après elle.)
+  //
+  // Les cartes se déplacent (on les tient, puis on les tire) : l'ordre choisi
+  // est retenu sur l'appareil. Une story qu'on n'a pas encore rangée vient
+  // devant, à sa place d'origine.
+  const CLE_ORDRE_STORY = 'nyasako_story_ordre';
+  function lireOrdreStory(){
+    try{ const l = JSON.parse(localStorage.getItem(CLE_ORDRE_STORY)); return Array.isArray(l) ? l : []; }
+    catch(e){ return []; }
+  }
+  function ecrireOrdreStory(l){
+    try{ localStorage.setItem(CLE_ORDRE_STORY, JSON.stringify(l.slice(0, 300))); }catch(e){}
+  }
   function groupesDeStories(){
+    const ordre = lireOrdreStory();
     return listeStories.slice().sort(function(a, b){
+      const ia = ordre.indexOf(a.id), ib = ordre.indexOf(b.id);
+      if(ia >= 0 && ib >= 0) return ia - ib;
+      if(ia >= 0 || ib >= 0) return ia >= 0 ? 1 : -1;
       const moi = (b.auteur_id === monIdStory) - (a.auteur_id === monIdStory);
       return moi || (new Date(b.created_at) - new Date(a.created_at));
     }).map(function(s){
@@ -1471,7 +1487,7 @@
       const video = derniere.genre === 'video';
       html +=
         '<button type="button" class="story-carte' + (auteurEnLigne(g.auteur_id) ? ' en-ligne' : '') +
-          '" data-story-groupe="' + i + '" data-story-auteur="' + escapeHtml(g.auteur_id) + '"' +
+          '" data-story-groupe="' + i + '" data-story-id="' + escapeHtml(g.liste[0].id) + '" data-story-auteur="' + escapeHtml(g.auteur_id) + '"' +
           (video ? '' : ' style="background-image:url(\'' + String(derniere.media).replace(/'/g, '%27') + '\')"') + '>' +
           (video ? '<video class="story-carte-video" src="' + escapeHtml(derniere.media) + '#t=' + ((derniere.video_debut || 0) + 0.5) + '" muted playsinline preload="metadata"></video>' +
             '<span class="story-carte-play" aria-hidden="true">▶</span>' : '') +
@@ -1480,6 +1496,96 @@
         '</button>';
     });
     storyRangee.innerHTML = html;
+  }
+
+  // ---- Déplacer une carte ----
+  // Tenir une carte un tiers de seconde la soulève ; on la tire alors, et les
+  // autres s'écartent pour lui faire place. Bouger avant, c'est faire défiler
+  // la rangée, comme d'habitude. Relâchée, l'ordre est retenu.
+  function armerDeplacementStories(){
+    if(!storyRangee) return;
+    let g = null;
+    function annuler(){
+      if(!g) return;
+      clearTimeout(g.minuterie);
+      if(g.carte){
+        g.carte.classList.remove('story-tiree');
+        g.carte.style.transform = '';
+      }
+      g = null;
+    }
+    storyRangee.addEventListener('pointerdown', function(e){
+      const carte = e.target.closest('.story-carte[data-story-id]');
+      if(!carte || e.button > 0) return;
+      annuler();
+      g = { x: e.clientX, y: e.clientY, carte: null, id: e.pointerId };
+      g.minuterie = setTimeout(function(){
+        if(!g) return;
+        g.carte = carte;
+        g.dx0 = e.clientX;
+        g.dy0 = e.clientY;
+        carte.classList.add('story-tiree');
+        try{ storyRangee.setPointerCapture(g.id); }catch(err){}
+        if(navigator.vibrate) try{ navigator.vibrate(15); }catch(err){}
+      }, 350);
+    });
+    storyRangee.addEventListener('pointermove', function(e){
+      if(!g) return;
+      if(!g.carte){
+        // Bougé avant d'être soulevée : c'est un défilement.
+        if(Math.abs(e.clientX - g.x) + Math.abs(e.clientY - g.y) > 8){ clearTimeout(g.minuterie); g = null; }
+        return;
+      }
+      e.preventDefault();
+      g.carte.style.transform = 'translate(' + (e.clientX - g.dx0) + 'px,' + (e.clientY - g.dy0) + 'px) scale(1.06)';
+      // La carte sous le doigt (hors celle qu'on tient) : on se glisse devant
+      // ou derrière elle, selon le côté.
+      g.carte.style.pointerEvents = 'none';
+      const dessous = document.elementFromPoint(e.clientX, e.clientY);
+      g.carte.style.pointerEvents = '';
+      const cible = dessous && dessous.closest('#storyRangee .story-carte[data-story-id]');
+      if(!cible || cible === g.carte) return;
+      const r = cible.getBoundingClientRect();
+      const avant = e.clientX < r.left + r.width / 2;
+      const ref = avant ? cible : cible.nextSibling;
+      if(ref === g.carte || ref === g.carte.nextSibling && !avant) return;
+      // La carte change de place dans la rangée : son décalage repart de là.
+      const ancien = g.carte.getBoundingClientRect();
+      storyRangee.insertBefore(g.carte, ref);
+      const nouveau = g.carte.getBoundingClientRect();
+      g.dx0 += nouveau.left - ancien.left;
+      g.dy0 += nouveau.top - ancien.top;
+      g.carte.style.transform = 'translate(' + (e.clientX - g.dx0) + 'px,' + (e.clientY - g.dy0) + 'px) scale(1.06)';
+    });
+    // Tant qu'une carte est tenue, le doigt ne fait pas défiler la page.
+    storyRangee.addEventListener('touchmove', function(e){
+      if(g && g.carte) e.preventDefault();
+    }, { passive: false });
+    function fin(){
+      if(!g) return;
+      clearTimeout(g.minuterie);
+      if(g.carte){
+        const ids = [].map.call(storyRangee.querySelectorAll('.story-carte[data-story-id]'), function(c){
+          return c.getAttribute('data-story-id');
+        });
+        // Les stories hors de la rangée (finies depuis) gardent leur rang
+        // derrière : elles ne reviendront pas, mais n'y changent rien.
+        const reste = lireOrdreStory().filter(function(id){ return ids.indexOf(id) < 0; });
+        ecrireOrdreStory(ids.concat(reste));
+        storyRangee.__vientDeTirer = true;
+        setTimeout(function(){ storyRangee.__vientDeTirer = false; }, 400);
+        annuler();
+        dessinerStories();
+        return;
+      }
+      g = null;
+    }
+    storyRangee.addEventListener('pointerup', fin);
+    storyRangee.addEventListener('pointercancel', fin);
+    // Un appui long sur une image ouvrirait le menu du navigateur.
+    storyRangee.addEventListener('contextmenu', function(e){
+      if(e.target.closest('.story-carte')) e.preventDefault();
+    });
   }
 
   function chargerStories(){
@@ -2123,7 +2229,10 @@
   }
 
   if(storyRangee){
+    armerDeplacementStories();
     storyRangee.addEventListener('click', function(e){
+      // Le relâché d'un déplacement n'est pas un appui : rien ne s'ouvre.
+      if(storyRangee.__vientDeTirer){ storyRangee.__vientDeTirer = false; e.preventDefault(); return; }
       const ajouter = e.target.closest('[data-story-ajouter]');
       if(ajouter){
         sessionStory().then(function(session){

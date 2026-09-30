@@ -1559,3 +1559,11 @@ body.story-ouverte .fb-reaction-avis{ z-index:413; }
    visage aussi. */
 .story-carte.en-ligne{ box-shadow:0 0 0 4px #16e05a, 0 0 14px rgba(22,224,90,0.7); }
 .story-carte.en-ligne .story-anneau{ background:#16e05a; }
+
+/* Une carte de story qu'on tient pour la déplacer : soulevée, devant les
+   autres. Pas de sélection ni de menu d'image au doigt long. */
+.story-carte{ -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
+.story-carte.story-tiree{
+  position:relative; z-index:5; opacity:0.92; cursor:grabbing;
+  box-shadow:0 12px 28px rgba(0,0,0,0.45); transition:none;
+}
