@@ -1143,11 +1143,16 @@
     return (currentUser && currentUser.email) ? currentUser.email.trim().toLowerCase() : '';
   }
 
+  // Le pouce de Facebook, dessiné : creux tant qu'on n'a pas aimé, plein et
+  // bleu ensuite (components.css, « .fb-like-action »). L'emoji avait sa
+  // propre couleur et ne changeait jamais.
+  const POUCE = '<svg class="fb-pouce" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 21h3.5V9.5H2zM21.9 11.2c0-1.1-.9-2-2-2h-5.6l.9-4.3v-.3c0-.4-.2-.8-.4-1.1L13.7 2.5 8 8.2c-.3.3-.5.8-.5 1.3V19c0 1.1.9 2 2 2h8.6c.8 0 1.5-.5 1.8-1.2l2.8-6.6c.1-.2.1-.5.1-.7v-1.3z"/></svg>';
+
   function paintLike(el, newsId){
     const info = likeState[newsId] || { count: 0, mine: false };
     // Le bouton dit ce qu'il fait ; le nombre vit au-dessus, sur sa propre
     // ligne, et disparaît quand il n'y a rien à compter.
-    el.textContent = '👍 J\'aime';
+    el.innerHTML = POUCE + '<span>J\'aime</span>';
     el.classList.toggle('liked', !!info.mine);
 
     const post = el.closest('.fb-post');
@@ -1157,7 +1162,7 @@
       const qui = info.mine
         ? (info.count === 1 ? 'Ianao' : 'Ianao sy ' + (info.count - 1) + ' hafa')
         : info.count;
-      compte.innerHTML = '<span class="fb-like-bubble">👍</span><span>' + escapeHtml(String(qui)) + '</span>';
+      compte.innerHTML = '<span class="fb-like-bubble">' + POUCE + '</span><span>' + escapeHtml(String(qui)) + '</span>';
     }
   }
 
@@ -2061,7 +2066,7 @@
                   'border-radius:10px; overflow:hidden; text-decoration:none; color:inherit;"></a>'
                 : '')) +
             '<div class="fb-post-actions">' +
-            '<span class="fb-like-action" data-like style="cursor:pointer;">👍 J\'aime</span>' +
+            '<span class="fb-like-action" data-like style="cursor:pointer;">' + POUCE + '<span>J\'aime</span></span>' +
             '<span class="fb-comment-action" data-comment style="cursor:pointer;">💬 Commenter</span>' +
             // L'achat part de l'annonce elle-même : c'est là qu'on voit la
             // marchandise et son prix, pas dans un onglet qu'il faut aller

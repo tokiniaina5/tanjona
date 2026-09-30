@@ -743,10 +743,14 @@
   .fb-buy-action{ font-weight:600; }
   .fb-buy-action:hover{ text-decoration:underline; }
   .fb-comment-action:hover{ color:var(--cyan); }
-  .fb-like-action:hover{ color:var(--cyan); }
-  /* Aimé : la couleur seule ne suffit pas à distinguer les deux états pour
-     qui distingue mal les teintes — le trait épais s'en charge aussi. */
-  .fb-like-action.liked{ color:var(--cyan); font-weight:700; }
+  /* « J'aime » comme chez Facebook : un pouce creux et gris, qui devient
+     plein et bleu une fois aimé. Le trait épais du texte redit l'état pour
+     qui distingue mal les teintes. */
+  .fb-like-action{ display:inline-flex; align-items:center; gap:0.35rem; font-weight:600; }
+  .fb-pouce{ width:1.25em; height:1.25em; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linejoin:round; }
+  .fb-like-action:hover{ color:var(--text); }
+  .fb-like-action.liked{ color:#0866ff; font-weight:700; }
+  .fb-like-action.liked .fb-pouce{ fill:currentColor; stroke:none; }
 
   /* ---------- Commentaires sous une publication ---------- */
   .fb-comments{ margin-top:0.7rem; padding-top:0.7rem; border-top:1px solid var(--line); }
@@ -768,8 +772,10 @@
   .fb-like-bubble{
     display:inline-flex; align-items:center; justify-content:center;
     width:18px; height:18px; border-radius:50%;
-    background:var(--cyan); font-size:0.6rem; line-height:1;
+    /* Le rond bleu de Facebook, pouce blanc au milieu. */
+    background:linear-gradient(180deg, #18afff, #0866ff); color:#fff;
   }
+  .fb-like-bubble .fb-pouce{ width:10px; height:10px; fill:currentColor; stroke:none; }
   .fb-comment-form{ display:flex; gap:0.5rem; margin-top:0.5rem; }
   .fb-comment-input{
     flex:1; min-width:0; padding:0.5rem 0.7rem; border-radius:8px;
