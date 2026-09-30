@@ -737,7 +737,7 @@
   }
   .fb-post-link:hover{ border-color:var(--cyan); }
   .fb-post-actions{ display:flex; justify-content:center; flex-wrap:wrap; gap:1.2rem; margin-top:0.9rem; padding-top:0.3rem; }
-  .fb-post-actions span{ font-size:0.95rem; color:var(--muted); }
+  .fb-post-actions span{ font-size:0.78rem; color:var(--muted); }
   .fb-share-action:hover{ color:var(--cyan); }
   /* « Partager » : la flèche dessinée à côté du mot, comme le pouce de
      « J'aime ». Le mot suit la couleur du survol. */
@@ -1320,3 +1320,9 @@
       0 4px 12px rgba(0,0,0,0.35);
     text-shadow: none;
   }
+
+/* Les logos des actions (J'aime, Commenter, Panier, Partager, Rehetra) :
+   plus grands que le mot qui les suit, qui garde sa taille. En fin de
+   fichier, pour passer devant les « font-size:inherit » des actions. */
+.fb-post-actions span.fb-logo-partage{ font-size:1.2rem; }
+.fb-post-actions .fb-logo-maison{ width:1.6rem; height:1.6rem; }
