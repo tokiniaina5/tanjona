@@ -20,11 +20,15 @@
   // ait à se déconnecter de Ny asako dans le navigateur. Même stockage, autre
   // clé : les deux sessions ne se voient pas. Dans un onglet ordinaire, rien
   // ne change — la page partage la session de Ny asako.
+  // Le Commun et le Fokontany ont chacun la leur : avec une clé commune, se
+  // déconnecter de l'un vidait aussi l'autre, ouvert à côté sur le même poste.
   var options = {};
   try {
-    var appAPart = /^\/(fokontany|commun)(\/|$)/.test(window.location.pathname);
+    var appAPart = /^\/(fokontany|commun)(\/|$)/.exec(window.location.pathname);
     var installee = !window.matchMedia('(display-mode: browser)').matches || window.navigator.standalone === true;
-    if(appAPart && installee) options = { auth: { storageKey: 'sb-nyasako-fokontany-app' } };
+    if(appAPart && installee) {
+      options = { auth: { storageKey: appAPart[1] === 'commun' ? 'sb-nyasako-commun-app' : 'sb-nyasako-fokontany-app' } };
+    }
   } catch(e){}
   var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, options);
   window.__sb = sb;
