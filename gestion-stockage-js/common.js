@@ -5717,7 +5717,12 @@
           // Le propos seul : ni son auteur, ni l'heure. On cherche ce qui a
           // été dit, et les retrouver dans le résultat ne dirait rien de plus
           // que la ligne du dessous, qui les porte déjà.
-          let quoi = (ligne.textContent || '');
+          // Sans la rangée des réactions : « J'aime » et ses nombres ne sont
+          // pas ce qui a été dit.
+          const copie = ligne.cloneNode(true);
+          const rang = copie.querySelector('.fb-comment-reactions');
+          if(rang) rang.remove();
+          let quoi = (copie.textContent || '');
           if(date) quoi = quoi.replace(date.textContent, '');
           if(qui) quoi = quoi.replace(qui, '');
           quoi = quoi.trim();

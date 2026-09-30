@@ -761,6 +761,21 @@
   }
   .fb-comment strong{ color:var(--cyan); }
   .fb-comment-date{ display:block; font-size:0.68rem; color:var(--muted); margin-top:0.15rem; }
+  /* Sous chaque commentaire : « J'aime » en petit, et ses réactions comptées. */
+  .fb-comment-reactions{ display:flex; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-top:0.3rem; }
+  .fb-comment-like{
+    display:inline-flex; align-items:center; gap:0.25rem;
+    font-size:0.72rem; font-weight:700; color:var(--muted); cursor:pointer;
+  }
+  .fb-comment-like:hover{ text-decoration:underline; }
+  .fb-comment-like .fb-reaction-emoji{ font-size:1.1em !important; }
+  .fb-comment-compte{ align-items:center; }
+  .fb-comment-compte .fb-reaction-compte{ padding:0.05rem 0.4rem 0.05rem 0.1rem; }
+  .fb-comment-compte .fb-reaction-compte b{ font-size:0.68rem; }
+  .fb-comment-compte .fb-like-bubble,
+  .fb-comment-compte .fb-reaction-bulle{ width:15px; height:15px; }
+  .fb-comment-compte .fb-reaction-bulle .fb-emoji-3d{ width:13px; height:13px; }
+  .fb-comment-compte .fb-like-bubble .fb-pouce{ width:8px; height:8px; }
   .fb-comment-empty{ font-size:0.78rem; color:var(--muted); padding:0.3rem 0 0.5rem; }
   .fb-comment-error{ font-size:0.76rem; color:var(--amber); line-height:1.5; margin-top:0.5rem; }
 

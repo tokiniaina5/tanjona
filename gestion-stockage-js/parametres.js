@@ -1179,27 +1179,42 @@
       : '<span class="fb-reaction-bulle">' + visage(reactionDe(id)) + '</span>';
   }
 
-  function paintLike(el, newsId){
-    const info = likeState[newsId] || { count: 0, mine: null, parType: {} };
-    // Le bouton dit ce qu'on a choisi ; le nombre vit au-dessus, sur sa
-    // propre ligne, et disparaît quand il n'y a rien à compter.
+  // Deux sortes de choses reçoivent des réactions : les billets et les
+  // commentaires. Même menu, même éclat, mêmes pastilles ; seuls changent la
+  // table, la colonne et l'endroit où l'on compte. Le bouton porte sa sorte
+  // (data-sorte), et tout le reste s'en déduit.
+  let reactionsCommentaires = {};
+  const SORTES = {
+    billet: {
+      etats: function(){ return likeState; },
+      table: 'client_news_likes', colonne: 'news_id', avecQui: true, pouce: true,
+      compte: function(el){ const p = el.closest('.fb-post'); return p && p.querySelector('[data-like-count]'); }
+    },
+    commentaire: {
+      etats: function(){ return reactionsCommentaires; },
+      table: 'client_news_comment_reactions', colonne: 'comment_id', avecQui: false, pouce: false,
+      compte: function(el){ const c = el.closest('.fb-comment'); return c && c.querySelector('[data-comment-count]'); }
+    }
+  };
+  function sorteDe(el){ return SORTES[(el && el.dataset.sorte) || 'billet']; }
+
+  function paintLike(el, cle){
+    const s = sorteDe(el);
+    const info = s.etats()[cle] || { count: 0, mine: null, parType: {} };
+    // Le bouton dit ce qu'on a choisi ; le nombre vit à côté, et disparaît
+    // quand il n'y a rien à compter.
     const r = info.mine ? reactionDe(info.mine) : null;
     el.innerHTML = (r && r.id !== 'like')
       ? '<span class="fb-reaction-emoji">' + visage(r) + '</span><span>' + r.nom + '</span>'
-      : POUCE + '<span>J\'aime</span>';
+      : (s.pouce ? POUCE : '') + '<span>J\'aime</span>';
     el.classList.toggle('liked', !!r);
     el.style.color = r ? r.couleur : '';
 
-    const post = el.closest('.fb-post');
-    const compte = post && post.querySelector('[data-like-count]');
+    const compte = s.compte(el);
     if(compte){
-      compte.style.display = info.count ? 'flex' : 'none';
-      const qui = info.mine
-        ? (info.count === 1 ? 'Ianao' : 'Ianao sy ' + (info.count - 1) + ' hafa')
-        : info.count;
-      // Les trois réactions les plus données, comme Facebook les empile.
+      compte.style.display = info.count ? (s.avecQui ? 'flex' : 'inline-flex') : 'none';
       // Chaque réaction avec son propre nombre — 👍 3 ❤️ 2 😆 1 —, la sienne
-      // d'abord : on la voit posée là-haut, à peine choisie.
+      // d'abord : on la voit posée là, à peine choisie.
       const parType = Object.assign({}, info.parType || {});
       if(!Object.keys(parType).some(function(t){ return parType[t] > 0; }) && info.count) parType.like = info.count;
       const types = Object.keys(parType).filter(function(t){ return parType[t] > 0; })
@@ -1208,24 +1223,32 @@
           if(b === info.mine) return 1;
           return parType[b] - parType[a];
         });
-      compte.innerHTML = '<span class="fb-reaction-pile">' + types.map(function(t){
+      let html = '<span class="fb-reaction-pile">' + types.map(function(t){
           return '<span class="fb-reaction-compte' + (t === info.mine ? ' mienne' : '') + '" title="' +
             reactionDe(t).nom + '">' + bulle(t) + '<b>' + parType[t] + '</b></span>';
-        }).join('') + '</span>' +
-        '<span class="fb-reaction-qui">' + escapeHtml(String(qui)) + '</span>';
+        }).join('') + '</span>';
+      // Le total ne dit rien de plus qu'une pastille seule : « 👍 1 1 ».
+      // Il reste quand on est du nombre, ou qu'il additionne plusieurs visages.
+      if(s.avecQui && (info.mine || types.length > 1)){
+        const qui = info.mine
+          ? (info.count === 1 ? 'Ianao' : 'Ianao sy ' + (info.count - 1) + ' hafa')
+          : info.count;
+        html += '<span class="fb-reaction-qui">' + escapeHtml(String(qui)) + '</span>';
+      }
+      compte.innerHTML = html;
     }
   }
 
-  // Le menu des réactions : un seul pour tout le fil, posé au-dessus du
-  // bouton qu'on survole (ordinateur) ou qu'on presse longtemps (téléphone).
+  // Le menu des réactions : un seul pour toute la page, posé au-dessus du
+  // bouton qu'on touche ou qu'on survole.
   let menuReactions = null, menuPour = null, minuteurMontrer = null, minuteurCacher = null;
   function cacherReactions(){
     clearTimeout(minuteurMontrer);
     if(menuReactions) menuReactions.hidden = true;
     menuPour = null;
   }
-  function montrerReactions(el, newsId){
-    if(sansReactions) return;
+  function montrerReactions(el, cle){
+    if(sansReactions && sorteDe(el) === SORTES.billet) return;
     if(!menuReactions){
       menuReactions = document.createElement('div');
       menuReactions.className = 'fb-reactions-choix';
@@ -1243,8 +1266,8 @@
           cacherReactions();
           if(!cible) return;
           // Celle qu'on avait déjà : la toucher encore la retire.
-          const info = likeState[cible.newsId];
-          choisirReaction(cible.el, cible.newsId, info && info.mine === r.id ? null : r.id);
+          const info = sorteDe(cible.el).etats()[cible.cle];
+          choisirReaction(cible.el, cible.cle, info && info.mine === r.id ? null : r.id);
         });
         menuReactions.appendChild(b);
       });
@@ -1256,8 +1279,9 @@
       window.addEventListener('scroll', cacherReactions, { passive: true, capture: true });
       document.body.appendChild(menuReactions);
     }
-    menuPour = { el: el, newsId: newsId };
-    const mienne = likeState[newsId] && likeState[newsId].mine;
+    menuPour = { el: el, cle: cle };
+    const info = sorteDe(el).etats()[cle];
+    const mienne = info && info.mine;
     [].forEach.call(menuReactions.children, function(b){
       b.classList.toggle('choisi', b.dataset.reaction === mienne);
     });
@@ -1271,23 +1295,23 @@
     menuReactions.style.top = Math.round(y) + 'px';
   }
 
-  function setupLike(el, newsId){
-    paintLike(el, newsId);
+  function setupLike(el, cle){
+    paintLike(el, cle);
     // Un appui, et les réactions paraissent aussitôt — ni survol à attendre,
     // ni doigt à laisser appuyé. Sans menu (colonne absente), le pouce seul.
     el.addEventListener('click', function(e){
       e.stopPropagation();
-      if(sansReactions){ toggleLike(el, newsId); return; }
+      if(sansReactions && sorteDe(el) === SORTES.billet){ toggleLike(el, cle); return; }
       // Toujours ouvrir, jamais refermer : le survol vient souvent de l'ouvrir
       // juste avant le clic. On le referme en touchant ailleurs.
       clearTimeout(minuteurCacher);
-      montrerReactions(el, newsId);
+      montrerReactions(el, cle);
     });
     // Ordinateur : le survol les montre aussi, sans attendre.
     el.addEventListener('mouseenter', function(){
       clearTimeout(minuteurCacher);
       clearTimeout(minuteurMontrer);
-      minuteurMontrer = setTimeout(function(){ montrerReactions(el, newsId); }, 120);
+      minuteurMontrer = setTimeout(function(){ montrerReactions(el, cle); }, 120);
     });
     el.addEventListener('mouseleave', function(){
       clearTimeout(minuteurMontrer);
@@ -1302,6 +1326,20 @@
     if(visagesCharges) return;
     visagesCharges = true;
     REACTIONS.forEach(function(r){ const i = new Image(); i.src = EMOJI_3D + r.image; });
+  }
+
+  // Des lignes du serveur à l'état de chaque billet ou commentaire.
+  function compterLesReactions(rows, colonne){
+    const moi = myLikeEmail();
+    const etats = {};
+    rows.forEach(function(r){
+      const info = etats[r[colonne]] || (etats[r[colonne]] = { count: 0, mine: null, parType: {} });
+      const type = reactionDe(r.reaction || 'like').id;
+      info.count++;
+      info.parType[type] = (info.parType[type] || 0) + 1;
+      if(moi && (r.author_email || '').toLowerCase() === moi) info.mine = type;
+    });
+    return etats;
   }
 
   function loadLikes(ids){
@@ -1319,19 +1357,26 @@
         return res;
       })
       .then(function(res){
-        const rows = (res && res.data) || [];
-        const moi = myLikeEmail();
-        likeState = {};
-        rows.forEach(function(r){
-          const info = likeState[r.news_id] || (likeState[r.news_id] = { count: 0, mine: null, parType: {} });
-          const type = reactionDe(r.reaction || 'like').id;
-          info.count++;
-          info.parType[type] = (info.parType[type] || 0) + 1;
-          if(moi && (r.author_email || '').toLowerCase() === moi) info.mine = type;
-        });
+        likeState = compterLesReactions((res && res.data) || [], 'news_id');
         document.querySelectorAll('#communityNewsList [data-like]').forEach(function(el){
           const post = el.closest('.fb-post');
           if(post && post.dataset.newsId) paintLike(el, post.dataset.newsId);
+        });
+      }, function(){});
+  }
+
+  // Les réactions des commentaires à l'écran, en une lecture.
+  function chargerReactionsCommentaires(ids){
+    if(!ids.length || !window.__sb) return;
+    window.__sb.from('client_news_comment_reactions')
+      .select('comment_id,author_email,reaction')
+      .in('comment_id', ids)
+      .then(function(res){
+        if(res && res.error) return;
+        reactionsCommentaires = compterLesReactions((res && res.data) || [], 'comment_id');
+        document.querySelectorAll('#communityNewsList [data-sorte="commentaire"]').forEach(function(el){
+          const ligne = el.closest('.fb-comment');
+          if(ligne && ligne.dataset.commentId) paintLike(el, ligne.dataset.commentId);
         });
       }, function(){});
   }
@@ -1341,8 +1386,7 @@
   function eclaterReaction(el, id){
     const r = reactionDe(id);
     const depart = el.getBoundingClientRect();
-    const post = el.closest('.fb-post');
-    const compte = post && post.querySelector('[data-like-count]');
+    const compte = sorteDe(el).compte(el);
     const arrivee = compte && compte.style.display !== 'none' ? compte.getBoundingClientRect() : null;
     const x = depart.left + 14, y = depart.top + depart.height / 2;
 
@@ -1390,10 +1434,10 @@
     document.body.appendChild(pluie);
     setTimeout(function(){ pluie.remove(); }, 3600);
 
-    // Et elle reste en haut, sur le compteur : elle y grossit un instant
-    // pour qu'on la voie arriver.
+    // Et elle reste là, sur le compteur : elle y grossit un instant pour
+    // qu'on la voie arriver.
     setTimeout(function(){
-      const pile = post && post.querySelector('[data-like-count] .fb-reaction-compte');
+      const pile = compte && compte.querySelector('.fb-reaction-compte');
       if(!pile) return;
       pile.classList.remove('fb-reaction-posee');
       void pile.offsetWidth;
@@ -1403,17 +1447,19 @@
 
   // Le pouce seul : il met « J'aime », ou retire la réaction quelle qu'elle
   // soit — comme sur Facebook.
-  function toggleLike(el, newsId){
-    const info = likeState[newsId];
-    choisirReaction(el, newsId, info && info.mine ? null : 'like');
+  function toggleLike(el, cle){
+    const info = sorteDe(el).etats()[cle];
+    choisirReaction(el, cle, info && info.mine ? null : 'like');
   }
 
   // Donner une réaction, en changer, ou la retirer (null).
-  function choisirReaction(el, newsId, id){
+  function choisirReaction(el, cle, id){
     const moi = myLikeEmail();
     if(!moi || !window.__sb){ alert('Midira aloha vao afaka mankasitraka.'); return; }
 
-    const info = likeState[newsId] || (likeState[newsId] = { count: 0, mine: null, parType: {} });
+    const s = sorteDe(el);
+    const etats = s.etats();
+    const info = etats[cle] || (etats[cle] = { count: 0, mine: null, parType: {} });
     if(info.mine === id) return;
     // On peint tout de suite, puis on corrige si le serveur refuse : un clic
     // qui n'a l'air de rien faire pendant une seconde donne envie de cliquer
@@ -1424,31 +1470,27 @@
     if(!avant.mine && id) info.count++;
     if(avant.mine && !id) info.count = Math.max(0, info.count - 1);
     info.mine = id;
-    paintLike(el, newsId);
+    paintLike(el, cle);
     if(id) eclaterReaction(el, id);
 
-    const table = window.__sb.from('client_news_likes');
+    const table = window.__sb.from(s.table);
     let action;
     if(!id){
-      action = table.delete().eq('news_id', newsId).eq('author_email', moi);
+      action = table.delete().eq(s.colonne, cle).eq('author_email', moi);
     } else if(avant.mine){
-      action = table.update({ reaction: id }).eq('news_id', newsId).eq('author_email', moi);
+      action = table.update({ reaction: id }).eq(s.colonne, cle).eq('author_email', moi);
     } else {
-      const ligne = { news_id: newsId, author_email: moi,
-        author_name: (currentUser && currentUser.name) || 'Client' };
-      if(!sansReactions) ligne.reaction = id;
+      const ligne = { author_email: moi, author_name: (currentUser && currentUser.name) || 'Client' };
+      ligne[s.colonne] = cle;
+      if(!(sansReactions && s === SORTES.billet)) ligne.reaction = id;
       action = table.insert(ligne);
     }
 
-    action.then(function(res){
-      if(res && res.error){
-        likeState[newsId] = avant;
-        paintLike(el, newsId);
-      }
-    }, function(){
-      likeState[newsId] = avant;
-      paintLike(el, newsId);
-    });
+    function annuler(){
+      s.etats()[cle] = avant;
+      paintLike(el, cle);
+    }
+    action.then(function(res){ if(res && res.error) annuler(); }, annuler);
   }
 
   // ---------------- LES COMMENTAIRES, OUVERTS D'OFFICE ----------------
@@ -1494,7 +1536,7 @@
     const ids = Object.keys(boitesCommentaires);
     if(!ids.length || !window.__sb) return;
     window.__sb.from('client_news_comments')
-      .select('news_id,author_name,message,created_at')
+      .select('id,news_id,author_name,message,created_at')
       .in('news_id', ids)
       .order('created_at', { ascending: true })
       .limit(COMMENTAIRES_MAX)
@@ -1510,6 +1552,8 @@
         ids.forEach(function(id){
           if(boitesCommentaires[id]) boitesCommentaires[id].poser(parBillet[id] || []);
         });
+        // Leurs réactions, en une lecture pour tout le fil.
+        chargerReactionsCommentaires(((res && res.data) || []).map(function(c){ return c.id; }).filter(Boolean));
       }, function(err){
         if(!discret) ids.forEach(function(id){ boitesCommentaires[id].poser(null, err); });
       });
@@ -1590,7 +1634,7 @@
 
     function signature(rows){
       return rows.map(function(c){
-        return (c.created_at || '') + '|' + (c.author_name || '') + '|' + (c.message || '');
+        return (c.id || '') + '|' + (c.created_at || '') + '|' + (c.author_name || '') + '|' + (c.message || '');
       }).join('\n');
     }
 
@@ -1609,6 +1653,17 @@
           '<span class="fb-comment-date">' +
             (c.created_at ? new Date(c.created_at).toLocaleString('fr-FR') : '') +
           '</span>';
+        // Les réactions, comme sous les billets : « J'aime » ouvre les
+        // visages, et chacun est compté à côté.
+        if(c.id){
+          ligne.dataset.commentId = c.id;
+          const rang = document.createElement('div');
+          rang.className = 'fb-comment-reactions';
+          rang.innerHTML = '<span class="fb-comment-like" data-sorte="commentaire" role="button" tabindex="0"></span>' +
+            '<span class="fb-comment-compte" data-comment-count style="display:none;"></span>';
+          ligne.appendChild(rang);
+          setupLike(rang.querySelector('[data-sorte]'), c.id);
+        }
         liste.appendChild(ligne);
       });
     }
