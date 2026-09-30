@@ -1198,16 +1198,21 @@
         ? (info.count === 1 ? 'Ianao' : 'Ianao sy ' + (info.count - 1) + ' hafa')
         : info.count;
       // Les trois réactions les plus données, comme Facebook les empile.
-      // La sienne d'abord : on la voit posée là-haut, à peine choisie.
-      const types = Object.keys(info.parType || {}).filter(function(t){ return info.parType[t] > 0; })
+      // Chaque réaction avec son propre nombre — 👍 3 ❤️ 2 😆 1 —, la sienne
+      // d'abord : on la voit posée là-haut, à peine choisie.
+      const parType = Object.assign({}, info.parType || {});
+      if(!Object.keys(parType).some(function(t){ return parType[t] > 0; }) && info.count) parType.like = info.count;
+      const types = Object.keys(parType).filter(function(t){ return parType[t] > 0; })
         .sort(function(a, b){
           if(a === info.mine) return -1;
           if(b === info.mine) return 1;
-          return info.parType[b] - info.parType[a];
-        }).slice(0, 3);
-      if(!types.length && info.count) types.push('like');
-      compte.innerHTML = '<span class="fb-reaction-pile">' + types.map(bulle).join('') + '</span>' +
-        '<span>' + escapeHtml(String(qui)) + '</span>';
+          return parType[b] - parType[a];
+        });
+      compte.innerHTML = '<span class="fb-reaction-pile">' + types.map(function(t){
+          return '<span class="fb-reaction-compte' + (t === info.mine ? ' mienne' : '') + '" title="' +
+            reactionDe(t).nom + '">' + bulle(t) + '<b>' + parType[t] + '</b></span>';
+        }).join('') + '</span>' +
+        '<span class="fb-reaction-qui">' + escapeHtml(String(qui)) + '</span>';
     }
   }
 
@@ -1388,7 +1393,7 @@
     // Et elle reste en haut, sur le compteur : elle y grossit un instant
     // pour qu'on la voie arriver.
     setTimeout(function(){
-      const pile = post && post.querySelector('[data-like-count] .fb-reaction-pile > span');
+      const pile = post && post.querySelector('[data-like-count] .fb-reaction-compte');
       if(!pile) return;
       pile.classList.remove('fb-reaction-posee');
       void pile.offsetWidth;

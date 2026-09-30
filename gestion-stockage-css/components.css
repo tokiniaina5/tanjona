@@ -766,7 +766,7 @@
 
   /* Le nombre de « j'aime », au-dessus de la rangée des actions. */
   .fb-like-count{
-    display:flex; align-items:center; gap:0.35rem;
+    display:flex; align-items:center; flex-wrap:wrap; gap:0.35rem;
     font-size:0.76rem; color:var(--muted); margin-top:0.7rem;
   }
   .fb-like-bubble{
@@ -793,9 +793,16 @@
   .fb-reaction-vole .fb-emoji-3d,
   .fb-reaction-pluie .fb-emoji-3d{ filter: drop-shadow(0 3px 4px rgba(0,0,0,0.3)); }
   .fb-reaction-bulle .fb-emoji-3d{ width:16px; height:16px; }
-  .fb-reaction-pile{ display:inline-flex; }
-  .fb-reaction-pile > span{ box-shadow:0 0 0 2px var(--panel); }
-  .fb-reaction-pile > span + span{ margin-left:-4px; }
+  .fb-reaction-pile{ display:inline-flex; flex-wrap:wrap; gap:0.35rem; }
+  /* Une pastille par réaction : le visage, puis son nombre. */
+  .fb-reaction-compte{
+    display:inline-flex; align-items:center; gap:0.25rem;
+    padding:0.12rem 0.45rem 0.12rem 0.15rem; border-radius:999px;
+    background:var(--panel-2); border:1px solid var(--line);
+  }
+  .fb-reaction-compte b{ font-size:0.74rem; color:var(--text); }
+  .fb-reaction-compte.mienne{ border-color:var(--cyan); }
+  .fb-reaction-qui{ margin-left:0.2rem; }
   .fb-reaction-bulle{
     display:inline-flex; align-items:center; justify-content:center;
     width:18px; height:18px; border-radius:50%;
