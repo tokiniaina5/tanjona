@@ -744,6 +744,18 @@
   .fb-partager{ display:inline-flex; align-items:center; gap:0.35rem; font-weight:600; }
   .fb-post-actions .fb-partager span{ color:inherit; font-size:inherit; }
   .fb-partager:hover .fb-pouce{ fill:currentColor; }
+  /* Le logo qui partage : le « N », et sa flèche dans une pastille cyan
+     posée sur le coin bas-droit. */
+  .fb-logo-partage{ position:relative; display:inline-flex; width:1.35em; height:1.35em; margin-right:0.3em; }
+  .fb-logo-partage img{ width:100%; height:100%; border-radius:22%; object-fit:cover; }
+  .fb-logo-partage svg{
+    position:absolute; right:-0.3em; bottom:-0.25em;
+    width:0.85em; height:0.85em; padding:0.1em; box-sizing:content-box;
+    border-radius:50%; background:var(--cyan); fill:#fff;
+    box-shadow:0 0 0 1.5px var(--panel);
+    transition: transform 0.15s ease;
+  }
+  .fb-partager:hover .fb-logo-partage svg{ transform: translateX(2px) rotate(-8deg); }
   /* « Rehetra » porte le logo de la maison : c'est elle qui envoie à tous. */
   .fb-logo-maison{ width:1.25em; height:1.25em; border-radius:22%; object-fit:cover; }
   /* L'achat est la seule action de la rangée qui engage : elle se voit. */

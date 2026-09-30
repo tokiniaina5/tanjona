@@ -1150,7 +1150,12 @@
 
   // « Partager » : la flèche courbe de Facebook, tracée comme le pouce, au
   // lieu de l'emoji ↗️ dans son carré bleu, qui jurait avec le reste.
-  const FLECHE_PARTAGE = '<svg class="fb-pouce" viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 4.5 21 11.6l-7.5 7.1v-4.2c-5.3-.2-8.8 1.5-11 5 .6-5.6 3.8-10.1 11-10.8z"/></svg>';
+  // Puis le logo de la maison qui partage : le « N », une petite flèche
+  // posée sur son coin.
+  const FLECHE_PARTAGE = '<span class="fb-logo-partage" aria-hidden="true">' +
+    '<img src="/icone-192.png" alt="" draggable="false">' +
+    '<svg viewBox="0 0 24 24"><path d="M13.5 4.5 21 11.6l-7.5 7.1v-4.2c-5.3-.2-8.8 1.5-11 5 .6-5.6 3.8-10.1 11-10.8z"/></svg>' +
+    '</span>';
 
   // Les réactions, comme sur Facebook (supabase-reactions.sql). Le pouce
   // garde son dessin ; les autres sont des visages, chacun sa couleur.
