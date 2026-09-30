@@ -759,7 +759,11 @@
     padding:0.45rem 0.6rem; margin-bottom:0.4rem;
     background:var(--panel-2); border-radius:8px;
   }
-  .fb-comment strong{ color:var(--cyan); }
+  /* Le nom sur sa ligne, le propos en dessous : collés, on lisait le nom
+     comme le premier mot du message. Un long mot sans espace (une adresse)
+     se coupe au lieu de déborder. */
+  .fb-comment{ overflow-wrap:anywhere; }
+  .fb-comment > strong{ display:block; color:var(--cyan); margin-bottom:0.1rem; }
   .fb-comment-date{ display:block; font-size:0.68rem; color:var(--muted); margin-top:0.15rem; }
   /* Sous chaque commentaire : « J'aime » en petit, et ses réactions comptées. */
   .fb-comment-reactions{ display:flex; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-top:0.3rem; }
