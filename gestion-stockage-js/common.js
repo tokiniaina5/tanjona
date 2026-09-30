@@ -5887,6 +5887,167 @@
       });
     }
 
+    // Les boutiques internationales du menu, chacune à sa page de recherche :
+    // on arrive sur ses entana, et non sur son accueil.
+    const RECHERCHES_BOUTIQUES = [
+      { nom: 'Amazon', url: 'https://www.amazon.fr/s?k=' },
+      { nom: 'AliExpress', url: 'https://www.aliexpress.com/wholesale?SearchText=' },
+      { nom: 'Alibaba', url: 'https://www.alibaba.com/trade/search?SearchText=' },
+      { nom: 'eBay', url: 'https://www.ebay.fr/sch/i.html?_nkw=' },
+      { nom: 'SHEIN', url: 'https://www.shein.com/pdsearch/' }
+    ];
+    function lesBoutiques(texte){
+      return RECHERCHES_BOUTIQUES.map(function(b){
+        const url = b.url + encodeURIComponent(texte);
+        return {
+          nom: '🌍 ' + b.nom,
+          detail: '« ' + court(texte) + ' »',
+          ouvrir: function(){ window.open(url, '_blank', 'noopener'); }
+        };
+      });
+    }
+    function leWeb(texte){
+      const url = 'https://www.google.com/search?q=' + encodeURIComponent(texte);
+      function dans(nom){
+        return function(){
+          if(typeof window.__ouvrirLeNavigateur === 'function') window.__ouvrirLeNavigateur(nom, url);
+          else window.open(url, '_blank', 'noopener');
+        };
+      }
+      const lignes = [
+        { nom: '🔎 Chrome', detail: 'Google : « ' + court(texte) + ' »', ouvrir: dans('chrome') },
+        { nom: '🧭 Safari', detail: 'Google : « ' + court(texte) + ' »', ouvrir: dans('safari') }
+      ];
+      // Une photo sans rien d'écrit dessus : Google Lens la reconnaît à
+      // l'image. Il faut la lui redonner — elle ne quitte pas ce téléphone
+      // sans qu'on le décide.
+      if(scanSansTexte){
+        const lens = 'https://lens.google.com/';
+        lignes.push({ nom: '📷 Google Lens', detail: 'Alefaso ao ilay sary hitadiavana azy',
+          ouvrir: function(){
+            if(typeof window.__ouvrirLeNavigateur === 'function') window.__ouvrirLeNavigateur('chrome', lens);
+            else window.open(lens, '_blank', 'noopener');
+          } });
+      }
+      return lignes;
+    }
+
+    // ---- Le scan ----
+    // Une photo de l'entana : son code-barres d'abord (instantané, quand le
+    // navigateur sait le lire), son étiquette sinon (le texte, lu ici même par
+    // Tesseract, chargé à la première fois). Ce qui est lu devient la
+    // recherche : le stock, le Botika, les boutiques et le web d'un coup.
+    // La photo ne part nulle part.
+    const boutonScan = document.getElementById('rechercheScan');
+    const fichierScan = document.getElementById('rechercheScanFichier');
+    const statutScan = document.getElementById('rechercheScanStatut');
+    let scanSansTexte = false;
+    let chargementOcr = null;
+    function direScan(texte){
+      if(!statutScan) return;
+      statutScan.textContent = texte || '';
+      statutScan.hidden = !texte;
+    }
+    function chargerOcr(){
+      if(window.Tesseract) return Promise.resolve();
+      if(chargementOcr) return chargementOcr;
+      chargementOcr = new Promise(function(ok, non){
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.0/tesseract.min.js';
+        s.onload = ok;
+        s.onerror = function(){ chargementOcr = null; non(); };
+        document.head.appendChild(s);
+      });
+      return chargementOcr;
+    }
+    function lireCode(canvas){
+      if(!('BarcodeDetector' in window)) return Promise.resolve('');
+      let d;
+      try{ d = new window.BarcodeDetector(); }catch(e){ return Promise.resolve(''); }
+      return d.detect(canvas).then(function(codes){
+        return (codes && codes.length) ? String(codes[0].rawValue || '') : '';
+      }, function(){ return ''; });
+    }
+    // Du texte d'une étiquette, les mots qui nomment l'entana : les plus
+    // longs d'abord, sans les chiffres épars ni les signes que l'OCR invente.
+    function motsDeLEtiquette(texte){
+      const vus = {};
+      const mots = (texte || '').split(/[^0-9A-Za-zÀ-ÿ-]+/).filter(function(m){
+        const k = m.toLowerCase();
+        if(m.length < 3 || /^\d+$/.test(m) && m.length < 8 || vus[k]) return false;
+        vus[k] = true;
+        return /[A-Za-zÀ-ÿ]{3}/.test(m) || /^\d{8,14}$/.test(m);
+      });
+      return mots.slice(0, 5).join(' ');
+    }
+    function versCanvas(img){
+      const largeur = Math.min(img.naturalWidth || img.width, 1400);
+      const ratio = largeur / (img.naturalWidth || img.width);
+      const c = document.createElement('canvas');
+      c.width = Math.round(largeur);
+      c.height = Math.round((img.naturalHeight || img.height) * ratio);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      return c;
+    }
+    function scanner(fichier){
+      if(!fichier) return;
+      boutonScan.classList.add('en-cours');
+      direScan('Famakiana ny sary…');
+      const url = URL.createObjectURL(fichier);
+      const img = new Image();
+      function fin(texte){
+        boutonScan.classList.remove('en-cours');
+        URL.revokeObjectURL(url);
+        scanSansTexte = !texte;
+        champ.value = texte || '';
+        if(texte){
+          direScan('Hita : « ' + texte + ' »');
+          chercher();
+        } else {
+          direScan('Tsy nisy soratra na code-barres voavaky. Andramo akaiky kokoa, na karohy amin\'ny Google Lens.');
+          // Rien à chercher ici : seulement le chemin vers Lens.
+          sortie.innerHTML = '';
+          if(rienTrouve) rienTrouve.style.display = 'none';
+          const g = leWeb('');
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'nav-action';
+          b.textContent = g[g.length - 1].nom;
+          b.addEventListener('click', function(){ fermer(); g[g.length - 1].ouvrir(); });
+          sortie.appendChild(b);
+          placer();
+        }
+        scanSansTexte = false;
+      }
+      img.onload = function(){
+        const canvas = versCanvas(img);
+        lireCode(canvas).then(function(code){
+          if(code) return code.trim();
+          direScan('Famakiana ny soratra… (ny voalohany dia maharitra kely)');
+          return chargerOcr().then(function(){
+            return window.Tesseract.recognize(canvas, 'eng+fra');
+          }).then(function(res){
+            return motsDeLEtiquette(res && res.data && res.data.text);
+          });
+        }).then(fin, function(){
+          boutonScan.classList.remove('en-cours');
+          URL.revokeObjectURL(url);
+          direScan('Tsy nety ny famakiana : jereo ny connexion, dia andramo indray.');
+        });
+      };
+      img.onerror = function(){ fin(''); };
+      img.src = url;
+    }
+    if(boutonScan && fichierScan){
+      boutonScan.addEventListener('click', function(e){
+        e.stopPropagation();
+        fichierScan.value = '';
+        fichierScan.click();
+      });
+      fichierScan.addEventListener('click', function(e){ e.stopPropagation(); });
+      fichierScan.addEventListener('change', function(){ scanner(fichierScan.files && fichierScan.files[0]); });
+    }
+
     function placer(){
       if(panneau.style.display !== 'block') return;
       if(typeof placerPresDuMenu === 'function') placerPresDuMenu(panneau);
@@ -5913,13 +6074,16 @@
         { titre: 'Hevitra', lignes: fil.hevitra },
         { titre: 'Magazay sy fitaterana', lignes: lesAdresses() }
       ];
+      // Ce qui ne se trouve pas ici se cherche dehors : les boutiques
+      // internationales, puis le web, dans Chrome ou Safari. Toujours
+      // proposés, sans filtre — c'est la question elle-même qu'on y envoie.
+      const brut = champ.value.trim();
+      const exterieur = [
+        { titre: 'Entana international', lignes: lesBoutiques(brut) },
+        { titre: 'Amin\'ny Internet', lignes: leWeb(brut) }
+      ];
       let total = 0;
-      groupes.forEach(function(g){
-        const gardes = g.lignes.filter(function(l){
-          return nu(l.nom + ' ' + (l.mots || '')).indexOf(q) >= 0;
-        }).slice(0, PAR_GROUPE);
-        if(!gardes.length) return;
-        total += gardes.length;
+      function afficher(g, gardes){
         const titre = document.createElement('div');
         titre.className = 'recherche-groupe';
         titre.textContent = g.titre;
@@ -5940,8 +6104,22 @@
           b.addEventListener('click', function(){ fermer(); l.ouvrir(); });
           sortie.appendChild(b);
         });
+      }
+      groupes.forEach(function(g){
+        const gardes = g.lignes.filter(function(l){
+          return nu(l.nom + ' ' + (l.mots || '')).indexOf(q) >= 0;
+        }).slice(0, PAR_GROUPE);
+        if(!gardes.length) return;
+        total += gardes.length;
+        afficher(g, gardes);
       });
-      if(rienTrouve) rienTrouve.style.display = total ? 'none' : 'block';
+      // « Tsy misy hita » parle de ce qui est ici : il se dit avant les
+      // chemins vers le dehors, qui, eux, sont toujours là.
+      if(rienTrouve){
+        rienTrouve.style.display = total ? 'none' : 'block';
+        sortie.appendChild(rienTrouve);
+      }
+      exterieur.forEach(function(g){ afficher(g, g.lignes); });
       placer();
     }
 
@@ -5976,6 +6154,7 @@
       // Ce qu'on cherchait la fois d'avant n'a rien à voir avec maintenant :
       // le champ repart vide.
       champ.value = '';
+      direScan('');
       chercher();
       requestAnimationFrame(function(){
         placer();

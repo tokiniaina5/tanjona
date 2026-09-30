@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="dac647a0">
+<meta name="ny-asako-version" content="b45b6ef9">
 <title>Ny asako — Tanjona</title>
 <!-- Application installable : le manifeste décrit le nom, l'icône et la façon
      de s'ouvrir ; le reste est affaire de service worker, enregistré plus bas. -->
@@ -135,7 +135,7 @@
 <link rel="apple-touch-startup-image" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)" href="/demarrage/2732x2048.png">
 <!-- fin des écrans de démarrage iOS -->
 <link rel="icon" href="/icone-192.png" type="image/png">
-<link rel="stylesheet" href="gestion-stockage-css/base.css?v=f6d1dd9f">
+<link rel="stylesheet" href="gestion-stockage-css/base.css?v=505a9236">
 <link rel="stylesheet" href="gestion-stockage-css/components.css?v=6b9e7690">
 </head>
 <body>
@@ -718,7 +718,14 @@
            pas demander de savoir d'avance dans laquelle des trois listes il se
            trouve. -->
       <div class="panneau-flottant panneau-boite" id="recherchePanel" style="display:none;">
-        <input type="search" id="rechercheChamp" class="menu-recherche" placeholder="Karohy: entana, pejy, vaovao, hevitra..." aria-label="Rechercher" autocomplete="off">
+        <!-- Le scan : une photo de l'entana (son code-barres, son étiquette),
+             lue dans le navigateur, devient ce qu'on cherche. -->
+        <div class="recherche-ligne">
+          <input type="search" id="rechercheChamp" class="menu-recherche" placeholder="Karohy: entana, pejy, vaovao, hevitra..." aria-label="Rechercher" autocomplete="off">
+          <button type="button" class="recherche-scan" id="rechercheScan" title="Scanner un entana" aria-label="Scanner un entana"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16"/></svg></button>
+          <input type="file" id="rechercheScanFichier" accept="image/*" capture="environment" hidden>
+        </div>
+        <p class="panneau-note" id="rechercheScanStatut" hidden></p>
         <div id="rechercheResultats" class="recherche-resultats"></div>
         <p class="panneau-note" id="rechercheVide" style="display:none;">Tsy misy hita.</p>
       </div>
@@ -3042,7 +3049,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=4ad3bc30"></script>
+<script src="gestion-stockage-js/common.js?v=c25c8f57"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=92ad47d0"></script>
@@ -3056,7 +3063,7 @@
 <script src="gestion-stockage-js/zara-rehetra.js?v=1d7a9c94"></script>
 <script src="gestion-stockage-js/live.js?v=accde37b"></script>
 <script src="gestion-stockage-js/traduction.js?v=8f5605bc"></script>
-<script src="gestion-stockage-js/parametres.js?v=4bedfe81"></script>
+<script src="gestion-stockage-js/parametres.js?v=ae970f36"></script>
 <!-- Le partage reçu du dehors remplit la boîte « Écrire », que parametres.js
      tient : il se charge après elle. -->
 <script src="gestion-stockage-js/zara-miditra.js?v=bfe2ae80"></script>

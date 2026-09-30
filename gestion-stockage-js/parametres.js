@@ -541,12 +541,23 @@
   //   - ailleurs : un onglet.
   const NAVIGATEURS = {
     chrome: { page: 'https://www.google.com', android: 'com.android.chrome', ios: 'googlechromes://www.google.com' },
-    edge: { page: 'https://www.bing.com', android: 'com.microsoft.emmx', ios: 'microsoft-edge-https://www.bing.com', windows: 'microsoft-edge:https://www.bing.com' }
+    edge: { page: 'https://www.bing.com', android: 'com.microsoft.emmx', ios: 'microsoft-edge-https://www.bing.com', windows: 'microsoft-edge:https://www.bing.com' },
+    // Safari n'a pas d'adresse à lui : c'est le navigateur de l'iPhone, qui
+    // reçoit tout lien qu'on ouvre. Ailleurs, le navigateur qu'on a.
+    safari: { page: 'https://www.google.com' }
   };
 
-  function ouvrirLeNavigateur(nom){
-    const n = NAVIGATEURS[nom];
-    if(!n) return;
+  // « page » : une adresse précise à ouvrir dans ce navigateur (la recherche
+  // de la loupe), au lieu de sa page d'accueil.
+  function ouvrirLeNavigateur(nom, page){
+    const base = NAVIGATEURS[nom];
+    if(!base) return;
+    if(nom === 'safari'){ window.open(page || base.page, '_blank', 'noopener'); return; }
+    const n = page ? {
+      page: page, android: base.android,
+      ios: nom === 'chrome' ? page.replace(/^https:\/\//, 'googlechromes://') : 'microsoft-edge-' + page,
+      windows: base.windows ? 'microsoft-edge:' + page : null
+    } : base;
     const ua = navigator.userAgent || '';
     if(/Android/i.test(ua)){
       const hote = n.page.replace(/^https:\/\//, '');
@@ -572,6 +583,8 @@
     }
     window.open(n.page, '_blank', 'noopener');
   }
+
+  window.__ouvrirLeNavigateur = ouvrirLeNavigateur;
 
   document.querySelectorAll('[data-navigateur]').forEach(function(bouton){
     bouton.addEventListener('click', function(){

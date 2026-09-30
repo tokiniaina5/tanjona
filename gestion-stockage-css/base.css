@@ -412,6 +412,19 @@
     box-sizing: border-box;
   }
   .menu-recherche:focus{ outline:none; border-color: var(--cyan); }
+  /* Le bouton du scan, dans le champ même, au bout à droite. */
+  .recherche-ligne{ position:relative; }
+  .recherche-ligne .menu-recherche{ padding-right:2.6rem; }
+  .recherche-scan{
+    position:absolute; right:0.3rem; top:0.25rem;
+    width:2rem; height:1.9rem; display:inline-flex; align-items:center; justify-content:center;
+    border:none; border-radius:6px; background:transparent; color:var(--cyan); cursor:pointer;
+  }
+  .recherche-scan:hover{ background:var(--panel-2); }
+  .recherche-scan svg{ width:1.25rem; height:1.25rem; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; }
+  .recherche-scan.en-cours svg{ animation: scan-pulse 0.9s ease-in-out infinite; }
+  @keyframes scan-pulse{ 50%{ opacity:0.3; } }
+  #rechercheScanStatut{ margin:-0.3rem 0.2rem 0.5rem; font-size:0.75rem; }
   .menu-vide{ font-size:0.75rem; color: var(--muted); margin:0.4rem 0.2rem; }
   /* Le panneau suit le bouton : ouvert en bas de l'écran, il doit s'ouvrir
      vers le haut, sinon il sort par le bas et devient inatteignable. */
