@@ -1435,6 +1435,23 @@
     });
   }
 
+  // En ligne : son compte est dans la présence (live.js), qui porte son
+  // identifiant. La carte de sa story prend alors un bord vert vif.
+  function auteurEnLigne(id){
+    if(!id || typeof presenceState !== 'object' || !presenceState) return false;
+    return Object.keys(presenceState).some(function(k){
+      return presenceState[k] && presenceState[k].uid === id;
+    });
+  }
+  // La présence change sans que les stories soient relues : on repeint
+  // seulement les bords.
+  window.__storiesEnLigne = function(){
+    if(!storyRangee) return;
+    storyRangee.querySelectorAll('[data-story-auteur]').forEach(function(c){
+      c.classList.toggle('en-ligne', auteurEnLigne(c.getAttribute('data-story-auteur')));
+    });
+  };
+
   function avatarStory(photo, nom){
     return photo
       ? '<img class="story-avatar" src="' + escapeHtml(photo) + '" alt="">'
@@ -1456,7 +1473,8 @@
       // le son, en tient lieu.
       const video = derniere.genre === 'video';
       html +=
-        '<button type="button" class="story-carte" data-story-groupe="' + i + '"' +
+        '<button type="button" class="story-carte' + (auteurEnLigne(g.auteur_id) ? ' en-ligne' : '') +
+          '" data-story-groupe="' + i + '" data-story-auteur="' + escapeHtml(g.auteur_id) + '"' +
           (video ? '' : ' style="background-image:url(\'' + String(derniere.media).replace(/'/g, '%27') + '\')"') + '>' +
           (video ? '<video class="story-carte-video" src="' + escapeHtml(derniere.media) + '#t=' + ((derniere.video_debut || 0) + 0.5) + '" muted playsinline preload="metadata"></video>' +
             '<span class="story-carte-play" aria-hidden="true">▶</span>' : '') +

@@ -83,10 +83,20 @@
       updateLiveReachInfo();
       veillerSurLesLives();
       if(typeof updateOwnerPresenceLabel === 'function') updateOwnerPresenceLabel();
+      // Le bord vert des stories de ceux qui sont là (parametres.js).
+      if(typeof window.__storiesEnLigne === 'function') window.__storiesEnLigne();
     });
     presenceChannel.subscribe(function(status){
       if(status === 'SUBSCRIBED'){
-        presenceChannel.track({ name: me.name, isAdmin: me.isAdmin, live: false, at: Date.now() });
+        // L'identifiant du compte voyage avec : les stories portent celui de
+        // leur auteur, et non son adresse, qu'on ne montre pas à tous.
+        const auth = window.__sb.auth;
+        (auth && auth.getSession ? auth.getSession() : Promise.resolve(null)).then(function(r){
+          const uid = r && r.data && r.data.session && r.data.session.user ? r.data.session.user.id : null;
+          presenceChannel.track({ name: me.name, isAdmin: me.isAdmin, live: false, uid: uid, at: Date.now() });
+        }, function(){
+          presenceChannel.track({ name: me.name, isAdmin: me.isAdmin, live: false, at: Date.now() });
+        });
       }
     });
   }
