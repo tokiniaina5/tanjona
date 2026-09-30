@@ -2802,7 +2802,10 @@
                   'style="display:block; margin-top:0.6rem; border:1px solid var(--line); ' +
                   'border-radius:10px; overflow:hidden; text-decoration:none; color:inherit;"></a>'
                 : '')) +
+            // Les actions au milieu, à intervalles égaux ; « Hamafa », à part,
+            // au bord droit (components.css, « .fb-actions-milieu »).
             '<div class="fb-post-actions">' +
+            '<div class="fb-actions-milieu">' +
             '<span class="fb-like-action" data-like style="cursor:pointer;">' + logoAvec(POUCE_LOGO) + '<span>J\'aime</span></span>' +
             '<span class="fb-comment-action fb-partager" data-comment style="cursor:pointer;">' + BULLE_COMMENTER + '<span>Commenter</span></span>' +
             // Le panier, juste après : on met de côté ce qu'on achètera.
@@ -2817,6 +2820,7 @@
             // tout cocher d'un coup, sans plafond.
             '<span class="fb-share-action fb-partager" data-share-all style="cursor:pointer;">' +
               '<img class="fb-logo-maison" src="/icone-192.png" alt="" aria-hidden="true" draggable="false"><span>Rehetra</span></span>' +
+            '</div>' +
             // Effacer n'est offert qu'à qui a écrit le billet : l'adresse du
             // billet est celle du compte. La base dit la même chose de son
             // côté (supabase-entana-lany.sql) — le bouton ne fait que suivre.

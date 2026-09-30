@@ -843,9 +843,15 @@
      plein et bleu une fois aimé. Le trait épais du texte redit l'état pour
      qui distingue mal les teintes. */
   .fb-like-action{ display:inline-flex; align-items:center; gap:0.35rem; font-weight:600; }
-  /* « J'aime » se tient seul au bord gauche de la rangée ; la marge
-     automatique prend toute la place libre et pousse les autres à droite. */
-  .fb-post-actions > .fb-like-action{ margin-right:auto; }
+  /* Les actions au milieu, à intervalles égaux ; « Hamafa » à part, au bord
+     droit. Le groupe du milieu prend toute la place que l'effacement laisse. */
+  .fb-post-actions{ align-items:center; }
+  .fb-actions-milieu{
+    flex:1; min-width:0;
+    display:flex; flex-wrap:wrap; align-items:center;
+    justify-content:space-evenly; gap:0.6rem 0.4rem;
+  }
+  .fb-post-actions > [data-delete-post]{ margin-left:auto; flex:none; }
   .fb-pouce{ width:1.25em; height:1.25em; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linejoin:round; }
   .fb-like-action:hover{ color:var(--text); }
   .fb-like-action.liked{ color:#0866ff; font-weight:700; }
