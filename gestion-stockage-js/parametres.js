@@ -2902,7 +2902,12 @@
     // Toute la réserve reste attachée au cadre : c'est elle qui tourne.
     cadre.__images = toutes;
     cadre.__tour = 0;
-    const images = toutes.slice(0, APERCU_IMAGES);
+    // Dans le fil, une seule image, grande, qui remplit toute la carte en
+    // carré ; les autres de la réserve lui succèdent à chaque tour. Trois
+    // vignettes de cent vingt pixels y étaient trop petites pour voir
+    // l'entana. La liste des boutiques (qui donne sa hauteur) garde les trois.
+    const grand = !cadre.hasAttribute('data-apercu-haut');
+    const images = toutes.slice(0, grand ? 1 : APERCU_IMAGES);
     // Dans la fenêtre des boutiques, les images sont demandées tout de suite.
     // Le chargement différé y reste muet : la fenêtre naît cachée, et le
     // navigateur ne revient pas sur sa décision quand elle paraît. Dans le
@@ -2912,11 +2917,11 @@
       'background:var(--panel-2); transition:opacity 0.22s;';
     // Une image seule prend toute la place ; deux ou trois se mettent côte à
     // côte et échangent leurs places à chaque tour.
-    const seule = toutes.length === 1;
+    const seule = grand || toutes.length === 1;
     cadre.innerHTML =
       (images.length
         ? (seule
-          ? '<div data-rang="0" data-seule style="height:' + Math.round(haut * 1.8) + 'px;">' +
+          ? '<div data-rang="0" data-seule style="' + (grand ? 'aspect-ratio:1 / 1;' : 'height:' + Math.round(haut * 1.8) + 'px;') + '">' +
             '<img src="' + escapeHtml(images[0]) + '" alt="" loading="' + chargement + '" ' +
             'style="' + cadreImage + '"></div>'
           : '<div style="display:grid; grid-template-columns:repeat(' + images.length + ', 1fr); gap:2px;">' +
