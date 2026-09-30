@@ -39,3 +39,16 @@ create policy "remove your own comment reaction"
   on public.client_news_comment_reactions for delete
   to authenticated
   using (author_email = (auth.jwt() ->> 'email'));
+
+-- Le temps réel : l'auteur d'un commentaire voit la réaction arriver sur
+-- son écran à l'instant où quelqu'un la donne (parametres.js).
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public'
+      and tablename = 'client_news_comment_reactions'
+  ) then
+    alter publication supabase_realtime add table public.client_news_comment_reactions;
+  end if;
+end $$;

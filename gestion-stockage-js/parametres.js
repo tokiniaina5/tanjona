@@ -1366,19 +1366,64 @@
   }
 
   // Les réactions des commentaires à l'écran, en une lecture.
+  //
+  // L'auteur d'un commentaire voit arriver celles des autres : la réaction
+  // éclate sur son écran — la pluie sur toute la page — et se pose, comptée,
+  // sous son commentaire. On compare donc chaque lecture à la précédente.
+  // La toute première ne fait que prendre la mesure : ce qui était déjà là
+  // n'arrive pas.
+  let reactionsCommentairesLues = false;
   function chargerReactionsCommentaires(ids){
-    if(!ids.length || !window.__sb) return;
-    window.__sb.from('client_news_comment_reactions')
+    if(!ids || !ids.length || !window.__sb) return;
+    const moi = myLikeEmail();
+    const lesReactions = window.__sb.from('client_news_comment_reactions')
       .select('comment_id,author_email,reaction')
-      .in('comment_id', ids)
-      .then(function(res){
-        if(res && res.error) return;
-        reactionsCommentaires = compterLesReactions((res && res.data) || [], 'comment_id');
-        document.querySelectorAll('#communityNewsList [data-sorte="commentaire"]').forEach(function(el){
-          const ligne = el.closest('.fb-comment');
-          if(ligne && ligne.dataset.commentId) paintLike(el, ligne.dataset.commentId);
-        });
-      }, function(){});
+      .in('comment_id', ids);
+    // Lesquels de ces commentaires sont les miens : on ne demande que leurs
+    // identifiants, pas les adresses des autres.
+    const lesMiens = moi
+      // ilike pour la casse ; « _ » et « % » d'une adresse échappés, sinon
+      // ils joueraient les jokers.
+      ? window.__sb.from('client_news_comments').select('id').in('id', ids)
+          .ilike('author_email', moi.replace(/[\\%_]/g, '\\$&'))
+      : Promise.resolve({ data: [] });
+    Promise.all([lesReactions, lesMiens]).then(function(res){
+      const r = res[0], m = res[1];
+      if(r && r.error) return;
+      const avant = reactionsCommentaires;
+      const premiere = !reactionsCommentairesLues;
+      reactionsCommentaires = compterLesReactions((r && r.data) || [], 'comment_id');
+      reactionsCommentairesLues = true;
+      document.querySelectorAll('#communityNewsList [data-sorte="commentaire"]').forEach(function(el){
+        const ligne = el.closest('.fb-comment');
+        if(ligne && ligne.dataset.commentId) paintLike(el, ligne.dataset.commentId);
+      });
+      if(premiere || !m || m.error) return;
+      ((m && m.data) || []).forEach(function(c){
+        const arrivee = reactionArrivee(avant[c.id], reactionsCommentaires[c.id]);
+        if(!arrivee) return;
+        const bouton = document.querySelector('#communityNewsList .fb-comment[data-comment-id="' + c.id + '"] [data-sorte="commentaire"]');
+        if(bouton) eclaterReaction(bouton, arrivee);
+      });
+    }, function(){});
+  }
+  // La réaction qu'un AUTRE vient de donner, s'il y en a une : la sienne
+  // propre ne compte pas, on vient de la voir éclater en la choisissant.
+  function reactionArrivee(avant, apres){
+    if(!apres) return null;
+    avant = avant || { parType: {}, mine: null };
+    function desAutres(info, t){ return ((info.parType || {})[t] || 0) - (info.mine === t ? 1 : 0); }
+    for(let i = 0; i < REACTIONS.length; i++){
+      const t = REACTIONS[i].id;
+      if(desAutres(apres, t) > desAutres(avant, t)) return t;
+    }
+    return null;
+  }
+  // Tous les commentaires à l'écran, pour relire leurs réactions d'un coup.
+  function commentairesAffiches(){
+    return [].map.call(document.querySelectorAll('#communityNewsList .fb-comment[data-comment-id]'), function(l){
+      return l.dataset.commentId;
+    });
   }
 
   // La réaction choisie éclate : elle grossit au-dessus du bouton, monte
@@ -1595,6 +1640,13 @@
             poserLeMinuteurDesCommentaires(COMMENTAIRES_FILET_MS);
           }
           chargerLesCommentaires(true);
+        })
+        // Une réaction donnée, changée ou retirée sous un commentaire : on
+        // relit les réactions seules, sans attendre la relecture suivante.
+        .on('postgres_changes', {
+          event: '*', schema: 'public', table: 'client_news_comment_reactions'
+        }, function(){
+          chargerReactionsCommentaires(commentairesAffiches());
         })
         .subscribe(function(){});
     } catch(e){ canalCommentaires = null; }
