@@ -541,6 +541,8 @@
     border-radius:999px;
     background:#ff6b6b; color:#fff;
     font-size:0.5rem; text-align:center;
+    /* La main, et non celle qui saisit l'icône : ici on clique pour retirer. */
+    cursor:pointer;
   }
   /* Quatorze pixels, c'est lisible mais trop peu pour un doigt. On agrandit la
      cible sans agrandir le dessin. */
