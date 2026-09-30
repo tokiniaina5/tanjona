@@ -808,9 +808,41 @@
   .fb-reactions-choix button:hover,
   .fb-reactions-choix button:focus-visible{ transform: translateY(-4px) scale(1.3); outline:none; }
   @keyframes reactions-monte{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:none; } }
+
+  /* L'éclat d'une réaction choisie : le visage grossit, puis monte se poser
+     sur le compteur ; des éclats de sa couleur partent en cercle. */
+  .fb-reaction-vole{
+    position:fixed; z-index:170; pointer-events:none;
+    font-size:1.4rem; line-height:1;
+    transform:translate(-50%, -50%);
+    animation: reaction-vole 0.85s cubic-bezier(.3,.7,.4,1) forwards;
+  }
+  .fb-reaction-vole .fb-like-bubble{ width:26px; height:26px; }
+  .fb-reaction-vole .fb-like-bubble .fb-pouce{ width:14px; height:14px; }
+  @keyframes reaction-vole{
+    0%  { transform:translate(-50%, -50%) scale(0.4); opacity:0; }
+    25% { transform:translate(-50%, calc(-50% - 26px)) scale(2); opacity:1; }
+    55% { transform:translate(-50%, calc(-50% - 30px)) scale(1.7); opacity:1; }
+    100%{ transform:translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.7); opacity:0; }
+  }
+  .fb-reaction-eclat{
+    position:fixed; z-index:169; pointer-events:none;
+    width:8px; height:8px; margin:-4px 0 0 -4px; border-radius:50%;
+    animation: reaction-eclat 0.6s ease-out forwards;
+  }
+  @keyframes reaction-eclat{
+    from{ transform:translate(0, 0) scale(1); opacity:1; }
+    to  { transform:translate(var(--ex), var(--ey)) scale(0.3); opacity:0; }
+  }
+  /* Le bouton sursaute sous le doigt. */
+  .fb-like-rebond{ animation: like-rebond 0.35s ease-out; }
+  @keyframes like-rebond{ 0%{ transform:scale(1); } 40%{ transform:scale(1.25); } 100%{ transform:scale(1); } }
+
   @media (prefers-reduced-motion: reduce){
     .fb-reactions-choix{ animation:none; }
     .fb-reactions-choix button{ transition:none; }
+    .fb-reaction-vole, .fb-reaction-eclat{ display:none; }
+    .fb-like-rebond{ animation:none; }
   }
   .fb-comment-form{ display:flex; gap:0.5rem; margin-top:0.5rem; }
   .fb-comment-input{

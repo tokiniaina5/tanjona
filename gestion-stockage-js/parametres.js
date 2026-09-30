@@ -1191,8 +1191,13 @@
         ? (info.count === 1 ? 'Ianao' : 'Ianao sy ' + (info.count - 1) + ' hafa')
         : info.count;
       // Les trois réactions les plus données, comme Facebook les empile.
+      // La sienne d'abord : on la voit posée là-haut, à peine choisie.
       const types = Object.keys(info.parType || {}).filter(function(t){ return info.parType[t] > 0; })
-        .sort(function(a, b){ return info.parType[b] - info.parType[a]; }).slice(0, 3);
+        .sort(function(a, b){
+          if(a === info.mine) return -1;
+          if(b === info.mine) return 1;
+          return info.parType[b] - info.parType[a];
+        }).slice(0, 3);
       if(!types.length && info.count) types.push('like');
       compte.innerHTML = '<span class="fb-reaction-pile">' + types.map(bulle).join('') + '</span>' +
         '<span>' + escapeHtml(String(qui)) + '</span>';
@@ -1313,6 +1318,44 @@
       }, function(){});
   }
 
+  // La réaction choisie éclate : elle grossit au-dessus du bouton, monte
+  // jusqu'au compteur, et des éclats de sa couleur s'éparpillent autour.
+  function eclaterReaction(el, id){
+    const r = reactionDe(id);
+    const depart = el.getBoundingClientRect();
+    const post = el.closest('.fb-post');
+    const compte = post && post.querySelector('[data-like-count]');
+    const arrivee = compte && compte.style.display !== 'none' ? compte.getBoundingClientRect() : null;
+    const x = depart.left + 14, y = depart.top + depart.height / 2;
+
+    const vole = document.createElement('div');
+    vole.className = 'fb-reaction-vole';
+    vole.innerHTML = r.id === 'like' ? bulle('like') : r.emoji;
+    vole.style.left = x + 'px';
+    vole.style.top = y + 'px';
+    vole.style.setProperty('--dx', (arrivee ? arrivee.left + 9 - x : 0) + 'px');
+    vole.style.setProperty('--dy', (arrivee ? arrivee.top + arrivee.height / 2 - y : -70) + 'px');
+    document.body.appendChild(vole);
+    setTimeout(function(){ vole.remove(); }, 900);
+
+    for(let i = 0; i < 10; i++){
+      const eclat = document.createElement('span');
+      eclat.className = 'fb-reaction-eclat';
+      const angle = (i / 10) * Math.PI * 2;
+      const loin = 26 + Math.random() * 16;
+      eclat.style.left = x + 'px';
+      eclat.style.top = y + 'px';
+      eclat.style.background = r.couleur;
+      eclat.style.setProperty('--ex', Math.round(Math.cos(angle) * loin) + 'px');
+      eclat.style.setProperty('--ey', Math.round(Math.sin(angle) * loin) + 'px');
+      document.body.appendChild(eclat);
+      setTimeout(function(){ eclat.remove(); }, 650);
+    }
+    el.classList.remove('fb-like-rebond');
+    void el.offsetWidth;
+    el.classList.add('fb-like-rebond');
+  }
+
   // Le pouce seul : il met « J'aime », ou retire la réaction quelle qu'elle
   // soit — comme sur Facebook.
   function toggleLike(el, newsId){
@@ -1337,6 +1380,7 @@
     if(avant.mine && !id) info.count = Math.max(0, info.count - 1);
     info.mine = id;
     paintLike(el, newsId);
+    if(id) eclaterReaction(el, id);
 
     const table = window.__sb.from('client_news_likes');
     let action;
