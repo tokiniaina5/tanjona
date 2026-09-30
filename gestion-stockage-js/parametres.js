@@ -1150,17 +1150,24 @@
 
   // Les réactions, comme sur Facebook (supabase-reactions.sql). Le pouce
   // garde son dessin ; les autres sont des visages, chacun sa couleur.
+  // Les visages en relief : les « Fluent Emoji 3D » de Microsoft (licence
+  // MIT), servis par jsDelivr comme les autres bibliothèques. Si l'image ne
+  // vient pas, son texte de remplacement est l'emoji ordinaire.
+  const EMOJI_3D = 'https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/';
   const REACTIONS = [
-    { id: 'like',  emoji: '👍', nom: 'J\'aime',   couleur: '#0866ff' },
-    { id: 'love',  emoji: '❤️', nom: 'J\'adore',  couleur: '#f33e58' },
-    { id: 'care',  emoji: '🥰', nom: 'Solidaire', couleur: '#f7b125' },
-    { id: 'haha',  emoji: '😆', nom: 'Haha',      couleur: '#f7b125' },
-    { id: 'wow',   emoji: '😮', nom: 'Wouah',     couleur: '#f7b125' },
-    { id: 'sad',   emoji: '😢', nom: 'Triste',    couleur: '#f7b125' },
-    { id: 'angry', emoji: '😡', nom: 'Grrr',      couleur: '#e9710f' }
+    { id: 'like',  emoji: '👍', nom: 'J\'aime',   couleur: '#0866ff', image: 'Thumbs%20up/Default/3D/thumbs_up_3d_default.png' },
+    { id: 'love',  emoji: '❤️', nom: 'J\'adore',  couleur: '#f33e58', image: 'Red%20heart/3D/red_heart_3d.png' },
+    { id: 'care',  emoji: '🥰', nom: 'Solidaire', couleur: '#f7b125', image: 'Smiling%20face%20with%20hearts/3D/smiling_face_with_hearts_3d.png' },
+    { id: 'haha',  emoji: '😆', nom: 'Haha',      couleur: '#f7b125', image: 'Grinning%20squinting%20face/3D/grinning_squinting_face_3d.png' },
+    { id: 'wow',   emoji: '😮', nom: 'Wouah',     couleur: '#f7b125', image: 'Face%20with%20open%20mouth/3D/face_with_open_mouth_3d.png' },
+    { id: 'sad',   emoji: '😢', nom: 'Triste',    couleur: '#f7b125', image: 'Crying%20face/3D/crying_face_3d.png' },
+    { id: 'angry', emoji: '😡', nom: 'Grrr',      couleur: '#e9710f', image: 'Pouting%20face/3D/pouting_face_3d.png' }
   ];
   function reactionDe(id){
     return REACTIONS.filter(function(r){ return r.id === id; })[0] || REACTIONS[0];
+  }
+  function visage(r){
+    return '<img class="fb-emoji-3d" src="' + EMOJI_3D + r.image + '" alt="' + r.emoji + '" draggable="false">';
   }
   // Tant que supabase-reactions.sql n'est pas passé, la colonne manque : on
   // retombe sur le simple « j'aime », sans menu de réactions.
@@ -1169,7 +1176,7 @@
   function bulle(id){
     return id === 'like'
       ? '<span class="fb-like-bubble">' + POUCE + '</span>'
-      : '<span class="fb-reaction-bulle">' + reactionDe(id).emoji + '</span>';
+      : '<span class="fb-reaction-bulle">' + visage(reactionDe(id)) + '</span>';
   }
 
   function paintLike(el, newsId){
@@ -1178,7 +1185,7 @@
     // propre ligne, et disparaît quand il n'y a rien à compter.
     const r = info.mine ? reactionDe(info.mine) : null;
     el.innerHTML = (r && r.id !== 'like')
-      ? '<span class="fb-reaction-emoji">' + r.emoji + '</span><span>' + r.nom + '</span>'
+      ? '<span class="fb-reaction-emoji">' + visage(r) + '</span><span>' + r.nom + '</span>'
       : POUCE + '<span>J\'aime</span>';
     el.classList.toggle('liked', !!r);
     el.style.color = r ? r.couleur : '';
@@ -1224,7 +1231,7 @@
         b.dataset.reaction = r.id;
         b.title = r.nom;
         b.setAttribute('aria-label', r.nom);
-        b.textContent = r.emoji;
+        b.innerHTML = visage(r);
         b.addEventListener('click', function(e){
           e.stopPropagation();
           const cible = menuPour;
@@ -1283,8 +1290,18 @@
     });
   }
 
+  // Les visages sont chargés dès que le fil paraît : au premier appui sur
+  // « J'aime », le menu doit s'ouvrir plein, et non se remplir sous les yeux.
+  let visagesCharges = false;
+  function chargerLesVisages(){
+    if(visagesCharges) return;
+    visagesCharges = true;
+    REACTIONS.forEach(function(r){ const i = new Image(); i.src = EMOJI_3D + r.image; });
+  }
+
   function loadLikes(ids){
     if(!ids.length || !window.__sb) return;
+    chargerLesVisages();
     function lire(avecReaction){
       return window.__sb.from('client_news_likes')
         .select('news_id,author_email' + (avecReaction ? ',reaction' : ''))
@@ -1326,7 +1343,7 @@
 
     const vole = document.createElement('div');
     vole.className = 'fb-reaction-vole';
-    vole.innerHTML = r.id === 'like' ? bulle('like') : r.emoji;
+    vole.innerHTML = visage(r);
     vole.style.left = x + 'px';
     vole.style.top = y + 'px';
     vole.style.setProperty('--dx', (arrivee ? arrivee.left + 9 - x : 0) + 'px');
@@ -1357,7 +1374,7 @@
     pluie.className = 'fb-reaction-pluie';
     for(let j = 0; j < 22; j++){
       const g = document.createElement('span');
-      g.innerHTML = r.id === 'like' ? bulle('like') : r.emoji;
+      g.innerHTML = visage(r);
       g.style.left = Math.round(Math.random() * 96) + '%';
       g.style.fontSize = (1.2 + Math.random() * 1.6).toFixed(2) + 'rem';
       g.style.animationDelay = Math.round(Math.random() * 700) + 'ms';
