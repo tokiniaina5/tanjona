@@ -3743,10 +3743,76 @@
       // En automatique, fermer une page, c'est en avoir fini avec elle : son
       // icône quitte la rangée du même geste (la rangée, plus bas, en décide).
       if(el && typeof window.__pageFermee === 'function') window.__pageFermee(el.id);
+      revenirAuFil();
+    }
+    function revenirAuFil(){
       const navStock = document.querySelector('.nav-item[data-section="stock"]');
       if(navStock) navStock.click();
       if(typeof showDashView === 'function') showDashView('accueil');
       if(typeof saveLastView === 'function') saveLastView();
+    }
+
+    // Réduire, c'est fermer sans oublier : on revient au fil, mais l'icône de
+    // la page reste dans la rangée du bas, d'où on la rouvre d'un doigt.
+    // L'Accueil et la fiche d'une personne n'ont pas d'icône à garder : pour
+    // eux, réduire et fermer se confondent.
+    function reduireFenetre(el){
+      if(el && (el.id === 'dash-accueil' || el.id === 'section-personne')){
+        fermerFenetre(el);
+        return;
+      }
+      revenirAuFil();
+    }
+
+    // Agrandir : la fenêtre prend toute la bande, et retient où elle était
+    // pour y retourner au second appui.
+    const ICONE_AGRANDIR = '<svg viewBox="0 0 10 10" aria-hidden="true"><rect x="0.5" y="0.5" width="9" height="9"/></svg>';
+    const ICONE_RESTAURER = '<svg viewBox="0 0 10 10" aria-hidden="true"><rect x="0.5" y="2.5" width="7" height="7"/><path d="M2.5 2.5V0.5h7v7h-2"/></svg>';
+    function marquerAgrandie(s, oui){
+      s.agrandie = oui;
+      if(!s.boutonAgrandir) return;
+      s.boutonAgrandir.innerHTML = oui ? ICONE_RESTAURER : ICONE_AGRANDIR;
+      const t = oui ? 'Restaurer la fenêtre' : 'Agrandir la fenêtre';
+      s.boutonAgrandir.title = t;
+      s.boutonAgrandir.setAttribute('aria-label', t);
+    }
+    function remplirBande(s){
+      const z = ecran();
+      const bande = bandeUtile();
+      s.el.style.transform = 'none';
+      s.el.style.right = 'auto';
+      s.el.style.bottom = 'auto';
+      s.el.style.maxHeight = 'none';
+      s.el.style.left = Math.round(z.x + MARGE) + 'px';
+      s.el.style.top = Math.round(bande.haut + MARGE) + 'px';
+      s.el.style.width = Math.round(Math.max(MIN_L, z.w - 2 * MARGE)) + 'px';
+      s.el.style.height = Math.round(Math.max(MIN_H, bande.bas - bande.haut - 2 * MARGE)) + 'px';
+      s.el.style.overflowY = 'auto';
+    }
+    function basculerAgrandie(s){
+      if(!visible(s.el)) return;
+      if(!s.agrandie){
+        const r = s.el.getBoundingClientRect();
+        s.avant = { l: r.left, t: r.top, w: r.width, h: r.height };
+        marquerAgrandie(s, true);
+        remplirBande(s);
+      } else {
+        marquerAgrandie(s, false);
+        // La taille et la place retenues d'avant, rentrées dans l'écran
+        // d'aujourd'hui ; faute de mieux, la taille d'ouverture.
+        if(s.avant){
+          const z = ecran();
+          const bande = bandeUtile();
+          const w = Math.max(MIN_L, Math.min(s.avant.w, z.w - 2 * MARGE));
+          const h = Math.max(MIN_H, Math.min(s.avant.h, bande.bas - bande.haut - 2 * MARGE));
+          const l = Math.max(z.x + MARGE, Math.min(s.avant.l, z.x + z.w - w - MARGE));
+          const t = Math.max(bande.haut + MARGE, Math.min(s.avant.t, bande.bas - h - MARGE));
+          figer(s.el, { left: Math.round(l), top: Math.round(t), width: Math.round(w), height: Math.round(h) });
+        } else if(!poserFenetre(s.el)){
+          appliquerTaille(s.el);
+        }
+      }
+      synchroniser();
     }
 
     // La section du fil est allumée, mais aucune de ses vues ne l'est : il ne
@@ -3800,6 +3866,8 @@
           // trop précoce la marquerait faite et personne n'y reviendrait.
           if(!s.page || poserFenetre(s.el)){
             appliquerTaille(s.el);
+            // Agrandie quand on l'a quittée, elle revient agrandie.
+            if(s.agrandie) remplirBande(s);
             s.vu = true;
           }
         }
@@ -3836,6 +3904,11 @@
       });
       ruban.addEventListener('pointermove', function(e){
         if(!g) return;
+        // Déplacée pour de bon, elle n'est plus agrandie. Un simple appui ne
+        // compte pas : c'est aussi le début d'un double-clic.
+        if(s.agrandie && Math.abs(e.clientX - g.x) + Math.abs(e.clientY - g.y) > 4){
+          marquerAgrandie(s, false);
+        }
         const z = ecran();
         const bande = s.page ? bandeUtile() : { haut: z.y, bas: z.y + z.h };
         let l = g.l + (e.clientX - g.x);
@@ -3851,6 +3924,8 @@
         g = null;
         ruban.classList.remove('tire');
         try{ ruban.releasePointerCapture(e.pointerId); }catch(err){}
+        // Agrandie, sa place n'est pas la sienne : on ne la retient pas.
+        if(s.agrandie) return;
         const r = s.el.getBoundingClientRect();
         const o = lirePlaces();
         o[s.el.id] = { x: Math.round(r.left), y: Math.round(r.top) };
@@ -3874,6 +3949,8 @@
         const r = s.el.getBoundingClientRect();
         if(!visible(s.el) || r.width < 1 || r.height < 1) return;
         e.preventDefault();
+        // Prise à la main, elle n'est plus agrandie : elle a sa taille à elle.
+        if(s.agrandie) marquerAgrandie(s, false);
         figer(s.el, r);
         g = { x: e.clientX, y: e.clientY, l: r.left, t: r.top, w: r.width, h: r.height };
         poignee.classList.add('tire');
@@ -3945,14 +4022,33 @@
         calque.appendChild(ruban);
         armerDeplacement(s, ruban);
 
-        const croix = document.createElement('button');
-        croix.type = 'button';
-        croix.className = 'fenetre-fermer';
-        croix.textContent = '✕';
-        croix.title = 'Fermer la fenêtre';
-        croix.setAttribute('aria-label', 'Fermer la fenêtre');
-        croix.addEventListener('click', function(e){ e.stopPropagation(); fermerFenetre(s.el); });
-        calque.appendChild(croix);
+        // Réduire, agrandir, fermer : les trois boutons d'une fenêtre de
+        // bureau, à leur place habituelle.
+        const boutons = document.createElement('div');
+        boutons.className = 'fenetre-boutons';
+        function bouton(classe, icone, titre, action){
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = classe;
+          b.innerHTML = icone;
+          b.title = titre;
+          b.setAttribute('aria-label', titre);
+          ['pointerdown', 'mousedown', 'touchstart'].forEach(function(t){
+            b.addEventListener(t, function(e){ e.stopPropagation(); });
+          });
+          b.addEventListener('click', function(e){ e.stopPropagation(); action(); });
+          boutons.appendChild(b);
+          return b;
+        }
+        bouton('fenetre-reduire', '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M0 5.5h10"/></svg>',
+          'Réduire la fenêtre', function(){ reduireFenetre(s.el); });
+        s.boutonAgrandir = bouton('fenetre-agrandir', ICONE_AGRANDIR,
+          'Agrandir la fenêtre', function(){ basculerAgrandie(s); });
+        bouton('fenetre-fermer', '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M0.5 0.5l9 9M9.5 0.5l-9 9"/></svg>',
+          'Fermer la fenêtre', function(){ fermerFenetre(s.el); });
+        calque.appendChild(boutons);
+        // Double-cliquer le ruban agrandit ou restaure, comme une barre de titre.
+        ruban.addEventListener('dblclick', function(e){ e.stopPropagation(); basculerAgrandie(s); });
       }
       COINS.forEach(function(coin){
         const poignee = document.createElement('span');
@@ -3999,7 +4095,8 @@
       const places = lirePlaces();
       suivis.forEach(function(s){
         if(!s.page || !visible(s.el)) return;
-        if(tailles[s.el.id] || places[s.el.id]) appliquerTaille(s.el); else poserFenetre(s.el);
+        if(s.agrandie) remplirBande(s);
+        else if(tailles[s.el.id] || places[s.el.id]) appliquerTaille(s.el); else poserFenetre(s.el);
       });
       synchroniser();
     }

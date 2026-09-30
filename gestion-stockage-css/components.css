@@ -348,7 +348,7 @@
   .poignee-deplacer{
     position: absolute;
     /* Entre les deux coins arrondis, qui prennent plus de place qu'avant. */
-    top: 0; left: 30px; right: 48px;
+    top: 0; left: 30px; right: 126px;
     height: 22px;
     pointer-events: auto;
     touch-action: none;
@@ -367,20 +367,32 @@
   .poignee-deplacer.tire{ cursor: grabbing; }
   .poignee-deplacer.tire::after{ background: var(--cyan); }
 
-  /* La croix de fermeture vit dans le calque des poignées, et non dans la
-     fenêtre : à l'intérieur, elle défilerait avec la page et disparaîtrait
-     dès qu'on descend d'une ligne. */
-  .fenetre-fermer{
-    /* Rentrée dans la courbe du coin : collée au bord, elle en débordait. */
-    position: absolute; top: 12px; right: 14px;
-    width: 26px; height: 26px; line-height: 24px;
-    border-radius: 999px;
-    border: 1px solid var(--line);
-    background: var(--panel); color: var(--muted);
-    font-size: 0.8rem; text-align: center;
-    cursor: pointer; pointer-events: auto;
+  /* Réduire, agrandir, fermer : ils vivent dans le calque des poignées, et
+     non dans la fenêtre — à l'intérieur, ils défileraient avec la page et
+     disparaîtraient dès qu'on descend d'une ligne. */
+  .fenetre-boutons{
+    /* Rentrés de la courbe du coin : collés au bord, ils en débordaient. */
+    position: absolute; top: 5px; right: 28px;
+    display: flex; gap: 2px;
+    pointer-events: auto;
   }
-  .fenetre-fermer:hover{ color:#ff6b6b; border-color:#ff6b6b; }
+  .fenetre-boutons button{
+    width: 30px; height: 24px; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    border: none; border-radius: 6px;
+    background: transparent; color: var(--muted);
+    cursor: pointer;
+  }
+  .fenetre-boutons svg{
+    width: 10px; height: 10px;
+    fill: none; stroke: currentColor; stroke-width: 1.1;
+  }
+  .fenetre-boutons button:hover{
+    /* Tirée du texte, pour se voir aussi bien de jour que de nuit. */
+    background: color-mix(in srgb, var(--text) 12%, transparent);
+    color: var(--text);
+  }
+  .fenetre-boutons .fenetre-fermer:hover{ background: #e81123; color: #fff; }
 
   .poignee.hg{ left:-1px; top:-1px; border-right:none; border-bottom:none; border-radius:10px 0 0 0; cursor:nwse-resize; }
   .poignee.hd{ right:-1px; top:-1px; border-left:none; border-bottom:none; border-radius:0 10px 0 0; cursor:nesw-resize; }
