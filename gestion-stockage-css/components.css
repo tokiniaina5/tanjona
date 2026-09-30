@@ -1559,24 +1559,3 @@ body.story-ouverte .fb-reaction-avis{ z-index:413; }
    visage aussi. */
 .story-carte.en-ligne{ box-shadow:0 0 0 4px #16e05a, 0 0 14px rgba(22,224,90,0.7); }
 .story-carte.en-ligne .story-anneau{ background:#16e05a; }
-
-/* ---- La fenêtre « Story » ----
-   La liste en grille ; une story, elle, remplit la fenêtre, en noir, sous la
-   barre où l'on tire la fenêtre et ses trois boutons. */
-#section-story.fenetre-page.active{ padding:2.2rem 1rem 1rem; }
-#section-story .story-site{ min-height:100%; }
-.story-site-grille{
-  display:grid; grid-template-columns:repeat(auto-fill, minmax(92px, 1fr)); gap:0.6rem;
-}
-.story-site-grille .story-carte{ width:auto; height:150px; }
-.story-mijery.story-dans-fenetre{
-  position:absolute; inset:0; z-index:5; border-radius:inherit; overflow:hidden;
-}
-.story-dans-fenetre .story-barres{ top:30px; }
-.story-dans-fenetre .story-tete{ top:42px; }
-.story-dans-fenetre .story-hira{ top:82px; }
-.story-dans-fenetre .story-zone{ top:90px; }
-#section-story:has(.story-dans-fenetre){ overflow:hidden; }
-/* Sur le noir d'une story qui joue, les trois boutons de la fenêtre en blanc. */
-body.story-ouverte .poignees[data-pour="section-story"] .fenetre-boutons button{ color:#fff; }
-body.story-ouverte .poignees[data-pour="section-story"] .poignee-deplacer::after{ background:rgba(255,255,255,0.6); }

@@ -1457,11 +1457,6 @@
 
   function dessinerStories(){
     if(!storyRangee) return;
-    storyRangee.innerHTML = htmlCartesStories();
-    // La fenêtre « Story », si elle montre la liste, la suit.
-    if(storySite && !visionneuseStory && sectionStory && sectionStory.classList.contains('active')) dessinerSiteStory();
-  }
-  function htmlCartesStories(){
     const maPhoto = jeSuisLaMaison() ? MARQUE_LOGO : ((currentUser && currentUser.logo) || '');
     let html =
       '<button type="button" class="story-carte story-ajouter" data-story-ajouter>' +
@@ -1484,24 +1479,7 @@
           '<span class="story-nom">' + escapeHtml(g.auteur_id === monIdStory ? 'Ny story-nao' : (g.nom || 'Client')) + '</span>' +
         '</button>';
     });
-    return html;
-  }
-
-  // ---- La fenêtre « Story » ----
-  // Une page comme le Panier : on la tire, on la réduit, on l'agrandit
-  // (common.js). Ouverte du menu, elle montre toutes les stories ; un appui
-  // en joue une, là, dans la fenêtre, et à la fin on retrouve la liste.
-  const storySite = document.getElementById('storySite');
-  const sectionStory = document.getElementById('section-story');
-  function dessinerSiteStory(){
-    if(!storySite) return;
-    storySite.innerHTML =
-      '<div class="story-site-grille">' + htmlCartesStories() + '</div>' +
-      (groupesDeStories().length ? '' : '<p class="panneau-note">Mbola tsy misy story. Tsindrio « Hanampy story ».</p>');
-  }
-  function ouvrirFenetreStory(){
-    const entree = document.getElementById('menuStory');
-    if(sectionStory && !sectionStory.classList.contains('active') && entree) entree.click();
+    storyRangee.innerHTML = html;
   }
 
   function chargerStories(){
@@ -1595,19 +1573,12 @@
   function taireStory(){
     if(sonStory){ try{ sonStory.pause(); }catch(e){} sonStory = null; }
   }
-  // Arrêter : plus de minuterie ni de son, la story s'en va.
-  function arreterVisionneuse(){
+  function fermerVisionneuse(){
     clearTimeout(minuterieStory);
     taireStory();
     document.body.classList.remove('story-ouverte');
     if(visionneuseStory){ visionneuseStory.remove(); visionneuseStory = null; }
     document.removeEventListener('keydown', toucheVisionneuse);
-  }
-  // Fermer la story (✕, ou la dernière finie) : la fenêtre reste, elle
-  // remontre la liste.
-  function fermerVisionneuse(){
-    arreterVisionneuse();
-    if(sectionStory && sectionStory.classList.contains('active')) dessinerSiteStory();
   }
   function toucheVisionneuse(e){
     if(!visionneuseStory) return;
@@ -1616,17 +1587,15 @@
     if(e.key === 'ArrowLeft' && visionneuseStory.__precedent) visionneuseStory.__precedent();
   }
   function cadreVisionneuse(){
-    arreterVisionneuse();
-    ouvrirFenetreStory();
+    fermerVisionneuse();
     visionneuseStory = document.createElement('div');
-    visionneuseStory.className = 'story-mijery' + (storySite ? ' story-dans-fenetre' : '');
+    visionneuseStory.className = 'story-mijery';
     visionneuseStory.setAttribute('role', 'dialog');
     visionneuseStory.setAttribute('aria-label', 'Story');
     ['pointerdown', 'mousedown', 'click'].forEach(function(t){
       visionneuseStory.addEventListener(t, function(e){ e.stopPropagation(); });
     });
-    if(storySite){ storySite.innerHTML = ''; storySite.appendChild(visionneuseStory); }
-    else document.body.appendChild(visionneuseStory);
+    document.body.appendChild(visionneuseStory);
     // Les emoji qui s'éparpillent passent devant la story (components.css).
     document.body.classList.add('story-ouverte');
     document.addEventListener('keydown', toucheVisionneuse);
@@ -2154,7 +2123,7 @@
   }
 
   if(storyRangee){
-    function clicStories(e){
+    storyRangee.addEventListener('click', function(e){
       const ajouter = e.target.closest('[data-story-ajouter]');
       if(ajouter){
         sessionStory().then(function(session){
@@ -2166,22 +2135,7 @@
       }
       const carte = e.target.closest('[data-story-groupe]');
       if(carte) ouvrirGroupe(Number(carte.getAttribute('data-story-groupe')), 0);
-    }
-    storyRangee.addEventListener('click', clicStories);
-    if(storySite) storySite.addEventListener('click', function(e){
-      if(visionneuseStory && visionneuseStory.contains(e.target)) return;
-      clicStories(e);
     });
-    // L'entrée du menu ouvre la fenêtre (common.js) ; ici, la liste. Une
-    // story qu'on vient de toucher s'y pose juste après.
-    const entreeStory = document.getElementById('menuStory');
-    if(entreeStory) entreeStory.addEventListener('click', function(){
-      if(!visionneuseStory) dessinerSiteStory();
-    });
-    // Fermée ou réduite, la fenêtre fait taire la story qu'elle montrait.
-    if(sectionStory) new MutationObserver(function(){
-      if(!sectionStory.classList.contains('active') && visionneuseStory) arreterVisionneuse();
-    }).observe(sectionStory, { attributes: true, attributeFilter: ['class'] });
     if(storyFichier) storyFichier.addEventListener('change', function(){
       // Ajoutés à une story en cours d'écriture (« + »), ou une nouvelle.
       const ajouterA = storyFichier.__ajouterA;
