@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="dcba0381">
+<meta name="ny-asako-version" content="340466f0">
 <title>Ny asako — Tanjona</title>
 <!-- Application installable : le manifeste décrit le nom, l'icône et la façon
      de s'ouvrir ; le reste est affaire de service worker, enregistré plus bas. -->
@@ -597,11 +597,8 @@
            n'a rien à faire dans une rangée d'icônes qui défile, où le doigt
            l'atteindrait par accident. -->
       <div class="nav-list" id="navList">
-        <input type="search" id="menuRecherche" class="menu-recherche" placeholder="Karohy: pejy, entana, vaovao, hevitra..." aria-label="Rechercher" autocomplete="off">
-        <p class="menu-vide" id="menuVide" style="display:none;">Tsy misy hita.</p>
-        <!-- Ce que la loupe trouvait hors des pages : articles, fil, adresses.
-             La loupe et le menu ne font plus qu'un bouton. -->
-        <div id="menuResultats" class="recherche-resultats"></div>
+        <input type="search" id="menuRecherche" class="menu-recherche" placeholder="Karohy ny pejy..." aria-label="Rechercher une page" autocomplete="off">
+        <p class="menu-vide" id="menuVide" style="display:none;">Tsy misy pejy mifanaraka.</p>
         <button type="button" class="nav-action" id="menuAccueil">🏠 Botika</button>
         <button type="button" class="nav-action" id="composerToggle" aria-label="Écrire un message" aria-expanded="false">✏️ Écrire</button>
         <!-- Ouvre le choix du mode : manuel (jour ou nuit) ou automatique
@@ -698,9 +695,7 @@
              qu'on connaît déjà, la loupe trouve ce qu'on ne sait plus où
              ranger. Les deux vont ensemble, et l'une sans l'autre laisserait
              chercher à la main. -->
-        <!-- La loupe a rejoint le menu : son champ cherche partout. Le bouton
-             reste, caché, pour ceux qui l'appellent encore par son nom. -->
-        <button type="button" class="dash-tab bar-icone" id="barRecherche" title="Karohy" aria-label="Rechercher" aria-expanded="false" style="display:none;">🔍</button>
+        <button type="button" class="dash-tab bar-icone" id="barRecherche" title="Karohy" aria-label="Rechercher" aria-expanded="false">🔍</button>
         <button type="button" class="dash-tab" id="barComposer" title="Écrire" aria-label="Écrire un message" aria-expanded="false">
           <span aria-hidden="true">✏️</span><span class="tab-text">Écrire</span>
         </button>
@@ -3030,7 +3025,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=3139e53d"></script>
+<script src="gestion-stockage-js/common.js?v=de68a727"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=92ad47d0"></script>
