@@ -1342,7 +1342,12 @@
     saisie.className = 'fb-comment-form';
     saisie.innerHTML =
       '<input type="text" class="fb-comment-input" placeholder="Soraty ny hevitrao…">' +
-      '<button type="button" class="btn btn-sm fb-comment-send" style="width:auto;">Alefa</button>';
+      // Une flèche d'envoi plutôt que le mot : elle se reconnaît d'un coup
+      // d'œil, comme dans toutes les messageries. Le mot reste pour qui lit
+      // la page à voix haute.
+      '<button type="button" class="btn btn-sm fb-comment-send" title="Alefa" aria-label="Alefa">' +
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.4 20.4l17.45-7.48a1 1 0 000-1.84L3.4 3.6a.99.99 0 00-1.39.91L2 9.12c0 .5.37.93.87.99L17 12 2.87 13.88c-.5.07-.87.5-.87 1l.01 4.61c0 .71.73 1.2 1.39.91z"/></svg>' +
+      '</button>';
 
     // Ce qui est déjà à l'écran, en une ligne. Redessiner à l'identique
     // toutes les quatre secondes ferait sauter la sélection de qui relit, et

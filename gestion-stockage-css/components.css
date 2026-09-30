@@ -776,6 +776,14 @@
     border:1px solid var(--line); background:var(--bg); color:var(--text); font-size:0.82rem;
   }
   .fb-comment-input:focus{ outline:none; border-color:var(--cyan); }
+  /* La flèche d'envoi : un bouton carré, la flèche en cyan. */
+  .fb-comment-send{
+    flex: none; width: 38px !important; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--cyan);
+  }
+  .fb-comment-send svg{ width: 18px; height: 18px; fill: currentColor; }
+  .fb-comment-send:disabled{ opacity: 0.5; }
 
   /* ---------- Fampitandremana rohy an-toerana (localhost / file://) ---------- */
   .local-link-warning{
