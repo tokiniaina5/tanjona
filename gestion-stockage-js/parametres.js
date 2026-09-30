@@ -1229,7 +1229,10 @@
           e.stopPropagation();
           const cible = menuPour;
           cacherReactions();
-          if(cible) choisirReaction(cible.el, cible.newsId, r.id);
+          if(!cible) return;
+          // Celle qu'on avait déjà : la toucher encore la retire.
+          const info = likeState[cible.newsId];
+          choisirReaction(cible.el, cible.newsId, info && info.mine === r.id ? null : r.id);
         });
         menuReactions.appendChild(b);
       });
@@ -1242,6 +1245,10 @@
       document.body.appendChild(menuReactions);
     }
     menuPour = { el: el, newsId: newsId };
+    const mienne = likeState[newsId] && likeState[newsId].mine;
+    [].forEach.call(menuReactions.children, function(b){
+      b.classList.toggle('choisi', b.dataset.reaction === mienne);
+    });
     menuReactions.hidden = false;
     // Au-dessus du bouton, sans sortir de l'écran.
     const r = el.getBoundingClientRect();
@@ -1254,37 +1261,26 @@
 
   function setupLike(el, newsId){
     paintLike(el, newsId);
-    let pressionLongue = false, minuteurPression = null;
+    // Un appui, et les réactions paraissent aussitôt — ni survol à attendre,
+    // ni doigt à laisser appuyé. Sans menu (colonne absente), le pouce seul.
     el.addEventListener('click', function(e){
-      // Le doigt vient d'ouvrir le menu en restant appuyé : ce n'est pas un clic.
-      if(pressionLongue){ pressionLongue = false; e.stopPropagation(); return; }
-      cacherReactions();
-      toggleLike(el, newsId);
+      e.stopPropagation();
+      if(sansReactions){ toggleLike(el, newsId); return; }
+      // Toujours ouvrir, jamais refermer : le survol vient souvent de l'ouvrir
+      // juste avant le clic. On le referme en touchant ailleurs.
+      clearTimeout(minuteurCacher);
+      montrerReactions(el, newsId);
     });
-    // Ordinateur : on survole, le menu vient.
+    // Ordinateur : le survol les montre aussi, sans attendre.
     el.addEventListener('mouseenter', function(){
       clearTimeout(minuteurCacher);
       clearTimeout(minuteurMontrer);
-      minuteurMontrer = setTimeout(function(){ montrerReactions(el, newsId); }, 450);
+      minuteurMontrer = setTimeout(function(){ montrerReactions(el, newsId); }, 120);
     });
     el.addEventListener('mouseleave', function(){
       clearTimeout(minuteurMontrer);
       minuteurCacher = setTimeout(cacherReactions, 300);
     });
-    // Téléphone : on laisse le doigt dessus.
-    el.addEventListener('touchstart', function(){
-      pressionLongue = false;
-      clearTimeout(minuteurPression);
-      minuteurPression = setTimeout(function(){
-        pressionLongue = true;
-        montrerReactions(el, newsId);
-      }, 450);
-    }, { passive: true });
-    ['touchend', 'touchmove', 'touchcancel'].forEach(function(t){
-      el.addEventListener(t, function(){ clearTimeout(minuteurPression); }, { passive: true });
-    });
-    // Le menu du navigateur ne doit pas passer devant celui des réactions.
-    el.addEventListener('contextmenu', function(e){ if(pressionLongue) e.preventDefault(); });
   }
 
   function loadLikes(ids){

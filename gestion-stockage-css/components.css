@@ -805,6 +805,8 @@
     font-size:1.7rem; line-height:1; cursor:pointer;
     transition: transform 0.12s ease;
   }
+  /* Celle qu'on a déjà donnée : un rond derrière elle. */
+  .fb-reactions-choix button.choisi{ background: color-mix(in srgb, var(--cyan) 22%, transparent); border-radius:50%; }
   .fb-reactions-choix button:hover,
   .fb-reactions-choix button:focus-visible{ transform: translateY(-4px) scale(1.3); outline:none; }
   @keyframes reactions-monte{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:none; } }
