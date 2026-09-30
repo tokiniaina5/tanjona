@@ -361,6 +361,15 @@
     touch-action: none;
     box-shadow: 0 4px 14px rgba(0,0,0,0.35);
   }
+  /* Le bouton flottant porte le logo de la maison, et non trois traits :
+     l'image remplit le bouton, arrondie à sa forme. */
+  .menu-toggle.floating:has(.menu-logo){ padding: 0; overflow: hidden; }
+  .menu-logo{
+    width: 100%; height: 100%;
+    object-fit: cover;
+    border-radius: inherit;
+    pointer-events: none;
+  }
   .menu-toggle.floating.dragging{
     cursor: grabbing;
     opacity: 0.85;
