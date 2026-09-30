@@ -163,7 +163,9 @@ function chargerLesFokontany() {
 // (« c=… », gardé dans ce navigateur) ; sinon de ce que le serveur sait :
 // l'installation du Commun, la demande de code (« … — Commun X (…) »), ou
 // le commun que ses fokontany ont déclaré le plus souvent.
-var CLE_NOM_COMMUN = 'stockmanager_fokontany_commun';
+// Sa clé à lui : « stockmanager_fokontany_commun » est le commun dont relève
+// le Fokontany installé sur le même poste, et l'un réécrivait l'autre.
+var CLE_NOM_COMMUN = 'stockmanager_commun_nom';
 function afficherNomCommun(nom) {
   var el = document.getElementById('fkMarque');
   if (!el) return;
@@ -516,8 +518,10 @@ document.addEventListener('DOMContentLoaded', function () {
       email = String(params.get('e') || '').trim().toLowerCase();
       var commun = String(params.get('c') || '').trim();
       if (nom || email || commun) {
-        if (nom) localStorage.setItem(CLE_NOM, nom);
-        if (commun) localStorage.setItem(CLE_COMMUN, commun);
+        // Le Commun garde son nom à part : ce qui est écrit pour l'un ne
+        // doit pas se lire chez l'autre.
+        if (nom && !APP_COMMUN) localStorage.setItem(CLE_NOM, nom);
+        if (commun) localStorage.setItem(APP_COMMUN ? CLE_NOM_COMMUN : CLE_COMMUN, commun);
         params.delete('f');
         params.delete('e');
         params.delete('c');
@@ -566,7 +570,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Elles restent dans le site, sous la cloche : une bande qui passe s'oublie,
   // et l'on veut relire ce qui a été dit. Gardées dans ce navigateur, comme
   // celles de Ny asako — elles n'ont rien à faire sur le serveur.
-  var CLE_NOTIFS = 'stockmanager_fokontany_notifs';
+  var CLE_NOTIFS = APP_COMMUN ? 'stockmanager_commun_notifs' : 'stockmanager_fokontany_notifs';
   function lireNotifs() {
     try { return JSON.parse(localStorage.getItem(CLE_NOTIFS)) || []; } catch (e) { return []; }
   }
@@ -850,8 +854,8 @@ document.addEventListener('DOMContentLoaded', function () {
     var nom = '';
     var commun = '';
     try {
-      nom = String(localStorage.getItem('stockmanager_fokontany_nom') || '').trim();
-      commun = String(localStorage.getItem('stockmanager_fokontany_commun') || '').trim();
+      nom = APP_COMMUN ? '' : String(localStorage.getItem('stockmanager_fokontany_nom') || '').trim();
+      commun = String(localStorage.getItem(APP_COMMUN ? CLE_NOM_COMMUN : 'stockmanager_fokontany_commun') || '').trim();
     } catch (e) {}
     var appareil = '';
     try { appareil = String(navigator.userAgent || '').slice(0, 160); } catch (e) {}
