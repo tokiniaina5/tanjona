@@ -1169,6 +1169,19 @@
   function visage(r){
     return '<img class="fb-emoji-3d" src="' + EMOJI_3D + r.image + '" alt="' + r.emoji + '" draggable="false">';
   }
+  // Ceux qui s'éparpillent bougent : les « Noto Animated Emoji » de Google
+  // (licence CC BY 4.0) — le rire secoue, le cœur bat, les larmes coulent.
+  // Lourds (un demi-mégaoctet chacun), ils ne viennent qu'au moment où l'on
+  // choisit, et seul celui qu'on a choisi. Absent, le visage en relief le
+  // remplace.
+  const EMOJI_ANIME = 'https://fonts.gstatic.com/s/e/notoemoji/latest/';
+  const CODES_ANIMES = { like: '1f44d', love: '2764_fe0f', care: '1f970', haha: '1f606', wow: '1f62e', sad: '1f622', angry: '1f621' };
+  function visageAnime(r){
+    const code = CODES_ANIMES[r.id];
+    if(!code) return visage(r);
+    return '<img class="fb-emoji-3d fb-emoji-anime" src="' + EMOJI_ANIME + code + '/512.webp" alt="' + r.emoji +
+      '" draggable="false" onerror="this.onerror=null;this.src=\'' + EMOJI_3D + r.image + '\'">';
+  }
   // Tant que supabase-reactions.sql n'est pas passé, la colonne manque : on
   // retombe sur le simple « j'aime », sans menu de réactions.
   let sansReactions = false;
@@ -1260,6 +1273,15 @@
         b.title = r.nom;
         b.setAttribute('aria-label', r.nom);
         b.innerHTML = visage(r);
+        // Le visage animé part dès qu'on vise celui-ci : quand le doigt se
+        // lève, il est souvent déjà là pour s'éparpiller.
+        ['pointerenter', 'pointerdown'].forEach(function(t){
+          b.addEventListener(t, function(){
+            if(b.dataset.precharge || !CODES_ANIMES[r.id]) return;
+            b.dataset.precharge = '1';
+            const i = new Image(); i.src = EMOJI_ANIME + CODES_ANIMES[r.id] + '/512.webp';
+          });
+        });
         b.addEventListener('click', function(e){
           e.stopPropagation();
           const cible = menuPour;
@@ -1437,7 +1459,7 @@
 
     const vole = document.createElement('div');
     vole.className = 'fb-reaction-vole';
-    vole.innerHTML = visage(r);
+    vole.innerHTML = visageAnime(r);
     vole.style.left = x + 'px';
     vole.style.top = y + 'px';
     vole.style.setProperty('--dx', (arrivee ? arrivee.left + 9 - x : 0) + 'px');
@@ -1468,7 +1490,7 @@
     pluie.className = 'fb-reaction-pluie';
     for(let j = 0; j < 22; j++){
       const g = document.createElement('span');
-      g.innerHTML = visage(r);
+      g.innerHTML = visageAnime(r);
       g.style.left = Math.round(Math.random() * 96) + '%';
       g.style.fontSize = (1.2 + Math.random() * 1.6).toFixed(2) + 'rem';
       g.style.animationDelay = Math.round(Math.random() * 700) + 'ms';
