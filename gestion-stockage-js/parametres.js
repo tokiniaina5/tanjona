@@ -1148,6 +1148,10 @@
   // propre couleur et ne changeait jamais.
   const POUCE = '<svg class="fb-pouce" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 21h3.5V9.5H2zM21.9 11.2c0-1.1-.9-2-2-2h-5.6l.9-4.3v-.3c0-.4-.2-.8-.4-1.1L13.7 2.5 8 8.2c-.3.3-.5.8-.5 1.3V19c0 1.1.9 2 2 2h8.6c.8 0 1.5-.5 1.8-1.2l2.8-6.6c.1-.2.1-.5.1-.7v-1.3z"/></svg>';
 
+  // « Partager » : la flèche courbe de Facebook, tracée comme le pouce, au
+  // lieu de l'emoji ↗️ dans son carré bleu, qui jurait avec le reste.
+  const FLECHE_PARTAGE = '<svg class="fb-pouce" viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 4.5 21 11.6l-7.5 7.1v-4.2c-5.3-.2-8.8 1.5-11 5 .6-5.6 3.8-10.1 11-10.8z"/></svg>';
+
   // Les réactions, comme sur Facebook (supabase-reactions.sql). Le pouce
   // garde son dessin ; les autres sont des visages, chacun sa couleur.
   // Les visages en relief : les « Fluent Emoji 3D » de Microsoft (licence
@@ -2472,7 +2476,7 @@
             (type === 'entana'
               ? '<span class="fb-buy-action" data-buy style="cursor:pointer; color:var(--cyan);">🛒 Acheter</span>'
               : '') +
-            '<span class="fb-share-action" data-share style="cursor:pointer;">↗️ Partager</span>' +
+            '<span class="fb-share-action fb-partager" data-share style="cursor:pointer;">' + FLECHE_PARTAGE + '<span>Partager</span></span>' +
             // La feuille de WhatsApp coche cinq personnes et s'arrête là.
             // Celui-ci passe par la liste des clients (zara-rehetra.js) :
             // tout cocher d'un coup, sans plafond.

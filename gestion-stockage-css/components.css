@@ -739,6 +739,11 @@
   .fb-post-actions{ display:flex; justify-content:center; flex-wrap:wrap; gap:1.2rem; margin-top:0.9rem; padding-top:0.7rem; border-top:1px solid var(--line); }
   .fb-post-actions span{ font-size:0.78rem; color:var(--muted); }
   .fb-share-action:hover{ color:var(--cyan); }
+  /* « Partager » : la flèche dessinée à côté du mot, comme le pouce de
+     « J'aime ». Le mot suit la couleur du survol. */
+  .fb-partager{ display:inline-flex; align-items:center; gap:0.35rem; font-weight:600; }
+  .fb-post-actions .fb-partager span{ color:inherit; font-size:inherit; }
+  .fb-partager:hover .fb-pouce{ fill:currentColor; }
   /* L'achat est la seule action de la rangée qui engage : elle se voit. */
   .fb-buy-action{ font-weight:600; }
   .fb-buy-action:hover{ text-decoration:underline; }
