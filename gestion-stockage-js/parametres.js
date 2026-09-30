@@ -1152,10 +1152,17 @@
   // lieu de l'emoji ↗️ dans son carré bleu, qui jurait avec le reste.
   // Puis le logo de la maison qui partage : le « N », une petite flèche
   // posée sur son coin.
-  const FLECHE_PARTAGE = '<span class="fb-logo-partage" aria-hidden="true">' +
-    '<img src="/icone-192.png" alt="" draggable="false">' +
-    '<svg viewBox="0 0 24 24"><path d="M13.5 4.5 21 11.6l-7.5 7.1v-4.2c-5.3-.2-8.8 1.5-11 5 .6-5.6 3.8-10.1 11-10.8z"/></svg>' +
-    '</span>';
+  // Les trois actions portent le même logo, chacune sa pastille : la flèche
+  // pour partager, la bulle pour commenter, le pouce pour aimer.
+  function logoAvec(chemin, classe){
+    return '<span class="fb-logo-partage' + (classe ? ' ' + classe : '') + '" aria-hidden="true">' +
+      '<img src="/icone-192.png" alt="" draggable="false">' +
+      '<svg viewBox="0 0 24 24"><path d="' + chemin + '"/></svg>' +
+      '</span>';
+  }
+  const FLECHE_PARTAGE = logoAvec('M13.5 4.5 21 11.6l-7.5 7.1v-4.2c-5.3-.2-8.8 1.5-11 5 .6-5.6 3.8-10.1 11-10.8z');
+  const BULLE_COMMENTER = logoAvec('M4 4h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 4v-4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z');
+  const POUCE_LOGO = 'M2 21h3.5V9.5H2zM21.9 11.2c0-1.1-.9-2-2-2h-5.6l.9-4.3v-.3c0-.4-.2-.8-.4-1.1L13.7 2.5 8 8.2c-.3.3-.5.8-.5 1.3V19c0 1.1.9 2 2 2h8.6c.8 0 1.5-.5 1.8-1.2l2.8-6.6c.1-.2.1-.5.1-.7v-1.3z';
 
   // Les réactions, comme sur Facebook (supabase-reactions.sql). Le pouce
   // garde son dessin ; les autres sont des visages, chacun sa couleur.
@@ -1228,7 +1235,7 @@
     const r = info.mine ? reactionDe(info.mine) : null;
     el.innerHTML = (r && r.id !== 'like')
       ? '<span class="fb-reaction-emoji">' + visage(r) + '</span><span>' + r.nom + '</span>'
-      : (s.pouce ? POUCE : '') + '<span>J\'aime</span>';
+      : (s.pouce ? logoAvec(POUCE_LOGO, r ? 'aime' : '') : '') + '<span>J\'aime</span>';
     el.classList.toggle('liked', !!r);
     el.style.color = r ? r.couleur : '';
 
@@ -2473,8 +2480,8 @@
                   'border-radius:10px; overflow:hidden; text-decoration:none; color:inherit;"></a>'
                 : '')) +
             '<div class="fb-post-actions">' +
-            '<span class="fb-like-action" data-like style="cursor:pointer;">' + POUCE + '<span>J\'aime</span></span>' +
-            '<span class="fb-comment-action" data-comment style="cursor:pointer;">💬 Commenter</span>' +
+            '<span class="fb-like-action" data-like style="cursor:pointer;">' + logoAvec(POUCE_LOGO) + '<span>J\'aime</span></span>' +
+            '<span class="fb-comment-action fb-partager" data-comment style="cursor:pointer;">' + BULLE_COMMENTER + '<span>Commenter</span></span>' +
             // L'achat part de l'annonce elle-même : c'est là qu'on voit la
             // marchandise et son prix, pas dans un onglet qu'il faut aller
             // chercher ensuite en retapant tout de tête.
