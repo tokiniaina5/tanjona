@@ -57,6 +57,10 @@
 </header>
 
 <main class="bk-corps">
+  <!-- Les stories du Botika (vingt-quatre heures), lisibles sans compte :
+       les mêmes que dans l'application, regardées en plein écran. -->
+  <div class="story-rangee" id="bkStories" aria-label="Stories" style="display:none;"></div>
+
   <div class="panel">
     <h3>Tongasoa</h3>
     <p style="font-size:0.82rem; color:var(--muted); line-height:1.6; margin:0;">
@@ -263,8 +267,157 @@
         if (res && !res.error) dessinerLaVitrine(res.data || []);
       }, function () {});
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', lire);
-  else lire();
+  // ---- Les stories ----
+  // Celles qui vivent encore (la base ne rend que celles-là), une carte par
+  // personne ; un appui les montre en plein écran, une barre par story, avec
+  // la vidéo coupée et la chanson là où l'auteur les a choisies. Réagir
+  // demande un compte : ici, on regarde.
+  var DUREE = 5000, DUREE_HIRA = 15000;
+  var stories = [];
+  var ecran = null, minuterie = null, son = null;
+
+  function initiales(nom) {
+    var p = String(nom || '?').trim().split(/\s+/);
+    return ((p[0] || '?')[0] + (p[1] ? p[1][0] : (p[0] || '')[1] || '')).toUpperCase();
+  }
+  function avatar(photo, nom) {
+    return photo
+      ? '<img class="story-avatar" src="' + echap(photo) + '" alt="">'
+      : '<span class="story-avatar story-avatar-lettres">' + echap(initiales(nom)) + '</span>';
+  }
+  function ilayFotoana(date) {
+    var min = Math.max(1, Math.round((Date.now() - new Date(date).getTime()) / 60000));
+    return min < 60 ? min + ' min' : Math.round(min / 60) + ' h';
+  }
+  function groupes() {
+    var par = {}, ordre = [];
+    stories.forEach(function (s) {
+      if (!par[s.auteur_id]) { par[s.auteur_id] = []; ordre.push(s.auteur_id); }
+      par[s.auteur_id].push(s);
+    });
+    return ordre.map(function (id) {
+      var l = par[id].slice().reverse();
+      return { nom: l[l.length - 1].auteur_nom, photo: l[l.length - 1].auteur_photo, liste: l };
+    });
+  }
+  function dessinerStories() {
+    var rangee = $('bkStories');
+    var g = groupes();
+    rangee.style.display = g.length ? '' : 'none';
+    rangee.innerHTML = g.map(function (x, i) {
+      var d = x.liste[x.liste.length - 1];
+      var video = d.genre === 'video';
+      return '<button type="button" class="story-carte" data-groupe="' + i + '"' +
+        (video ? '' : ' style="background-image:url(\'' + String(d.media).replace(/'/g, '%27') + '\')"') + '>' +
+        (video ? '<video class="story-carte-video" src="' + echap(d.media) + '#t=' + ((d.video_debut || 0) + 0.5) + '" muted playsinline preload="metadata"></video>' +
+          '<span class="story-carte-play" aria-hidden="true">▶</span>' : '') +
+        '<span class="story-anneau">' + avatar(x.photo, x.nom) + '</span>' +
+        '<span class="story-nom">' + echap(x.nom || 'Client') + '</span></button>';
+    }).join('');
+  }
+  function taire() { if (son) { try { son.pause(); } catch (e) {} son = null; } }
+  function fermer() {
+    clearTimeout(minuterie);
+    taire();
+    if (ecran) { ecran.remove(); ecran = null; }
+    document.body.classList.remove('story-ouverte');
+  }
+  document.addEventListener('keydown', function (e) {
+    if (!ecran) return;
+    if (e.key === 'Escape') fermer();
+    if (e.key === 'ArrowRight' && ecran.__suivant) ecran.__suivant();
+    if (e.key === 'ArrowLeft' && ecran.__precedent) ecran.__precedent();
+  });
+  function ouvrir(ig, is) {
+    var gs = groupes(), g = gs[ig];
+    if (!g) { fermer(); return; }
+    fermer();
+    var v = ecran = document.createElement('div');
+    v.className = 'story-mijery';
+    v.setAttribute('role', 'dialog');
+    document.body.appendChild(v);
+    document.body.classList.add('story-ouverte');
+    var i = Math.min(is || 0, g.liste.length - 1);
+    function montrer() {
+      clearTimeout(minuterie);
+      taire();
+      var s = g.liste[i], video = s.genre === 'video';
+      var duree = s.hira ? DUREE_HIRA : DUREE;
+      v.innerHTML =
+        '<div class="story-barres">' + g.liste.map(function (x, k) {
+          return '<span class="story-barre' + (k < i ? ' vita' : '') + '"><i' +
+            (k === i ? ' style="animation-duration:' + duree + 'ms"' : '') + '></i></span>';
+        }).join('') + '</div>' +
+        '<div class="story-tete">' + avatar(g.photo, g.nom) +
+          '<strong>' + echap(g.nom || 'Client') + '</strong><span>' + ilayFotoana(s.created_at) + '</span>' +
+          '<button type="button" class="story-hidy" aria-label="Hidio" title="Hidio">✕</button></div>' +
+        (video
+          ? '<video class="story-sary" src="' + echap(s.media) + '" playsinline autoplay' + (s.hira ? ' muted' : '') + '></video>'
+          : '<img class="story-sary" src="' + echap(s.media) + '" alt="">') +
+        (s.hira ? '<div class="story-hira">🎵 <span>' + echap(s.hira_nom || 'Hira') + '</span></div>' : '') +
+        (s.texte ? '<p class="story-soratra">' + echap(s.texte) + '</p>' : '') +
+        '<span class="story-zone story-zone-g"></span><span class="story-zone story-zone-d"></span>' +
+        '<div class="story-reactions story-bilan"><a href="' + echap(entree) + '" style="color:#fff; text-decoration:none;">' +
+          '👍 ❤️ 😆 — Midira hanome emoji</a></div>';
+      v.querySelector('.story-hidy').addEventListener('click', fermer);
+      v.querySelector('.story-zone-g').addEventListener('click', v.__precedent);
+      v.querySelector('.story-zone-d').addEventListener('click', v.__suivant);
+      if (s.hira) {
+        var a = son = new Audio(s.hira), depart = s.hira_debut || 0;
+        a.addEventListener('loadedmetadata', function () { if (depart) a.currentTime = depart; });
+        a.play().catch(function () {});
+      }
+      if (video) {
+        var el = v.querySelector('video.story-sary');
+        var barre = v.querySelector('.story-barre i[style]');
+        var debut = s.video_debut || 0;
+        if (barre) barre.style.animationPlayState = 'paused';
+        el.addEventListener('loadedmetadata', function () {
+          if (debut) el.currentTime = debut;
+          var total = isFinite(el.duration) ? el.duration : DUREE / 1000;
+          var fin = Math.min(s.video_fin || total, total);
+          var ms = Math.max(500, Math.min((fin - debut) * 1000, 30000));
+          if (barre) { barre.style.animationDuration = ms + 'ms'; barre.style.animationPlayState = 'running'; }
+          clearTimeout(minuterie);
+          minuterie = setTimeout(v.__suivant, ms + 300);
+        });
+        el.addEventListener('timeupdate', function () {
+          if (s.video_fin && el.currentTime >= s.video_fin) { el.pause(); v.__suivant(); }
+        });
+        el.addEventListener('ended', function () { v.__suivant(); });
+        return;
+      }
+      minuterie = setTimeout(v.__suivant, duree);
+    }
+    v.__suivant = function () {
+      if (i < g.liste.length - 1) { i++; montrer(); }
+      else if (ig < gs.length - 1) ouvrir(ig + 1, 0);
+      else fermer();
+    };
+    v.__precedent = function () {
+      if (i > 0) { i--; montrer(); }
+      else if (ig > 0) ouvrir(ig - 1, gs[ig - 1].liste.length - 1);
+      else montrer();
+    };
+    montrer();
+  }
+  $('bkStories').addEventListener('click', function (e) {
+    var c = e.target.closest('[data-groupe]');
+    if (c) ouvrir(Number(c.getAttribute('data-groupe')), 0);
+  });
+  function lireStories() {
+    if (!window.__sb) return;
+    window.__sb.from('botika_stories')
+      .select('id,auteur_id,auteur_nom,auteur_photo,media,texte,created_at,genre,hira,hira_nom,video_debut,video_fin,hira_debut')
+      .order('created_at', { ascending: false }).limit(150)
+      .then(function (res) {
+        if (res && !res.error) { stories = res.data || []; dessinerStories(); }
+      }, function () {});
+  }
+
+  function toutLire() { lire(); lireStories(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', toutLire);
+  else toutLire();
 })();
 </script>
 </body>

@@ -1991,18 +1991,26 @@
       }
       if(ecoute){ try{ ecoute.pause(); }catch(err){} URL.revokeObjectURL(ecoute.src); }
       hira = { fichier: f, nom: String(f.name || 'Hira').replace(/\.[^.]+$/, '').slice(0, 120), duree: 0, debut: 0 };
-      ecoute = new Audio(URL.createObjectURL(f));
+      // Chaque écouteur tient son propre lecteur : retirée ou changée, la
+      // chanson d'avant peut encore envoyer un dernier événement.
+      const lecteur = ecoute = new Audio(URL.createObjectURL(f));
+      const cetteHira = hira;
       // Écoutée depuis le début choisi, et ramenée là au bout de trente
       // secondes : c'est ce morceau qu'entendront les autres.
-      ecoute.addEventListener('loadedmetadata', function(){
-        if(!hira) return;
-        hira.duree = isFinite(ecoute.duration) ? ecoute.duration : 0;
+      lecteur.addEventListener('loadedmetadata', function(){
+        if(hira !== cetteHira) return;
+        hira.duree = isFinite(lecteur.duration) ? lecteur.duration : 0;
         dessinerHiraTapaka();
       });
-      ecoute.addEventListener('timeupdate', function(){
-        if(hira && (ecoute.currentTime > hira.debut + MAX_STORY_SECONDES || ecoute.currentTime < hira.debut - 0.5)) ecoute.currentTime = hira.debut;
+      lecteur.addEventListener('timeupdate', function(){
+        if(hira !== cetteHira) return;
+        if(lecteur.currentTime > hira.debut + MAX_STORY_SECONDES || lecteur.currentTime < hira.debut - 0.5) lecteur.currentTime = hira.debut;
       });
-      ecoute.addEventListener('ended', function(){ if(hira){ ecoute.currentTime = hira.debut; ecoute.play().catch(function(){}); } });
+      lecteur.addEventListener('ended', function(){
+        if(hira !== cetteHira) return;
+        lecteur.currentTime = hira.debut;
+        lecteur.play().catch(function(){});
+      });
       ecoute.play().catch(function(){});
       hiraNom.textContent = '🎵 ' + hira.nom;
       hiraNom.hidden = false;
