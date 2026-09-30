@@ -294,6 +294,9 @@
   .nav-action:has(#notifBadge){ display:flex; align-items:center; justify-content:space-between; gap:0.5rem; }
   /* Chrome et Edge portent leur vrai logo, pas un emoji. */
   .nav-logo{ width:1.1em; height:1.1em; vertical-align:-0.2em; margin-right:0.4em; }
+  /* Le logo de la maison est une image carrée : on lui arrondit les coins
+     comme à une icône d'application. */
+  .nav-logo-img{ border-radius:22%; object-fit:cover; }
   .nav-spacer{ flex-grow:1; }
 
   /* ---------- hamburger (foana, tsy mobile ihany) ---------- */

@@ -4547,13 +4547,13 @@
         : document.getElementById(cle.slice(3));
     }
 
-    // Le logo dessiné d'une entrée (Chrome, Edge), recopié pour servir
+    // Le logo d'une entrée (Chrome, Edge, Multi-service), recopié pour servir
     // d'icône ailleurs. Ses dégradés sont renommés : le même nom dans deux
     // dessins ne désigne que le premier, celui du menu — caché, il ne peint
     // plus rien, et le logo recopié restait blanc.
     let copiesDeLogo = 0;
     function logoDe(entree){
-      const svg = entree && entree.querySelector('svg.nav-logo');
+      const svg = entree && entree.querySelector('.nav-logo');
       if(!svg) return null;
       const copie = svg.cloneNode(true);
       const suffixe = '-c' + (++copiesDeLogo);
@@ -4971,7 +4971,7 @@
       const porteur = entree.querySelector('span') || entree;
       const texte = porteur.textContent.trim();
       const espace = texte.indexOf(' ');
-      if(entree.querySelector('svg.nav-logo')){
+      if(entree.querySelector('.nav-logo')){
         return { icone: '', nom: texte, logo: function(){ return logoDe(entree); } };
       }
       return {
