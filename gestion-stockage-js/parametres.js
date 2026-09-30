@@ -1485,6 +1485,74 @@
   let minuterieStory = null;
   // Les réactions des stories ouvertes, par story : [{ user_id, reaction }].
   let reactionsStory = {};
+  // Qui a vu ses propres stories, par story : [{ user_id, nom, photo, created_at }].
+  let vuesStory = {};
+  // Les stories déjà notées comme vues depuis cet appareil : une seule
+  // écriture par story, même regardée dix fois.
+  const vuesNotees = {};
+  let maVignetteStory = null;
+
+  // Regarder la story d'un autre y laisse son nom (une fois). Sans compte,
+  // rien ne s'écrit : on ne saurait pas dire qui.
+  function noterVue(s){
+    if(!s || vuesNotees[s.id] || !window.__sb) return;
+    vuesNotees[s.id] = true;
+    sessionStory().then(function(session){
+      if(!session) return null;
+      const maison = jeSuisLaMaison();
+      return (maVignetteStory ? Promise.resolve(maVignetteStory)
+        : (maison ? Promise.resolve(MARQUE_LOGO) : vignette(currentUser && currentUser.logo))).then(function(photo){
+        maVignetteStory = photo || null;
+        return window.__sb.from('botika_story_vues').upsert({
+          story_id: s.id, user_id: session.user.id,
+          nom: (maison ? MARQUE_NOM : ((currentUser && currentUser.name) || 'Client')).slice(0, 80),
+          photo: maVignetteStory
+        }, { onConflict: 'story_id,user_id', ignoreDuplicates: true });
+      });
+    }).then(function(res){
+      if(res && res.error) vuesNotees[s.id] = false;
+    }, function(){ vuesNotees[s.id] = false; });
+  }
+
+  // 👁 et leur nombre, en bas à gauche de ses stories. Un appui ouvre la
+  // liste : chacun avec son visage, et l'emoji qu'il a mis. La story attend
+  // qu'on la referme.
+  function dessinerMpijery(v, s){
+    const b = v.querySelector('.story-mpijery');
+    if(!b) return;
+    const liste = vuesStory[s.id];
+    b.querySelector('b').textContent = liste ? String(liste.length) : '…';
+    b.onclick = function(){
+      const l = vuesStory[s.id] || [];
+      clearTimeout(minuterieStory);
+      const media = v.querySelector('video.story-sary');
+      if(media) media.pause();
+      if(sonStory) sonStory.pause();
+      const barre = v.querySelector('.story-barre i[style]');
+      if(barre) barre.style.animationPlayState = 'paused';
+      const emojiDe = {};
+      (reactionsStory[s.id] || []).forEach(function(r){ emojiDe[r.user_id] = r.reaction; });
+      const panneau = document.createElement('div');
+      panneau.className = 'story-mpijery-lisitra';
+      panneau.innerHTML =
+        '<div class="story-mpijery-tete"><strong>👁 ' + l.length + ' no nijery</strong>' +
+          '<button type="button" aria-label="Hidio" title="Hidio">✕</button></div>' +
+        (l.length ? l.map(function(x){
+          const r = emojiDe[x.user_id] ? reactionDe(emojiDe[x.user_id]) : null;
+          return '<div class="story-mpijery-olona">' + avatarStory(x.photo, x.nom) +
+            '<span>' + escapeHtml(x.nom || 'Olona iray') + '<small>' + depuisQuandStory(x.created_at) + '</small></span>' +
+            (r ? '<i class="story-mpijery-emoji">' + visage(r) + '</i>' : '') + '</div>';
+        }).join('') : '<p class="story-mpijery-vide">Mbola tsy nisy nijery.</p>');
+      v.appendChild(panneau);
+      panneau.querySelector('button').addEventListener('click', function(){
+        panneau.remove();
+        if(barre) barre.style.animationPlayState = 'running';
+        if(media) media.play().catch(function(){});
+        if(sonStory) sonStory.play().catch(function(){});
+        if(v.__relancer) v.__relancer();
+      });
+    };
+  }
   // La chanson posée sur la story à l'écran : une seule joue à la fois.
   let sonStory = null;
   function taireStory(){
@@ -1590,6 +1658,16 @@
         (res.data || []).forEach(function(r){ reactionsStory[r.story_id].push(r); });
         if(visionneuseStory === v && g.liste[i]) dessinerReactionsStory(v, g.liste[i], g.auteur_id === monIdStory);
       });
+    // Ses propres stories : qui les a vues (lu seulement par l'auteur,
+    // supabase-stories-vues.sql).
+    if(window.__sb && g.auteur_id === monIdStory) window.__sb.from('botika_story_vues')
+      .select('story_id,user_id,nom,photo,created_at').in('story_id', ids)
+      .order('created_at', { ascending: false }).then(function(res){
+        if(!res || res.error) return;
+        ids.forEach(function(id){ vuesStory[id] = []; });
+        (res.data || []).forEach(function(r){ if(vuesStory[r.story_id]) vuesStory[r.story_id].push(r); });
+        if(visionneuseStory === v && g.liste[i]) dessinerMpijery(v, g.liste[i]);
+      });
     function montrer(){
       clearTimeout(minuterieStory);
       taireStory();
@@ -1614,8 +1692,11 @@
         (s.hira ? '<div class="story-hira">🎵 <span>' + escapeHtml(s.hira_nom || 'Hira') + '</span></div>' : '') +
         (s.texte ? '<p class="story-soratra">' + escapeHtml(s.texte) + '</p>' : '') +
         '<span class="story-zone story-zone-g"></span><span class="story-zone story-zone-d"></span>' +
-        '<div class="story-reactions"></div>';
+        '<div class="story-reactions"></div>' +
+        (moi ? '<button type="button" class="story-mpijery" title="Ireo nijery" aria-label="Ireo nijery">👁 <b>…</b></button>' : '');
       dessinerReactionsStory(v, s, moi);
+      if(moi) dessinerMpijery(v, s);
+      else noterVue(s);
       if(s.hira){
         const son = sonStory = new Audio(s.hira);
         const depart = s.hira_debut || 0;

@@ -519,7 +519,8 @@
         // celles d'un employé portent le sien.
         // L'argent (« vola ») vient du serveur, jamais de soi : sans auteur
         // lui aussi, il passerait pour une des siennes et serait tu.
-        const deMoi = r.type === 'vola' ? false
+        // De même le bilan d'une story finie (« story »).
+        const deMoi = (r.type === 'vola' || r.type === 'story') ? false
           : (MODE_MPIASA ? (r.auteur_id && r.auteur_id === moi) : !r.auteur_id);
         if(deMoi) return;
         // Un direct dit déjà qui le fait ; le reste, on le signe.
@@ -548,6 +549,7 @@
     if(type === 'rupture') return '⚠️';
     if(type === 'parrainage') return '💰';
     if(type === 'vola') return '💸';
+    if(type === 'story') return '📖';
     if(type === 'modification') return '✏️';
     if(type === 'live') return '🔴';
     if(type === 'antso') return '📞';
