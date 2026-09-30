@@ -3644,7 +3644,7 @@
       'section-calendrier', 'section-horaire',
       // Scan, photos, photocopies (photocopie.js), et les PDF rangés (pdf.js).
       'section-photocopie', 'section-pdf',
-      'section-live', 'section-appels', 'section-wallet',
+      'section-live', 'section-appels', 'section-wallet', 'section-panier',
       'section-mpiasa', 'section-livreur', 'section-personne',
       // « Ny momba ahy », la page de l'employé entré par son lien : posée
       // sous l'Accueil, sa carte s'ouvrait derrière le fil.
@@ -4643,9 +4643,18 @@
       try{ brut = JSON.parse(localStorage.getItem(CLE)) || []; }catch(e){ brut = []; }
       if(!Array.isArray(brut)) return [];
       // Les premières versions n'enregistraient que la clé.
+      // Le panier était un bouton (« id:menuPanier ») avant d'être une page
+      // (« section:panier ») : même entrée, une seule icône.
+      const vues = {};
       return brut.map(function(x){
-        return (typeof x === 'string') ? { cle: x, vu: 0 } : x;
-      }).filter(function(x){ return x && x.cle && JAMAIS_EPINGLEES.indexOf(x.cle) < 0; });
+        x = (typeof x === 'string') ? { cle: x, vu: 0 } : x;
+        if(x && x.cle === 'id:menuPanier') x.cle = 'section:panier';
+        return x;
+      }).filter(function(x){
+        if(!x || !x.cle || JAMAIS_EPINGLEES.indexOf(x.cle) >= 0 || vues[x.cle]) return false;
+        vues[x.cle] = true;
+        return true;
+      });
     }
     // Télécharger Fokontany / Commun : une action faite une fois, comme
     // « Installer l'application ». Les deux icônes 📲, pareilles, restaient

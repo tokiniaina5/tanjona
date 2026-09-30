@@ -1234,29 +1234,21 @@
     }
   }
 
-  let panneauPanier = null;
+  // Le panier est une page, comme le portefeuille : il s'ouvre en fenêtre,
+  // avec ses trois boutons (réduire, agrandir, fermer) et son icône dans la
+  // rangée du bas.
+  const panneauPanier = document.querySelector('#section-panier .panier-page');
   function ouvrirPanier(){
-    if(!panneauPanier){
-      panneauPanier = document.createElement('div');
-      panneauPanier.className = 'panier-panneau panneau-boite';
-      panneauPanier.setAttribute('role', 'dialog');
-      panneauPanier.setAttribute('aria-label', 'Panier');
-      ['pointerdown', 'mousedown', 'click'].forEach(function(t){
-        panneauPanier.addEventListener(t, function(e){ e.stopPropagation(); });
-      });
-      document.body.appendChild(panneauPanier);
-      document.addEventListener('click', function(){ if(panneauPanier) panneauPanier.hidden = true; });
-    }
-    dessinerPanier();
-    panneauPanier.hidden = false;
+    const entree = document.getElementById('menuPanier');
+    if(entree) entree.click(); else if(panneauPanier) dessinerPanier();
   }
 
   function dessinerPanier(){
+    if(!panneauPanier) return;
     const l = lirePanier();
     const total = l.reduce(function(s, x){ return s + prixNombre(x.prix) * (x.isa || 1); }, 0);
     panneauPanier.innerHTML =
-      '<div class="panier-tete"><span class="panier-titre">' + LOGO_PANIER + ' Panier</span>' +
-      '<button type="button" class="panier-fermer" aria-label="Hidio" title="Hidio">✕</button></div>' +
+      '<div class="panier-tete"><span class="panier-titre">' + LOGO_PANIER + ' Panier</span></div>' +
       '<div class="panier-voaloa"></div>' +
       (l.length ? '' : '<p class="panneau-note">Mbola foana ny panier. Tsindrio « Panier » eo ambanin\'ny entana iray ao amin\'ny Botika.</p>') +
       '<div class="panier-lignes"></div>' +
@@ -1361,7 +1353,6 @@
       });
       lignes.appendChild(d);
     });
-    panneauPanier.querySelector('.panier-fermer').addEventListener('click', function(){ panneauPanier.hidden = true; });
     const foano = panneauPanier.querySelector('.panier-foano');
     if(foano) foano.addEventListener('click', function(){
       if(!confirm('Foanana ve ny panier ?')) return;
@@ -1371,20 +1362,13 @@
     });
   }
 
-  // L'entrée du menu : le panier s'ouvre de n'importe où.
+  // L'entrée du menu : le panier s'ouvre de n'importe où, en fenêtre.
   (function(){
     const entree = document.getElementById('menuPanier');
     if(!entree) return;
-    entree.addEventListener('click', function(e){
-      e.stopPropagation();
-      const menu = document.getElementById('navList');
-      if(menu && menu.classList.contains('open')){
-        menu.classList.remove('open');
-        const bascule = document.getElementById('menuToggle');
-        if(bascule) bascule.setAttribute('aria-expanded', 'false');
-      }
-      ouvrirPanier();
-    });
+    // L'entrée ouvre la page (common.js, comme toutes les entrées du menu) ;
+    // ici on la remplit, fraîche à chaque ouverture.
+    entree.addEventListener('click', function(){ dessinerPanier(); });
     majCompteurPanier();
   })();
 

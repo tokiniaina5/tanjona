@@ -763,14 +763,8 @@
   .nav-logo.fb-logo-partage{ position:relative; overflow:visible; }
   .nav-logo.fb-logo-partage img{ width:100%; height:100%; border-radius:22%; }
 
-  /* Le panneau du panier : au milieu de l'écran, au-dessus de tout. */
-  .panier-panneau{
-    position:fixed; z-index:150; left:50%; top:50%;
-    transform:translate(-50%, -50%);
-    width:min(440px, calc(100vw - 24px)); max-height:78vh; overflow-y:auto;
-    padding:1rem 1.1rem;
-  }
-  .panier-panneau[hidden]{ display:none; }
+  /* Le panier est une page en fenêtre : sa largeur de lecture, au milieu. */
+  .panier-page{ max-width:560px; margin:0 auto; padding:0.4rem 0.2rem; }
   .panier-tete{ display:flex; align-items:center; justify-content:space-between; margin-bottom:0.7rem; }
   .panier-titre{ display:inline-flex; align-items:center; gap:0.4rem; font-weight:700; font-size:0.95rem; }
   .panier-fermer{ border:none; background:none; color:var(--muted); font-size:1rem; cursor:pointer; }
