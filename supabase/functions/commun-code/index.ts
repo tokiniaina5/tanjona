@@ -175,7 +175,7 @@ Deno.serve(async (req: Request) => {
   const texte = [
     "Bonjour,",
     "",
-    "Votre accès à la page « Administratif Fokontany » est ouvert.",
+    "Votre accès à la page « Fokontany » est ouvert.",
     "",
     "Ouvrez ce lien : la page s'ouvre sans rien à recopier.",
     lien,
@@ -190,7 +190,7 @@ Deno.serve(async (req: Request) => {
   const texteProprietaire = [
     "Bonjour,",
     "",
-    "Demande d'accès à « Administratif Fokontany » :",
+    "Demande d'accès à « Fokontany » :",
     "",
     lettre || anarana || cible,
     "",
@@ -208,8 +208,8 @@ Deno.serve(async (req: Request) => {
   ].filter((l) => l !== null).join("\n");
 
   const envoi = pourLeProprietaire
-    ? await envoyer(ownerEmail, "Demande d'accès à « Administratif Fokontany » — " + (anarana || cible), texteProprietaire)
-    : await envoyer(cible, "Votre accès à « Administratif Fokontany » — Ny asako", texte);
+    ? await envoyer(ownerEmail, "Demande d'accès à « Fokontany » — " + (anarana || cible), texteProprietaire)
+    : await envoyer(cible, "Votre accès à « Fokontany » — Ny asako", texte);
 
   // Le code revient au propriétaire : si le mail n'est pas parti, il peut le
   // dire lui-même plutôt que de laisser la personne dehors.

@@ -118,20 +118,20 @@ Deno.serve(async (req: Request) => {
   const texte = [
     "Bonjour,",
     "",
-    (ligne.anarana ? ligne.anarana + " (" + email + ")" : email) + " vient de saisir son code pour « Administratif Fokontany ».",
+    (ligne.anarana ? ligne.anarana + " (" + email + ")" : email) + " vient de saisir son code pour « Fokontany ».",
     "",
     "Appareil : " + (appareil || "—"),
     "Heure : " + new Date().toLocaleString("fr-FR"),
     "",
     "La page reste fermée tant que vous n'avez pas confirmé : ouvrez",
-    "« Administratif Fokontany » puis l'onglet « Fangatahana », et pressez « Hamafiso ».",
+    "« Fokontany » puis l'onglet « Fangatahana », et pressez « Hamafiso ».",
     "",
     "Si ce n'est pas la personne attendue, retirez son accès depuis ce même onglet.",
     "",
     Deno.env.get("OWNER_NAME") ?? "",
   ].join("\n");
 
-  const prevenu = await prevenir(ownerEmail, "Code saisi pour « Administratif Fokontany » — à confirmer", texte);
+  const prevenu = await prevenir(ownerEmail, "Code saisi pour « Fokontany » — à confirmer", texte);
 
   return json({ ok: true, voamarina: false, prevenu: prevenu });
 });

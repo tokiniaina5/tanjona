@@ -86,12 +86,12 @@
   // donc le nom de celui qui l'a ouverte — le Commun se reconnaît à la
   // classe posée par son en-tête (fokontany/index.html).
   const MARQUE = document.documentElement.classList.contains('app-commun')
-    ? '🏛️ Administratif <span>Commun</span>'
-    : '🗂️ Administratif <span>Fokontany</span>';
+    ? '🏛️ <span>Commun</span>'
+    : '🗂️ <span>Fokontany</span>';
   window.__validerAvantInstall = function(ensuite, karazana){
     const sb = window.__sb;
     const pourCommun = karazana === 'commun';
-    const marque = pourCommun ? '🏛️ Administratif <span>Commun</span>' : MARQUE;
+    const marque = pourCommun ? '🏛️ <span>Commun</span>' : MARQUE;
     const ANY = pourCommun ? 'commun' : 'fokontany';
     const ancien = document.getElementById('pageValidationInstall');
     if(ancien) ancien.remove();

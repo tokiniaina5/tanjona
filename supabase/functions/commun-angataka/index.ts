@@ -169,7 +169,7 @@ async function traiter(req: Request): Promise<Response> {
   const texte = [
     "Bonjour,",
     "",
-    (anarana ? anarana + " (" + email + ")" : email) + " demande l'accès à « Administratif Fokontany ».",
+    (anarana ? anarana + " (" + email + ")" : email) + " demande l'accès à « Fokontany ».",
     "",
     hafatra ? "Message : " + hafatra : "Sans message.",
     "Heure : " + new Date().toLocaleString("fr-FR"),
@@ -179,12 +179,12 @@ async function traiter(req: Request): Promise<Response> {
     "Pour valider, ouvrez ce lien (connecté à votre compte) puis confirmez :",
     lienValider,
     "",
-    "Sinon : « Administratif Fokontany » > onglet « Fangatahana » > « ✅ Hamafiso » ou « Lavina ».",
+    "Sinon : « Fokontany » > onglet « Fangatahana » > « ✅ Hamafiso » ou « Lavina ».",
     "",
     Deno.env.get("OWNER_NAME") ?? "",
   ].join("\n");
 
-  const envoi = await prevenir(ownerEmail, "Demande d'accès à « Administratif Fokontany »", texte);
+  const envoi = await prevenir(ownerEmail, "Demande d'accès à « Fokontany »", texte);
 
   if (!envoi.sent) console.error("commun-angataka : mail non parti", envoi.error);
   // Le code ne revient pas à la personne : c'est la validation qui ouvre.

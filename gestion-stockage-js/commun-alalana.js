@@ -555,7 +555,7 @@
           return;
         }
         if (window.confirm('Hamafisina ve ny fidiran\'i ' + (a.anarana ? a.anarana + ' (' + email + ')' : email) +
-          ' ao amin\'ny « Administratif Fokontany » ?\n\nCode : ' + a.code)) {
+          ' ao amin\'ny « Fokontany » ?\n\nCode : ' + a.code)) {
           valider(a.id, email);
         }
       });
@@ -616,7 +616,7 @@
 
     if (typeof window.__ajouterNotificationAction === 'function') {
       window.__ajouterNotificationAction('fangatahana',
-        nomDe(a) + ' mangataka hiditra ao amin\'ny « Administratif Fokontany ». Code : ' + a.code,
+        nomDe(a) + ' mangataka hiditra ao amin\'ny « Fokontany ». Code : ' + a.code,
         { cle: cle, libelle: '✅ Ekena' });
     }
     montrerAnnonce(a, cle);
@@ -641,7 +641,7 @@
       'padding:0.8rem 0.9rem; box-shadow:0 10px 30px rgba(0,0,0,0.35); font-size:0.82rem; line-height:1.45;';
     carte.innerHTML =
       '<div style="font-weight:600; margin-bottom:0.2rem;">🔐 Fangatahana vaovao</div>' +
-      '<div>' + echapper(nomDe(a)) + ' mangataka hiditra ao amin\'ny « Administratif Fokontany ».</div>' +
+      '<div>' + echapper(nomDe(a)) + ' mangataka hiditra ao amin\'ny « Fokontany ».</div>' +
       '<div style="font-family:var(--font-mono); letter-spacing:0.1em; margin:0.3rem 0;">Code : ' + echapper(a.code) + '</div>' +
       '<div style="display:flex; gap:0.5rem; flex-wrap:wrap;">' +
         '<button type="button" class="btn btn-primary btn-sm" style="width:auto;" data-annonce-ekena>✅ Ekena</button>' +
@@ -698,7 +698,7 @@
       dire('porteMessage', '');
       if (typeof choisirOngletCommun === 'function') choisirOngletCommun('tableau');
       if (typeof window.__ajouterNotificationAction === 'function') {
-        window.__ajouterNotificationAction('fangatahana', 'Nekena ny fangatahanao : misokatra izao ny « Administratif Fokontany ».', null);
+        window.__ajouterNotificationAction('fangatahana', 'Nekena ny fangatahanao : misokatra izao ny « Fokontany ».', null);
       }
     });
   }, 10000);

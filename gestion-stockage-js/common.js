@@ -5963,7 +5963,7 @@
       if(message){
         message.style.display = ouverte ? 'none' : '';
         message.textContent = ouverte ? '' :
-          '🔐 Mila alalana ity pejy ity : sokafy aloha ny « Administratif Fokontany » miaraka amin\'ny code nomen\'ny tompon\'ny site.';
+          '🔐 Mila alalana ity pejy ity : sokafy aloha ny « Fokontany » miaraka amin\'ny code nomen\'ny tompon\'ny site.';
       }
       if(!ouverte) return;
       // Les mêmes lectures que l'onglet Tableau de bord du Fokontany,

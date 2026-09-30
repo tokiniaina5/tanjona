@@ -346,7 +346,7 @@ function relireLesChangements() {
       // Et hors de la page, si le navigateur l'a déjà permis.
       try {
         if (document.hidden && window.Notification && Notification.permission === 'granted') {
-          new Notification('Administratif Commun', { body: message, icon: '/fokontany/commun/icone-192.png' });
+          new Notification('Commun', { body: message, icon: '/fokontany/commun/icone-192.png' });
         }
       } catch (e) {}
     });
@@ -390,7 +390,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function $(id) { return document.getElementById(id); }
 
   if (APP_COMMUN) {
-    $('fkNomApp').textContent = 'Administratif Commun';
+    $('fkNomApp').textContent = 'Commun';
     afficherNomCommun('');
     try { afficherNomCommun(localStorage.getItem(CLE_NOM_COMMUN) || ''); } catch (e) {}
     // Son icône à lui, le « C » : celle du Fokontany est posée dans la page.
@@ -780,7 +780,7 @@ document.addEventListener('DOMContentLoaded', function () {
       id: depart,
       name: 'Fokontany ' + nom,
       short_name: nom.length > 12 ? nom.slice(0, 12) : nom,
-      description: 'Administratif Fokontany ' + nom + ' : livre de famille, adidy, taratasy.',
+      description: 'Fokontany ' + nom + ' : livre de famille, adidy, taratasy.',
       lang: 'mg', dir: 'ltr',
       start_url: depart,
       scope: '/fokontany/',

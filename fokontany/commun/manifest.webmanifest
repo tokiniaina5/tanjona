@@ -1,8 +1,8 @@
 {
   "id": "/commun/",
-  "name": "Administratif Commun",
+  "name": "Commun",
   "short_name": "Commun",
-  "description": "Tableau de bord an'ny Administratif Fokontany : jerena fotsiny, tsy azo ovaina.",
+  "description": "Tableau de bord an'ny Fokontany : jerena fotsiny, tsy azo ovaina.",
   "lang": "mg",
   "dir": "ltr",
   "start_url": "/commun/",

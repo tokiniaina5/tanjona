@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="5cb34684">
+<meta name="ny-asako-version" content="ca2279f2">
 <title>Ny asako — Tanjona</title>
 <!-- Application installable : le manifeste décrit le nom, l'icône et la façon
      de s'ouvrir ; le reste est affaire de service worker, enregistré plus bas. -->
@@ -608,8 +608,8 @@
         <!-- Le tableau de bord du stock, en page à lui : il n'était qu'un
              onglet des Articles, posé à nu dans la page. -->
         <button type="button" class="nav-action" id="menuTableauBord">📊 Tableau de bord</button>
-        <button type="button" class="nav-action" id="menuCommun">🗂️ Administratif Fokontany</button>
-        <button type="button" class="nav-action" id="menuCommunAdmin">🏛️ Administratif Commun</button>
+        <button type="button" class="nav-action" id="menuCommun">🗂️ Fokontany</button>
+        <button type="button" class="nav-action" id="menuCommunAdmin">🏛️ Commun</button>
         <!-- Installer les deux applications : le propriétaire seul, et d'ici
              seulement — leurs pages ne s'installent pour personne d'autre. -->
         <button type="button" class="nav-action" id="menuInstallFokontany">📲 Télécharger Fokontany</button>
@@ -1496,8 +1496,8 @@
              même porte : sans alalana, rien ne s'y montre. -->
         <div class="dash-view" id="dash-communadmin">
           <div class="section-head"><div>
-            <h2>🏛️ Administratif Commun</h2>
-            <p>Tableau de bord an'ny Administratif Fokontany. Jerena fotsiny : tsy azo ovaina eto ny ao anatiny.</p>
+            <h2>🏛️ Commun</h2>
+            <p>Tableau de bord an'ny Fokontany. Jerena fotsiny : tsy azo ovaina eto ny ao anatiny.</p>
           </div></div>
           <p id="communAdminMessage" class="empty-hint" style="display:none;"></p>
           <div id="communAdminCorps" class="lecture-seule"></div>
@@ -3032,7 +3032,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=afc4639d"></script>
+<script src="gestion-stockage-js/common.js?v=0bc2c522"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=92ad47d0"></script>
@@ -3059,10 +3059,10 @@
 <script src="gestion-stockage-js/fitaovana.js?v=bf90a8a5"></script>
 <script src="gestion-stockage-js/photocopie.js?v=be4f35a5"></script>
 <script src="gestion-stockage-js/pdf.js?v=b7c1f056"></script>
-<script src="gestion-stockage-js/commun-alalana.js?v=682d598c"></script>
+<script src="gestion-stockage-js/commun-alalana.js?v=14bcf7c9"></script>
 <script src="gestion-stockage-js/taratasy.js?v=9ab90132"></script>
 <script src="gestion-stockage-js/fianakaviana.js?v=2d087da0"></script>
-<script src="gestion-stockage-js/validation-install.js?v=fdec8269"></script>
+<script src="gestion-stockage-js/validation-install.js?v=6136b9a3"></script>
 <script src="gestion-stockage-js/adidy.js?v=0f6b4f4c"></script>
 <script src="gestion-stockage-js/theme.js?v=096262fd"></script>
 <script src="gestion-stockage-js/mot-de-passe.js?v=fa311136"></script>
