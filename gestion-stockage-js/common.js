@@ -3646,7 +3646,7 @@
       'section-calendrier', 'section-horaire',
       // Scan, photos, photocopies (photocopie.js), et les PDF rangés (pdf.js).
       'section-photocopie', 'section-pdf',
-      'section-live', 'section-appels', 'section-wallet', 'section-panier',
+      'section-live', 'section-appels', 'section-wallet', 'section-panier', 'section-story',
       'section-mpiasa', 'section-livreur', 'section-personne',
       // « Ny momba ahy », la page de l'employé entré par son lien : posée
       // sous l'Accueil, sa carte s'ouvrait derrière le fil.
