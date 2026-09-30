@@ -3724,6 +3724,13 @@
 
     function fermerFenetre(el){
       marquerReduite(el, false);
+      // La boîte d'écriture n'est pas une page : la fermer, c'est la cacher,
+      // sans toucher à ce qui est ouvert derrière.
+      if(el && el.id === 'fbComposer'){
+        if(typeof window.__fermerComposer === 'function') window.__fermerComposer();
+        else el.style.display = 'none';
+        return;
+      }
       // La fenêtre d'une personne s'est ouverte depuis l'équipe : c'est là
       // qu'on revient, et non au fil, d'où l'on ne venait pas.
       if(el && el.id === 'section-personne'){
@@ -3760,7 +3767,7 @@
     function reduireFenetre(el){
       // Le fil n'a nulle part où revenir : réduit, il s'efface comme fermé,
       // mais sa maison, dans la rangée, clignote pour dire qu'il attend.
-      if(el && el.id === 'dash-accueil'){
+      if(el && (el.id === 'dash-accueil' || el.id === 'fbComposer')){
         fermerFenetre(el);
         marquerReduite(el, true);
         return;
@@ -3778,9 +3785,11 @@
       if(!el) return;
       const s = suivis.find(function(x){ return x.el === el; });
       if(s) s.reduite = oui;
-      if(el.id === 'dash-accueil'){
-        const maison = document.getElementById('barAccueil');
-        if(maison) maison.classList.toggle('reduite', !!oui);
+      // L'Accueil et la boîte d'écriture ont leur bouton fixe dans la rangée.
+      const fixe = { 'dash-accueil': 'barAccueil', 'fbComposer': 'barComposer' }[el.id];
+      if(fixe){
+        const b = document.getElementById(fixe);
+        if(b) b.classList.toggle('reduite', !!oui);
         return;
       }
       if(typeof window.__pageReduite === 'function') window.__pageReduite(el.id, oui);
@@ -4034,7 +4043,9 @@
       calque.dataset.pour = id;
       calque.hidden = true;
       const s = { el: el, calque: calque, vu: false, page: page };
-      if(page){
+      // La boîte d'écriture n'est pas une page, mais elle se tient comme
+      // une fenêtre : on la déplace, on la réduit, on l'agrandit.
+      if(page || id === 'fbComposer'){
         // Un ruban en haut de la fenêtre, pour la prendre et la poser
         // ailleurs. Dans le calque et non dans la fenêtre : à l'intérieur il
         // défilerait avec la page et l'on ne pourrait plus la déplacer sitôt
@@ -4174,6 +4185,8 @@
       fbComposer.style.display = 'none';
       marquerLesBoutons(false);
     }
+    // Pour la croix et le trait de sa fenêtre (plus haut).
+    window.__fermerComposer = fermerComposer;
 
     boutonsComposer.forEach(function(bouton){
       bouton.addEventListener('click', function(e){
