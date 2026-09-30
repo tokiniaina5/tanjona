@@ -1385,6 +1385,228 @@
     majCompteurPanier();
   })();
 
+  // ---------------- LES STORIES ----------------
+  //
+  // Sous le titre du Botika, une rangée qui défile de côté : d'abord « + » pour
+  // en ajouter une, puis une carte par personne, sa dernière photo en fond.
+  // Une story dure vingt-quatre heures (le serveur pose la date de fin,
+  // supabase-stories.sql). On la regarde en plein écran, une barre par photo,
+  // cinq secondes chacune ; un appui à gauche revient, à droite avance.
+  const storyRangee = document.getElementById('storyRangee');
+  const storyFichier = document.getElementById('storyFichier');
+  const DUREE_STORY = 5000;
+  let listeStories = [];
+  let monIdStory = null;
+
+  function sessionStory(){
+    const auth = window.__sb && window.__sb.auth;
+    return (auth && auth.getSession ? auth.getSession() : Promise.resolve(null)).then(function(r){
+      return (r && r.data && r.data.session) || null;
+    }, function(){ return null; });
+  }
+
+  // Les stories par personne, la plus récente d'abord ; les siennes en tête.
+  function groupesDeStories(){
+    const parAuteur = {};
+    const ordre = [];
+    listeStories.forEach(function(s){
+      if(!parAuteur[s.auteur_id]){ parAuteur[s.auteur_id] = []; ordre.push(s.auteur_id); }
+      parAuteur[s.auteur_id].push(s);
+    });
+    return ordre.map(function(id){
+      // Dans le groupe, on les regarde dans l'ordre où elles ont été posées.
+      const l = parAuteur[id].slice().reverse();
+      return { auteur_id: id, nom: l[l.length - 1].auteur_nom, photo: l[l.length - 1].auteur_photo, liste: l };
+    }).sort(function(a, b){
+      return (b.auteur_id === monIdStory) - (a.auteur_id === monIdStory);
+    });
+  }
+
+  function avatarStory(photo, nom){
+    return photo
+      ? '<img class="story-avatar" src="' + escapeHtml(photo) + '" alt="">'
+      : '<span class="story-avatar story-avatar-lettres">' + escapeHtml(initials(nom)) + '</span>';
+  }
+
+  function dessinerStories(){
+    if(!storyRangee) return;
+    const maPhoto = jeSuisLaMaison() ? MARQUE_LOGO : ((currentUser && currentUser.logo) || '');
+    let html =
+      '<button type="button" class="story-carte story-ajouter" data-story-ajouter>' +
+        '<span class="story-ajouter-fond">' + avatarStory(maPhoto, (currentUser && currentUser.name) || '') + '</span>' +
+        '<span class="story-plus" aria-hidden="true">+</span>' +
+        '<span class="story-nom">Hanampy story</span>' +
+      '</button>';
+    groupesDeStories().forEach(function(g, i){
+      const derniere = g.liste[g.liste.length - 1];
+      html +=
+        '<button type="button" class="story-carte" data-story-groupe="' + i + '" style="background-image:url(\'' +
+          String(derniere.media).replace(/'/g, '%27') + '\')">' +
+          '<span class="story-anneau">' + avatarStory(g.photo, g.nom) + '</span>' +
+          '<span class="story-nom">' + escapeHtml(g.auteur_id === monIdStory ? 'Ny story-nao' : (g.nom || 'Client')) + '</span>' +
+        '</button>';
+    });
+    storyRangee.innerHTML = html;
+  }
+
+  function chargerStories(){
+    if(!storyRangee || !window.__sb) return;
+    sessionStory().then(function(session){
+      monIdStory = session && session.user ? session.user.id : null;
+      return window.__sb.from('botika_stories')
+        .select('id,auteur_id,auteur_nom,auteur_photo,media,texte,created_at')
+        .order('created_at', { ascending: false }).limit(150);
+    }).then(function(res){
+      if(res && !res.error) listeStories = res.data || [];
+      dessinerStories();
+    }, function(){ dessinerStories(); });
+  }
+
+  // ---- Le plein écran ----
+  let visionneuseStory = null;
+  let minuterieStory = null;
+  function fermerVisionneuse(){
+    clearTimeout(minuterieStory);
+    if(visionneuseStory){ visionneuseStory.remove(); visionneuseStory = null; }
+    document.removeEventListener('keydown', toucheVisionneuse);
+  }
+  function toucheVisionneuse(e){
+    if(!visionneuseStory) return;
+    if(e.key === 'Escape') fermerVisionneuse();
+    if(e.key === 'ArrowRight' && visionneuseStory.__suivant) visionneuseStory.__suivant();
+    if(e.key === 'ArrowLeft' && visionneuseStory.__precedent) visionneuseStory.__precedent();
+  }
+  function cadreVisionneuse(){
+    fermerVisionneuse();
+    visionneuseStory = document.createElement('div');
+    visionneuseStory.className = 'story-mijery';
+    visionneuseStory.setAttribute('role', 'dialog');
+    visionneuseStory.setAttribute('aria-label', 'Story');
+    ['pointerdown', 'mousedown', 'click'].forEach(function(t){
+      visionneuseStory.addEventListener(t, function(e){ e.stopPropagation(); });
+    });
+    document.body.appendChild(visionneuseStory);
+    document.addEventListener('keydown', toucheVisionneuse);
+    return visionneuseStory;
+  }
+  function depuisQuandStory(date){
+    const min = Math.max(1, Math.round((Date.now() - new Date(date).getTime()) / 60000));
+    return min < 60 ? min + ' min' : Math.round(min / 60) + ' h';
+  }
+
+  function ouvrirGroupe(indexGroupe, indexStory){
+    const groupes = groupesDeStories();
+    const g = groupes[indexGroupe];
+    if(!g){ fermerVisionneuse(); return; }
+    const v = cadreVisionneuse();
+    let i = Math.min(indexStory || 0, g.liste.length - 1);
+    function montrer(){
+      clearTimeout(minuterieStory);
+      const s = g.liste[i];
+      const moi = g.auteur_id === monIdStory;
+      v.innerHTML =
+        '<div class="story-barres">' + g.liste.map(function(x, k){
+          return '<span class="story-barre' + (k < i ? ' vita' : '') + '"><i' +
+            (k === i ? ' style="animation-duration:' + DUREE_STORY + 'ms"' : '') + '></i></span>';
+        }).join('') + '</div>' +
+        '<div class="story-tete">' + avatarStory(g.photo, g.nom) +
+          '<strong>' + escapeHtml(g.nom || 'Client') + '</strong><span>' + depuisQuandStory(s.created_at) + '</span>' +
+          (moi ? '<span class="story-fafana" role="button" tabindex="0" title="Hamafa" aria-label="Hamafa">' + LOGO_FAFANA + '</span>' : '') +
+          '<button type="button" class="story-hidy" aria-label="Hidio" title="Hidio">✕</button></div>' +
+        '<img class="story-sary" src="' + escapeHtml(s.media) + '" alt="">' +
+        (s.texte ? '<p class="story-soratra">' + escapeHtml(s.texte) + '</p>' : '') +
+        '<span class="story-zone story-zone-g"></span><span class="story-zone story-zone-d"></span>';
+      v.querySelector('.story-hidy').addEventListener('click', fermerVisionneuse);
+      v.querySelector('.story-zone-g').addEventListener('click', v.__precedent);
+      v.querySelector('.story-zone-d').addEventListener('click', v.__suivant);
+      const f = v.querySelector('.story-fafana');
+      if(f) f.addEventListener('click', function(){
+        clearTimeout(minuterieStory);
+        if(!confirm('Hamafa ity story ity ve ?')){ minuterieStory = setTimeout(v.__suivant, DUREE_STORY); return; }
+        window.__sb.from('botika_stories').delete().eq('id', s.id).then(function(res){
+          if(res && res.error){ alert('Tsy voafafa : ' + res.error.message); return; }
+          listeStories = listeStories.filter(function(x){ return x.id !== s.id; });
+          dessinerStories();
+          fermerVisionneuse();
+        });
+      });
+      minuterieStory = setTimeout(v.__suivant, DUREE_STORY);
+    }
+    v.__suivant = function(){
+      if(i < g.liste.length - 1){ i += 1; montrer(); }
+      else if(indexGroupe < groupes.length - 1) ouvrirGroupe(indexGroupe + 1, 0);
+      else fermerVisionneuse();
+    };
+    v.__precedent = function(){
+      if(i > 0){ i -= 1; montrer(); }
+      else if(indexGroupe > 0){
+        const avant = groupes[indexGroupe - 1];
+        ouvrirGroupe(indexGroupe - 1, avant.liste.length - 1);
+      } else montrer();
+    };
+    montrer();
+  }
+
+  // ---- Ajouter : la photo, deux mots si l'on veut, et « Alefa » ----
+  function composerStory(media){
+    const v = cadreVisionneuse();
+    v.innerHTML =
+      '<div class="story-tete"><strong>Story vaovao</strong>' +
+        '<button type="button" class="story-hidy" aria-label="Aoka ihany" title="Aoka ihany">✕</button></div>' +
+      '<img class="story-sary" src="' + media + '" alt="">' +
+      '<div class="story-mandefa">' +
+        '<input type="text" class="story-teny" maxlength="300" placeholder="Soraty eto raha tianao…">' +
+        '<button type="button" class="btn btn-primary story-alefa">Alefa</button>' +
+      '</div>' +
+      '<p class="story-erreur" hidden></p>';
+    v.querySelector('.story-hidy').addEventListener('click', fermerVisionneuse);
+    const alefa = v.querySelector('.story-alefa');
+    alefa.addEventListener('click', function(){
+      alefa.disabled = true;
+      alefa.textContent = '⏳';
+      const maison = jeSuisLaMaison();
+      (maison ? Promise.resolve(MARQUE_LOGO) : vignette(currentUser && currentUser.logo)).then(function(photo){
+        return window.__sb.from('botika_stories').insert({
+          auteur_nom: maison ? MARQUE_NOM : ((currentUser && currentUser.name) || 'Client'),
+          auteur_photo: photo,
+          media: media,
+          texte: (v.querySelector('.story-teny').value || '').trim() || null
+        });
+      }).then(function(res){
+        if(res && res.error) throw res.error;
+        fermerVisionneuse();
+        chargerStories();
+      }).catch(function(err){
+        alefa.disabled = false;
+        alefa.textContent = 'Alefa';
+        const e = v.querySelector('.story-erreur');
+        e.hidden = false;
+        e.textContent = 'Tsy lasa : ' + ((err && err.message) || 'réseau');
+      });
+    });
+  }
+
+  if(storyRangee){
+    storyRangee.addEventListener('click', function(e){
+      const ajouter = e.target.closest('[data-story-ajouter]');
+      if(ajouter){
+        sessionStory().then(function(session){
+          if(!session){ direPresDuBouton(ajouter, 'Midira amin\'ny tenimiafinao aloha vao afaka mametraka story.'); return; }
+          storyFichier.value = '';
+          storyFichier.click();
+        });
+        return;
+      }
+      const carte = e.target.closest('[data-story-groupe]');
+      if(carte) ouvrirGroupe(Number(carte.getAttribute('data-story-groupe')), 0);
+    });
+    if(storyFichier) storyFichier.addEventListener('change', function(){
+      const f = storyFichier.files && storyFichier.files[0];
+      if(f) resizeImageFile(f, composerStory);
+    });
+    dessinerStories();
+  }
+
   // Une table absente et un réseau coupé ne se réparent pas de la même façon :
   // dire lequel des deux, c'est éviter de chercher au mauvais endroit.
   function feedErrorText(error){
@@ -2671,6 +2893,9 @@
   window.__majBilletsLive = majBilletsLive;
 
   function renderCommunityNews(){
+    // Les stories se rafraîchissent avec le fil. (try : le fil peut être
+    // demandé avant que leur bloc ait fini de se poser.)
+    try{ chargerStories(); }catch(e){}
     const list = document.getElementById('communityNewsList');
     const emptyHint = document.getElementById('communityNewsEmpty');
     if(!list) return;

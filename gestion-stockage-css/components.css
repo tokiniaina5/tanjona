@@ -1344,3 +1344,95 @@
   border-radius: inherit;
   object-fit: cover;
 }
+
+/* ---- Les stories, sous le titre du Botika ----
+   Des cartes hautes qui défilent de côté ; la première ajoute. */
+.story-rangee{
+  display:flex; gap:0.55rem; overflow-x:auto; overscroll-behavior-x:contain;
+  padding:0.2rem 0.1rem 0.7rem; margin:0 0 0.4rem;
+  scrollbar-width:none;
+}
+.story-rangee::-webkit-scrollbar{ display:none; }
+.story-carte{
+  position:relative; flex:0 0 auto; width:92px; height:150px;
+  border:none; border-radius:14px; padding:0; cursor:pointer; overflow:hidden;
+  background:var(--panel-2) center/cover no-repeat;
+  box-shadow:0 2px 8px rgba(0,0,0,0.25);
+  color:#fff; font:inherit;
+}
+.story-carte::after{
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(to bottom, rgba(0,0,0,0.25), transparent 35%, transparent 55%, rgba(0,0,0,0.6));
+  pointer-events:none;
+}
+.story-nom{
+  position:absolute; left:0.4rem; right:0.4rem; bottom:0.4rem; z-index:1;
+  font-size:0.72rem; font-weight:700; line-height:1.15; text-align:left;
+  overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+}
+.story-avatar{
+  width:34px; height:34px; border-radius:50%; object-fit:cover; display:inline-flex;
+  align-items:center; justify-content:center; background:var(--cyan); color:#fff;
+  font-size:0.72rem; font-weight:700;
+}
+.story-anneau{
+  position:absolute; left:0.4rem; top:0.4rem; z-index:1;
+  padding:2px; border-radius:50%; background:var(--cyan); display:inline-flex;
+}
+.story-anneau .story-avatar{ box-shadow:0 0 0 2px var(--panel); }
+/* « Hanampy story » : son visage en haut, le « + » à la jointure. */
+.story-ajouter{ background:var(--panel); color:var(--text); box-shadow:0 2px 8px rgba(0,0,0,0.2), inset 0 0 0 1px var(--line); }
+.story-ajouter::after{ display:none; }
+.story-ajouter-fond{
+  position:absolute; left:0; right:0; top:0; height:62%;
+  display:flex; align-items:center; justify-content:center; background:var(--panel-2);
+}
+.story-ajouter-fond .story-avatar{ width:100%; height:100%; border-radius:0; font-size:1.3rem; }
+.story-plus{
+  position:absolute; left:50%; top:62%; transform:translate(-50%, -50%); z-index:1;
+  width:30px; height:30px; border-radius:50%; background:var(--cyan); color:#fff;
+  font-size:1.3rem; font-weight:700; line-height:30px; text-align:center;
+  box-shadow:0 0 0 3px var(--panel);
+}
+.story-ajouter .story-nom{ color:var(--text); text-align:center; }
+
+/* Le plein écran. */
+.story-mijery{
+  position:fixed; inset:0; z-index:400; background:#000;
+  display:flex; align-items:center; justify-content:center;
+}
+.story-sary{ max-width:100%; max-height:100%; object-fit:contain; }
+.story-barres{
+  position:absolute; left:10px; right:10px; top:10px; z-index:3; display:flex; gap:4px;
+}
+.story-barre{ flex:1; height:3px; border-radius:2px; background:rgba(255,255,255,0.35); overflow:hidden; }
+.story-barre i{ display:block; height:100%; width:0; background:#fff; }
+.story-barre.vita i{ width:100%; }
+.story-barre i[style]{ animation:story-avance linear forwards; }
+@keyframes story-avance{ from{ width:0; } to{ width:100%; } }
+.story-tete{
+  position:absolute; left:10px; right:10px; top:22px; z-index:3;
+  display:flex; align-items:center; gap:0.5rem; color:#fff; font-size:0.85rem;
+}
+.story-tete span{ opacity:0.75; font-size:0.75rem; }
+.story-tete .story-avatar{ width:32px; height:32px; opacity:1; }
+.story-fafana{ margin-left:auto; cursor:pointer; font-size:1.1rem; opacity:1 !important; }
+.story-hidy{ margin-left:auto; border:none; background:none; color:#fff; font-size:1.4rem; cursor:pointer; }
+.story-fafana + .story-hidy{ margin-left:0.4rem; }
+.story-soratra{
+  position:absolute; left:16px; right:16px; bottom:40px; z-index:3; margin:0;
+  text-align:center; color:#fff; font-size:1.05rem; font-weight:600;
+  text-shadow:0 1px 4px rgba(0,0,0,0.8);
+}
+.story-zone{ position:absolute; top:70px; bottom:0; z-index:2; }
+.story-zone-g{ left:0; width:35%; }
+.story-zone-d{ right:0; width:65%; }
+.story-mandefa{
+  position:absolute; left:12px; right:12px; bottom:18px; z-index:3; display:flex; gap:0.5rem;
+}
+.story-teny{
+  flex:1; min-width:0; padding:0.6rem 0.8rem; border-radius:999px; border:1px solid rgba(255,255,255,0.4);
+  background:rgba(0,0,0,0.45); color:#fff; font:inherit;
+}
+.story-alefa{ width:auto !important; border-radius:999px; }
+.story-erreur{ position:absolute; left:12px; right:12px; bottom:70px; z-index:3; color:#ff8a8a; text-align:center; font-size:0.85rem; }
