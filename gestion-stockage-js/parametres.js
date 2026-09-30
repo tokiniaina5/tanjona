@@ -3129,12 +3129,12 @@
       (images.length
         ? (seule
           ? '<div data-rang="0" data-seule style="' + (grand ? 'aspect-ratio:1 / 1;' : 'height:' + Math.round(haut * 1.8) + 'px;') + '">' +
-            '<img src="' + escapeHtml(images[0]) + '" alt="" loading="' + chargement + '" ' +
+            '<img src="' + escapeHtml(images[0]) + '" alt="" loading="' + chargement + '" referrerpolicy="no-referrer" ' +
             'style="' + cadreImage + '"></div>'
           : '<div style="display:grid; grid-template-columns:repeat(' + images.length + ', 1fr); gap:2px;">' +
             images.map(function(src, i){
               return '<div data-rang="' + i + '" style="height:' + haut + 'px;">' +
-                '<img src="' + escapeHtml(src) + '" alt="" loading="' + chargement + '" ' +
+                '<img src="' + escapeHtml(src) + '" alt="" loading="' + chargement + '" referrerpolicy="no-referrer" ' +
                 'style="' + cadreImage + '"></div>';
             }).join('') +
             '</div>')
@@ -3240,7 +3240,13 @@
     const toutes = cadre.__images || [];
     const img = boite.querySelector('img');
     const suivante = toutes[rang];
-    if(!img || !suivante || rang < 0 || restants <= 0) return;
+    if(!img) return;
+    // Plus rien à essayer, et l'image en place ne s'est jamais affichée : la
+    // grande place vide s'efface plutôt que de laisser un carré gris.
+    if(!suivante || rang < 0 || restants <= 0){
+      if(boite.hasAttribute('data-seule') && img.complete && !img.naturalWidth) boite.remove();
+      return;
+    }
     if(suivante === img.getAttribute('src')) return;
 
     // Chargée avant d'être montrée : sans cela, la place reste vide le temps
@@ -3249,6 +3255,10 @@
     // tournent au même instant, ne viseront pas la même image.
     boite.setAttribute('data-rang', String(rang));
     const avance = new Image();
+    // Sans dire d'où l'on vient : bien des sites (Madagascar Airlines…)
+    // refusent leurs images à une page qui n'est pas la leur, et seulement
+    // quand elle se nomme.
+    avance.referrerPolicy = 'no-referrer';
     avance.onload = function(){
       if(!formeAcceptable(avance)){
         (cadre.__ecartes || (cadre.__ecartes = {}))[rang] = true;
