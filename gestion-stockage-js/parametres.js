@@ -2480,7 +2480,8 @@
             // La feuille de WhatsApp coche cinq personnes et s'arrête là.
             // Celui-ci passe par la liste des clients (zara-rehetra.js) :
             // tout cocher d'un coup, sans plafond.
-            '<span class="fb-share-action" data-share-all style="cursor:pointer;">📢 Rehetra</span>' +
+            '<span class="fb-share-action fb-partager" data-share-all style="cursor:pointer;">' +
+              '<img class="fb-logo-maison" src="/icone-192.png" alt="" aria-hidden="true" draggable="false"><span>Rehetra</span></span>' +
             // Effacer n'est offert qu'à qui a écrit le billet : l'adresse du
             // billet est celle du compte. La base dit la même chose de son
             // côté (supabase-entana-lany.sql) — le bouton ne fait que suivre.

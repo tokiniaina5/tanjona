@@ -744,6 +744,8 @@
   .fb-partager{ display:inline-flex; align-items:center; gap:0.35rem; font-weight:600; }
   .fb-post-actions .fb-partager span{ color:inherit; font-size:inherit; }
   .fb-partager:hover .fb-pouce{ fill:currentColor; }
+  /* « Rehetra » porte le logo de la maison : c'est elle qui envoie à tous. */
+  .fb-logo-maison{ width:1.25em; height:1.25em; border-radius:22%; object-fit:cover; }
   /* L'achat est la seule action de la rangée qui engage : elle se voit. */
   .fb-buy-action{ font-weight:600; }
   .fb-buy-action:hover{ text-decoration:underline; }
