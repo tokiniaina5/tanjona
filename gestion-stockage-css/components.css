@@ -1420,7 +1420,7 @@
 .story-hidy{ margin-left:auto; border:none; background:none; color:#fff; font-size:1.4rem; cursor:pointer; }
 .story-fafana + .story-hidy{ margin-left:0.4rem; }
 .story-soratra{
-  position:absolute; left:16px; right:16px; bottom:40px; z-index:3; margin:0;
+  position:absolute; left:16px; right:16px; bottom:84px; z-index:3; margin:0;
   text-align:center; color:#fff; font-size:1.05rem; font-weight:600;
   text-shadow:0 1px 4px rgba(0,0,0,0.8);
 }
@@ -1436,3 +1436,29 @@
 }
 .story-alefa{ width:auto !important; border-radius:999px; }
 .story-erreur{ position:absolute; left:12px; right:12px; bottom:70px; z-index:3; color:#ff8a8a; text-align:center; font-size:0.85rem; }
+
+/* Les sept visages, en bas de la story ; celui qu'on a choisi est levé et
+   cerclé. Chez l'auteur, le compte de chacun à la place. */
+.story-reactions{
+  position:absolute; left:50%; bottom:16px; transform:translateX(-50%); z-index:4;
+  display:flex; align-items:center; gap:0.35rem; padding:0.35rem 0.55rem;
+  border-radius:999px; background:rgba(0,0,0,0.5); backdrop-filter:blur(6px);
+  max-width:calc(100vw - 24px);
+}
+.story-reactions:empty{ display:none; }
+.story-reaction{
+  width:40px; height:40px; padding:4px; border:none; border-radius:50%;
+  background:transparent; cursor:pointer; transition:transform 0.15s ease;
+}
+.story-reaction .fb-emoji-3d{ width:100%; height:100%; }
+.story-reaction:hover{ transform:translateY(-4px) scale(1.15); }
+.story-reaction.voafidy{ transform:translateY(-6px) scale(1.2); background:rgba(255,255,255,0.18); box-shadow:0 0 0 2px var(--cyan); }
+.story-bilan{ color:#fff; font-size:0.85rem; gap:0.7rem; }
+.story-bilan-un{ display:inline-flex; align-items:center; gap:0.25rem; }
+.story-bilan-un .fb-emoji-3d{ width:24px; height:24px; }
+.story-bilan-vide{ opacity:0.8; padding:0 0.3rem; }
+/* L'éparpillement passe devant la story ouverte. */
+body.story-ouverte .fb-reaction-pluie{ z-index:410; }
+body.story-ouverte .fb-reaction-eclat{ z-index:411; }
+body.story-ouverte .fb-reaction-vole{ z-index:412; }
+body.story-ouverte .fb-reaction-avis{ z-index:413; }

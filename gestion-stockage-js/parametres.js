@@ -1465,8 +1465,11 @@
   // ---- Le plein écran ----
   let visionneuseStory = null;
   let minuterieStory = null;
+  // Les réactions des stories ouvertes, par story : [{ user_id, reaction }].
+  let reactionsStory = {};
   function fermerVisionneuse(){
     clearTimeout(minuterieStory);
+    document.body.classList.remove('story-ouverte');
     if(visionneuseStory){ visionneuseStory.remove(); visionneuseStory = null; }
     document.removeEventListener('keydown', toucheVisionneuse);
   }
@@ -1486,6 +1489,8 @@
       visionneuseStory.addEventListener(t, function(e){ e.stopPropagation(); });
     });
     document.body.appendChild(visionneuseStory);
+    // Les emoji qui s'éparpillent passent devant la story (components.css).
+    document.body.classList.add('story-ouverte');
     document.addEventListener('keydown', toucheVisionneuse);
     return visionneuseStory;
   }
@@ -1494,12 +1499,79 @@
     return min < 60 ? min + ' min' : Math.round(min / 60) + ' h';
   }
 
+  // En bas de la story, les sept visages. Chez les autres : on en touche un,
+  // il s'éparpille sur tout l'écran, et il reste choisi (le retoucher le
+  // retire). Chez soi : ce que les autres ont donné, compté par visage.
+  function dessinerReactionsStory(v, s, moi){
+    const zone = v.querySelector('.story-reactions');
+    if(!zone) return;
+    const liste = reactionsStory[s.id] || [];
+    if(moi){
+      const parType = {};
+      liste.forEach(function(r){ parType[r.reaction] = (parType[r.reaction] || 0) + 1; });
+      const pris = REACTIONS.filter(function(r){ return parType[r.id]; });
+      zone.className = 'story-reactions story-bilan';
+      zone.innerHTML = pris.length
+        ? pris.map(function(r){ return '<span class="story-bilan-un">' + visage(r) + '<b>' + parType[r.id] + '</b></span>'; }).join('')
+        : '<span class="story-bilan-vide">Mbola tsy misy fihetseham-po</span>';
+      return;
+    }
+    const mienne = liste.filter(function(r){ return r.user_id === monIdStory; })[0];
+    zone.className = 'story-reactions';
+    zone.innerHTML = REACTIONS.map(function(r){
+      return '<button type="button" class="story-reaction' + (mienne && mienne.reaction === r.id ? ' voafidy' : '') +
+        '" data-sorte="story" data-story-reaction="' + r.id + '" title="' + r.nom + '" aria-label="' + r.nom + '">' +
+        visage(r) + '</button>';
+    }).join('');
+    zone.querySelectorAll('[data-story-reaction]').forEach(function(b){
+      b.addEventListener('click', function(){
+        const id = b.getAttribute('data-story-reaction');
+        sessionStory().then(function(session){
+          if(!session){ direPresDuBouton(b, PAS_DE_SESSION); return; }
+          monIdStory = session.user.id;
+          const avant = (reactionsStory[s.id] || []).filter(function(r){ return r.user_id === monIdStory; })[0];
+          const retirer = avant && avant.reaction === id;
+          // Tout de suite à l'écran ; le serveur suit.
+          reactionsStory[s.id] = (reactionsStory[s.id] || []).filter(function(r){ return r.user_id !== monIdStory; });
+          if(!retirer){
+            reactionsStory[s.id].push({ story_id: s.id, user_id: monIdStory, reaction: id });
+            eclaterReaction(b, id);
+          }
+          dessinerReactionsStory(v, s, false);
+          if(v.__relancer) v.__relancer();
+          const table = window.__sb.from('botika_story_reactions');
+          (retirer
+            ? table.delete().eq('story_id', s.id).eq('user_id', monIdStory)
+            : table.upsert({ story_id: s.id, user_id: monIdStory, reaction: id }, { onConflict: 'story_id,user_id' })
+          ).then(function(res){
+            if(res && res.error){
+              reactionsStory[s.id] = (reactionsStory[s.id] || []).filter(function(r){ return r.user_id !== monIdStory; });
+              if(avant) reactionsStory[s.id].push(avant);
+              if(visionneuseStory === v) dessinerReactionsStory(v, s, false);
+              direPresDuBouton(zone, 'Tsy voaray : ' + res.error.message);
+            }
+          });
+        });
+      });
+    });
+  }
+
   function ouvrirGroupe(indexGroupe, indexStory){
     const groupes = groupesDeStories();
     const g = groupes[indexGroupe];
     if(!g){ fermerVisionneuse(); return; }
     const v = cadreVisionneuse();
     let i = Math.min(indexStory || 0, g.liste.length - 1);
+    // Les réactions de tout le groupe, d'un coup ; elles se dessinent dès
+    // qu'elles arrivent sous la story à l'écran.
+    const ids = g.liste.map(function(x){ return x.id; });
+    if(window.__sb) window.__sb.from('botika_story_reactions').select('story_id,user_id,reaction')
+      .in('story_id', ids).then(function(res){
+        if(!res || res.error) return;
+        ids.forEach(function(id){ reactionsStory[id] = []; });
+        (res.data || []).forEach(function(r){ reactionsStory[r.story_id].push(r); });
+        if(visionneuseStory === v && g.liste[i]) dessinerReactionsStory(v, g.liste[i], g.auteur_id === monIdStory);
+      });
     function montrer(){
       clearTimeout(minuterieStory);
       const s = g.liste[i];
@@ -1515,7 +1587,9 @@
           '<button type="button" class="story-hidy" aria-label="Hidio" title="Hidio">✕</button></div>' +
         '<img class="story-sary" src="' + escapeHtml(s.media) + '" alt="">' +
         (s.texte ? '<p class="story-soratra">' + escapeHtml(s.texte) + '</p>' : '') +
-        '<span class="story-zone story-zone-g"></span><span class="story-zone story-zone-d"></span>';
+        '<span class="story-zone story-zone-g"></span><span class="story-zone story-zone-d"></span>' +
+        '<div class="story-reactions"></div>';
+      dessinerReactionsStory(v, s, moi);
       v.querySelector('.story-hidy').addEventListener('click', fermerVisionneuse);
       v.querySelector('.story-zone-g').addEventListener('click', v.__precedent);
       v.querySelector('.story-zone-d').addEventListener('click', v.__suivant);
@@ -1532,6 +1606,14 @@
       });
       minuterieStory = setTimeout(v.__suivant, DUREE_STORY);
     }
+    // Réagir laisse le temps de voir l'éparpillement : la story repart de
+    // zéro, sa barre avec elle.
+    v.__relancer = function(){
+      clearTimeout(minuterieStory);
+      const barre = v.querySelector('.story-barre i[style]');
+      if(barre){ barre.style.animation = 'none'; void barre.offsetWidth; barre.style.animation = ''; }
+      minuterieStory = setTimeout(v.__suivant, DUREE_STORY);
+    };
     v.__suivant = function(){
       if(i < g.liste.length - 1){ i += 1; montrer(); }
       else if(indexGroupe < groupes.length - 1) ouvrirGroupe(indexGroupe + 1, 0);
@@ -1715,6 +1797,12 @@
       etats: function(){ return reactionsCommentaires; },
       table: 'client_news_comment_reactions', colonne: 'comment_id', avecQui: false, pouce: false,
       compte: function(el){ const c = el.closest('.fb-comment'); return c && c.querySelector('[data-comment-count]'); }
+    },
+    // Les stories n'ont que l'éparpillement : leurs réactions vivent à part
+    // (dessinerReactionsStory).
+    story: {
+      etats: function(){ return {}; },
+      compte: function(){ return null; }
     }
   };
   function sorteDe(el){ return SORTES[(el && el.dataset.sorte) || 'billet']; }
