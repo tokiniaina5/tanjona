@@ -570,6 +570,9 @@
     max-height: 70vh;
     overflow-y: auto;
     box-shadow: 0 -10px 34px rgba(0,0,0,0.5);
+    /* Le haut appartient au ruban et aux boutons ─ □ ✕ : le contenu
+       commence dessous, sinon le champ passait sous eux. */
+    padding-top: 2.4rem;
   }
 
   .dash-view{ display:none; }
