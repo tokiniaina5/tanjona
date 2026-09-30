@@ -1395,6 +1395,17 @@
   const storyRangee = document.getElementById('storyRangee');
   const storyFichier = document.getElementById('storyFichier');
   const DUREE_STORY = 5000;
+  const DUREE_STORY_HIRA = 15000;
+  // Vidéos et chansons : dans le bucket, sous le dossier de leur auteur
+  // (supabase-stories-media.sql). 30 Mo, trente secondes de vidéo au plus.
+  const BUCKET_STORY = 'story-media';
+  const MAX_STORY_MO = 30;
+  const MAX_STORY_SECONDES = 30;
+  const MAX_STORIES_D_UN_COUP = 10;
+  function cheminStoryMedia(url){
+    const m = String(url || '').split('/object/public/' + BUCKET_STORY + '/')[1];
+    return m ? decodeURIComponent(m) : null;
+  }
   let listeStories = [];
   let monIdStory = null;
 
@@ -1439,9 +1450,14 @@
       '</button>';
     groupesDeStories().forEach(function(g, i){
       const derniere = g.liste[g.liste.length - 1];
+      // Une vidéo n'a pas d'image à poser en fond : sa première seconde, sans
+      // le son, en tient lieu.
+      const video = derniere.genre === 'video';
       html +=
-        '<button type="button" class="story-carte" data-story-groupe="' + i + '" style="background-image:url(\'' +
-          String(derniere.media).replace(/'/g, '%27') + '\')">' +
+        '<button type="button" class="story-carte" data-story-groupe="' + i + '"' +
+          (video ? '' : ' style="background-image:url(\'' + String(derniere.media).replace(/'/g, '%27') + '\')"') + '>' +
+          (video ? '<video class="story-carte-video" src="' + escapeHtml(derniere.media) + '#t=0.5" muted playsinline preload="metadata"></video>' +
+            '<span class="story-carte-play" aria-hidden="true">▶</span>' : '') +
           '<span class="story-anneau">' + avatarStory(g.photo, g.nom) + '</span>' +
           '<span class="story-nom">' + escapeHtml(g.auteur_id === monIdStory ? 'Ny story-nao' : (g.nom || 'Client')) + '</span>' +
         '</button>';
@@ -1454,7 +1470,7 @@
     sessionStory().then(function(session){
       monIdStory = session && session.user ? session.user.id : null;
       return window.__sb.from('botika_stories')
-        .select('id,auteur_id,auteur_nom,auteur_photo,media,texte,created_at')
+        .select('id,auteur_id,auteur_nom,auteur_photo,media,texte,created_at,genre,hira,hira_nom')
         .order('created_at', { ascending: false }).limit(150);
     }).then(function(res){
       if(res && !res.error) listeStories = res.data || [];
@@ -1467,8 +1483,14 @@
   let minuterieStory = null;
   // Les réactions des stories ouvertes, par story : [{ user_id, reaction }].
   let reactionsStory = {};
+  // La chanson posée sur la story à l'écran : une seule joue à la fois.
+  let sonStory = null;
+  function taireStory(){
+    if(sonStory){ try{ sonStory.pause(); }catch(e){} sonStory = null; }
+  }
   function fermerVisionneuse(){
     clearTimeout(minuterieStory);
+    taireStory();
     document.body.classList.remove('story-ouverte');
     if(visionneuseStory){ visionneuseStory.remove(); visionneuseStory = null; }
     document.removeEventListener('keydown', toucheVisionneuse);
@@ -1574,45 +1596,82 @@
       });
     function montrer(){
       clearTimeout(minuterieStory);
+      taireStory();
       const s = g.liste[i];
       const moi = g.auteur_id === monIdStory;
+      const video = s.genre === 'video';
+      // Une photo chantée reste plus longtemps : cinq secondes d'une chanson
+      // ne font pas une chanson.
+      const duree = s.hira ? DUREE_STORY_HIRA : DUREE_STORY;
       v.innerHTML =
         '<div class="story-barres">' + g.liste.map(function(x, k){
           return '<span class="story-barre' + (k < i ? ' vita' : '') + '"><i' +
-            (k === i ? ' style="animation-duration:' + DUREE_STORY + 'ms"' : '') + '></i></span>';
+            (k === i ? ' style="animation-duration:' + duree + 'ms"' : '') + '></i></span>';
         }).join('') + '</div>' +
         '<div class="story-tete">' + avatarStory(g.photo, g.nom) +
           '<strong>' + escapeHtml(g.nom || 'Client') + '</strong><span>' + depuisQuandStory(s.created_at) + '</span>' +
           (moi ? '<span class="story-fafana" role="button" tabindex="0" title="Hamafa" aria-label="Hamafa">' + LOGO_FAFANA + '</span>' : '') +
           '<button type="button" class="story-hidy" aria-label="Hidio" title="Hidio">✕</button></div>' +
-        '<img class="story-sary" src="' + escapeHtml(s.media) + '" alt="">' +
+        (video
+          ? '<video class="story-sary" src="' + escapeHtml(s.media) + '" playsinline autoplay' + (s.hira ? ' muted' : '') + '></video>'
+          : '<img class="story-sary" src="' + escapeHtml(s.media) + '" alt="">') +
+        (s.hira ? '<div class="story-hira">🎵 <span>' + escapeHtml(s.hira_nom || 'Hira') + '</span></div>' : '') +
         (s.texte ? '<p class="story-soratra">' + escapeHtml(s.texte) + '</p>' : '') +
         '<span class="story-zone story-zone-g"></span><span class="story-zone story-zone-d"></span>' +
         '<div class="story-reactions"></div>';
       dessinerReactionsStory(v, s, moi);
+      if(s.hira){
+        sonStory = new Audio(s.hira);
+        sonStory.loop = true;
+        // Ouvrir la story est un appui : le navigateur laisse jouer. S'il
+        // refuse quand même, la story passe sans musique.
+        sonStory.play().catch(function(){});
+      }
       v.querySelector('.story-hidy').addEventListener('click', fermerVisionneuse);
       v.querySelector('.story-zone-g').addEventListener('click', v.__precedent);
       v.querySelector('.story-zone-d').addEventListener('click', v.__suivant);
       const f = v.querySelector('.story-fafana');
       if(f) f.addEventListener('click', function(){
         clearTimeout(minuterieStory);
-        if(!confirm('Hamafa ity story ity ve ?')){ minuterieStory = setTimeout(v.__suivant, DUREE_STORY); return; }
+        if(!confirm('Hamafa ity story ity ve ?')){ if(v.__relancer) v.__relancer(); return; }
         window.__sb.from('botika_stories').delete().eq('id', s.id).then(function(res){
           if(res && res.error){ alert('Tsy voafafa : ' + res.error.message); return; }
+          // Sa vidéo et sa chanson partent avec elle du bucket.
+          const fichiers = [s.genre === 'video' ? s.media : null, s.hira].map(cheminStoryMedia).filter(Boolean);
+          if(fichiers.length) window.__sb.storage.from(BUCKET_STORY).remove(fichiers).catch(function(){});
           listeStories = listeStories.filter(function(x){ return x.id !== s.id; });
           dessinerStories();
           fermerVisionneuse();
         });
       });
-      minuterieStory = setTimeout(v.__suivant, DUREE_STORY);
+      if(video){
+        // Une vidéo dure ce qu'elle dure (trente secondes au plus) : la barre
+        // prend sa longueur dès qu'on la connaît, et la fin passe à la suite.
+        const el = v.querySelector('video.story-sary');
+        const barre = v.querySelector('.story-barre i[style]');
+        if(barre) barre.style.animationPlayState = 'paused';
+        el.addEventListener('loadedmetadata', function(){
+          const ms = Math.min(isFinite(el.duration) ? el.duration * 1000 : DUREE_STORY, 30000);
+          if(barre){ barre.style.animationDuration = ms + 'ms'; barre.style.animationPlayState = 'running'; }
+          clearTimeout(minuterieStory);
+          minuterieStory = setTimeout(v.__suivant, ms + 300);
+        });
+        el.addEventListener('ended', function(){ v.__suivant(); });
+        el.addEventListener('error', function(){ minuterieStory = setTimeout(v.__suivant, DUREE_STORY); });
+        return;
+      }
+      minuterieStory = setTimeout(v.__suivant, duree);
     }
     // Réagir laisse le temps de voir l'éparpillement : la story repart de
-    // zéro, sa barre avec elle.
+    // zéro, sa barre avec elle. Une vidéo, elle, continue sa lecture.
     v.__relancer = function(){
+      const s = g.liste[i];
+      if(s && s.genre === 'video') return;
+      const duree = s && s.hira ? DUREE_STORY_HIRA : DUREE_STORY;
       clearTimeout(minuterieStory);
       const barre = v.querySelector('.story-barre i[style]');
       if(barre){ barre.style.animation = 'none'; void barre.offsetWidth; barre.style.animation = ''; }
-      minuterieStory = setTimeout(v.__suivant, DUREE_STORY);
+      minuterieStory = setTimeout(v.__suivant, duree);
     };
     v.__suivant = function(){
       if(i < g.liste.length - 1){ i += 1; montrer(); }
@@ -1629,43 +1688,240 @@
     montrer();
   }
 
-  // ---- Ajouter : la photo, deux mots si l'on veut, et « Alefa » ----
-  function composerStory(media){
+  // ---- Ajouter : une ou plusieurs photos ou vidéos, deux mots si l'on
+  // veut, une chanson si l'on veut, et « Alefa » ----
+  //
+  // Chaque élément : { genre: 'sary', media: 'data:…' } pour une photo déjà
+  // réduite, { genre: 'video', fichier, apercu } pour une vidéo qui partira
+  // au bucket. Les mots et la chanson valent pour toutes.
+
+  // Une vidéo trop longue ou trop lourde est refusée tout de suite, avant
+  // d'avoir fait attendre l'envoi.
+  function preparerVideo(f){
+    return new Promise(function(ok){
+      if(f.size > MAX_STORY_MO * 1048576){
+        ok({ erreur: '« ' + f.name + ' » : lehibe loatra (' + (f.size / 1048576).toFixed(1) + ' Mo, ' + MAX_STORY_MO + ' Mo farany).' });
+        return;
+      }
+      const url = URL.createObjectURL(f);
+      const el = document.createElement('video');
+      el.preload = 'metadata';
+      el.muted = true;
+      el.onloadedmetadata = function(){
+        if(isFinite(el.duration) && el.duration > MAX_STORY_SECONDES + 0.5){
+          URL.revokeObjectURL(url);
+          ok({ erreur: '« ' + f.name + ' » : ' + Math.round(el.duration) + ' s — ' + MAX_STORY_SECONDES + ' s farany. Fohezo aloha.' });
+          return;
+        }
+        ok({ genre: 'video', fichier: f, apercu: url });
+      };
+      el.onerror = function(){ ok({ genre: 'video', fichier: f, apercu: url }); };
+      el.src = url;
+    });
+  }
+  function preparerSary(f){
+    return new Promise(function(ok){
+      resizeImageFile(f, function(media){ ok({ genre: 'sary', media: media, apercu: media }); });
+    });
+  }
+
+  function envoyerAuBucketStory(fichier, uid){
+    const ext = (String(fichier.name || '').split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 5) || 'bin';
+    const nom = uid + '/' + (window.crypto && crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random().toString(36).slice(2)) + '.' + ext;
+    return window.__sb.storage.from(BUCKET_STORY)
+      .upload(nom, fichier, { contentType: fichier.type || undefined, upsert: false })
+      .then(function(res){
+        if(res && res.error) throw res.error;
+        return window.__sb.storage.from(BUCKET_STORY).getPublicUrl(nom).data.publicUrl;
+      });
+  }
+
+  function composerStory(elements, erreurs){
     const v = cadreVisionneuse();
+    let courant = 0;
+    let hira = null; // { fichier, nom }
+    let ecoute = null;
     v.innerHTML =
       '<div class="story-tete"><strong>Story vaovao</strong>' +
         '<button type="button" class="story-hidy" aria-label="Aoka ihany" title="Aoka ihany">✕</button></div>' +
-      '<img class="story-sary" src="' + media + '" alt="">' +
-      '<div class="story-mandefa">' +
-        '<input type="text" class="story-teny" maxlength="300" placeholder="Soraty eto raha tianao…">' +
-        '<button type="button" class="btn btn-primary story-alefa">Alefa</button>' +
-      '</div>' +
-      '<p class="story-erreur" hidden></p>';
-    v.querySelector('.story-hidy').addEventListener('click', fermerVisionneuse);
+      '<div class="story-apercu"></div>' +
+      '<div class="story-bas">' +
+        '<div class="story-vignettes"></div>' +
+        '<div class="story-hira-choix">' +
+          '<button type="button" class="story-hira-btn">🎵 Hampiditra hira</button>' +
+          '<span class="story-hira-anarana" hidden></span>' +
+          '<button type="button" class="story-hira-esory" hidden aria-label="Esory ny hira" title="Esory ny hira">✕</button>' +
+          '<input type="file" class="story-hira-fichier" accept="audio/*" hidden>' +
+        '</div>' +
+        '<div class="story-mandefa">' +
+          '<input type="text" class="story-teny" maxlength="300" placeholder="Soraty eto raha tianao…">' +
+          '<button type="button" class="btn btn-primary story-alefa">Alefa</button>' +
+        '</div>' +
+        '<p class="story-erreur"' + (erreurs.length ? '' : ' hidden') + '>' + erreurs.map(escapeHtml).join('<br>') + '</p>' +
+      '</div>';
+
+    function fermer(){
+      if(ecoute){ try{ ecoute.pause(); }catch(e){} ecoute = null; }
+      elements.forEach(function(x){ if(x.genre === 'video') URL.revokeObjectURL(x.apercu); });
+      fermerVisionneuse();
+    }
+    v.querySelector('.story-hidy').addEventListener('click', fermer);
+
+    function dessiner(){
+      const alefa = v.querySelector('.story-alefa');
+      if(!elements.length){ fermer(); return; }
+      courant = Math.min(courant, elements.length - 1);
+      const x = elements[courant];
+      v.querySelector('.story-apercu').innerHTML = x.genre === 'video'
+        ? '<video class="story-sary" src="' + x.apercu + '" playsinline autoplay loop' + (hira ? ' muted' : '') + '></video>'
+        : '<img class="story-sary" src="' + x.apercu + '" alt="">';
+      v.querySelector('.story-vignettes').innerHTML =
+        elements.map(function(y, k){
+            return '<span class="story-vignette' + (k === courant ? ' courant' : '') + '" data-k="' + k + '">' +
+              (y.genre === 'video'
+                ? '<video src="' + y.apercu + '#t=0.3" muted playsinline preload="metadata"></video><b>▶</b>'
+                : '<img src="' + y.apercu + '" alt="">') +
+              '<i data-esory="' + k + '" title="Esory" aria-label="Esory">✕</i></span>';
+          }).join('') +
+          (elements.length < MAX_STORIES_D_UN_COUP ? '<span class="story-vignette story-vignette-plus" data-plus title="Hanampy" aria-label="Hanampy">+</span>' : '');
+      alefa.textContent = elements.length > 1 ? 'Alefa (' + elements.length + ')' : 'Alefa';
+    }
+    v.querySelector('.story-vignettes').addEventListener('click', function(e){
+      const esory = e.target.closest('[data-esory]');
+      if(esory){
+        const k = Number(esory.getAttribute('data-esory'));
+        const x = elements.splice(k, 1)[0];
+        if(x && x.genre === 'video') URL.revokeObjectURL(x.apercu);
+        if(courant >= k && courant > 0) courant -= 1;
+        dessiner();
+        return;
+      }
+      if(e.target.closest('[data-plus]')){
+        storyFichier.__ajouterA = function(nouveaux, errs){
+          elements.push.apply(elements, nouveaux.slice(0, MAX_STORIES_D_UN_COUP - elements.length));
+          const e2 = v.querySelector('.story-erreur');
+          e2.hidden = !errs.length;
+          e2.innerHTML = errs.map(escapeHtml).join('<br>');
+          dessiner();
+        };
+        storyFichier.value = '';
+        storyFichier.click();
+        return;
+      }
+      const vig = e.target.closest('[data-k]');
+      if(vig){ courant = Number(vig.getAttribute('data-k')); dessiner(); }
+    });
+
+    // La chanson : un fichier du téléphone, écouté tout de suite pour savoir
+    // si c'est la bonne.
+    const hiraFichier = v.querySelector('.story-hira-fichier');
+    const hiraNom = v.querySelector('.story-hira-anarana');
+    const hiraEsory = v.querySelector('.story-hira-esory');
+    const hiraBtn = v.querySelector('.story-hira-btn');
+    hiraBtn.addEventListener('click', function(){ hiraFichier.value = ''; hiraFichier.click(); });
+    hiraFichier.addEventListener('change', function(){
+      const f = hiraFichier.files && hiraFichier.files[0];
+      if(!f) return;
+      const e = v.querySelector('.story-erreur');
+      if(f.size > MAX_STORY_MO * 1048576){
+        e.hidden = false;
+        e.textContent = 'Lehibe loatra ny hira (' + (f.size / 1048576).toFixed(1) + ' Mo, ' + MAX_STORY_MO + ' Mo farany).';
+        return;
+      }
+      if(ecoute){ try{ ecoute.pause(); }catch(err){} URL.revokeObjectURL(ecoute.src); }
+      hira = { fichier: f, nom: String(f.name || 'Hira').replace(/\.[^.]+$/, '').slice(0, 120) };
+      ecoute = new Audio(URL.createObjectURL(f));
+      ecoute.loop = true;
+      ecoute.play().catch(function(){});
+      hiraNom.textContent = '🎵 ' + hira.nom;
+      hiraNom.hidden = false;
+      hiraEsory.hidden = false;
+      hiraBtn.textContent = '🎵 Hanova';
+      dessiner();
+    });
+    hiraEsory.addEventListener('click', function(){
+      if(ecoute){ try{ ecoute.pause(); }catch(err){} URL.revokeObjectURL(ecoute.src); ecoute = null; }
+      hira = null;
+      hiraNom.hidden = true;
+      hiraEsory.hidden = true;
+      hiraBtn.textContent = '🎵 Hampiditra hira';
+      dessiner();
+    });
+
     const alefa = v.querySelector('.story-alefa');
     alefa.addEventListener('click', function(){
       alefa.disabled = true;
-      alefa.textContent = '⏳';
+      const texte = (v.querySelector('.story-teny').value || '').trim() || null;
       const maison = jeSuisLaMaison();
-      (maison ? Promise.resolve(MARQUE_LOGO) : vignette(currentUser && currentUser.logo)).then(function(photo){
-        return window.__sb.from('botika_stories').insert({
-          auteur_nom: maison ? MARQUE_NOM : ((currentUser && currentUser.name) || 'Client'),
-          auteur_photo: photo,
-          media: media,
-          texte: (v.querySelector('.story-teny').value || '').trim() || null
-        });
-      }).then(function(res){
-        if(res && res.error) throw res.error;
-        fermerVisionneuse();
+      const e = v.querySelector('.story-erreur');
+      e.hidden = true;
+      let session = null, photo = null, urlHira = null, fait = 0;
+      function etape(t){ alefa.textContent = '⏳ ' + t; }
+      etape('');
+      sessionStory().then(function(s){
+        if(!s) throw new Error('Midira amin\'ny tenimiafinao aloha.');
+        session = s;
+        return maison ? MARQUE_LOGO : vignette(currentUser && currentUser.logo);
+      }).then(function(p){
+        photo = p;
+        if(!hira) return null;
+        etape('hira');
+        return envoyerAuBucketStory(hira.fichier, session.user.id).then(function(u){ urlHira = u; });
+      }).then(function(){
+        // L'une après l'autre : dans l'ordre choisi, et sans lancer dix
+        // envois de vidéo à la fois sur une connexion de téléphone.
+        return elements.reduce(function(p, x){
+          return p.then(function(){
+            etape((fait + 1) + '/' + elements.length);
+            return (x.genre === 'video' ? envoyerAuBucketStory(x.fichier, session.user.id) : Promise.resolve(x.media));
+          }).then(function(media){
+            return window.__sb.from('botika_stories').insert({
+              auteur_nom: maison ? MARQUE_NOM : ((currentUser && currentUser.name) || 'Client'),
+              auteur_photo: photo,
+              genre: x.genre,
+              media: media,
+              texte: texte,
+              hira: urlHira,
+              hira_nom: urlHira ? hira.nom : null
+            });
+          }).then(function(res){
+            if(res && res.error) throw res.error;
+            fait += 1;
+          });
+        }, Promise.resolve());
+      }).then(function(){
+        fermer();
         chargerStories();
       }).catch(function(err){
+        // Celles déjà parties restent parties : on ne garde ici que la suite.
+        elements.splice(0, fait);
         alefa.disabled = false;
-        alefa.textContent = 'Alefa';
-        const e = v.querySelector('.story-erreur');
+        dessiner();
         e.hidden = false;
-        e.textContent = 'Tsy lasa : ' + ((err && err.message) || 'réseau');
+        e.textContent = 'Tsy lasa' + (fait ? ' ny sisa (' + fait + ' efa lasa)' : '') + ' : ' + ((err && err.message) || 'réseau');
+        if(fait) chargerStories();
       });
     });
+    dessiner();
+  }
+
+  // Les fichiers choisis, préparés dans l'ordre : photos réduites, vidéos
+  // vérifiées. Ce qui est refusé est dit, le reste passe.
+  function preparerFichiersStory(liste){
+    const fichiers = Array.prototype.slice.call(liste || [], 0, MAX_STORIES_D_UN_COUP);
+    const erreurs = [];
+    if((liste || []).length > MAX_STORIES_D_UN_COUP) erreurs.push(MAX_STORIES_D_UN_COUP + ' farany isaky ny mandefa.');
+    return fichiers.reduce(function(p, f){
+      return p.then(function(acc){
+        const video = /^video\//.test(f.type || '');
+        const image = /^image\//.test(f.type || '');
+        if(!video && !image){ erreurs.push('« ' + f.name + ' » : tsy sary na video.'); return acc; }
+        return (video ? preparerVideo(f) : preparerSary(f)).then(function(x){
+          if(x.erreur) erreurs.push(x.erreur); else acc.push(x);
+          return acc;
+        });
+      });
+    }, Promise.resolve([])).then(function(elements){ return { elements: elements, erreurs: erreurs }; });
   }
 
   if(storyRangee){
@@ -1683,8 +1939,17 @@
       if(carte) ouvrirGroupe(Number(carte.getAttribute('data-story-groupe')), 0);
     });
     if(storyFichier) storyFichier.addEventListener('change', function(){
-      const f = storyFichier.files && storyFichier.files[0];
-      if(f) resizeImageFile(f, composerStory);
+      // Ajoutés à une story en cours d'écriture (« + »), ou une nouvelle.
+      const ajouterA = storyFichier.__ajouterA;
+      storyFichier.__ajouterA = null;
+      preparerFichiersStory(storyFichier.files).then(function(r){
+        if(ajouterA){ ajouterA(r.elements, r.erreurs); return; }
+        if(!r.elements.length){
+          if(r.erreurs.length) direPresDuBouton(storyRangee.querySelector('[data-story-ajouter]') || storyRangee, r.erreurs.join(' '));
+          return;
+        }
+        composerStory(r.elements, r.erreurs);
+      });
     });
     dessinerStories();
   }
