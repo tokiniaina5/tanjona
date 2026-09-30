@@ -63,6 +63,18 @@ alter table public.taratasy add column if not exists toerana_zava text;
 alter table public.taratasy add column if not exists lohateny text;
 alter table public.taratasy add column if not exists votoatiny text;
 
+-- ---------- Fananan-tany, à la place du mariage et du décès ----------
+-- Ceux-là ne se délivrent plus ici ; aucun n'avait été remis. Le papier de
+-- propriété foncière dit où est la terre, combien elle mesure, et sous quel
+-- numéro (titre ou cadastre) elle est inscrite. Les colonnes du mariage et du
+-- décès restent, vides : les retirer ne gagnerait rien.
+alter table public.taratasy drop constraint if exists taratasy_karazana_check;
+alter table public.taratasy add constraint taratasy_karazana_check
+  check (karazana in ('fonenana', 'fifindramonina', 'fananantany', 'hafa'));
+alter table public.taratasy add column if not exists tany_toerana text;
+alter table public.taratasy add column if not exists tany_velarana text;
+alter table public.taratasy add column if not exists tany_laharana text;
+
 alter table public.taratasy enable row level security;
 
 drop policy if exists "taratasy lecture proprietaire" on public.taratasy;

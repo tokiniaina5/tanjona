@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="ca2279f2">
+<meta name="ny-asako-version" content="808439e0">
 <title>Ny asako — Tanjona</title>
 <!-- Application installable : le manifeste décrit le nom, l'icône et la façon
      de s'ouvrir ; le reste est affaire de service worker, enregistré plus bas. -->
@@ -1067,8 +1067,7 @@
                 <div class="kpi-card"><div class="kpi-label">Olona manana fanamarinam-ponenana</div><div class="kpi-value" id="communKpiFonenana">0</div></div>
                 <div class="kpi-card"><div class="kpi-label">Fanamarinam-ponenana manan-kery</div><div class="kpi-value" id="communKpiFonenanaKery">0</div></div>
                 <div class="kpi-card"><div class="kpi-label">Taratasy fifindra-monina</div><div class="kpi-value" id="communKpiFifindra">0</div></div>
-                <div class="kpi-card"><div class="kpi-label">Sora-panambadiana</div><div class="kpi-value" id="communKpiFanambadiana">0</div></div>
-                <div class="kpi-card"><div class="kpi-label">Sora-pahafatesana</div><div class="kpi-value" id="communKpiFahafatesana">0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Fananan-tany</div><div class="kpi-value" id="communKpiFananantany">0</div></div>
                 <div class="kpi-card"><div class="kpi-label">Taratasy samihafa</div><div class="kpi-value" id="communKpiHafa">0</div></div>
                 <div class="kpi-card"><div class="kpi-label">Taratasy nomena ity volana ity</div><div class="kpi-value" id="communKpiTarVolana">0</div></div>
                 <div class="kpi-card"><div class="kpi-label">Taratasy nomena ity taona ity</div><div class="kpi-value" id="communKpiTarTaona">0</div></div>
@@ -1216,8 +1215,7 @@
                   <select id="tarKarazana">
                     <option value="fonenana">Fanamarinam-ponenana</option>
                     <option value="fifindramonina">Fanamarinana fifindra-monina</option>
-                    <option value="fanambadiana">Sora-panambadiana (acte de mariage)</option>
-                    <option value="fahafatesana">Sora-pahafatesana (acte de décès)</option>
+                    <option value="fananantany">Fananan-tany</option>
                     <option value="hafa">Taratasy samihafa</option>
                   </select>
                 </div>
@@ -1246,23 +1244,18 @@
                   <label for="tarTerakaToerana">Toerana nahaterahana</label>
                   <input type="text" id="tarTerakaToerana" placeholder="Antananarivo" autocomplete="off">
                 </div>
-                <!-- Le mariage : le second conjoint. -->
-                <div class="field" id="tarVadyChamp" style="display:none;">
-                  <label for="tarVady">Anaran'ny vady faharoa</label>
-                  <textarea id="tarVady" class="champ-anarana" rows="1" placeholder="Nom et prénoms" autocomplete="off"></textarea>
+                <!-- Fananan-tany : où est la terre, sa mesure, son numéro. -->
+                <div class="field" id="tarTanyToeranaChamp" style="display:none;">
+                  <label for="tarTanyToerana">Toerana misy ny tany</label>
+                  <input type="text" id="tarTanyToerana" placeholder="Anaran'ny tany, fokontany, kaominina" autocomplete="off">
                 </div>
-                <div class="field" id="tarVadyCinChamp" style="display:none;">
-                  <label for="tarVadyCin">Laharana CIN an'ny vady faharoa</label>
-                  <input type="text" id="tarVadyCin" placeholder="101 234 567 890" autocomplete="off">
+                <div class="field" id="tarTanyVelaranaChamp" style="display:none;">
+                  <label for="tarTanyVelarana">Velaran'ny tany</label>
+                  <input type="text" id="tarTanyVelarana" placeholder="Ohatra : 500 m²" autocomplete="off">
                 </div>
-                <!-- Le mariage et le décès : quand et où c'est arrivé. -->
-                <div class="field" id="tarZavaDatyChamp" style="display:none;">
-                  <label for="tarZavaDaty" id="tarZavaDatyLabel">Daty</label>
-                  <input type="date" id="tarZavaDaty">
-                </div>
-                <div class="field" id="tarZavaToeranaChamp" style="display:none;">
-                  <label for="tarZavaToerana" id="tarZavaToeranaLabel">Toerana</label>
-                  <input type="text" id="tarZavaToerana" placeholder="Toerana" autocomplete="off">
+                <div class="field" id="tarTanyLaharanaChamp" style="display:none;">
+                  <label for="tarTanyLaharana">Laharan'ny titra na kadasitra</label>
+                  <input type="text" id="tarTanyLaharana" placeholder="Ohatra : Titre n° 12345-A" autocomplete="off">
                 </div>
                 <div class="field" id="tarFonenanaChamp">
                   <label for="tarFonenana">Fonenana</label>
@@ -3060,7 +3053,7 @@
 <script src="gestion-stockage-js/photocopie.js?v=be4f35a5"></script>
 <script src="gestion-stockage-js/pdf.js?v=b7c1f056"></script>
 <script src="gestion-stockage-js/commun-alalana.js?v=14bcf7c9"></script>
-<script src="gestion-stockage-js/taratasy.js?v=9ab90132"></script>
+<script src="gestion-stockage-js/taratasy.js?v=7688b0e0"></script>
 <script src="gestion-stockage-js/fianakaviana.js?v=2d087da0"></script>
 <script src="gestion-stockage-js/validation-install.js?v=6136b9a3"></script>
 <script src="gestion-stockage-js/adidy.js?v=0f6b4f4c"></script>

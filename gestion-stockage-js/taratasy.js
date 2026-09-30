@@ -1,5 +1,5 @@
 // Taratasy : fanamarinam-ponenana, fanamarinana fifindra-monina,
-// sora-panambadiana, sora-pahafatesana, ary taratasy samihafa.
+// fananan-tany, ary taratasy samihafa.
 //
 // Le papier se prépare ici, il ne s'y délivre pas : il ne vaut que signé et
 // cacheté par l'autorité compétente. Ce que cette page fait, c'est écrire
@@ -39,20 +39,18 @@
     }
   }
 
-  // Cinq sortes de papiers. Le départ seul est archivé (il ne se liste ni ne
+  // Quatre sortes de papiers. Le départ seul est archivé (il ne se liste ni ne
   // se modifie) ; les autres se listent, se réimpriment et s'effacent.
   const TITRES = {
     fonenana: 'FANAMARINAM-PONENANA',
     fifindramonina: 'FANAMARINANA FIFINDRA-MONINA',
-    fanambadiana: 'SORA-PANAMBADIANA',
-    fahafatesana: 'SORA-PAHAFATESANA',
+    fananantany: 'FANAMARINANA FANANAN-TANY',
     hafa: 'TARATASY'
   };
   const NOMS = {
     fonenana: 'Fanamarinam-ponenana',
     fifindramonina: 'Fifindra-monina',
-    fanambadiana: 'Sora-panambadiana',
-    fahafatesana: 'Sora-pahafatesana',
+    fananantany: 'Fananan-tany',
     hafa: 'Taratasy samihafa'
   };
   // Un papier « samihafa » porte le titre qu'on lui a donné.
@@ -115,7 +113,7 @@
     const e = res && res.error;
     if (!e) return '';
     const m = String(e.message || '');
-    // Les sortes nouvelles (mariage, décès, divers) demandent une base à jour :
+    // Les sortes nouvelles (fananan-tany, divers) demandent une base à jour :
     // une colonne inconnue, ou une sorte refusée par la règle d'avant.
     if (e.code === '23514' || e.code === 'PGRST204' || /column/i.test(m)) {
       return 'Mila havaozina ny table « taratasy » ao amin\'ny Supabase (supabase-taratasy.sql).';
@@ -140,16 +138,12 @@
     montrer('tarFonenanaChamp', k === 'fonenana' || k === 'hafa');
     montrer('tarTalohaChamp', k === 'fifindramonina');
     montrer('tarVaovaoChamp', k === 'fifindramonina');
-    montrer('tarVadyChamp', k === 'fanambadiana');
-    montrer('tarVadyCinChamp', k === 'fanambadiana');
-    montrer('tarZavaDatyChamp', k === 'fanambadiana' || k === 'fahafatesana');
-    montrer('tarZavaToeranaChamp', k === 'fanambadiana' || k === 'fahafatesana');
+    montrer('tarTanyToeranaChamp', k === 'fananantany');
+    montrer('tarTanyVelaranaChamp', k === 'fananantany');
+    montrer('tarTanyLaharanaChamp', k === 'fananantany');
     montrer('tarLohatenyChamp', k === 'hafa');
     montrer('tarVotoatinyChamp', k === 'hafa');
-    $('tarAnaranaLabel').textContent = k === 'fanambadiana' ? 'Anaran\'ny vady voalohany'
-      : (k === 'fahafatesana' ? 'Anaran\'ilay maty' : 'Anarana feno');
-    $('tarZavaDatyLabel').textContent = k === 'fahafatesana' ? 'Daty nahafatesana' : 'Daty nanambadiana';
-    $('tarZavaToeranaLabel').textContent = k === 'fahafatesana' ? 'Toerana nahafatesana' : 'Toerana nanambadiana';
+    $('tarAnaranaLabel').textContent = k === 'fananantany' ? 'Anaran\'ny tompon\'ny tany' : 'Anarana feno';
   }
 
   // Les personnes viennent du livre de famille (fianakaviana.js) : c'est là
@@ -185,7 +179,7 @@
   // un papier effacé ne doit pas rendre son numéro à un autre.
   //
   // Chaque sorte de papier a sa propre file : les départs se comptent entre
-  // eux, les certificats de résidence entre eux, les mariages entre eux…
+  // eux, les certificats de résidence entre eux, les terres entre elles…
   function laharanaSuivant(daty, karazana) {
     const jour = String(daty || $('tarDaty').value || aujourdhui()).slice(0, 10);
     const annee = jour.slice(0, 4);
@@ -223,10 +217,9 @@
       fonenana_vaovao: $('tarVaovao').value.trim() || null,
       daty: $('tarDaty').value || aujourdhui(),
       fanamarihana: $('tarNote').value.trim() || null,
-      anarana_faharoa: $('tarVady').value.trim() || null,
-      laharana_cin_faharoa: $('tarVadyCin').value.trim() || null,
-      daty_zava: $('tarZavaDaty').value || null,
-      toerana_zava: $('tarZavaToerana').value.trim() || null,
+      tany_toerana: $('tarTanyToerana').value.trim() || null,
+      tany_velarana: $('tarTanyVelarana').value.trim() || null,
+      tany_laharana: $('tarTanyLaharana').value.trim() || null,
       lohateny: $('tarLohateny').value.trim() || null,
       votoatiny: $('tarVotoatiny').value.trim() || null
     };
@@ -249,23 +242,14 @@
       ? ', teraka ny ' + dateFr(t.teraka_daty) + (t.teraka_toerana ? ' tao ' + t.teraka_toerana : '')
       : (t.teraka_toerana ? ', teraka tao ' + t.teraka_toerana : '');
 
-    if (t.karazana === 'fanambadiana') {
-      const vady = t.anarana_faharoa || '—';
-      const cinVady = t.laharana_cin_faharoa ? ', manana karapanondrom-pirenena laharana ' + t.laharana_cin_faharoa : '';
+    if (t.karazana === 'fananantany') {
+      const velarana = t.tany_velarana ? ', mirefy ' + t.tany_velarana : '';
+      const laharana = t.tany_laharana ? ', voasoratra amin\'ny laharana ' + t.tany_laharana : '';
       return [
         'Izaho manao sonia eto ambany dia manamarina fa ' + nom + teraka + cin + ',',
-        'sy ' + vady + cinVady + ',',
-        'dia nivady ara-dalàna tamin\'ny ' + dateFr(t.daty_zava) + (t.toerana_zava ? ' tao ' + t.toerana_zava : '') + '.',
+        'dia tompon\'ny tany misy ao ' + (t.tany_toerana || '—') + velarana + laharana + '.',
         '',
-        'Natao ity taratasy ity mba hanamarinana izany, ary hampiasain\'ireo voakasika amin\'izay ilana azy.'
-      ];
-    }
-    if (t.karazana === 'fahafatesana') {
-      return [
-        'Izaho manao sonia eto ambany dia manamarina fa ' + nom + teraka + cin + ',',
-        'dia maty tamin\'ny ' + dateFr(t.daty_zava) + (t.toerana_zava ? ' tao ' + t.toerana_zava : '') + '.',
-        '',
-        'Natao ity taratasy ity mba hanamarinana izany, ary hampiasain\'ny fianakaviany amin\'izay ilana azy.'
+        'Natao ity taratasy ity mba hanamarinana izany, ary hampiasainy amin\'izay ilana azy.'
       ];
     }
     if (t.karazana === 'hafa') {
@@ -423,7 +407,7 @@
 
   function vider() {
     ['tarAnarana', 'tarCin', 'tarTerakaDaty', 'tarTerakaToerana', 'tarFonenana', 'tarTaloha', 'tarVaovao', 'tarLaharana', 'tarNote',
-      'tarVady', 'tarVadyCin', 'tarZavaDaty', 'tarZavaToerana', 'tarLohateny', 'tarVotoatiny']
+      'tarTanyToerana', 'tarTanyVelarana', 'tarTanyLaharana', 'tarLohateny', 'tarVotoatiny']
       .forEach(function (id) { $(id).value = ''; });
     $('tarOlona').value = '';
     $('tarDaty').value = aujourdhui();
@@ -443,11 +427,8 @@
       // Il ne se reprend pas : on le dit avant, pas après.
       if (!window.confirm('Rehefa voatahiry dia tsy azo ovaina na fafana intsony ity taratasy fifindra-monina ity.\n\nLaharana : ' +
         t.laharana + '\nAnarana : ' + t.anarana + '\n\nTohizana ?')) return;
-    } else if (t.karazana === 'fanambadiana') {
-      if (!t.anarana_faharoa) { dire('Soraty ny anaran\'ny vady faharoa.', true); return; }
-      if (!t.daty_zava) { dire('Soraty ny daty nanambadiana.', true); return; }
-    } else if (t.karazana === 'fahafatesana') {
-      if (!t.daty_zava) { dire('Soraty ny daty nahafatesana.', true); return; }
+    } else if (t.karazana === 'fananantany') {
+      if (!t.tany_toerana) { dire('Soraty ny toerana misy ny tany.', true); return; }
     } else if (t.karazana === 'hafa') {
       if (!t.lohateny) { dire('Soraty ny lohatenin\'ny taratasy.', true); return; }
       if (!t.votoatiny) { dire('Soraty ny votoatin\'ny taratasy.', true); return; }
@@ -527,7 +508,7 @@
     });
     $('communKpiFonenana').textContent = personnes.size.toLocaleString('fr-FR');
     $('communKpiFonenanaKery').textContent = manankery.toLocaleString('fr-FR');
-    [['communKpiFanambadiana', 'fanambadiana'], ['communKpiFahafatesana', 'fahafatesana'], ['communKpiHafa', 'hafa']]
+    [['communKpiFananantany', 'fananantany'], ['communKpiHafa', 'hafa']]
       .forEach(function (p) {
         const el = $(p[0]);
         if (el) el.textContent = taratasy.filter(function (t) { return t.karazana === p[1]; }).length.toLocaleString('fr-FR');
@@ -547,7 +528,7 @@
   // que la date (numerosDepart) : c'est assez pour compter, rien de plus.
   const COULEURS = (typeof chartColors !== 'undefined') ? chartColors : ['#4fd8e0', '#f2a33c', '#8b93ff', '#6ee7b7', '#f472b6'];
   // L'ordre des sortes, et la couleur de chacune, partout pareils.
-  const SORTES = ['fonenana', 'fifindramonina', 'fanambadiana', 'fahafatesana', 'hafa'];
+  const SORTES = ['fonenana', 'fifindramonina', 'fananantany', 'hafa'];
   function couleurDe(k) { return COULEURS[(SORTES.indexOf(k) + 2) % COULEURS.length]; }
   // Tous les papiers, départs compris, réduits à leur sorte et leur date.
   function toutesLesDates() {
