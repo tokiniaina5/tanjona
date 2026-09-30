@@ -1519,11 +1519,46 @@
     choisirReaction(el, cle, info && info.mine ? null : 'like');
   }
 
+  // Un mot posé au-dessus du bouton, qui s'en va seul. Une alerte se ferme
+  // d'un réflexe sans être lue ; ceci reste là où l'on regarde.
+  function direPresDuBouton(el, texte){
+    const vieux = document.querySelector('.fb-reaction-avis');
+    if(vieux) vieux.remove();
+    const avis = document.createElement('div');
+    avis.className = 'fb-reaction-avis';
+    avis.setAttribute('role', 'status');
+    avis.textContent = texte;
+    document.body.appendChild(avis);
+    const r = el.getBoundingClientRect();
+    const l = avis.offsetWidth, h = avis.offsetHeight;
+    avis.style.left = Math.round(Math.max(8, Math.min(r.left, window.innerWidth - l - 8))) + 'px';
+    avis.style.top = Math.round(r.top - h - 10 < 8 ? r.bottom + 10 : r.top - h - 10) + 'px';
+    setTimeout(function(){ avis.remove(); }, 5000);
+  }
+  const PAS_DE_SESSION = 'Midira amin\'ny tenimiafinao aloha vao afaka manome fihetseham-po : ' +
+    'ny fidirana tsy misy tenimiafina (na Essai libre) dia tsy ekena hanoratra ato.';
+
   // Donner une réaction, en changer, ou la retirer (null).
+  //
+  // Le serveur n'accepte que celui qui est vraiment connecté — une session
+  // Supabase, ouverte avec le mot de passe. On entre aussi dans l'application
+  // sans elle (profil gardé sur l'appareil, essai libre) : la réaction partait
+  // alors, se faisait refuser (401), et le compte qu'on venait de voir
+  // s'effaçait sans un mot. On vérifie donc d'abord, et on le dit.
   function choisirReaction(el, cle, id){
     const moi = myLikeEmail();
-    if(!moi || !window.__sb){ alert('Midira aloha vao afaka mankasitraka.'); return; }
+    if(!moi || !window.__sb){ direPresDuBouton(el, PAS_DE_SESSION); return; }
+    const auth = window.__sb.auth;
+    if(!auth || !auth.getSession){ poserReaction(el, cle, id, moi); return; }
+    auth.getSession().then(function(r){
+      const session = r && r.data && r.data.session;
+      const email = session && session.user && (session.user.email || '').trim().toLowerCase();
+      if(!session || email !== moi){ direPresDuBouton(el, PAS_DE_SESSION); return; }
+      poserReaction(el, cle, id, moi);
+    }, function(){ direPresDuBouton(el, PAS_DE_SESSION); });
+  }
 
+  function poserReaction(el, cle, id, moi){
     const s = sorteDe(el);
     const etats = s.etats();
     const info = etats[cle] || (etats[cle] = { count: 0, mine: null, parType: {} });
@@ -1553,11 +1588,16 @@
       action = table.insert(ligne);
     }
 
-    function annuler(){
+    function annuler(err){
       s.etats()[cle] = avant;
       paintLike(el, cle);
+      // Refusée : on dit pourquoi, au lieu de laisser le compte s'effacer.
+      const brut = (err && (err.message || err.code)) || '';
+      direPresDuBouton(el, /JWT|auth|permission|policy|row-level|401|42501/i.test(brut)
+        ? PAS_DE_SESSION
+        : 'Tsy voaray ny fihetseham-po : jereo ny fifandraisanao, dia andramo indray.');
     }
-    action.then(function(res){ if(res && res.error) annuler(); }, annuler);
+    action.then(function(res){ if(res && res.error) annuler(res.error); }, annuler);
   }
 
   // ---------------- LES COMMENTAIRES, OUVERTS D'OFFICE ----------------

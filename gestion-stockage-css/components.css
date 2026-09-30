@@ -873,6 +873,15 @@
     from{ transform:translate(0, 0) scale(1); opacity:1; }
     to  { transform:translate(var(--ex), var(--ey)) scale(0.3); opacity:0; }
   }
+  /* Le mot qui dit pourquoi une réaction n'est pas partie. */
+  .fb-reaction-avis{
+    position:fixed; z-index:175; max-width:min(320px, calc(100vw - 16px));
+    padding:0.55rem 0.75rem; border-radius:10px;
+    background:var(--panel); color:var(--text); border:1px solid var(--amber, #e9a23b);
+    font-size:0.76rem; line-height:1.45; box-shadow:0 8px 24px rgba(0,0,0,0.35);
+    animation: reactions-monte 0.16s ease-out;
+  }
+
   /* La pluie de réactions, sur toute la page. */
   .fb-reaction-pluie{ position:fixed; inset:0; z-index:168; pointer-events:none; overflow:hidden; }
   .fb-reaction-pluie > span{
