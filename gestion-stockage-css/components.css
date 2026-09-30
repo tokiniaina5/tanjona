@@ -792,6 +792,25 @@
     padding:0.7rem 0 0.4rem; border-top:2px solid var(--line); font-size:0.9rem;
   }
   .panier-total strong{ color:var(--cyan); font-size:1.05rem; }
+  /* La question « Handoa … ? », sous la ligne, sur toute sa largeur. */
+  .panier-confirm{
+    grid-column:1 / -1; margin-top:0.3rem; padding:0.6rem 0.7rem;
+    border:1px solid var(--cyan); border-radius:10px; background:var(--panel-2);
+    font-size:0.8rem; line-height:1.5;
+  }
+  .panier-confirm p{ margin:0 0 0.35rem; }
+  .panier-confirm-boutons{ display:flex; gap:0.5rem; margin-top:0.4rem; }
+  .panier-confirm-boutons .btn{ width:auto !important; }
+  .panier-erreur{ color:var(--amber, #e9a23b); margin:0.4rem 0 0 !important; }
+  /* Les achats payés : leur message reste en haut du panier. */
+  .panier-message{
+    display:flex; align-items:flex-start; gap:0.5rem; margin-bottom:0.5rem;
+    padding:0.55rem 0.65rem; border-radius:10px; font-size:0.78rem; line-height:1.5;
+    background:color-mix(in srgb, #2bb673 14%, transparent); border:1px solid #2bb673;
+  }
+  .panier-message-texte{ flex:1; }
+  .panier-message-date{ display:block; font-size:0.68rem; color:var(--muted); margin-top:0.15rem; }
+  .panier-message-esory{ border:none; background:none; color:var(--muted); cursor:pointer; font-size:0.85rem; }
   .panier-foano{ border:none; background:none; color:var(--muted); font-size:0.74rem; text-decoration:underline; cursor:pointer; padding:0; }
 
   /* Effacer : pastille rouge, et pas de mot à côté — donc pas de marge. */

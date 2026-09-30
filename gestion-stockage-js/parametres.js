@@ -1137,6 +1137,14 @@
     try{ localStorage.setItem(clePanier(), JSON.stringify(l)); }catch(e){}
     majCompteurPanier();
   }
+  // Les messages des achats payés, gardés avec le panier, par compte.
+  function lireVoaloa(){
+    try{ const l = JSON.parse(localStorage.getItem(clePanier() + '_voaloa')); return Array.isArray(l) ? l : []; }
+    catch(e){ return []; }
+  }
+  function ecrireVoaloa(l){
+    try{ localStorage.setItem(clePanier() + '_voaloa', JSON.stringify(l)); }catch(e){}
+  }
   function prixNombre(p){
     const n = parseFloat(String(p == null ? '' : p).replace(/[^\d.,]/g, '').replace(',', '.'));
     return isFinite(n) ? n : 0;
@@ -1197,10 +1205,29 @@
     panneauPanier.innerHTML =
       '<div class="panier-tete"><span class="panier-titre">' + LOGO_PANIER + ' Panier</span>' +
       '<button type="button" class="panier-fermer" aria-label="Hidio" title="Hidio">✕</button></div>' +
+      '<div class="panier-voaloa"></div>' +
       (l.length ? '' : '<p class="panneau-note">Mbola foana ny panier. Tsindrio « Panier » eo ambanin\'ny entana iray ao amin\'ny Botika.</p>') +
       '<div class="panier-lignes"></div>' +
       (l.length ? '<div class="panier-total"><span>Totaly</span><strong>' + enAriary(total) + '</strong></div>' +
         '<button type="button" class="panier-foano">Foanana ny panier</button>' : '');
+    // Les achats payés : leur message reste ici, en haut du panier, tant
+    // qu'on ne l'écarte pas (✕).
+    const voaloa = panneauPanier.querySelector('.panier-voaloa');
+    lireVoaloa().forEach(function(v){
+      const m = document.createElement('div');
+      m.className = 'panier-message';
+      m.innerHTML =
+        '<span class="panier-message-texte">✓ Voaloa <strong>' + enAriary(v.montant) + '</strong> ho an\'ny « ' +
+          escapeHtml(v.titre) + ' » × ' + (v.isa || 1) + ' — voatazona ny vola mandra-pahazoanao ny entana. ' +
+          'Rehefa voarainao, tsindrio « Voaraiko » ao amin\'ny portefeuille.' +
+          '<span class="panier-message-date">' + (v.date ? new Date(v.date).toLocaleString('fr-FR') : '') + '</span></span>' +
+        '<button type="button" class="panier-message-esory" aria-label="Esorina" title="Esorina">✕</button>';
+      m.querySelector('button').addEventListener('click', function(){
+        ecrireVoaloa(lireVoaloa().filter(function(z){ return z.id !== v.id; }));
+        dessinerPanier();
+      });
+      voaloa.appendChild(m);
+    });
     const lignes = panneauPanier.querySelector('.panier-lignes');
     l.forEach(function(x){
       const d = document.createElement('div');
@@ -1251,24 +1278,50 @@
             direPresDuBouton(hividy, 'Midira amin\'ny tenimiafinao aloha vao afaka mandoa amin\'ny portefeuille.');
             return;
           }
-          if(!confirm('Handoa ' + enAriary(montant) + ' amin\'ny portefeuille ve ianao ho an\'ny « ' + x.titre + ' » × ' + (x.isa || 1) + ' ?\n\n' +
-            'Voatazona ny vola mandra-pahazoanao ny entana, avy eo vao tonga any amin\'ny mpivarotra.')) return;
-          hividy.disabled = true;
-          hividy.textContent = '⏳';
-          window.__callWallet({ action: 'achat', newsId: x.id, isa: x.isa || 1,
-            name: (currentUser && currentUser.name) || '' }).then(function(res){
-            // Payé : il quitte le panier, et le portefeuille le montre.
-            ecrirePanier(lirePanier().filter(function(z){ return String(z.id) !== String(x.id); }));
-            const b = document.querySelector('#communityNewsList .fb-post[data-news-id="' + x.id + '"] [data-panier]');
-            if(b) b.classList.remove('dans-panier');
-            dessinerPanier();
-            if(typeof window.__rafraichirPortefeuille === 'function') window.__rafraichirPortefeuille();
-            alert('Voaloa ✓ ' + enAriary((res && res.achat && res.achat.amount_ar) || montant) +
-              ' — voatazona mandra-pahazoanao ny entana. Rehefa voarainao, tsindrio « Voaraiko » ao amin\'ny portefeuille.');
-          }, function(err){
-            hividy.disabled = false;
-            hividy.textContent = 'Hividy';
-            direPresDuBouton(hividy, (err && err.message) || 'Tsy nety ny fandoavana. Andramo indray.');
+          // La question se pose dans le panier même, sous la ligne, et non
+          // dans une fenêtre du navigateur qui masque tout et se ferme d'un
+          // réflexe.
+          const vieille = d.querySelector('.panier-confirm');
+          if(vieille){ vieille.remove(); return; }
+          const q = document.createElement('div');
+          q.className = 'panier-confirm';
+          q.innerHTML =
+            '<p>Handoa <strong>' + enAriary(montant) + '</strong> amin\'ny portefeuille ve ianao ho an\'ny « ' +
+              escapeHtml(x.titre) + ' » × ' + (x.isa || 1) + ' ?</p>' +
+            '<p class="panneau-note">Voatazona ny vola mandra-pahazoanao ny entana, avy eo vao tonga any amin\'ny mpivarotra.</p>' +
+            '<div class="panier-confirm-boutons">' +
+              '<button type="button" class="btn btn-sm btn-primary" data-ok>OK</button>' +
+              '<button type="button" class="btn btn-sm" data-non>Aoka ihany</button>' +
+            '</div>';
+          d.appendChild(q);
+          q.querySelector('[data-non]').addEventListener('click', function(){ q.remove(); });
+          q.querySelector('[data-ok]').addEventListener('click', function(){
+            const ok = q.querySelector('[data-ok]');
+            ok.disabled = true;
+            ok.textContent = '⏳';
+            hividy.disabled = true;
+            window.__callWallet({ action: 'achat', newsId: x.id, isa: x.isa || 1,
+              name: (currentUser && currentUser.name) || '' }).then(function(res){
+              // Payé : il quitte le panier, et le message y reste, en haut,
+              // jusqu'à ce qu'on l'écarte.
+              const paye = (res && res.achat && res.achat.amount_ar) || montant;
+              const msgs = lireVoaloa();
+              msgs.unshift({ id: (res && res.achat && res.achat.id) || String(Date.now()),
+                titre: x.titre, isa: x.isa || 1, montant: paye, date: new Date().toISOString() });
+              ecrireVoaloa(msgs.slice(0, 20));
+              ecrirePanier(lirePanier().filter(function(z){ return String(z.id) !== String(x.id); }));
+              const b = document.querySelector('#communityNewsList .fb-post[data-news-id="' + x.id + '"] [data-panier]');
+              if(b) b.classList.remove('dans-panier');
+              dessinerPanier();
+              if(typeof window.__rafraichirPortefeuille === 'function') window.__rafraichirPortefeuille();
+            }, function(err){
+              hividy.disabled = false;
+              ok.disabled = false;
+              ok.textContent = 'OK';
+              let e = q.querySelector('.panier-erreur');
+              if(!e){ e = document.createElement('p'); e.className = 'panier-erreur'; q.appendChild(e); }
+              e.textContent = (err && err.message) || 'Tsy nety ny fandoavana. Andramo indray.';
+            });
           });
         });
       });
