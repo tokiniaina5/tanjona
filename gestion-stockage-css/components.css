@@ -795,6 +795,12 @@
     font-size:0.72rem; font-weight:700; color:var(--muted); cursor:pointer;
   }
   .fb-comment-like:hover{ text-decoration:underline; }
+  /* Sous ses propres commentaires seulement, poussé au bout de la ligne. */
+  .fb-comment-fafana{
+    margin-left:auto; font-size:0.7rem; font-weight:600;
+    color:var(--red, #e5484d); cursor:pointer; opacity:0.8;
+  }
+  .fb-comment-fafana:hover{ opacity:1; text-decoration:underline; }
   .fb-comment-like .fb-reaction-emoji{ font-size:1.1em !important; }
   .fb-comment-compte{ align-items:center; }
   .fb-comment-compte .fb-reaction-compte{ padding:0.05rem 0.4rem 0.05rem 0.1rem; }

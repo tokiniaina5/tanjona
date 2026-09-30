@@ -1436,7 +1436,13 @@
         const ligne = el.closest('.fb-comment');
         if(ligne && ligne.dataset.commentId) paintLike(el, ligne.dataset.commentId);
       });
-      if(premiere || !m || m.error) return;
+      if(!m || m.error) return;
+      // Les siens reçoivent de quoi les effacer — et eux seuls.
+      ((m && m.data) || []).forEach(function(c){
+        const ligne = document.querySelector('#communityNewsList .fb-comment[data-comment-id="' + c.id + '"]');
+        if(ligne) ajouterFafana(ligne, c.id);
+      });
+      if(premiere) return;
       ((m && m.data) || []).forEach(function(c){
         const arrivee = reactionArrivee(avant[c.id], reactionsCommentaires[c.id]);
         if(!arrivee) return;
@@ -1445,6 +1451,46 @@
       });
     }, function(){});
   }
+  // « Fafana » sous son propre commentaire. Le serveur le vérifie de son côté
+  // (supabase-commentaires-fafana.sql) : ce bouton n'est qu'une commodité, pas
+  // la garde.
+  function ajouterFafana(ligne, id){
+    const rang = ligne.querySelector('.fb-comment-reactions');
+    if(!rang || rang.querySelector('.fb-comment-fafana')) return;
+    const b = document.createElement('span');
+    b.className = 'fb-comment-fafana';
+    b.setAttribute('role', 'button');
+    b.tabIndex = 0;
+    b.textContent = '🗑️ Fafana';
+    b.addEventListener('click', function(e){
+      e.stopPropagation();
+      if(!confirm('Hofafana ve ity hevitrao ity ?')) return;
+      const auth = window.__sb && window.__sb.auth;
+      const faire = function(){
+        b.style.opacity = '0.5';
+        window.__sb.from('client_news_comments').delete().eq('id', id).select('id').then(function(res){
+          // Rien d'effacé, sans erreur : la règle du serveur a dit non.
+          if(res && !res.error && res.data && res.data.length){
+            ligne.remove();
+            chargerLesCommentaires(true);
+            return;
+          }
+          b.style.opacity = '';
+          direPresDuBouton(b, res && res.error ? PAS_DE_SESSION : 'Ny tompon\'ny hevitra ihany no afaka mamafa azy.');
+        }, function(){
+          b.style.opacity = '';
+          direPresDuBouton(b, 'Tsy voafafa : jereo ny fifandraisanao, dia andramo indray.');
+        });
+      };
+      if(!auth || !auth.getSession){ faire(); return; }
+      auth.getSession().then(function(r){
+        if(r && r.data && r.data.session) faire();
+        else direPresDuBouton(b, PAS_DE_SESSION.replace('manome fihetseham-po', 'mamafa ny hevitrao'));
+      }, function(){ faire(); });
+    });
+    rang.appendChild(b);
+  }
+
   // La réaction qu'un AUTRE vient de donner, s'il y en a une : la sienne
   // propre ne compte pas, on vient de la voir éclater en la choisissant.
   function reactionArrivee(avant, apres){
@@ -1711,7 +1757,9 @@
       canalCommentaires = window.__sb
         .channel('commentaires-du-fil')
         .on('postgres_changes', {
-          event: 'INSERT', schema: 'public', table: 'client_news_comments'
+          // Ajouts et effacements : un commentaire retiré par son auteur
+          // disparaît aussi des autres écrans.
+          event: '*', schema: 'public', table: 'client_news_comments'
         }, function(){
           if(!realtimeCommentairesProuve){
             realtimeCommentairesProuve = true;
