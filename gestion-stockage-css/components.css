@@ -1511,3 +1511,8 @@ body.story-ouverte .fb-reaction-avis{ z-index:413; }
 }
 .story-hira-anarana{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .story-hira-esory{ flex:none; border:none; background:none; color:#fff; font-size:1rem; cursor:pointer; }
+.story-reaction{ position:relative; }
+.story-reaction-isa{
+  position:absolute; right:-4px; top:-6px; min-width:16px; height:16px; padding:0 4px;
+  border-radius:999px; background:var(--cyan); color:#fff; font-size:0.62rem; line-height:16px; text-align:center;
+}

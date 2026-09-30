@@ -1521,29 +1521,23 @@
     return min < 60 ? min + ' min' : Math.round(min / 60) + ' h';
   }
 
-  // En bas de la story, les sept visages. Chez les autres : on en touche un,
-  // il s'éparpille sur tout l'écran, et il reste choisi (le retoucher le
-  // retire). Chez soi : ce que les autres ont donné, compté par visage.
+  // En bas de la story, les sept visages : on en touche un, il s'éparpille
+  // sur tout l'écran, et il reste choisi (le retoucher le retire). Chacun
+  // porte le nombre de ceux qui l'ont donné.
   function dessinerReactionsStory(v, s, moi){
     const zone = v.querySelector('.story-reactions');
     if(!zone) return;
     const liste = reactionsStory[s.id] || [];
-    if(moi){
-      const parType = {};
-      liste.forEach(function(r){ parType[r.reaction] = (parType[r.reaction] || 0) + 1; });
-      const pris = REACTIONS.filter(function(r){ return parType[r.id]; });
-      zone.className = 'story-reactions story-bilan';
-      zone.innerHTML = pris.length
-        ? pris.map(function(r){ return '<span class="story-bilan-un">' + visage(r) + '<b>' + parType[r.id] + '</b></span>'; }).join('')
-        : '<span class="story-bilan-vide">Mbola tsy misy fihetseham-po</span>';
-      return;
-    }
+    // Les sept visages sur toutes les stories, les siennes comprises ; au
+    // coin de chacun, combien l'ont donné.
+    const parType = {};
+    liste.forEach(function(r){ parType[r.reaction] = (parType[r.reaction] || 0) + 1; });
     const mienne = liste.filter(function(r){ return r.user_id === monIdStory; })[0];
     zone.className = 'story-reactions';
     zone.innerHTML = REACTIONS.map(function(r){
       return '<button type="button" class="story-reaction' + (mienne && mienne.reaction === r.id ? ' voafidy' : '') +
         '" data-sorte="story" data-story-reaction="' + r.id + '" title="' + r.nom + '" aria-label="' + r.nom + '">' +
-        visage(r) + '</button>';
+        visage(r) + (parType[r.id] ? '<b class="story-reaction-isa">' + parType[r.id] + '</b>' : '') + '</button>';
     }).join('');
     zone.querySelectorAll('[data-story-reaction]').forEach(function(b){
       b.addEventListener('click', function(){
@@ -1559,7 +1553,7 @@
             reactionsStory[s.id].push({ story_id: s.id, user_id: monIdStory, reaction: id });
             eclaterReaction(b, id);
           }
-          dessinerReactionsStory(v, s, false);
+          dessinerReactionsStory(v, s, moi);
           if(v.__relancer) v.__relancer();
           const table = window.__sb.from('botika_story_reactions');
           (retirer
@@ -1569,7 +1563,7 @@
             if(res && res.error){
               reactionsStory[s.id] = (reactionsStory[s.id] || []).filter(function(r){ return r.user_id !== monIdStory; });
               if(avant) reactionsStory[s.id].push(avant);
-              if(visionneuseStory === v) dessinerReactionsStory(v, s, false);
+              if(visionneuseStory === v) dessinerReactionsStory(v, s, moi);
               direPresDuBouton(zone, 'Tsy voaray : ' + res.error.message);
             }
           });
