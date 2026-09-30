@@ -1397,9 +1397,11 @@
   const DUREE_STORY = 5000;
   const DUREE_STORY_HIRA = 15000;
   // Vidéos et chansons : dans le bucket, sous le dossier de leur auteur
-  // (supabase-stories-media.sql). 30 Mo, trente secondes de vidéo au plus.
+  // (supabase-stories-media.sql). 50 Mo par fichier ; d'une vidéo plus
+  // longue, on choisit le morceau de trente secondes qu'on montre
+  // (supabase-stories-tapaka.sql).
   const BUCKET_STORY = 'story-media';
-  const MAX_STORY_MO = 30;
+  const MAX_STORY_MO = 50;
   const MAX_STORY_SECONDES = 30;
   const MAX_STORIES_D_UN_COUP = 10;
   function cheminStoryMedia(url){
@@ -1456,7 +1458,7 @@
       html +=
         '<button type="button" class="story-carte" data-story-groupe="' + i + '"' +
           (video ? '' : ' style="background-image:url(\'' + String(derniere.media).replace(/'/g, '%27') + '\')"') + '>' +
-          (video ? '<video class="story-carte-video" src="' + escapeHtml(derniere.media) + '#t=0.5" muted playsinline preload="metadata"></video>' +
+          (video ? '<video class="story-carte-video" src="' + escapeHtml(derniere.media) + '#t=' + ((derniere.video_debut || 0) + 0.5) + '" muted playsinline preload="metadata"></video>' +
             '<span class="story-carte-play" aria-hidden="true">▶</span>' : '') +
           '<span class="story-anneau">' + avatarStory(g.photo, g.nom) + '</span>' +
           '<span class="story-nom">' + escapeHtml(g.auteur_id === monIdStory ? 'Ny story-nao' : (g.nom || 'Client')) + '</span>' +
@@ -1470,7 +1472,7 @@
     sessionStory().then(function(session){
       monIdStory = session && session.user ? session.user.id : null;
       return window.__sb.from('botika_stories')
-        .select('id,auteur_id,auteur_nom,auteur_photo,media,texte,created_at,genre,hira,hira_nom')
+        .select('id,auteur_id,auteur_nom,auteur_photo,media,texte,created_at,genre,hira,hira_nom,video_debut,video_fin,hira_debut')
         .order('created_at', { ascending: false }).limit(150);
     }).then(function(res){
       if(res && !res.error) listeStories = res.data || [];
@@ -1615,11 +1617,15 @@
         '<div class="story-reactions"></div>';
       dessinerReactionsStory(v, s, moi);
       if(s.hira){
-        sonStory = new Audio(s.hira);
-        sonStory.loop = true;
+        const son = sonStory = new Audio(s.hira);
+        const depart = s.hira_debut || 0;
+        // Depuis le début choisi, et ramenée là si la story dure plus que
+        // le reste de la chanson.
+        son.addEventListener('loadedmetadata', function(){ if(depart) son.currentTime = depart; });
+        son.addEventListener('ended', function(){ son.currentTime = depart; son.play().catch(function(){}); });
         // Ouvrir la story est un appui : le navigateur laisse jouer. S'il
         // refuse quand même, la story passe sans musique.
-        sonStory.play().catch(function(){});
+        son.play().catch(function(){});
       }
       v.querySelector('.story-hidy').addEventListener('click', fermerVisionneuse);
       v.querySelector('.story-zone-g').addEventListener('click', v.__precedent);
@@ -1644,11 +1650,19 @@
         const el = v.querySelector('video.story-sary');
         const barre = v.querySelector('.story-barre i[style]');
         if(barre) barre.style.animationPlayState = 'paused';
+        // Seulement le morceau choisi : de video_debut à video_fin.
+        const debut = s.video_debut || 0;
         el.addEventListener('loadedmetadata', function(){
-          const ms = Math.min(isFinite(el.duration) ? el.duration * 1000 : DUREE_STORY, 30000);
+          if(debut) el.currentTime = debut;
+          const total = isFinite(el.duration) ? el.duration : DUREE_STORY / 1000;
+          const fin = Math.min(s.video_fin || total, total);
+          const ms = Math.max(500, Math.min((fin - debut) * 1000, 30000));
           if(barre){ barre.style.animationDuration = ms + 'ms'; barre.style.animationPlayState = 'running'; }
           clearTimeout(minuterieStory);
           minuterieStory = setTimeout(v.__suivant, ms + 300);
+        });
+        el.addEventListener('timeupdate', function(){
+          if(s.video_fin && el.currentTime >= s.video_fin){ el.pause(); v.__suivant(); }
         });
         el.addEventListener('ended', function(){ v.__suivant(); });
         el.addEventListener('error', function(){ minuterieStory = setTimeout(v.__suivant, DUREE_STORY); });
@@ -1701,15 +1715,13 @@
       const el = document.createElement('video');
       el.preload = 'metadata';
       el.muted = true;
+      // Plus longue que trente secondes, elle entre quand même : on en
+      // choisira le morceau (le début, la longueur) dans l'écriture.
       el.onloadedmetadata = function(){
-        if(isFinite(el.duration) && el.duration > MAX_STORY_SECONDES + 0.5){
-          URL.revokeObjectURL(url);
-          ok({ erreur: '« ' + f.name + ' » : ' + Math.round(el.duration) + ' s — ' + MAX_STORY_SECONDES + ' s farany. Fohezo aloha.' });
-          return;
-        }
-        ok({ genre: 'video', fichier: f, apercu: url });
+        const duree = isFinite(el.duration) ? el.duration : MAX_STORY_SECONDES;
+        ok({ genre: 'video', fichier: f, apercu: url, duree: duree, debut: 0, fin: Math.min(duree, MAX_STORY_SECONDES) });
       };
-      el.onerror = function(){ ok({ genre: 'video', fichier: f, apercu: url }); };
+      el.onerror = function(){ ok({ genre: 'video', fichier: f, apercu: url, duree: MAX_STORY_SECONDES, debut: 0, fin: MAX_STORY_SECONDES }); };
       el.src = url;
     });
   }
@@ -1733,13 +1745,14 @@
   function composerStory(elements, erreurs){
     const v = cadreVisionneuse();
     let courant = 0;
-    let hira = null; // { fichier, nom }
+    let hira = null; // { fichier, nom, duree, debut }
     let ecoute = null;
     v.innerHTML =
       '<div class="story-tete"><strong>Story vaovao</strong>' +
         '<button type="button" class="story-hidy" aria-label="Aoka ihany" title="Aoka ihany">✕</button></div>' +
       '<div class="story-apercu"></div>' +
       '<div class="story-bas">' +
+        '<div class="story-tapaka" hidden></div>' +
         '<div class="story-vignettes"></div>' +
         '<div class="story-hira-choix">' +
           '<button type="button" class="story-hira-btn">🎵 Hampiditra hira</button>' +
@@ -1747,6 +1760,7 @@
           '<button type="button" class="story-hira-esory" hidden aria-label="Esory ny hira" title="Esory ny hira">✕</button>' +
           '<input type="file" class="story-hira-fichier" accept="audio/*" hidden>' +
         '</div>' +
+        '<div class="story-hira-tapaka" hidden></div>' +
         '<div class="story-mandefa">' +
           '<input type="text" class="story-teny" maxlength="300" placeholder="Soraty eto raha tianao…">' +
           '<button type="button" class="btn btn-primary story-alefa">Alefa</button>' +
@@ -1767,8 +1781,21 @@
       courant = Math.min(courant, elements.length - 1);
       const x = elements[courant];
       v.querySelector('.story-apercu').innerHTML = x.genre === 'video'
-        ? '<video class="story-sary" src="' + x.apercu + '" playsinline autoplay loop' + (hira ? ' muted' : '') + '></video>'
+        ? '<video class="story-sary" src="' + x.apercu + '" playsinline autoplay' + (hira ? ' muted' : '') + '></video>'
         : '<img class="story-sary" src="' + x.apercu + '" alt="">';
+      // L'aperçu ne joue que le morceau choisi, en boucle.
+      const lecteur = v.querySelector('.story-apercu video');
+      if(lecteur){
+        lecteur.addEventListener('loadedmetadata', function(){ lecteur.currentTime = x.debut || 0; });
+        lecteur.addEventListener('timeupdate', function(){
+          if(lecteur.currentTime >= x.fin - 0.05 || lecteur.currentTime < (x.debut || 0) - 0.5){
+            lecteur.currentTime = x.debut || 0;
+            if(lecteur.paused) lecteur.play().catch(function(){});
+          }
+        });
+        lecteur.addEventListener('ended', function(){ lecteur.currentTime = x.debut || 0; lecteur.play().catch(function(){}); });
+      }
+      dessinerTapaka();
       v.querySelector('.story-vignettes').innerHTML =
         elements.map(function(y, k){
             return '<span class="story-vignette' + (k === courant ? ' courant' : '') + '" data-k="' + k + '">' +
@@ -1780,6 +1807,65 @@
           (elements.length < MAX_STORIES_D_UN_COUP ? '<span class="story-vignette story-vignette-plus" data-plus title="Hanampy" aria-label="Hanampy">+</span>' : '');
       alefa.textContent = elements.length > 1 ? 'Alefa (' + elements.length + ')' : 'Alefa';
     }
+    // ✂️ Le morceau de la vidéo : où il commence, et combien il dure (trente
+    // secondes au plus). Deux curseurs, et l'aperçu saute au début choisi.
+    function mn(t){
+      t = Math.max(0, Math.round(t || 0));
+      return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
+    }
+    function dessinerTapaka(){
+      const zone = v.querySelector('.story-tapaka');
+      const x = elements[courant];
+      if(!x || x.genre !== 'video' || !(x.duree > 1)){ zone.hidden = true; zone.innerHTML = ''; return; }
+      const maxHalava = Math.min(MAX_STORY_SECONDES, x.duree);
+      zone.hidden = false;
+      zone.innerHTML =
+        '<div class="story-tapaka-titre">✂️ Video : <b data-voalohany>' + mn(x.debut) + '</b> → <b data-farany>' + mn(x.fin) + '</b>' +
+          ' · <span data-halava>' + Math.round(x.fin - x.debut) + ' s</span></div>' +
+        '<label>Manomboka<input type="range" data-tapaka-debut min="0" max="' + Math.max(0, x.duree - 1).toFixed(1) +
+          '" step="0.5" value="' + x.debut + '"></label>' +
+        '<label>Halavany<input type="range" data-tapaka-halava min="1" max="' + maxHalava.toFixed(1) +
+          '" step="0.5" value="' + (x.fin - x.debut) + '"></label>';
+      const debut = zone.querySelector('[data-tapaka-debut]');
+      const halava = zone.querySelector('[data-tapaka-halava]');
+      function appliquer(){
+        x.debut = Math.min(Number(debut.value), Math.max(0, x.duree - 1));
+        const reste = Math.min(MAX_STORY_SECONDES, x.duree - x.debut);
+        halava.max = reste.toFixed(1);
+        const l = Math.max(1, Math.min(Number(halava.value), reste));
+        halava.value = l;
+        x.fin = x.debut + l;
+        zone.querySelector('[data-voalohany]').textContent = mn(x.debut);
+        zone.querySelector('[data-farany]').textContent = mn(x.fin);
+        zone.querySelector('[data-halava]').textContent = Math.round(l) + ' s';
+      }
+      debut.addEventListener('input', function(){
+        appliquer();
+        const lecteur = v.querySelector('.story-apercu video');
+        if(lecteur) lecteur.currentTime = x.debut;
+      });
+      halava.addEventListener('input', appliquer);
+    }
+
+    // 🎵 Où commence la chanson : un curseur, et on l'entend de là.
+    function dessinerHiraTapaka(){
+      const zone = v.querySelector('.story-hira-tapaka');
+      if(!hira || !(hira.duree > 5)){ zone.hidden = true; zone.innerHTML = ''; return; }
+      zone.hidden = false;
+      zone.innerHTML =
+        '<label>🎵 Manomboka amin\'ny <b data-hira-debut>' + mn(hira.debut) + '</b>' +
+          '<input type="range" data-hira-curseur min="0" max="' + Math.max(0, hira.duree - 5).toFixed(1) +
+          '" step="0.5" value="' + hira.debut + '"></label>';
+      const c = zone.querySelector('[data-hira-curseur]');
+      c.addEventListener('input', function(){
+        hira.debut = Number(c.value);
+        zone.querySelector('[data-hira-debut]').textContent = mn(hira.debut);
+      });
+      c.addEventListener('change', function(){
+        if(ecoute){ ecoute.currentTime = hira.debut; ecoute.play().catch(function(){}); }
+      });
+    }
+
     v.querySelector('.story-vignettes').addEventListener('click', function(e){
       const esory = e.target.closest('[data-esory]');
       if(esory){
@@ -1823,9 +1909,19 @@
         return;
       }
       if(ecoute){ try{ ecoute.pause(); }catch(err){} URL.revokeObjectURL(ecoute.src); }
-      hira = { fichier: f, nom: String(f.name || 'Hira').replace(/\.[^.]+$/, '').slice(0, 120) };
+      hira = { fichier: f, nom: String(f.name || 'Hira').replace(/\.[^.]+$/, '').slice(0, 120), duree: 0, debut: 0 };
       ecoute = new Audio(URL.createObjectURL(f));
-      ecoute.loop = true;
+      // Écoutée depuis le début choisi, et ramenée là au bout de trente
+      // secondes : c'est ce morceau qu'entendront les autres.
+      ecoute.addEventListener('loadedmetadata', function(){
+        if(!hira) return;
+        hira.duree = isFinite(ecoute.duration) ? ecoute.duration : 0;
+        dessinerHiraTapaka();
+      });
+      ecoute.addEventListener('timeupdate', function(){
+        if(hira && (ecoute.currentTime > hira.debut + MAX_STORY_SECONDES || ecoute.currentTime < hira.debut - 0.5)) ecoute.currentTime = hira.debut;
+      });
+      ecoute.addEventListener('ended', function(){ if(hira){ ecoute.currentTime = hira.debut; ecoute.play().catch(function(){}); } });
       ecoute.play().catch(function(){});
       hiraNom.textContent = '🎵 ' + hira.nom;
       hiraNom.hidden = false;
@@ -1839,6 +1935,7 @@
       hiraNom.hidden = true;
       hiraEsory.hidden = true;
       hiraBtn.textContent = '🎵 Hampiditra hira';
+      dessinerHiraTapaka();
       dessiner();
     });
 
@@ -1876,7 +1973,10 @@
               media: media,
               texte: texte,
               hira: urlHira,
-              hira_nom: urlHira ? hira.nom : null
+              hira_nom: urlHira ? hira.nom : null,
+              hira_debut: urlHira ? (hira.debut || 0) : null,
+              video_debut: x.genre === 'video' ? (x.debut || 0) : null,
+              video_fin: x.genre === 'video' ? x.fin : null
             });
           }).then(function(res){
             if(res && res.error) throw res.error;

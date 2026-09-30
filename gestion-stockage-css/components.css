@@ -1518,3 +1518,16 @@ body.story-ouverte .fb-reaction-avis{ z-index:413; }
   position:absolute; right:-4px; top:-6px; min-width:16px; height:16px; padding:0 4px;
   border-radius:999px; background:var(--cyan); color:#fff; font-size:0.62rem; line-height:16px; text-align:center;
 }
+
+/* ✂️ Le morceau de la vidéo, et 🎵 le début de la chanson : des curseurs
+   sur fond sombre, au-dessus des vignettes. */
+.story-tapaka, .story-hira-tapaka{
+  display:flex; flex-direction:column; gap:0.3rem;
+  padding:0.45rem 0.7rem; border-radius:12px; background:rgba(0,0,0,0.55);
+  color:#fff; font-size:0.78rem;
+}
+.story-tapaka[hidden], .story-hira-tapaka[hidden]{ display:none; }
+.story-tapaka-titre b, .story-hira-tapaka b{ font-variant-numeric:tabular-nums; }
+.story-tapaka label, .story-hira-tapaka label{ display:flex; align-items:center; gap:0.6rem; }
+.story-tapaka input[type=range], .story-hira-tapaka input[type=range]{ flex:1; min-width:0; accent-color:var(--cyan); }
+.story-hira-tapaka label{ flex-wrap:wrap; }
