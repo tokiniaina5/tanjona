@@ -723,7 +723,7 @@
       .catch(function(err){
         if(bouton){
           bouton.style.pointerEvents = '';
-          bouton.textContent = '🗑️ Hamafa';
+          bouton.innerHTML = LOGO_FAFANA;
         }
         remettre();
         // La colonne manque tant que supabase-corbeille.sql n'est pas passé.
@@ -896,7 +896,7 @@
       '<div class="fb-post-body">' + escapeHtml(texte.length > 280 ? texte.slice(0, 280) + '…' : texte) + '</div>' +
       '<div class="fb-post-actions">' +
         '<span class="fb-share-action" data-restaurer style="cursor:pointer; color:var(--cyan);">↩️ Averina</span>' +
-        '<span class="fb-share-action" data-detruire style="cursor:pointer; color:var(--red);">🗑️ Fafana tanteraka</span>' +
+        '<span class="fb-share-action fb-partager" data-detruire style="cursor:pointer;" title="Fafana tanteraka" aria-label="Fafana tanteraka" role="button">' + LOGO_FAFANA + '</span>' +
       '</div>';
     const restaurer = div.querySelector('[data-restaurer]');
     const detruire = div.querySelector('[data-detruire]');
@@ -930,7 +930,7 @@
         })
         .catch(function(){
           occupe(detruire, '');
-          detruire.textContent = '🗑️ Fafana tanteraka';
+          detruire.innerHTML = LOGO_FAFANA;
           alert('Tsy voafafa ilay publication. Andramo indray.');
         });
     });
@@ -1161,6 +1161,9 @@
       '</span>';
   }
   const FLECHE_PARTAGE = logoAvec('M13.5 4.5 21 11.6l-7.5 7.1v-4.2c-5.3-.2-8.8 1.5-11 5 .6-5.6 3.8-10.1 11-10.8z');
+  // Effacer : la corbeille dans une pastille rouge, sans mot — le mot reste
+  // dans title et aria-label, pour le survol et pour qui lit à voix haute.
+  const LOGO_FAFANA = logoAvec('M9 3h6l1 2h4v2H4V5h4zM6 9h12l-1 11a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2z', 'fafana');
   const BULLE_COMMENTER = logoAvec('M4 4h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 4v-4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z');
   const POUCE_LOGO = 'M2 21h3.5V9.5H2zM21.9 11.2c0-1.1-.9-2-2-2h-5.6l.9-4.3v-.3c0-.4-.2-.8-.4-1.1L13.7 2.5 8 8.2c-.3.3-.5.8-.5 1.3V19c0 1.1.9 2 2 2h8.6c.8 0 1.5-.5 1.8-1.2l2.8-6.6c.1-.2.1-.5.1-.7v-1.3z';
 
@@ -1461,7 +1464,9 @@
     b.className = 'fb-comment-fafana';
     b.setAttribute('role', 'button');
     b.tabIndex = 0;
-    b.textContent = '🗑️ Fafana';
+    b.innerHTML = LOGO_FAFANA;
+    b.title = 'Fafana';
+    b.setAttribute('aria-label', 'Fafana');
     b.addEventListener('click', function(e){
       e.stopPropagation();
       if(!confirm('Hofafana ve ity hevitrao ity ?')) return;
@@ -2546,7 +2551,7 @@
             // billet est celle du compte. La base dit la même chose de son
             // côté (supabase-entana-lany.sql) — le bouton ne fait que suivre.
             (estMonBillet(n)
-              ? '<span class="fb-share-action" data-delete-post style="cursor:pointer; color:var(--red);">🗑️ Hamafa</span>'
+              ? '<span class="fb-share-action fb-partager" data-delete-post style="cursor:pointer;" title="Hamafa" aria-label="Hamafa" role="button">' + LOGO_FAFANA + '</span>'
               : '') +
             '</div>' +
             '<div class="fb-comments" data-comments style="display:none;"></div>';

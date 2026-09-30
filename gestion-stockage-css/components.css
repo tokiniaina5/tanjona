@@ -756,6 +756,12 @@
     transition: transform 0.15s ease;
   }
   .fb-partager:hover .fb-logo-partage svg{ transform: translateX(2px) rotate(-8deg); }
+  /* Effacer : pastille rouge, et pas de mot à côté — donc pas de marge. */
+  .fb-logo-partage.fafana{ margin-right:0.15em; }
+  .fb-logo-partage.fafana svg{ background:var(--red, #e5484d); }
+  .fb-comment-fafana .fb-logo-partage{ font-size:0.95rem; }
+  .fb-comment-fafana:hover{ text-decoration:none; }
+
   /* « J'aime » : la pastille est grise tant qu'on n'a pas aimé, bleue ensuite. */
   .fb-like-action .fb-logo-partage svg{ background:var(--muted); }
   .fb-like-action .fb-logo-partage.aime svg{ background:#0866ff; }
