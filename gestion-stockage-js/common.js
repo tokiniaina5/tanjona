@@ -3723,6 +3723,7 @@
     let filFermeExpres = false;
 
     function fermerFenetre(el){
+      marquerReduite(el, false);
       // La fenêtre d'une personne s'est ouverte depuis l'équipe : c'est là
       // qu'on revient, et non au fil, d'où l'on ne venait pas.
       if(el && el.id === 'section-personne'){
@@ -3762,6 +3763,15 @@
         return;
       }
       revenirAuFil();
+      marquerReduite(el, true);
+    }
+    // L'icône de la page clignote tant qu'elle est réduite (la rangée, plus
+    // bas, s'en charge).
+    function marquerReduite(el, oui){
+      if(!el) return;
+      const s = suivis.find(function(x){ return x.el === el; });
+      if(s) s.reduite = oui;
+      if(typeof window.__pageReduite === 'function') window.__pageReduite(el.id, oui);
     }
 
     // Agrandir : la fenêtre prend toute la bande, et retient où elle était
@@ -3859,6 +3869,8 @@
         }
         // Rouvert d'une façon ou d'une autre, le fil redevient rattrapable.
         if(vu && s.el.id === 'dash-accueil') filFermeExpres = false;
+        // Rouverte, elle n'est plus réduite : son icône cesse de clignoter.
+        if(vu && s.reduite) marquerReduite(s.el, false);
         if(!vu){
           s.vu = false;
         } else if(!s.vu){
@@ -4652,6 +4664,19 @@
       const bouton = rangee.querySelector('[data-epingle="' + cle + '"]');
       if(bouton) bouton.remove();
       mesurer();
+    };
+    // Une page réduite est encore ouverte : son icône clignote dans la rangée
+    // pour le rappeler, jusqu'à ce qu'on la rouvre ou qu'on la ferme. Si elle
+    // n'avait pas d'icône, elle en reçoit une — sinon rien ne dirait où elle est.
+    window.__pageReduite = function(id, oui){
+      const cle = cleDeLaPage(id);
+      if(!cle) return;
+      let bouton = rangee.querySelector('[data-epingle="' + cle + '"]');
+      if(!bouton && oui){
+        poser(cle);
+        bouton = rangee.querySelector('[data-epingle="' + cle + '"]');
+      }
+      if(bouton) bouton.classList.toggle('reduite', !!oui);
     };
 
     function retirer(cle){
