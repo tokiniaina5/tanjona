@@ -108,11 +108,11 @@
   .icone-fantome .nav-logo{ width: 1em; height: 1em; margin: 0; vertical-align: middle; }
   /* Une page réduite est encore ouverte : son icône clignote, et un trait
      sous elle le redit, comme dans la barre des tâches d'un ordinateur. */
-  #stockMainTabs .bar-icone.reduite{
+  #stockMainTabs .reduite{
     position: relative;
     animation: icone-reduite 1.4s ease-in-out infinite;
   }
-  #stockMainTabs .bar-icone.reduite::after{
+  #stockMainTabs .reduite::after{
     content: '';
     position: absolute;
     left: 50%; bottom: 3px;
@@ -126,7 +126,7 @@
     50%{ box-shadow: 0 0 0 3px color-mix(in srgb, var(--cyan) 55%, transparent); opacity: 0.55; }
   }
   @media (prefers-reduced-motion: reduce){
-    #stockMainTabs .bar-icone.reduite{ animation: none; }
+    #stockMainTabs .reduite{ animation: none; }
   }
   /* La loupe et les réglages ne sont pas des pages : ce sont les deux
      commandes de la rangée. Depuis qu'elle porte tout le menu, elles partaient

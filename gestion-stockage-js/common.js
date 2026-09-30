@@ -3758,7 +3758,14 @@
     // L'Accueil et la fiche d'une personne n'ont pas d'icône à garder : pour
     // eux, réduire et fermer se confondent.
     function reduireFenetre(el){
-      if(el && (el.id === 'dash-accueil' || el.id === 'section-personne')){
+      // Le fil n'a nulle part où revenir : réduit, il s'efface comme fermé,
+      // mais sa maison, dans la rangée, clignote pour dire qu'il attend.
+      if(el && el.id === 'dash-accueil'){
+        fermerFenetre(el);
+        marquerReduite(el, true);
+        return;
+      }
+      if(el && el.id === 'section-personne'){
         fermerFenetre(el);
         return;
       }
@@ -3771,6 +3778,11 @@
       if(!el) return;
       const s = suivis.find(function(x){ return x.el === el; });
       if(s) s.reduite = oui;
+      if(el.id === 'dash-accueil'){
+        const maison = document.getElementById('barAccueil');
+        if(maison) maison.classList.toggle('reduite', !!oui);
+        return;
+      }
       if(typeof window.__pageReduite === 'function') window.__pageReduite(el.id, oui);
     }
 
