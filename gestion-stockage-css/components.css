@@ -101,6 +101,11 @@
     justify-content: center;
     font-size: 1.15rem;
   }
+  /* Chrome et Edge ont leur logo dessiné à la place d'un emoji : il prend
+     la taille de l'emoji, sans la marge qui le sépare du nom dans le menu. */
+  .bar-icone .nav-logo,
+  .icone-bureau .nav-logo,
+  .icone-fantome .nav-logo{ width: 1em; height: 1em; margin: 0; vertical-align: middle; }
   /* La loupe et les réglages ne sont pas des pages : ce sont les deux
      commandes de la rangée. Depuis qu'elle porte tout le menu, elles partaient
      avec le défilement — les réglages se retrouvaient à huit cents pixels du

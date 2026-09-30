@@ -4547,6 +4547,26 @@
         : document.getElementById(cle.slice(3));
     }
 
+    // Le logo dessiné d'une entrée (Chrome, Edge), recopié pour servir
+    // d'icône ailleurs. Ses dégradés sont renommés : le même nom dans deux
+    // dessins ne désigne que le premier, celui du menu — caché, il ne peint
+    // plus rien, et le logo recopié restait blanc.
+    let copiesDeLogo = 0;
+    function logoDe(entree){
+      const svg = entree && entree.querySelector('svg.nav-logo');
+      if(!svg) return null;
+      const copie = svg.cloneNode(true);
+      const suffixe = '-c' + (++copiesDeLogo);
+      copie.querySelectorAll('[id]').forEach(function(el){
+        const ancien = el.id;
+        el.id = ancien + suffixe;
+        copie.querySelectorAll('[fill="url(#' + ancien + ')"]').forEach(function(p){
+          p.setAttribute('fill', 'url(#' + el.id + ')');
+        });
+      });
+      return copie;
+    }
+
     // Retirer une icône, c'est en avoir fini avec elle : ce qu'elle avait
     // ouvert se referme du même geste.
     function fermerLesFenetres(){
@@ -4666,8 +4686,11 @@
       const porteur = entree.querySelector('span') || entree;
       const texte = porteur.textContent.trim();
       const espace = texte.indexOf(' ');
-      const icone = espace > 0 ? texte.slice(0, espace) : texte;
-      const nom = espace > 0 ? texte.slice(espace + 1).trim() : texte;
+      // Chrome et Edge n'ont pas d'emoji mais leur logo : sans lui, la rangée
+      // affichait leur nom en toutes lettres à la place d'une icône.
+      const logo = logoDe(entree);
+      const icone = logo ? '' : (espace > 0 ? texte.slice(0, espace) : texte);
+      const nom = logo ? texte : (espace > 0 ? texte.slice(espace + 1).trim() : texte);
 
       const bouton = document.createElement('button');
       bouton.type = 'button';
@@ -4676,6 +4699,7 @@
       bouton.title = nom;
       bouton.setAttribute('aria-label', nom);
       bouton.textContent = icone;
+      if(logo) bouton.appendChild(logo);
 
       const croix = document.createElement('span');
       croix.className = 'epingle-retirer';
@@ -4947,6 +4971,9 @@
       const porteur = entree.querySelector('span') || entree;
       const texte = porteur.textContent.trim();
       const espace = texte.indexOf(' ');
+      if(entree.querySelector('svg.nav-logo')){
+        return { icone: '', nom: texte, logo: function(){ return logoDe(entree); } };
+      }
       return {
         icone: espace > 0 ? texte.slice(0, espace) : texte,
         nom: espace > 0 ? texte.slice(espace + 1).trim() : texte
@@ -5051,6 +5078,7 @@
       emoji.className = 'emoji';
       emoji.setAttribute('aria-hidden', 'true');
       emoji.textContent = fig.icone;
+      if(fig.logo) emoji.appendChild(fig.logo());
       const nom = document.createElement('span');
       nom.className = 'nom';
       nom.textContent = fig.nom;
@@ -5089,6 +5117,7 @@
         document.body.appendChild(fantome);
       }
       fantome.textContent = fig ? fig.icone : '•';
+      if(fig && fig.logo) fantome.appendChild(fig.logo());
       fantome.style.left = Math.round(x) + 'px';
       fantome.style.top = Math.round(y) + 'px';
     }
