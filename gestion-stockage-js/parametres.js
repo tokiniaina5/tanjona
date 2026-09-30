@@ -1419,19 +1419,16 @@
   }
 
   // Les stories par personne, la plus récente d'abord ; les siennes en tête.
+  // Une carte par story, et non une par personne : chacune se voit et
+  // s'ouvre à part. Les siennes d'abord, puis les autres, les plus récentes
+  // en tête. (La visionneuse garde sa forme de « groupe » : une story seule
+  // en est un, et la suivante de la rangée vient après elle.)
   function groupesDeStories(){
-    const parAuteur = {};
-    const ordre = [];
-    listeStories.forEach(function(s){
-      if(!parAuteur[s.auteur_id]){ parAuteur[s.auteur_id] = []; ordre.push(s.auteur_id); }
-      parAuteur[s.auteur_id].push(s);
-    });
-    return ordre.map(function(id){
-      // Dans le groupe, on les regarde dans l'ordre où elles ont été posées.
-      const l = parAuteur[id].slice().reverse();
-      return { auteur_id: id, nom: l[l.length - 1].auteur_nom, photo: l[l.length - 1].auteur_photo, liste: l };
-    }).sort(function(a, b){
-      return (b.auteur_id === monIdStory) - (a.auteur_id === monIdStory);
+    return listeStories.slice().sort(function(a, b){
+      const moi = (b.auteur_id === monIdStory) - (a.auteur_id === monIdStory);
+      return moi || (new Date(b.created_at) - new Date(a.created_at));
+    }).map(function(s){
+      return { auteur_id: s.auteur_id, nom: s.auteur_nom, photo: s.auteur_photo, liste: [s] };
     });
   }
 

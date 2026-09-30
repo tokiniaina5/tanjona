@@ -289,15 +289,10 @@
     var min = Math.max(1, Math.round((Date.now() - new Date(date).getTime()) / 60000));
     return min < 60 ? min + ' min' : Math.round(min / 60) + ' h';
   }
+  // Une carte par story, les plus récentes d'abord : chacune s'ouvre à part.
   function groupes() {
-    var par = {}, ordre = [];
-    stories.forEach(function (s) {
-      if (!par[s.auteur_id]) { par[s.auteur_id] = []; ordre.push(s.auteur_id); }
-      par[s.auteur_id].push(s);
-    });
-    return ordre.map(function (id) {
-      var l = par[id].slice().reverse();
-      return { nom: l[l.length - 1].auteur_nom, photo: l[l.length - 1].auteur_photo, liste: l };
+    return stories.map(function (s) {
+      return { nom: s.auteur_nom, photo: s.auteur_photo, liste: [s] };
     });
   }
   function dessinerStories() {
