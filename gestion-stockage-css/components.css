@@ -763,9 +763,16 @@
   .fb-comment-fafana:hover{ text-decoration:none; }
 
   /* « J'aime » : la pastille est grise tant qu'on n'a pas aimé, bleue ensuite. */
-  .fb-like-action .fb-logo-partage svg{ background:var(--muted); }
+  /* Sa couleur d'avant, le cyan des autres, et posée sur le côté du logo,
+     à mi-hauteur, plutôt qu'au coin bas. */
+  .fb-like-action .fb-logo-partage{ margin-right:0.55em; }
+  .fb-like-action .fb-logo-partage svg{
+    background:var(--cyan);
+    right:-0.55em; bottom:auto; top:50%;
+    transform:translateY(-50%);
+  }
   .fb-like-action .fb-logo-partage.aime svg{ background:#0866ff; }
-  .fb-like-action:hover .fb-logo-partage svg{ transform: rotate(-12deg) scale(1.1); }
+  .fb-like-action:hover .fb-logo-partage svg{ transform: translateY(-50%) rotate(-12deg) scale(1.1); }
   /* « Rehetra » porte le logo de la maison : c'est elle qui envoie à tous. */
   .fb-logo-maison{ width:1.25em; height:1.25em; border-radius:22%; object-fit:cover; }
   /* L'achat est la seule action de la rangée qui engage : elle se voit. */
