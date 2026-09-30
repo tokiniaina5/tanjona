@@ -1148,12 +1148,40 @@
   // propre couleur et ne changeait jamais.
   const POUCE = '<svg class="fb-pouce" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 21h3.5V9.5H2zM21.9 11.2c0-1.1-.9-2-2-2h-5.6l.9-4.3v-.3c0-.4-.2-.8-.4-1.1L13.7 2.5 8 8.2c-.3.3-.5.8-.5 1.3V19c0 1.1.9 2 2 2h8.6c.8 0 1.5-.5 1.8-1.2l2.8-6.6c.1-.2.1-.5.1-.7v-1.3z"/></svg>';
 
+  // Les réactions, comme sur Facebook (supabase-reactions.sql). Le pouce
+  // garde son dessin ; les autres sont des visages, chacun sa couleur.
+  const REACTIONS = [
+    { id: 'like',  emoji: '👍', nom: 'J\'aime',   couleur: '#0866ff' },
+    { id: 'love',  emoji: '❤️', nom: 'J\'adore',  couleur: '#f33e58' },
+    { id: 'care',  emoji: '🥰', nom: 'Solidaire', couleur: '#f7b125' },
+    { id: 'haha',  emoji: '😆', nom: 'Haha',      couleur: '#f7b125' },
+    { id: 'wow',   emoji: '😮', nom: 'Wouah',     couleur: '#f7b125' },
+    { id: 'sad',   emoji: '😢', nom: 'Triste',    couleur: '#f7b125' },
+    { id: 'angry', emoji: '😡', nom: 'Grrr',      couleur: '#e9710f' }
+  ];
+  function reactionDe(id){
+    return REACTIONS.filter(function(r){ return r.id === id; })[0] || REACTIONS[0];
+  }
+  // Tant que supabase-reactions.sql n'est pas passé, la colonne manque : on
+  // retombe sur le simple « j'aime », sans menu de réactions.
+  let sansReactions = false;
+
+  function bulle(id){
+    return id === 'like'
+      ? '<span class="fb-like-bubble">' + POUCE + '</span>'
+      : '<span class="fb-reaction-bulle">' + reactionDe(id).emoji + '</span>';
+  }
+
   function paintLike(el, newsId){
-    const info = likeState[newsId] || { count: 0, mine: false };
-    // Le bouton dit ce qu'il fait ; le nombre vit au-dessus, sur sa propre
-    // ligne, et disparaît quand il n'y a rien à compter.
-    el.innerHTML = POUCE + '<span>J\'aime</span>';
-    el.classList.toggle('liked', !!info.mine);
+    const info = likeState[newsId] || { count: 0, mine: null, parType: {} };
+    // Le bouton dit ce qu'on a choisi ; le nombre vit au-dessus, sur sa
+    // propre ligne, et disparaît quand il n'y a rien à compter.
+    const r = info.mine ? reactionDe(info.mine) : null;
+    el.innerHTML = (r && r.id !== 'like')
+      ? '<span class="fb-reaction-emoji">' + r.emoji + '</span><span>' + r.nom + '</span>'
+      : POUCE + '<span>J\'aime</span>';
+    el.classList.toggle('liked', !!r);
+    el.style.color = r ? r.couleur : '';
 
     const post = el.closest('.fb-post');
     const compte = post && post.querySelector('[data-like-count]');
@@ -1162,28 +1190,121 @@
       const qui = info.mine
         ? (info.count === 1 ? 'Ianao' : 'Ianao sy ' + (info.count - 1) + ' hafa')
         : info.count;
-      compte.innerHTML = '<span class="fb-like-bubble">' + POUCE + '</span><span>' + escapeHtml(String(qui)) + '</span>';
+      // Les trois réactions les plus données, comme Facebook les empile.
+      const types = Object.keys(info.parType || {}).filter(function(t){ return info.parType[t] > 0; })
+        .sort(function(a, b){ return info.parType[b] - info.parType[a]; }).slice(0, 3);
+      if(!types.length && info.count) types.push('like');
+      compte.innerHTML = '<span class="fb-reaction-pile">' + types.map(bulle).join('') + '</span>' +
+        '<span>' + escapeHtml(String(qui)) + '</span>';
     }
+  }
+
+  // Le menu des réactions : un seul pour tout le fil, posé au-dessus du
+  // bouton qu'on survole (ordinateur) ou qu'on presse longtemps (téléphone).
+  let menuReactions = null, menuPour = null, minuteurMontrer = null, minuteurCacher = null;
+  function cacherReactions(){
+    clearTimeout(minuteurMontrer);
+    if(menuReactions) menuReactions.hidden = true;
+    menuPour = null;
+  }
+  function montrerReactions(el, newsId){
+    if(sansReactions) return;
+    if(!menuReactions){
+      menuReactions = document.createElement('div');
+      menuReactions.className = 'fb-reactions-choix';
+      menuReactions.setAttribute('role', 'menu');
+      REACTIONS.forEach(function(r){
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.dataset.reaction = r.id;
+        b.title = r.nom;
+        b.setAttribute('aria-label', r.nom);
+        b.textContent = r.emoji;
+        b.addEventListener('click', function(e){
+          e.stopPropagation();
+          const cible = menuPour;
+          cacherReactions();
+          if(cible) choisirReaction(cible.el, cible.newsId, r.id);
+        });
+        menuReactions.appendChild(b);
+      });
+      menuReactions.addEventListener('mouseenter', function(){ clearTimeout(minuteurCacher); });
+      menuReactions.addEventListener('mouseleave', function(){ minuteurCacher = setTimeout(cacherReactions, 300); });
+      document.addEventListener('click', function(e){
+        if(menuReactions && !menuReactions.hidden && !menuReactions.contains(e.target)) cacherReactions();
+      });
+      window.addEventListener('scroll', cacherReactions, { passive: true, capture: true });
+      document.body.appendChild(menuReactions);
+    }
+    menuPour = { el: el, newsId: newsId };
+    menuReactions.hidden = false;
+    // Au-dessus du bouton, sans sortir de l'écran.
+    const r = el.getBoundingClientRect();
+    const l = menuReactions.offsetWidth, h = menuReactions.offsetHeight;
+    const x = Math.max(8, Math.min(r.left - 8, window.innerWidth - l - 8));
+    const y = r.top - h - 8 < 8 ? r.bottom + 8 : r.top - h - 8;
+    menuReactions.style.left = Math.round(x) + 'px';
+    menuReactions.style.top = Math.round(y) + 'px';
   }
 
   function setupLike(el, newsId){
     paintLike(el, newsId);
-    el.addEventListener('click', function(){ toggleLike(el, newsId); });
+    let pressionLongue = false, minuteurPression = null;
+    el.addEventListener('click', function(e){
+      // Le doigt vient d'ouvrir le menu en restant appuyé : ce n'est pas un clic.
+      if(pressionLongue){ pressionLongue = false; e.stopPropagation(); return; }
+      cacherReactions();
+      toggleLike(el, newsId);
+    });
+    // Ordinateur : on survole, le menu vient.
+    el.addEventListener('mouseenter', function(){
+      clearTimeout(minuteurCacher);
+      clearTimeout(minuteurMontrer);
+      minuteurMontrer = setTimeout(function(){ montrerReactions(el, newsId); }, 450);
+    });
+    el.addEventListener('mouseleave', function(){
+      clearTimeout(minuteurMontrer);
+      minuteurCacher = setTimeout(cacherReactions, 300);
+    });
+    // Téléphone : on laisse le doigt dessus.
+    el.addEventListener('touchstart', function(){
+      pressionLongue = false;
+      clearTimeout(minuteurPression);
+      minuteurPression = setTimeout(function(){
+        pressionLongue = true;
+        montrerReactions(el, newsId);
+      }, 450);
+    }, { passive: true });
+    ['touchend', 'touchmove', 'touchcancel'].forEach(function(t){
+      el.addEventListener(t, function(){ clearTimeout(minuteurPression); }, { passive: true });
+    });
+    // Le menu du navigateur ne doit pas passer devant celui des réactions.
+    el.addEventListener('contextmenu', function(e){ if(pressionLongue) e.preventDefault(); });
   }
 
   function loadLikes(ids){
     if(!ids.length || !window.__sb) return;
-    window.__sb.from('client_news_likes')
-      .select('news_id,author_email')
-      .in('news_id', ids)
+    function lire(avecReaction){
+      return window.__sb.from('client_news_likes')
+        .select('news_id,author_email' + (avecReaction ? ',reaction' : ''))
+        .in('news_id', ids);
+    }
+    lire(true)
+      .then(function(res){
+        if(res && res.error){ sansReactions = true; return lire(false); }
+        sansReactions = false;
+        return res;
+      })
       .then(function(res){
         const rows = (res && res.data) || [];
         const moi = myLikeEmail();
         likeState = {};
         rows.forEach(function(r){
-          const info = likeState[r.news_id] || (likeState[r.news_id] = { count: 0, mine: false });
+          const info = likeState[r.news_id] || (likeState[r.news_id] = { count: 0, mine: null, parType: {} });
+          const type = reactionDe(r.reaction || 'like').id;
           info.count++;
-          if(moi && (r.author_email || '').toLowerCase() === moi) info.mine = true;
+          info.parType[type] = (info.parType[type] || 0) + 1;
+          if(moi && (r.author_email || '').toLowerCase() === moi) info.mine = type;
         });
         document.querySelectorAll('#communityNewsList [data-like]').forEach(function(el){
           const post = el.closest('.fb-post');
@@ -1192,24 +1313,43 @@
       }, function(){});
   }
 
+  // Le pouce seul : il met « J'aime », ou retire la réaction quelle qu'elle
+  // soit — comme sur Facebook.
   function toggleLike(el, newsId){
+    const info = likeState[newsId];
+    choisirReaction(el, newsId, info && info.mine ? null : 'like');
+  }
+
+  // Donner une réaction, en changer, ou la retirer (null).
+  function choisirReaction(el, newsId, id){
     const moi = myLikeEmail();
     if(!moi || !window.__sb){ alert('Midira aloha vao afaka mankasitraka.'); return; }
 
-    const info = likeState[newsId] || (likeState[newsId] = { count: 0, mine: false });
+    const info = likeState[newsId] || (likeState[newsId] = { count: 0, mine: null, parType: {} });
+    if(info.mine === id) return;
     // On peint tout de suite, puis on corrige si le serveur refuse : un clic
     // qui n'a l'air de rien faire pendant une seconde donne envie de cliquer
     // encore, et de compter deux fois.
-    const avant = { count: info.count, mine: info.mine };
-    info.mine = !avant.mine;
-    info.count = Math.max(0, avant.count + (info.mine ? 1 : -1));
+    const avant = { count: info.count, mine: info.mine, parType: Object.assign({}, info.parType) };
+    if(info.mine) info.parType[info.mine] = Math.max(0, (info.parType[info.mine] || 0) - 1);
+    if(id) info.parType[id] = (info.parType[id] || 0) + 1;
+    if(!avant.mine && id) info.count++;
+    if(avant.mine && !id) info.count = Math.max(0, info.count - 1);
+    info.mine = id;
     paintLike(el, newsId);
 
     const table = window.__sb.from('client_news_likes');
-    const action = avant.mine
-      ? table.delete().eq('news_id', newsId).eq('author_email', moi)
-      : table.insert({ news_id: newsId, author_email: moi,
-          author_name: (currentUser && currentUser.name) || 'Client' });
+    let action;
+    if(!id){
+      action = table.delete().eq('news_id', newsId).eq('author_email', moi);
+    } else if(avant.mine){
+      action = table.update({ reaction: id }).eq('news_id', newsId).eq('author_email', moi);
+    } else {
+      const ligne = { news_id: newsId, author_email: moi,
+        author_name: (currentUser && currentUser.name) || 'Client' };
+      if(!sansReactions) ligne.reaction = id;
+      action = table.insert(ligne);
+    }
 
     action.then(function(res){
       if(res && res.error){
