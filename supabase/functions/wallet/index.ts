@@ -125,6 +125,23 @@ async function gainsParrainage(admin: Admin, email: string, installs?: string[])
   return (count ?? 0) * tarifParrainage(email);
 }
 
+// ---- Les achats du fil (supabase-wallet-achats.sql) ----
+// Comme acheteur : ce qui est tenu (« tazonina ») ou déjà passé au vendeur
+// (« voaray ») a quitté le solde ; ce qui a été rendu (« naverina ») y revient.
+// Comme vendeur : seul ce que l'acheteur a reçu (« voaray ») entre, et c'est
+// de l'argent vraiment payé — il se retire comme un dépôt.
+async function achatsFor(admin: Admin, email: string): Promise<{ depense: number; recu: number }> {
+  const { data: achats } = await admin.from("wallet_achats")
+    .select("amount_ar,status").eq("buyer_email", email).in("status", ["tazonina", "voaray"]);
+  const depense = (achats ?? []).reduce(
+    (sum: number, a: { amount_ar: number }) => sum + (Number(a.amount_ar) || 0), 0);
+  const { data: ventes } = await admin.from("wallet_achats")
+    .select("amount_ar").eq("seller_email", email).eq("status", "voaray");
+  const recu = (ventes ?? []).reduce(
+    (sum: number, a: { amount_ar: number }) => sum + (Number(a.amount_ar) || 0), 0);
+  return { depense, recu };
+}
+
 // ---- Le solde, déduit de la base ----
 async function balanceFor(admin: Admin, email: string): Promise<number> {
   // 1) ce que les parrainages ont rapporté, sur toutes les installations
@@ -160,7 +177,10 @@ async function balanceFor(admin: Admin, email: string): Promise<number> {
   const deposited = (depots ?? []).reduce(
     (sum: number, d: { amount_ar: number }) => sum + (Number(d.amount_ar) || 0), 0);
 
-  return Math.max(0, earned + deposited - withdrawn - spent);
+  // 5) les achats du fil : payés comme acheteur, reçus comme vendeur.
+  const achats = await achatsFor(admin, email);
+
+  return Math.max(0, earned + deposited + achats.recu - withdrawn - spent - achats.depense);
 }
 
 // ---- Ce qui peut sortir en vrai argent ----
@@ -188,7 +208,9 @@ async function retirableFor(admin: Admin, email: string, balance: number): Promi
     .filter((p: { kind: string }) => p.kind !== "insite")
     .reduce((sum: number, p: { amount_ar: number; fee_ar: number }) =>
       sum + (Number(p.amount_ar) || 0) + (Number(p.fee_ar) || 0), 0);
-  return Math.max(0, Math.min(balance, entre - sorti));
+  // Les ventes reçues sont de l'argent payé ; les achats en sont sortis.
+  const achats = await achatsFor(admin, email);
+  return Math.max(0, Math.min(balance, entre + achats.recu - sorti - achats.depense));
 }
 
 // ---- L'argent vraiment payé qui reste, pour l'abonnement ----
@@ -219,8 +241,12 @@ async function argentPapiFor(admin: Admin, email: string, balance: number): Prom
       retraits += somme;
     }
   }
+  // Les ventes reçues entrent comme de l'argent payé ; les achats sortent
+  // comme un retrait (d'abord sur les parrainages, comme lui).
+  const achats = await achatsFor(admin, email);
+  retraits += achats.depense;
   const parrainage = await gainsParrainage(admin, email);
-  const reste = entre - abonnements - Math.max(0, retraits - parrainage);
+  const reste = entre + achats.recu - abonnements - Math.max(0, retraits - parrainage);
   return Math.max(0, Math.min(balance, reste));
 }
 
@@ -285,6 +311,20 @@ Deno.serve(async (req: Request) => {
       .select("id,amount_ar,provider,provider_ref,status,note,created_at,confirmed_at")
       .eq("email", email).order("created_at", { ascending: false }).limit(20);
 
+    // Les achats du fil, comme acheteur et comme vendeur. Le propriétaire
+    // voit aussi ceux qui attendent, pour trancher s'il le faut.
+    const { data: achats } = await admin.from("wallet_achats")
+      .select("id,buyer_email,buyer_name,seller_email,seller_name,news_id,titre,isa,prix_ar,amount_ar,status,note,created_at,settled_at")
+      .or(`buyer_email.eq.${email},seller_email.eq.${email}`)
+      .order("created_at", { ascending: false }).limit(30);
+    let achatsEnAttente = null;
+    if (isOwner) {
+      const { data: attente } = await admin.from("wallet_achats")
+        .select("id,buyer_email,buyer_name,seller_email,seller_name,news_id,titre,isa,prix_ar,amount_ar,status,created_at")
+        .eq("status", "tazonina").order("created_at", { ascending: true }).limit(50);
+      achatsEnAttente = attente ?? [];
+    }
+
     const retirable = await retirableFor(admin, email, balance);
     return json({
       balanceAr: balance, retirableAr: retirable, papiAr: await argentPapiFor(admin, email, balance), arPerReferral: tarifParrainage(email), minPayoutAr: MIN_PAYOUT_AR, payoutFeePct: PAYOUT_FEE_PCT,
@@ -293,7 +333,95 @@ Deno.serve(async (req: Request) => {
       // pas un canal dont les clefs manquent.
       canaux: { depotPapi: !!Deno.env.get("PAPI_TOKEN") },
       payouts: mine ?? [], deposits: depots ?? [], queue, isOwner, items: SITE_ITEMS,
+      achats: achats ?? [], achatsEnAttente, email,
     });
+  }
+
+  // ---- Acheter un entana du fil, l'argent tenu ----
+  // Le prix vient de la base, jamais de la page : la page ne dit que QUOI
+  // (le billet) et COMBIEN (la quantité). L'argent doit être de l'argent
+  // vraiment payé — le même que celui qui se retire. Il quitte l'acheteur
+  // tout de suite, mais n'arrive chez le vendeur que quand l'acheteur a reçu
+  // l'entana (« achat_voaray ») ; rendu sinon (« achat_averina »).
+  if (action === "achat") {
+    const newsId = Number(body.newsId);
+    const isa = Math.floor(Number(body.isa ?? 1));
+    if (!Number.isFinite(newsId) || newsId <= 0) return json({ error: "entana tsy fantatra" }, 400);
+    if (!(isa >= 1 && isa <= 99)) return json({ error: "isa tsy mety (1 hatramin'ny 99)" }, 400);
+
+    const { data: billet, error: errBillet } = await admin.from("client_news")
+      .select("id,type,price,message,author_email,client_name,deleted_at").eq("id", newsId).maybeSingle();
+    if (errBillet) return json({ error: errBillet.message }, 500);
+    if (!billet || billet.deleted_at) return json({ error: "Tsy hita intsony io entana io." }, 404);
+    if (billet.type !== "entana") return json({ error: "Tsy entana amidy io publication io." }, 400);
+    const prix = Math.floor(Number(String(billet.price ?? "").replace(/[^\d.]/g, "")) || 0);
+    if (!(prix > 0)) return json({ error: "Tsy misy vidiny io entana io : resaho mivantana ny mpivarotra." }, 400);
+
+    // Le vendeur : l'auteur du billet ; les billets de la maison, sans
+    // adresse, sont au propriétaire.
+    const vendeur = norm(billet.author_email) || ownerEmail;
+    if (!vendeur) return json({ error: "Tsy fantatra ny mpivarotra." }, 400);
+    if (vendeur === email) return json({ error: "Tsy afaka mividy ny entanao ianao." }, 400);
+
+    const montant = prix * isa;
+    const balance = await balanceFor(admin, email);
+    const reel = await retirableFor(admin, email, balance);
+    if (montant > reel) {
+      return json({
+        error: `Tsy ampy ny vola ao amin'ny portefeuille : ${reel.toLocaleString("fr-FR")} Ar ` +
+          `(vola tena naloa sy parrainage), ilaina ${montant.toLocaleString("fr-FR")} Ar. ` +
+          `Ampidiro vola amin'ny Papi na Mobile Money aloha.`,
+        disponibleAr: reel, manque: montant - reel,
+      }, 400);
+    }
+
+    const titre = String(billet.message ?? "").split("\n")[0].trim().slice(0, 80) || "Entana";
+    const { data, error } = await admin.from("wallet_achats").insert({
+      buyer_email: email, buyer_name: String(body.name ?? "").trim().slice(0, 80) || null,
+      seller_email: vendeur, seller_name: String(billet.client_name ?? "").trim().slice(0, 80) || null,
+      news_id: newsId, titre, isa, prix_ar: prix, amount_ar: montant, status: "tazonina",
+    }).select("id,titre,isa,prix_ar,amount_ar,status,created_at").single();
+    if (error) return json({ error: error.message }, 500);
+
+    return json({ achat: data, balanceAr: balance - montant });
+  }
+
+  // ---- L'acheteur a reçu l'entana : l'argent passe au vendeur ----
+  if (action === "achat_voaray") {
+    const id = String(body.id ?? "").trim();
+    if (!id) return json({ error: "fividianana tsy fantatra" }, 400);
+    // Seul l'acheteur le dit, et une seule fois : le filtre sur
+    // « tazonina » rend un second clic sans effet.
+    const { data, error } = await admin.from("wallet_achats")
+      .update({ status: "voaray", settled_at: new Date().toISOString() })
+      .eq("id", id).eq("buyer_email", email).eq("status", "tazonina")
+      .select("id,status,amount_ar").maybeSingle();
+    if (error) return json({ error: error.message }, 500);
+    if (!data) return json({ error: "Efa voavaha na tsy anao io fividianana io." }, 409);
+    return json({ achat: data });
+  }
+
+  // ---- Rendre l'argent à l'acheteur ----
+  // Le vendeur (il ne peut pas livrer) ou le propriétaire (litige). Jamais
+  // l'acheteur seul : il pourrait reprendre son argent après avoir reçu.
+  if (action === "achat_averina") {
+    const id = String(body.id ?? "").trim();
+    if (!id) return json({ error: "fividianana tsy fantatra" }, 400);
+    const { data: ligne } = await admin.from("wallet_achats")
+      .select("id,seller_email,status").eq("id", id).maybeSingle();
+    if (!ligne) return json({ error: "Tsy hita io fividianana io." }, 404);
+    if (norm(ligne.seller_email) !== email && !isOwner) {
+      return json({ error: "Ny mpivarotra na ny tompon'ny Ny asako ihany no afaka mamerina ny vola." }, 403);
+    }
+    const note = String(body.note ?? "").trim().slice(0, 300);
+    const { data, error } = await admin.from("wallet_achats")
+      .update({ status: "naverina", note: note || (isOwner ? "Naverin'ny tompony" : "Naverin'ny mpivarotra"),
+        settled_at: new Date().toISOString() })
+      .eq("id", id).eq("status", "tazonina")
+      .select("id,status,amount_ar").maybeSingle();
+    if (error) return json({ error: error.message }, 500);
+    if (!data) return json({ error: "Efa voavaha io fividianana io." }, 409);
+    return json({ achat: data });
   }
 
   // ---- Acheter à l'intérieur de l'application ----

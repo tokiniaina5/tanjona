@@ -957,6 +957,7 @@
       renderWalletBalance();
       renderPayoutList();
       renderPayoutQueue();
+      renderAchats();
       notifySettledPayouts(state.payouts);
       annoncerLesVisiteurs(state);
     }, function(err){
@@ -1206,6 +1207,85 @@
   }
 
   // La liste des versements suit le même état que celle des retraits.
+  // Le panier (parametres.js) paie par ici : même appel, même session.
+  window.__callWallet = callWallet;
+  window.__rafraichirPortefeuille = function(){ refreshWalletFromServer(); };
+
+  // ---- Les achats du fil, payés avec le portefeuille ----
+  // Comme acheteur : la somme est tenue, et « Voaraiko » la fait passer au
+  // vendeur. Comme vendeur (ou propriétaire, pour un litige) : « Averina »
+  // la rend à l'acheteur. Le serveur vérifie qui a le droit de quoi.
+  const ACHAT_ETATS = {
+    tazonina: { mot: 'Voatazona — miandry ny entana', couleur: 'var(--amber, #e9a23b)' },
+    voaray: { mot: 'Voaray — tonga any amin\'ny mpivarotra ny vola', couleur: 'var(--green, #2bb673)' },
+    naverina: { mot: 'Naverina amin\'ny mpividy', couleur: 'var(--muted)' }
+  };
+  function renderAchats(){
+    const list = document.getElementById('achatList');
+    const empty = document.getElementById('achatEmpty');
+    if(!list || !walletState) return;
+    const moi = String(walletState.email || '').toLowerCase();
+    const vus = Object.create(null);
+    const rows = (walletState.achats || []).concat(walletState.achatsEnAttente || []).filter(function(a){
+      if(vus[a.id]) return false;
+      vus[a.id] = true;
+      return true;
+    });
+    list.innerHTML = '';
+    if(empty) empty.style.display = rows.length ? 'none' : 'block';
+    rows.forEach(function(a){
+      const acheteur = String(a.buyer_email || '').toLowerCase() === moi;
+      const vendeur = String(a.seller_email || '').toLowerCase() === moi;
+      const etat = ACHAT_ETATS[a.status] || { mot: a.status, couleur: 'var(--muted)' };
+      const qui = acheteur
+        ? 'Novidinao tamin\'i ' + (a.seller_name || a.seller_email || '—')
+        : vendeur
+          ? 'Novidin\'i ' + (a.buyer_name || a.buyer_email || '—')
+          : (a.buyer_name || a.buyer_email) + ' → ' + (a.seller_name || a.seller_email);
+      const div = document.createElement('div');
+      div.className = 'payout-row';
+      div.style.cssText = 'padding:0.6rem 0; border-top:1px solid var(--line); font-size:0.8rem; line-height:1.5;';
+      div.innerHTML =
+        '<div><strong>📦 ' + escapeHtml(a.titre || 'Entana') + '</strong> × ' + (a.isa || 1) +
+          ' — <strong>' + formatWalletAr(a.amount_ar) + '</strong></div>' +
+        '<div style="color:var(--muted);">' + escapeHtml(qui) + ' · ' +
+          (a.created_at ? new Date(a.created_at).toLocaleString('fr-FR') : '') + '</div>' +
+        '<div style="color:' + etat.couleur + '; font-weight:600;">' + escapeHtml(etat.mot) + '</div>' +
+        (a.note ? '<div style="color:var(--muted);">' + escapeHtml(a.note) + '</div>' : '') +
+        '<div class="achat-actions" style="display:flex; gap:0.5rem; margin-top:0.35rem;"></div>';
+      const actions = div.querySelector('.achat-actions');
+      function bouton(texte, primaire, action, question){
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'btn btn-sm' + (primaire ? ' btn-primary' : '');
+        b.style.width = 'auto';
+        b.textContent = texte;
+        b.addEventListener('click', function(){
+          if(!confirm(question)) return;
+          b.disabled = true;
+          callWallet({ action: action, id: a.id }).then(function(){
+            refreshWalletFromServer();
+          }, function(err){
+            b.disabled = false;
+            alert(err.message);
+          });
+        });
+        actions.appendChild(b);
+      }
+      if(a.status === 'tazonina'){
+        if(acheteur){
+          bouton('✓ Voaraiko ny entana', true, 'achat_voaray',
+            'Voarainao tokoa ve ny entana ? Handeha any amin\'ny mpivarotra ny ' + formatWalletAr(a.amount_ar) + ', ary tsy azo averina intsony.');
+        }
+        if(vendeur || walletState.isOwner){
+          bouton('↩ Averina ny vola', false, 'achat_averina',
+            'Haverina amin\'ny mpividy ve ny ' + formatWalletAr(a.amount_ar) + ' ?');
+        }
+      }
+      list.appendChild(div);
+    });
+  }
+
   function renderPayoutList(){
     renderDepositList();
     const list = document.getElementById('payoutList');

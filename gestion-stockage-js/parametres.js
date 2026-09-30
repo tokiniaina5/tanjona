@@ -1231,10 +1231,46 @@
         if(b) b.classList.remove('dans-panier');
         dessinerPanier();
       });
-      // Acheter reprend le formulaire d'achat, rempli, avec la quantité.
-      d.querySelector('.panier-hividy').addEventListener('click', function(){
-        panneauPanier.hidden = true;
-        buyFromPost(x.post || { id: x.id, message: x.titre, price: x.prix }, x.isa || 1);
+      // Acheter, c'est payer avec le portefeuille : la fonction wallet lit le
+      // prix dans la base, vérifie l'argent vraiment payé, et tient la somme
+      // jusqu'à ce que l'entana soit reçu (le portefeuille, « Fividianana »).
+      const hividy = d.querySelector('.panier-hividy');
+      hividy.addEventListener('click', function(){
+        const montant = prixNombre(x.prix) * (x.isa || 1);
+        if(!montant){
+          direPresDuBouton(hividy, 'Tsy misy vidiny io entana io : resaho mivantana ny mpivarotra.');
+          return;
+        }
+        if(typeof window.__callWallet !== 'function'){
+          direPresDuBouton(hividy, 'Tsy vonona ny portefeuille : avereno sokafana ny pejy.');
+          return;
+        }
+        const auth = window.__sb && window.__sb.auth;
+        (auth && auth.getSession ? auth.getSession() : Promise.resolve(null)).then(function(r){
+          if(!(r && r.data && r.data.session)){
+            direPresDuBouton(hividy, 'Midira amin\'ny tenimiafinao aloha vao afaka mandoa amin\'ny portefeuille.');
+            return;
+          }
+          if(!confirm('Handoa ' + enAriary(montant) + ' amin\'ny portefeuille ve ianao ho an\'ny « ' + x.titre + ' » × ' + (x.isa || 1) + ' ?\n\n' +
+            'Voatazona ny vola mandra-pahazoanao ny entana, avy eo vao tonga any amin\'ny mpivarotra.')) return;
+          hividy.disabled = true;
+          hividy.textContent = '⏳';
+          window.__callWallet({ action: 'achat', newsId: x.id, isa: x.isa || 1,
+            name: (currentUser && currentUser.name) || '' }).then(function(res){
+            // Payé : il quitte le panier, et le portefeuille le montre.
+            ecrirePanier(lirePanier().filter(function(z){ return String(z.id) !== String(x.id); }));
+            const b = document.querySelector('#communityNewsList .fb-post[data-news-id="' + x.id + '"] [data-panier]');
+            if(b) b.classList.remove('dans-panier');
+            dessinerPanier();
+            if(typeof window.__rafraichirPortefeuille === 'function') window.__rafraichirPortefeuille();
+            alert('Voaloa ✓ ' + enAriary((res && res.achat && res.achat.amount_ar) || montant) +
+              ' — voatazona mandra-pahazoanao ny entana. Rehefa voarainao, tsindrio « Voaraiko » ao amin\'ny portefeuille.');
+          }, function(err){
+            hividy.disabled = false;
+            hividy.textContent = 'Hividy';
+            direPresDuBouton(hividy, (err && err.message) || 'Tsy nety ny fandoavana. Andramo indray.');
+          });
+        });
       });
       lignes.appendChild(d);
     });

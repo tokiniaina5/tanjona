@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="eae9e282">
+<meta name="ny-asako-version" content="90dbbaf3">
 <title>Ny asako — Tanjona</title>
 <!-- Application installable : le manifeste décrit le nom, l'icône et la façon
      de s'ouvrir ; le reste est affaire de service worker, enregistré plus bas. -->
@@ -2360,6 +2360,17 @@
             <p id="payoutStatus" style="font-size:0.8rem; color:var(--cyan); margin-top:0.8rem; line-height:1.5;"></p>
           </div>
 
+          <!-- ---- ACHATS DU FIL ---- -->
+          <!-- Payés avec le portefeuille depuis le panier : l'argent est tenu
+               jusqu'à ce que l'acheteur ait reçu l'entana (fonction wallet,
+               « achat » ; common.js, « renderAchats »). -->
+          <div class="panel" id="walletAchatsPanel">
+            <h3>🛒 Fividianana sy fivarotana</h3>
+            <p class="plan-note" style="line-height:1.5;">Voatazona ny vola raha tsy mbola voaray ny entana. Rehefa voarainao ny entana, tsindrio « Voaraiko » : amin'izay vao tonga any amin'ny mpivarotra ny vola.</p>
+            <div id="achatList" style="margin-top:0.7rem;"></div>
+            <p class="empty-hint" id="achatEmpty" style="display:none;">Tsy mbola nisy fividianana na fivarotana.</p>
+          </div>
+
           <!-- ---- HISTORIQUE ---- -->
           <div class="panel" id="walletHistoriquePanel">
             <h3>🧾 Historique</h3>
@@ -3029,7 +3040,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=38ca7af6"></script>
+<script src="gestion-stockage-js/common.js?v=6133d6f4"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=92ad47d0"></script>
@@ -3043,7 +3054,7 @@
 <script src="gestion-stockage-js/zara-rehetra.js?v=1d7a9c94"></script>
 <script src="gestion-stockage-js/live.js?v=accde37b"></script>
 <script src="gestion-stockage-js/traduction.js?v=8f5605bc"></script>
-<script src="gestion-stockage-js/parametres.js?v=2e9dff29"></script>
+<script src="gestion-stockage-js/parametres.js?v=fa6ddbf2"></script>
 <!-- Le partage reçu du dehors remplit la boîte « Écrire », que parametres.js
      tient : il se charge après elle. -->
 <script src="gestion-stockage-js/zara-miditra.js?v=bfe2ae80"></script>
