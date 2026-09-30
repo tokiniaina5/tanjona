@@ -1086,7 +1086,7 @@
   // Ouvre « Acheter » avec ce que l'annonce dit déjà : le nom, le prix, le
   // vendeur. Il ne reste qu'à confirmer la quantité — recopier ces trois
   // choses de mémoire est le meilleur moyen de se tromper de prix.
-  function buyFromPost(post){
+  function buyFromPost(post, isa){
     if(typeof showDashView === 'function') showDashView('acheter');
     if(typeof populateAcheterItemSelect === 'function') populateAcheterItemSelect();
 
@@ -1111,7 +1111,7 @@
     if(!existant && nom) nom.value = titre;
     if(prix && post.price) prix.value = post.price;
     if(fournisseur) fournisseur.value = nomAffiche(post) || '';
-    if(qty) qty.value = 1;
+    if(qty) qty.value = isa || 1;
     if(statut){
       statut.textContent = existant
         ? 'Entana efa ao amin\'ny stock : ampio ny isa, dia tsindrio « Acheter ».'
@@ -1119,6 +1119,151 @@
     }
     if(nom || select) (existant ? qty : nom || qty).focus();
   }
+
+  // ---------------- LE PANIER ----------------
+  // On met de côté ce qu'on veut acheter en parcourant le fil, puis on le
+  // retrouve en un seul endroit : combien de chaque, et le total. Acheter une
+  // ligne reprend le chemin qui existait déjà (buyFromPost), la quantité en
+  // plus. Le panier est gardé sur l'appareil, par compte : il ne voyage pas,
+  // et celui d'un autre client du même téléphone ne se mélange pas au sien.
+  function clePanier(){
+    return 'nyasako_panier_' + ((currentUser && currentUser.email) || 'invite').trim().toLowerCase();
+  }
+  function lirePanier(){
+    try{ const l = JSON.parse(localStorage.getItem(clePanier())); return Array.isArray(l) ? l : []; }
+    catch(e){ return []; }
+  }
+  function ecrirePanier(l){
+    try{ localStorage.setItem(clePanier(), JSON.stringify(l)); }catch(e){}
+    majCompteurPanier();
+  }
+  function prixNombre(p){
+    const n = parseFloat(String(p == null ? '' : p).replace(/[^\d.,]/g, '').replace(',', '.'));
+    return isFinite(n) ? n : 0;
+  }
+  function enAriary(n){ return Math.round(n).toLocaleString('fr-FR') + ' Ar'; }
+  function titreDu(post){ return (post.message || '').split('\n')[0].trim().slice(0, 60) || 'Entana'; }
+
+  // Le nombre d'articles, sur l'entrée du menu (et donc sur son icône de la
+  // rangée, qui la recopie).
+  function majCompteurPanier(){
+    const total = lirePanier().reduce(function(s, l){ return s + (l.isa || 0); }, 0);
+    document.querySelectorAll('[data-panier-compte]').forEach(function(b){
+      b.textContent = total ? String(total) : '';
+      b.hidden = !total;
+    });
+  }
+
+  function ajouterAuPanier(post, bouton){
+    const l = lirePanier();
+    const deja = l.filter(function(x){ return String(x.id) === String(post.id); })[0];
+    // Déjà dedans : le second appui ouvre le panier, où l'on règle la quantité.
+    if(deja){ ouvrirPanier(); return; }
+    l.push({
+      id: post.id, titre: titreDu(post), prix: post.price || '', isa: 1,
+      // Ce qu'il faut à buyFromPost, sans l'image : elle pèse, et le panier
+      // n'a pas à la garder.
+      post: { id: post.id, message: post.message, price: post.price, client_name: post.client_name,
+              author_email: post.author_email, network: post.network, type: post.type }
+    });
+    ecrirePanier(l);
+    if(bouton){
+      bouton.classList.add('dans-panier');
+      bouton.classList.remove('fb-like-rebond'); void bouton.offsetWidth; bouton.classList.add('fb-like-rebond');
+      direPresDuBouton(bouton, 'Tafiditra ao anaty panier ✓ — tsindrio indray hijerena azy.');
+    }
+  }
+
+  let panneauPanier = null;
+  function ouvrirPanier(){
+    if(!panneauPanier){
+      panneauPanier = document.createElement('div');
+      panneauPanier.className = 'panier-panneau panneau-boite';
+      panneauPanier.setAttribute('role', 'dialog');
+      panneauPanier.setAttribute('aria-label', 'Panier');
+      ['pointerdown', 'mousedown', 'click'].forEach(function(t){
+        panneauPanier.addEventListener(t, function(e){ e.stopPropagation(); });
+      });
+      document.body.appendChild(panneauPanier);
+      document.addEventListener('click', function(){ if(panneauPanier) panneauPanier.hidden = true; });
+    }
+    dessinerPanier();
+    panneauPanier.hidden = false;
+  }
+
+  function dessinerPanier(){
+    const l = lirePanier();
+    const total = l.reduce(function(s, x){ return s + prixNombre(x.prix) * (x.isa || 1); }, 0);
+    panneauPanier.innerHTML =
+      '<div class="panier-tete"><span class="panier-titre">' + LOGO_PANIER + ' Panier</span>' +
+      '<button type="button" class="panier-fermer" aria-label="Hidio" title="Hidio">✕</button></div>' +
+      (l.length ? '' : '<p class="panneau-note">Mbola foana ny panier. Tsindrio « Panier » eo ambanin\'ny entana iray ao amin\'ny Botika.</p>') +
+      '<div class="panier-lignes"></div>' +
+      (l.length ? '<div class="panier-total"><span>Totaly</span><strong>' + enAriary(total) + '</strong></div>' +
+        '<button type="button" class="panier-foano">Foanana ny panier</button>' : '');
+    const lignes = panneauPanier.querySelector('.panier-lignes');
+    l.forEach(function(x){
+      const d = document.createElement('div');
+      d.className = 'panier-ligne';
+      d.innerHTML =
+        '<div class="panier-nom">' + escapeHtml(x.titre) +
+          '<span class="panier-prix">' + (prixNombre(x.prix) ? enAriary(prixNombre(x.prix)) : 'Tsy misy vidiny') + '</span></div>' +
+        '<div class="panier-isa">' +
+          '<button type="button" data-moins aria-label="Ahena">−</button>' +
+          '<span>' + (x.isa || 1) + '</span>' +
+          '<button type="button" data-plus aria-label="Ampiana">+</button>' +
+        '</div>' +
+        '<button type="button" class="btn btn-sm btn-primary panier-hividy">Hividy</button>' +
+        '<span class="panier-esory" role="button" tabindex="0" title="Esorina" aria-label="Esorina">' + LOGO_FAFANA + '</span>';
+      function changer(delta){
+        const liste = lirePanier();
+        const y = liste.filter(function(z){ return String(z.id) === String(x.id); })[0];
+        if(!y) return;
+        y.isa = Math.max(1, (y.isa || 1) + delta);
+        ecrirePanier(liste);
+        dessinerPanier();
+      }
+      d.querySelector('[data-moins]').addEventListener('click', function(){ changer(-1); });
+      d.querySelector('[data-plus]').addEventListener('click', function(){ changer(1); });
+      d.querySelector('.panier-esory').addEventListener('click', function(){
+        ecrirePanier(lirePanier().filter(function(z){ return String(z.id) !== String(x.id); }));
+        const b = document.querySelector('#communityNewsList .fb-post[data-news-id="' + x.id + '"] [data-panier]');
+        if(b) b.classList.remove('dans-panier');
+        dessinerPanier();
+      });
+      // Acheter reprend le formulaire d'achat, rempli, avec la quantité.
+      d.querySelector('.panier-hividy').addEventListener('click', function(){
+        panneauPanier.hidden = true;
+        buyFromPost(x.post || { id: x.id, message: x.titre, price: x.prix }, x.isa || 1);
+      });
+      lignes.appendChild(d);
+    });
+    panneauPanier.querySelector('.panier-fermer').addEventListener('click', function(){ panneauPanier.hidden = true; });
+    const foano = panneauPanier.querySelector('.panier-foano');
+    if(foano) foano.addEventListener('click', function(){
+      if(!confirm('Foanana ve ny panier ?')) return;
+      ecrirePanier([]);
+      document.querySelectorAll('#communityNewsList [data-panier].dans-panier').forEach(function(b){ b.classList.remove('dans-panier'); });
+      dessinerPanier();
+    });
+  }
+
+  // L'entrée du menu : le panier s'ouvre de n'importe où.
+  (function(){
+    const entree = document.getElementById('menuPanier');
+    if(!entree) return;
+    entree.addEventListener('click', function(e){
+      e.stopPropagation();
+      const menu = document.getElementById('navList');
+      if(menu && menu.classList.contains('open')){
+        menu.classList.remove('open');
+        const bascule = document.getElementById('menuToggle');
+        if(bascule) bascule.setAttribute('aria-expanded', 'false');
+      }
+      ouvrirPanier();
+    });
+    majCompteurPanier();
+  })();
 
   // Une table absente et un réseau coupé ne se réparent pas de la même façon :
   // dire lequel des deux, c'est éviter de chercher au mauvais endroit.
@@ -1164,7 +1309,9 @@
   // Effacer : la corbeille dans une pastille rouge, sans mot — le mot reste
   // dans title et aria-label, pour le survol et pour qui lit à voix haute.
   const LOGO_FAFANA = logoAvec('M9 3h6l1 2h4v2H4V5h4zM6 9h12l-1 11a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2z', 'fafana');
-  const BULLE_COMMENTER = logoAvec('M4 4h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 4v-4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z');
+  // Le panier : un caddie dans la pastille.
+  const LOGO_PANIER = logoAvec('M3 4h2.2l2.1 10.3a2 2 0 0 0 2 1.7h7.9a2 2 0 0 0 1.9-1.4L21 8H7M10 21a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm8 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z', 'panier');
+  const BULLE_COMMENTER =logoAvec('M4 4h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 4v-4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z');
   const POUCE_LOGO = 'M2 21h3.5V9.5H2zM21.9 11.2c0-1.1-.9-2-2-2h-5.6l.9-4.3v-.3c0-.4-.2-.8-.4-1.1L13.7 2.5 8 8.2c-.3.3-.5.8-.5 1.3V19c0 1.1.9 2 2 2h8.6c.8 0 1.5-.5 1.8-1.2l2.8-6.6c.1-.2.1-.5.1-.7v-1.3z';
 
   // Les réactions, comme sur Facebook (supabase-reactions.sql). Le pouce
@@ -2535,6 +2682,10 @@
             '<div class="fb-post-actions">' +
             '<span class="fb-like-action" data-like style="cursor:pointer;">' + logoAvec(POUCE_LOGO) + '<span>J\'aime</span></span>' +
             '<span class="fb-comment-action fb-partager" data-comment style="cursor:pointer;">' + BULLE_COMMENTER + '<span>Commenter</span></span>' +
+            // Le panier, juste après : on met de côté ce qu'on achètera.
+            (type === 'entana'
+              ? '<span class="fb-share-action fb-partager fb-panier-action" data-panier style="cursor:pointer;">' + LOGO_PANIER + '<span>Panier</span></span>'
+              : '') +
             // L'achat part de l'annonce elle-même : c'est là qu'on voit la
             // marchandise et son prix, pas dans un onglet qu'il faut aller
             // chercher ensuite en retapant tout de tête.
@@ -2586,6 +2737,11 @@
           const buyEl = div.querySelector('[data-buy]');
           if(buyEl){
             buyEl.addEventListener('click', function(){ buyFromPost(n); });
+          }
+          const panierEl = div.querySelector('[data-panier]');
+          if(panierEl){
+            if(lirePanier().some(function(x){ return String(x.id) === String(n.id); })) panierEl.classList.add('dans-panier');
+            panierEl.addEventListener('click', function(e){ e.stopPropagation(); ajouterAuPanier(n, panierEl); });
           }
           // Le direct se regarde ici même. Sans joinLive — la page publique de
           // la Botika n'a pas le WebRTC — il reste le lien d'origine.

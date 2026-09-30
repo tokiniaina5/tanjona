@@ -756,6 +756,44 @@
     transition: transform 0.15s ease;
   }
   .fb-partager:hover .fb-logo-partage svg{ transform: translateX(2px) rotate(-8deg); }
+  /* Panier : pastille cyan ; une fois l'article dedans, elle passe au vert
+     et le mot aussi, pour qu'on voie d'un coup d'œil ce qu'on a déjà pris. */
+  .fb-panier-action.dans-panier{ color:#2bb673; }
+  .fb-panier-action.dans-panier .fb-logo-partage svg{ background:#2bb673; }
+  .nav-logo.fb-logo-partage{ position:relative; overflow:visible; }
+  .nav-logo.fb-logo-partage img{ width:100%; height:100%; border-radius:22%; }
+
+  /* Le panneau du panier : au milieu de l'écran, au-dessus de tout. */
+  .panier-panneau{
+    position:fixed; z-index:150; left:50%; top:50%;
+    transform:translate(-50%, -50%);
+    width:min(440px, calc(100vw - 24px)); max-height:78vh; overflow-y:auto;
+    padding:1rem 1.1rem;
+  }
+  .panier-panneau[hidden]{ display:none; }
+  .panier-tete{ display:flex; align-items:center; justify-content:space-between; margin-bottom:0.7rem; }
+  .panier-titre{ display:inline-flex; align-items:center; gap:0.4rem; font-weight:700; font-size:0.95rem; }
+  .panier-fermer{ border:none; background:none; color:var(--muted); font-size:1rem; cursor:pointer; }
+  .panier-ligne{
+    display:grid; grid-template-columns:1fr auto auto auto; align-items:center; gap:0.5rem;
+    padding:0.55rem 0; border-top:1px solid var(--line);
+  }
+  .panier-nom{ font-size:0.82rem; font-weight:600; min-width:0; overflow-wrap:anywhere; }
+  .panier-prix{ display:block; font-size:0.72rem; font-weight:400; color:var(--muted); margin-top:0.1rem; }
+  .panier-isa{ display:inline-flex; align-items:center; gap:0.35rem; font-size:0.82rem; }
+  .panier-isa button{
+    width:26px; height:26px; border-radius:50%; border:1px solid var(--line);
+    background:var(--panel-2); color:var(--text); cursor:pointer; line-height:1;
+  }
+  .panier-hividy{ width:auto !important; }
+  .panier-esory{ cursor:pointer; font-size:0.95rem; }
+  .panier-total{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:0.7rem 0 0.4rem; border-top:2px solid var(--line); font-size:0.9rem;
+  }
+  .panier-total strong{ color:var(--cyan); font-size:1.05rem; }
+  .panier-foano{ border:none; background:none; color:var(--muted); font-size:0.74rem; text-decoration:underline; cursor:pointer; padding:0; }
+
   /* Effacer : pastille rouge, et pas de mot à côté — donc pas de marge. */
   .fb-logo-partage.fafana{ margin-right:0.15em; }
   .fb-logo-partage.fafana svg{ background:var(--red, #e5484d); }
