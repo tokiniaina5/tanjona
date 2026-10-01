@@ -881,6 +881,22 @@
     color:var(--red, #e5484d); cursor:pointer; opacity:0.8;
   }
   .fb-comment-fafana:hover{ opacity:1; text-decoration:underline; }
+  /* « Ovay », juste avant « Fafana », au bout de la ligne. */
+  .fb-comment-ovay{
+    margin-left:auto; font-size:0.7rem; font-weight:600;
+    color:var(--cyan); cursor:pointer; opacity:0.85;
+  }
+  .fb-comment-ovay:hover{ opacity:1; text-decoration:underline; }
+  .fb-comment-ovay + .fb-comment-fafana{ margin-left:0; }
+  .fb-comment-texte[hidden]{ display:none; }
+  .fb-comment-edition{ margin:0.2rem 0 0.1rem; }
+  .fb-comment-edition textarea{
+    width:100%; box-sizing:border-box; resize:vertical; min-height:2.6rem;
+    font:inherit; font-size:0.8rem; color:var(--text);
+    background:var(--panel); border:1px solid var(--cyan); border-radius:8px; padding:0.35rem 0.5rem;
+  }
+  .fb-comment-edition-btns{ display:flex; justify-content:flex-end; gap:0.4rem; margin-top:0.3rem; }
+  .fb-comment-edition-btns .btn{ width:auto; padding:0.3rem 0.8rem; font-size:0.75rem; }
   .fb-comment-like .fb-reaction-emoji{ font-size:1.1em !important; }
   .fb-comment-compte{ align-items:center; }
   .fb-comment-compte .fb-reaction-compte{ padding:0.05rem 0.4rem 0.05rem 0.1rem; }

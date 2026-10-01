@@ -2731,7 +2731,7 @@
       // Les siens reçoivent de quoi les effacer — et eux seuls.
       ((m && m.data) || []).forEach(function(c){
         const ligne = document.querySelector('#communityNewsList .fb-comment[data-comment-id="' + c.id + '"]');
-        if(ligne) ajouterFafana(ligne, c.id);
+        if(ligne){ ajouterOvay(ligne, c.id); ajouterFafana(ligne, c.id); }
       });
       if(premiere) return;
       ((m && m.data) || []).forEach(function(c){
@@ -2742,6 +2742,76 @@
       });
     }, function(){});
   }
+  // « Ovay » sous son propre commentaire : le texte devient un champ, on le
+  // corrige, et « Tehirizo » l'envoie. Le serveur ne laisse changer que le
+  // texte, et que le sien (supabase-commentaires-ovay.sql).
+  function ajouterOvay(ligne, id){
+    const rang = ligne.querySelector('.fb-comment-reactions');
+    if(!rang || rang.querySelector('.fb-comment-ovay')) return;
+    const b = document.createElement('span');
+    b.className = 'fb-comment-ovay';
+    b.setAttribute('role', 'button');
+    b.tabIndex = 0;
+    b.textContent = '✏️ Ovay';
+    b.title = 'Ovay';
+    b.addEventListener('click', function(e){
+      e.stopPropagation();
+      const texte = ligne.querySelector('.fb-comment-texte');
+      if(!texte || ligne.querySelector('.fb-comment-edition')) return;
+      const avant = texte.textContent;
+      // La relecture régulière redessinerait la liste sous nos doigts : la
+      // ligne est marquée, et la boîte attend qu'on ait fini.
+      ligne.dataset.edition = '1';
+      const zone = document.createElement('div');
+      zone.className = 'fb-comment-edition';
+      zone.innerHTML =
+        '<textarea rows="2"></textarea>' +
+        '<div class="fb-comment-edition-btns">' +
+          '<button type="button" class="btn" data-ovay-aoka>Aoka</button>' +
+          '<button type="button" class="btn btn-primary" data-ovay-tehirizo>Tehirizo</button>' +
+        '</div>';
+      const champ = zone.querySelector('textarea');
+      champ.value = avant;
+      texte.hidden = true;
+      texte.after(zone);
+      champ.focus();
+      champ.setSelectionRange(champ.value.length, champ.value.length);
+      function fermer(){
+        zone.remove();
+        texte.hidden = false;
+        delete ligne.dataset.edition;
+      }
+      zone.addEventListener('click', function(ev){ ev.stopPropagation(); });
+      zone.querySelector('[data-ovay-aoka]').addEventListener('click', fermer);
+      champ.addEventListener('keydown', function(ev){
+        if(ev.key === 'Escape'){ ev.preventDefault(); fermer(); }
+        if(ev.key === 'Enter' && !ev.shiftKey){ ev.preventDefault(); tehirizo.click(); }
+      });
+      const tehirizo = zone.querySelector('[data-ovay-tehirizo]');
+      tehirizo.addEventListener('click', function(){
+        const nouveau = champ.value.trim();
+        if(!nouveau){ direPresDuBouton(tehirizo, 'Tsy azo atao foana ny hevitra. Raha tsy ilainao intsony, fafao.'); return; }
+        if(nouveau === avant.trim()){ fermer(); return; }
+        tehirizo.disabled = true;
+        window.__sb.from('client_news_comments').update({ message: nouveau }).eq('id', id).select('id').then(function(res){
+          tehirizo.disabled = false;
+          // Rien de changé, sans erreur : la règle du serveur a dit non.
+          if(res && !res.error && res.data && res.data.length){
+            texte.textContent = nouveau;
+            fermer();
+            chargerLesCommentaires(true);
+            return;
+          }
+          direPresDuBouton(tehirizo, res && res.error ? PAS_DE_SESSION.replace('manome fihetseham-po', 'manova ny hevitrao') : 'Ny tompon\'ny hevitra ihany no afaka manova azy.');
+        }, function(){
+          tehirizo.disabled = false;
+          direPresDuBouton(tehirizo, 'Tsy voaova : jereo ny fifandraisanao, dia andramo indray.');
+        });
+      });
+    });
+    rang.appendChild(b);
+  }
+
   // « Fafana » sous son propre commentaire. Le serveur le vérifie de son côté
   // (supabase-commentaires-fafana.sql) : ce bouton n'est qu'une commodité, pas
   // la garde.
@@ -3120,7 +3190,7 @@
         ligne.className = 'fb-comment';
         ligne.innerHTML =
           '<strong>' + escapeHtml(c.author_name || 'Client') + '</strong> ' +
-          escapeHtml(c.message || '') +
+          '<span class="fb-comment-texte">' + escapeHtml(c.message || '') + '</span>' +
           '<span class="fb-comment-date">' +
             (c.created_at ? new Date(c.created_at).toLocaleString('fr-FR') : '') +
           '</span>';
@@ -3148,6 +3218,9 @@
       }
       const sig = signature(rows);
       if(sig === empreinte) return;
+      // Un commentaire en cours de modification : on ne redessine pas sous
+      // les doigts ; la prochaine lecture, une fois fini, s'en chargera.
+      if(liste.querySelector('[data-edition]')) return;
       empreinte = sig;
       dessiner(rows);
     }
