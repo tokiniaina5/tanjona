@@ -1488,14 +1488,79 @@
       html +=
         '<button type="button" class="story-carte' + (auteurEnLigne(g.auteur_id) ? ' en-ligne' : '') +
           '" data-story-groupe="' + i + '" data-story-id="' + escapeHtml(g.liste[0].id) + '" data-story-auteur="' + escapeHtml(g.auteur_id) + '"' +
-          (video ? '' : ' style="background-image:url(\'' + String(derniere.media).replace(/'/g, '%27') + '\')"') + '>' +
-          (video ? '<video class="story-carte-video" src="' + escapeHtml(derniere.media) + '#t=' + ((derniere.video_debut || 0) + 0.5) + '" muted playsinline preload="metadata"></video>' +
+          '>' +
+          // Le sary dans son propre calque : il grossit doucement à son tour.
+          (video ? '' : '<span class="story-carte-fond" style="background-image:url(\'' + String(derniere.media).replace(/'/g, '%27') + '\')"></span>') +
+          (video ? '<video class="story-carte-video" src="' + escapeHtml(derniere.media) + '#t=' + ((derniere.video_debut || 0) + 0.5) + '" muted playsinline preload="metadata"' +
+              ' data-debut="' + (Number(derniere.video_debut) || 0) + '" data-fin="' + (Number(derniere.video_fin) || 0) + '"></video>' +
             '<span class="story-carte-play" aria-hidden="true">▶</span>' : '') +
           '<span class="story-anneau">' + avatarStory(g.photo, g.nom) + '</span>' +
           '<span class="story-nom">' + escapeHtml(g.auteur_id === monIdStory ? 'Ny story-nao' : (g.nom || 'Client')) + '</span>' +
         '</button>';
     });
     storyRangee.innerHTML = html;
+    jouerVideosCartes();
+  }
+
+  // ---- Les cartes s'animent, chacune son tour ----
+  // Un sary grossit doucement quatre secondes ; une vidéo joue, sans le son,
+  // de son début choisi à sa fin (quinze secondes au plus). La carte suivante
+  // prend le relais, et après la dernière on repart de la première. Rien ne
+  // bouge tant que la page est cachée, qu'une story est ouverte ou qu'une
+  // carte est tenue.
+  let tourVideos = 0;
+  function jouerVideosCartes(){
+    const tour = ++tourVideos;
+    let n = 0;
+    function suivante(){
+      if(tour !== tourVideos || !storyRangee) return;
+      const cartes = storyRangee.querySelectorAll('.story-carte[data-story-id]');
+      if(!cartes.length) return;
+      const pause = document.hidden || !storyRangee.offsetParent ||
+        document.body.classList.contains('story-ouverte') || storyRangee.querySelector('.story-tiree');
+      if(pause){ setTimeout(suivante, 1500); return; }
+      const carte = cartes[n % cartes.length];
+      n++;
+      const el = carte.querySelector('.story-carte-video');
+      if(!el){
+        carte.classList.add('story-joue');
+        setTimeout(function(){
+          carte.classList.remove('story-joue');
+          setTimeout(suivante, 300);
+        }, 4000);
+        return;
+      }
+      const debut = Number(el.getAttribute('data-debut')) || 0;
+      const finChoisie = Number(el.getAttribute('data-fin')) || 0;
+      let fini = false;
+      function arreter(){
+        if(fini) return;
+        fini = true;
+        clearTimeout(garde);
+        el.removeEventListener('timeupdate', surTemps);
+        el.removeEventListener('ended', arreter);
+        el.removeEventListener('error', arreter);
+        el.pause();
+        carte.classList.remove('story-joue');
+        setTimeout(suivante, cartes.length > 1 ? 300 : 1500);
+      }
+      function surTemps(){
+        if(tour !== tourVideos || document.hidden || document.body.classList.contains('story-ouverte')){ arreter(); return; }
+        if(finChoisie && el.currentTime >= finChoisie) arreter();
+      }
+      // Quinze secondes au plus, et une vidéo qui ne vient pas ne bloque pas
+      // les autres.
+      const garde = setTimeout(arreter, 15000);
+      el.addEventListener('timeupdate', surTemps);
+      el.addEventListener('ended', arreter);
+      el.addEventListener('error', arreter);
+      el.muted = true;
+      try{ el.currentTime = debut; }catch(err){}
+      carte.classList.add('story-joue');
+      const p = el.play();
+      if(p && p.catch) p.catch(arreter);
+    }
+    setTimeout(suivante, 600);
   }
 
   // ---- Déplacer une carte ----
