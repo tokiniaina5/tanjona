@@ -1496,7 +1496,7 @@
       // le son, en tient lieu.
       const video = derniere.genre === 'video';
       html +=
-        '<button type="button" class="story-carte' + (auteurEnLigne(g.auteur_id) ? ' en-ligne' : '') + '" data-story-groupe="' + i + '" data-story-id="' + escapeHtml(g.liste[0].id) + '" data-story-auteur="' + escapeHtml(g.auteur_id) + '"' +
+        '<button type="button" class="story-carte" data-story-groupe="' + i + '" data-story-id="' + escapeHtml(g.liste[0].id) + '" data-story-auteur="' + escapeHtml(g.auteur_id) + '"' +
           '>' +
           // Le rond en relief qui porte le sary ou la vidéo ; le sary y a son
           // propre calque, qui grossit doucement à son tour sans déborder.
@@ -1511,8 +1511,17 @@
           '<span class="story-nom">' + escapeHtml(g.auteur_id === monIdStory ? 'Ny story-nao' : (g.nom || 'Client')) + '</span>' +
         '</button>';
     });
-    storyRangee.innerHTML = html;
-    jouerVideosCartes();
+    // Le fil se relit souvent (un billet, une réaction, un live…) et relit
+    // les stories avec lui. Redessiner la rangée à l'identique couperait la
+    // vidéo qui joue et renverrait le tour à la première bulle : elle ne
+    // bouge donc que si les stories ont changé.
+    if(html !== storyRangee.__html){
+      storyRangee.__html = html;
+      storyRangee.innerHTML = html;
+      jouerVideosCartes();
+    }
+    // La présence se pose à part, sans redessiner.
+    window.__storiesEnLigne();
   }
 
   // ---- Les cartes s'animent, chacune son tour ----
