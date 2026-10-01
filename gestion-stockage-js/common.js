@@ -4932,12 +4932,37 @@
         const ecart = (usages[b.cle] || 0) - (usages[a.cle] || 0);
         return ecart !== 0 ? ecart : rangDansLeMenu(a.cle) - rangDansLeMenu(b.cle);
       });
+      // Ce qu'il retire, il le retient : revenu en manuel, on le retrouve.
+      // Sans cela, passer en automatique puis revenir laissait six icônes
+      // sur vingt-sept, et rien ne disait où étaient passées les autres.
+      const retirees = lireRetireesAuto();
       liste.slice(GARDEES).forEach(function(e){
         const bouton = rangee.querySelector('[data-epingle="' + e.cle + '"]');
         if(bouton) bouton.remove();
+        if(retirees.indexOf(e.cle) < 0) retirees.push(e.cle);
       });
+      ecrireRetireesAuto(retirees);
       ecrireEpingles(liste.slice(0, GARDEES));
       mesurer();
+    }
+    const CLE_RETIREES_AUTO = 'stockmanager_barre_retirees_auto';
+    function lireRetireesAuto(){
+      try{ const l = JSON.parse(localStorage.getItem(CLE_RETIREES_AUTO)); return Array.isArray(l) ? l : []; }
+      catch(e){ return []; }
+    }
+    function ecrireRetireesAuto(l){
+      try{ localStorage.setItem(CLE_RETIREES_AUTO, JSON.stringify(l)); }catch(e){}
+    }
+    // De retour en manuel : celles que l'automatique avait retirées reviennent,
+    // à leur place dans l'ordre du menu. Celles qu'on a posées sur le fond
+    // entre-temps y restent.
+    function rendreLesRetireesAuto(){
+      const retirees = lireRetireesAuto();
+      ecrireRetireesAuto([]);
+      retirees.forEach(function(cle){
+        const entree = entreeDe(cle);
+        if(entree && getComputedStyle(entree).display !== 'none') epingler(entree, true);
+      });
     }
 
     // Écrire et l'Accueil tiennent déjà leur place dans la rangée. Les presser
@@ -5015,6 +5040,8 @@
           b.classList.toggle('actif', b.dataset.mode === mode);
         });
       }
+      const remettre = document.getElementById('barToutRemettre');
+      if(remettre) remettre.style.display = mode === 'manuel' ? '' : 'none';
       if(note){
         note.textContent = mode === 'manuel'
           ? "Ianao no manala : tsindrio ny ✕ eo amin'ny sary."
@@ -5060,10 +5087,12 @@
 
       panneau.querySelectorAll('.reglage-mode').forEach(function(b){
         b.addEventListener('click', function(){
+          const avant = lireMode();
           ecrireMode(b.dataset.mode);
           direLeMode();
           // Le passage en automatique se voit tout de suite : la rangée se
-          // ramène à six.
+          // ramène à six. Le retour en manuel rend ce qu'il avait retiré.
+          if(b.dataset.mode === 'manuel' && avant === 'auto') rendreLesRetireesAuto();
           elaguer();
           mesurer();
         });
