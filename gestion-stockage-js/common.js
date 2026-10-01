@@ -4980,6 +4980,14 @@
         gardees.push({ cle: cle, vu: Date.now() });
         poser(cle);
       });
+      // Le crayon (« Écrire ») suit la même règle : là tant que la boîte
+      // d'écriture est ouverte ou réduite, parti quand on la ferme à sa ✕.
+      const crayon = document.getElementById('barComposer');
+      if(crayon && !surLeFond('fixe:barComposer')){
+        const boite = document.getElementById('fbComposer');
+        const ouverte = (boite && getComputedStyle(boite).display !== 'none') || crayon.classList.contains('reduite');
+        crayon.style.display = ouverte ? '' : 'none';
+      }
       if(retirees.length) ecrireRetireesAuto(retirees);
       if(gardees.length !== liste.length || gardees.some(function(e, i){ return !liste[i] || liste[i].cle !== e.cle; })){
         ecrireEpingles(gardees);
@@ -5140,7 +5148,14 @@
           direLeMode();
           // Le passage en automatique se voit tout de suite : la rangée se
           // ramène à six. Le retour en manuel rend ce qu'il avait retiré.
-          if(b.dataset.mode === 'manuel' && avant === 'auto') rendreLesRetireesAuto();
+          if(b.dataset.mode === 'manuel' && avant === 'auto'){
+            rendreLesRetireesAuto();
+            // Le crayon reprend sa place, sauf si on l'avait retiré soi-même
+            // à sa croix, ou posé sur le fond.
+            const crayon = document.getElementById('barComposer');
+            if(crayon) crayon.style.display =
+              (lireRetirees().indexOf('barComposer') >= 0 || surLeFond('fixe:barComposer')) ? 'none' : '';
+          }
           elaguer();
           mesurer();
         });
