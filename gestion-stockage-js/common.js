@@ -4801,7 +4801,6 @@
       }, 250);
     }
     window.__pageFermee = function(id){
-      if(lireMode() !== 'auto') return;
       const cle = cleDeLaPage(id) || lirePageIcone()[id];
       if(!cle) return;
       ecrireEpingles(lireEpingles().filter(function(e){ return e.cle !== cle; }));
@@ -4942,11 +4941,11 @@
     // récemment restent. À égalité — jamais servies —, l'ordre du menu
     // départage : ce qui y vient en tête est ce qui compte le plus.
     // En manuel, rien ne part sans qu'on le dise.
-    // En automatique, la rangée ne montre que ce qui est ouvert, comme la
-    // barre des tâches d'un ordinateur : une page s'ouvre, son icône paraît ;
-    // on la ferme, l'icône s'en va. Une page réduite garde la sienne (elle
-    // clignote). Plus de « six dernières » : ce qui n'est pas ouvert n'y est
-    // pas.
+    // La rangée ne montre que ce qui est ouvert, comme la barre des tâches
+    // d'un ordinateur : une page s'ouvre, son icône paraît ; on la ferme,
+    // l'icône s'en va. Une page réduite garde la sienne (elle clignote). Dans
+    // les deux modes : le manuel n'y ajoute que la ✕ sur chaque icône, qui
+    // ferme la page et son icône d'un geste.
     function pageDeLaCle(cle){
       if(cle.indexOf('section:') === 0) return document.getElementById('section-' + cle.slice(8));
       const connues = { 'id:menuArticles': 'dash-articles', 'id:menuTableauBord': 'dash-dashboard',
@@ -4964,10 +4963,7 @@
       return !!(entree && entree.getAttribute('aria-expanded') === 'true');
     }
     function elaguer(){
-      if(lireMode() !== 'auto') return;
       const liste = lireEpingles();
-      // Ce qu'il retire, il le retient : revenu en manuel, on le retrouve.
-      const retirees = lireRetireesAuto();
       const gardees = liste.filter(function(e){
         const bouton = rangee.querySelector('[data-epingle="' + e.cle + '"]');
         if(bouton && bouton.classList.contains('reduite')) return true;
@@ -4975,7 +4971,6 @@
         const page = pageDeLaCle(e.cle);
         if(page && page.classList.contains('active')) return true;
         if(bouton) bouton.remove();
-        if(retirees.indexOf(e.cle) < 0) retirees.push(e.cle);
         return false;
       });
       // Les pages ouvertes qui n'ont pas encore leur icône la reçoivent —
@@ -5009,7 +5004,6 @@
         gardees.push({ cle: cle, vu: Date.now() });
         poser(cle);
       });
-      if(retirees.length) ecrireRetireesAuto(retirees);
       if(gardees.length !== liste.length || gardees.some(function(e, i){ return !liste[i] || liste[i].cle !== e.cle; })){
         ecrireEpingles(gardees);
       }
@@ -5018,26 +5012,7 @@
     // Une page s'ouvre ou se ferme de bien des façons (menu, icône, croix,
     // retour au démarrage) : la rangée se remet d'accord avec l'écran toutes
     // les secondes, plutôt que de compter sur chacune.
-    setInterval(function(){ if(lireMode() === 'auto' && !document.hidden) elaguer(); }, 1000);
-    const CLE_RETIREES_AUTO = 'stockmanager_barre_retirees_auto';
-    function lireRetireesAuto(){
-      try{ const l = JSON.parse(localStorage.getItem(CLE_RETIREES_AUTO)); return Array.isArray(l) ? l : []; }
-      catch(e){ return []; }
-    }
-    function ecrireRetireesAuto(l){
-      try{ localStorage.setItem(CLE_RETIREES_AUTO, JSON.stringify(l)); }catch(e){}
-    }
-    // De retour en manuel : celles que l'automatique avait retirées reviennent,
-    // à leur place dans l'ordre du menu. Celles qu'on a posées sur le fond
-    // entre-temps y restent.
-    function rendreLesRetireesAuto(){
-      const retirees = lireRetireesAuto();
-      ecrireRetireesAuto([]);
-      retirees.forEach(function(cle){
-        const entree = entreeDe(cle);
-        if(entree && getComputedStyle(entree).display !== 'none') epingler(entree, true);
-      });
-    }
+    setInterval(function(){ if(!document.hidden) elaguer(); }, 1000);
 
     // Écrire et l'Accueil tiennent déjà leur place dans la rangée. Les presser
     // dans le menu après les en avoir retirés doit les y ramener — et non en
@@ -5067,7 +5042,9 @@
       else liste.push({ cle: cle, vu: Date.now() });
       ecrireEpingles(liste);
       poser(cle);
-      elaguer();
+      // La page ou le panneau s'ouvre juste après ce clic : on lui en laisse
+      // le temps avant de regarder ce qui est ouvert.
+      setTimeout(elaguer, 80);
       mesurer();
     }
 
@@ -5118,10 +5095,10 @@
         });
       }
       const remettre = document.getElementById('barToutRemettre');
-      if(remettre) remettre.style.display = mode === 'manuel' ? '' : 'none';
+      if(remettre) remettre.style.display = 'none';
       if(note){
         note.textContent = mode === 'manuel'
-          ? "Ianao no manala : tsindrio ny ✕ eo amin'ny sary."
+          ? "Ny sarin'ny pejy misokatra ihany no eo ; ny ✕ eo amin'ny sary no manidy azy."
           : "Ny sarin'ny pejy misokatra ihany no eo ; miala izy rehefa hidinao amin'ny ✕ ilay pejy.";
       }
     }
@@ -5164,21 +5141,8 @@
 
       panneau.querySelectorAll('.reglage-mode').forEach(function(b){
         b.addEventListener('click', function(){
-          const avant = lireMode();
           ecrireMode(b.dataset.mode);
           direLeMode();
-          // Le passage en automatique se voit tout de suite : la rangée se
-          // ramène à six. Le retour en manuel rend ce qu'il avait retiré.
-          if(b.dataset.mode === 'manuel' && avant === 'auto'){
-            rendreLesRetireesAuto();
-            // Le crayon et la maison reprennent leur place, sauf si on les
-            // avait retirés soi-même à leur croix, ou posés sur le fond.
-            ['barComposer', 'barAccueil'].forEach(function(id){
-              const bouton = document.getElementById(id);
-              if(bouton) bouton.style.display =
-                (lireRetirees().indexOf(id) >= 0 || surLeFond('fixe:' + id)) ? 'none' : '';
-            });
-          }
           elaguer();
           mesurer();
         });
