@@ -5012,7 +5012,32 @@
     // Une page s'ouvre ou se ferme de bien des façons (menu, icône, croix,
     // retour au démarrage) : la rangée se remet d'accord avec l'écran toutes
     // les secondes, plutôt que de compter sur chacune.
-    setInterval(function(){ if(!document.hidden) elaguer(); }, 1000);
+    setInterval(function(){ if(!document.hidden){ elaguer(); compterLesOuvertes(); } }, 1000);
+
+    // Sur le N, le nombre de ce qui est encore ouvert (pages, panneaux,
+    // Botika, boîte d'écriture — réduits compris) : on sait d'un coup d'œil
+    // qu'il reste des sites derrière. Rien d'ouvert, pas de pastille.
+    function compterLesOuvertes(){
+      const n = document.getElementById('menuToggle');
+      if(!n) return;
+      let total = rangee.querySelectorAll('[data-epingle]').length;
+      ['barComposer', 'barAccueil'].forEach(function(id){
+        const b = document.getElementById(id);
+        if(b && getComputedStyle(b).display !== 'none') total++;
+      });
+      let pastille = n.querySelector('.n-ouvertes');
+      if(!total){ if(pastille) pastille.remove(); n.removeAttribute('data-ouvertes'); return; }
+      if(!pastille){
+        pastille = document.createElement('span');
+        pastille.className = 'n-ouvertes';
+        pastille.setAttribute('aria-hidden', 'true');
+        n.appendChild(pastille);
+      }
+      pastille.textContent = total > 9 ? '9+' : String(total);
+      n.setAttribute('data-ouvertes', String(total));
+      n.title = 'Ouvrir le menu — ' + total + ' ouvert' + (total > 1 ? 's' : '');
+    }
+    compterLesOuvertes();
 
     // Écrire et l'Accueil tiennent déjà leur place dans la rangée. Les presser
     // dans le menu après les en avoir retirés doit les y ramener — et non en

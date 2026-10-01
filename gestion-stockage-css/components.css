@@ -1743,3 +1743,14 @@ body:not(.appli-ouverte) .story-bureau{ display:none !important; }
   text-decoration:underline; cursor:pointer; padding:0.2rem;
 }
 .ecran-hidy-hadino:hover{ opacity:1; }
+
+/* Sur le N de la rangée : combien de sites sont encore ouverts. Dans le coin
+   de la tuile, qui coupe ce qui la dépasse. */
+#stockMainTabs #menuToggle .n-ouvertes{
+  position:absolute; top:2px; right:2px; z-index:1;
+  min-width:15px; height:15px; padding:0 3px; box-sizing:border-box;
+  border-radius:999px; background:#16e05a; color:#04140a;
+  font-size:0.6rem; font-weight:800; line-height:15px; text-align:center;
+  box-shadow:0 0 0 2px var(--panel);
+  pointer-events:none;
+}
