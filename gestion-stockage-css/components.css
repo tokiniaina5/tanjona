@@ -1588,6 +1588,9 @@ body.story-ouverte .fb-reaction-avis{ z-index:413; }
 .story-mpijery-vide{ color:var(--muted); font-size:0.85rem; margin:0.4rem 0; }
 .story-mpijery-olona .story-avatar{ flex:none; width:36px; height:36px; }
 
+/* Le client est en ligne : la grande carte de sa story a un bord vert vif. */
+.story-carte.en-ligne{ box-shadow:0 0 0 4px #16e05a, 0 0 14px rgba(22,224,90,0.7); }
+
 /* Une carte de story qu'on tient pour la déplacer : soulevée, devant les
    autres. Pas de sélection ni de menu d'image au doigt long. */
 .story-carte{ -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }

@@ -1448,10 +1448,22 @@
     });
   }
 
-  // En ligne : la marque est sur le visage des billets du Botika, pas sur
-  // les stories. La présence (live.js) change sans que le fil soit relu :
-  // on repeint seulement les anneaux.
+  // En ligne : son compte est dans la présence (live.js), qui porte son
+  // identifiant. La grande carte de sa story prend alors un bord vert vif
+  // (l'anneau du visage, lui, reste violet).
+  function auteurEnLigne(id){
+    if(!id || typeof presenceState !== 'object' || !presenceState) return false;
+    return Object.keys(presenceState).some(function(k){
+      return presenceState[k] && presenceState[k].uid === id;
+    });
+  }
+  // La présence change sans que le fil ni les stories soient relus : on
+  // repeint seulement les bords et les anneaux.
   window.__storiesEnLigne = function(){
+    if(storyRangee) storyRangee.querySelectorAll('[data-story-auteur]').forEach(function(c){
+      c.classList.toggle('en-ligne', auteurEnLigne(c.getAttribute('data-story-auteur')));
+    });
+    // Et le visage des billets du Botika.
     document.querySelectorAll('[data-en-ligne-email]').forEach(function(a){
       a.classList.toggle('en-ligne', emailEnLigne(a.getAttribute('data-en-ligne-email')));
     });
@@ -1484,7 +1496,7 @@
       // le son, en tient lieu.
       const video = derniere.genre === 'video';
       html +=
-        '<button type="button" class="story-carte" data-story-groupe="' + i + '" data-story-id="' + escapeHtml(g.liste[0].id) + '" data-story-auteur="' + escapeHtml(g.auteur_id) + '"' +
+        '<button type="button" class="story-carte' + (auteurEnLigne(g.auteur_id) ? ' en-ligne' : '') + '" data-story-groupe="' + i + '" data-story-id="' + escapeHtml(g.liste[0].id) + '" data-story-auteur="' + escapeHtml(g.auteur_id) + '"' +
           '>' +
           // Le sary dans son propre calque : il grossit doucement à son tour.
           (video ? '' : '<span class="story-carte-fond" style="background-image:url(\'' + String(derniere.media).replace(/'/g, '%27') + '\')"></span>') +
