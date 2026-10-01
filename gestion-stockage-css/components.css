@@ -1716,7 +1716,7 @@ body:not(.appli-ouverte) .story-bureau{ display:none !important; }
 }
 .menu-herinaratra-lisitra button:hover,
 .menu-herinaratra-lisitra button:focus-visible{ background:var(--panel-2); outline:none; }
-.menu-herinaratra-lisitra button span{ width:1.2rem; text-align:center; }
+.menu-herinaratra-lisitra button span{ width:1.2rem; text-align:center; display:inline-flex; justify-content:center; }
 
 /* 🔒 L'écran verrouillé : l'heure en grand, et de quoi le rouvrir. */
 .ecran-hidy{

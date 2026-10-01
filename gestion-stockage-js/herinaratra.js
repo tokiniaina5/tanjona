@@ -6,7 +6,7 @@
 //                 Rechargée, la page reste couverte : verrouiller n'est pas
 //                 une politesse qu'un F5 efface.
 //   🌙 Atory    — l'écran s'éteint (noir) ; un appui ou une touche le rallume.
-//   ⏻ Vonoy    — on sort du compte (le bouton « Se déconnecter »).
+//   ⏻ Déconnecter — on sort du compte (le bouton « Se déconnecter »).
 //   🔄 Avereno  — l'application se recharge.
 (function(){
   var CLE_HIDY = 'nyasako_ecran_hidy';
@@ -177,7 +177,7 @@
     }, 300);
   }
 
-  // ---- ⏻ Vonoy ----
+  // ---- ⏻ Déconnecter ----
   function vonoy(){
     if(!confirm('Hivoaka amin\'ny kaontinao ve ianao ?')) return;
     var sortie = document.getElementById('logoutBtn');
