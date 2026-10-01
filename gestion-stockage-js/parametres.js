@@ -1460,7 +1460,7 @@
   // La présence change sans que le fil ni les stories soient relus : on
   // repeint seulement les bords et les anneaux.
   window.__storiesEnLigne = function(){
-    if(storyRangee) storyRangee.querySelectorAll('[data-story-auteur]').forEach(function(c){
+    document.querySelectorAll('#storyRangee [data-story-auteur], .story-bureau[data-story-auteur]').forEach(function(c){
       c.classList.toggle('en-ligne', auteurEnLigne(c.getAttribute('data-story-auteur')));
     });
     // Et le visage des billets du Botika.
@@ -1490,13 +1490,35 @@
         '<span class="story-plus" aria-hidden="true">+</span>' +
         '<span class="story-nom">Hanampy story</span>' +
       '</button>';
+    // Celles qu'on a posées sur l'écran n'y sont plus : elles vivent là-bas
+    // (dessinerStoriesBureau), comme les icônes sorties de la rangée du bas.
+    const surLEcran = lireStoriesBureau().map(function(b){ return b.id; });
     groupesDeStories().forEach(function(g, i){
+      if(surLEcran.indexOf(g.liste[0].id) >= 0) return;
+      html += htmlCarteStory(g, i, '');
+    });
+    // Le fil se relit souvent (un billet, une réaction, un live…) et relit
+    // les stories avec lui. Redessiner la rangée à l'identique couperait la
+    // vidéo qui joue et renverrait le tour à la première bulle : elle ne
+    // bouge donc que si les stories ont changé.
+    if(html !== storyRangee.__html){
+      storyRangee.__html = html;
+      storyRangee.innerHTML = html;
+      jouerVideosCartes();
+    }
+    dessinerStoriesBureau();
+    // La présence se pose à part, sans redessiner.
+    window.__storiesEnLigne();
+  }
+
+  // Une bulle de story : dans la rangée, ou posée sur l'écran (« classe »).
+  function htmlCarteStory(g, i, classe){
       const derniere = g.liste[g.liste.length - 1];
       // Une vidéo n'a pas d'image à poser en fond : sa première seconde, sans
       // le son, en tient lieu.
       const video = derniere.genre === 'video';
-      html +=
-        '<button type="button" class="story-carte" data-story-groupe="' + i + '" data-story-id="' + escapeHtml(g.liste[0].id) + '" data-story-auteur="' + escapeHtml(g.auteur_id) + '"' +
+      return '' +
+        '<button type="button" class="story-carte' + classe + '" data-story-groupe="' + i + '" data-story-id="' + escapeHtml(g.liste[0].id) + '" data-story-auteur="' + escapeHtml(g.auteur_id) + '"' +
           '>' +
           // Le rond en relief qui porte le sary ou la vidéo ; le sary y a son
           // propre calque, qui grossit doucement à son tour sans déborder.
@@ -1510,19 +1532,117 @@
           '<span class="story-anneau">' + avatarStory(g.photo, g.nom) + '</span>' +
           '<span class="story-nom">' + escapeHtml(g.auteur_id === monIdStory ? 'Ny story-nao' : (g.nom || 'Client')) + '</span>' +
         '</button>';
-    });
-    // Le fil se relit souvent (un billet, une réaction, un live…) et relit
-    // les stories avec lui. Redessiner la rangée à l'identique couperait la
-    // vidéo qui joue et renverrait le tour à la première bulle : elle ne
-    // bouge donc que si les stories ont changé.
-    if(html !== storyRangee.__html){
-      storyRangee.__html = html;
-      storyRangee.innerHTML = html;
-      jouerVideosCartes();
-    }
-    // La présence se pose à part, sans redessiner.
-    window.__storiesEnLigne();
   }
+
+  // ---- Les stories posées sur l'écran ----
+  // On tient une bulle, on la tire hors de la rangée et on la lâche où l'on
+  // veut : elle reste là, sur l'écran, comme les petites icônes (common.js,
+  // « Les icônes posées sur le fond »). Un appui l'ouvre ; on la déplace en
+  // la tirant ; relâchée sur la rangée, elle y retourne. Sa place est gardée
+  // en fractions de l'écran, et elle s'en va d'elle-même quand la story
+  // finit.
+  const CLE_STORIES_BUREAU = 'stockmanager_stories_bureau';
+  function lireStoriesBureau(){
+    try{ const l = JSON.parse(localStorage.getItem(CLE_STORIES_BUREAU)); return Array.isArray(l) ? l : []; }
+    catch(e){ return []; }
+  }
+  function ecrireStoriesBureau(l){
+    try{ localStorage.setItem(CLE_STORIES_BUREAU, JSON.stringify(l.slice(0, 40))); }catch(e){}
+  }
+  function placerBulleBureau(el, fx, fy){
+    const x = Math.min(Math.max(8, fx * window.innerWidth), window.innerWidth - 96);
+    const y = Math.min(Math.max(8, fy * window.innerHeight), window.innerHeight - 132);
+    el.style.left = Math.round(x) + 'px';
+    el.style.top = Math.round(y) + 'px';
+  }
+  function poserStorySurLEcran(id, x, y){
+    const l = lireStoriesBureau().filter(function(b){ return b.id !== id; });
+    // Lâchée au bord, elle reste entière à l'écran.
+    x = Math.min(Math.max(8, x), window.innerWidth - 96);
+    y = Math.min(Math.max(8, y), window.innerHeight - 132);
+    l.push({ id: id, x: x / window.innerWidth, y: y / window.innerHeight });
+    ecrireStoriesBureau(l);
+    dessinerStories();
+  }
+  function rendreStoryALaRangee(id){
+    ecrireStoriesBureau(lireStoriesBureau().filter(function(b){ return b.id !== id; }));
+    dessinerStories();
+  }
+  function surLaRangeeStory(x, y){
+    if(!storyRangee || !storyRangee.offsetParent) return false;
+    const r = storyRangee.getBoundingClientRect();
+    return x >= r.left - 10 && x <= r.right + 10 && y >= r.top - 10 && y <= r.bottom + 10;
+  }
+  function dessinerStoriesBureau(){
+    const groupes = groupesDeStories();
+    const vivantes = {};
+    groupes.forEach(function(g, i){ vivantes[g.liste[0].id] = i; });
+    // La liste n'est pas encore lue (premier passage) : on n'efface rien.
+    if(!listeStories.length) return;
+    // Une story finie quitte l'écran, et sa place est oubliée.
+    const l = lireStoriesBureau();
+    const restent = l.filter(function(b){ return vivantes[b.id] !== undefined; });
+    if(restent.length !== l.length) ecrireStoriesBureau(restent);
+    [].slice.call(document.querySelectorAll('.story-bureau:not(.story-fantome)')).forEach(function(el){
+      const id = el.getAttribute('data-story-id');
+      if(!restent.some(function(b){ return b.id === id; })) el.remove();
+    });
+    restent.forEach(function(b){
+      const i = vivantes[b.id];
+      let el = null;
+      document.querySelectorAll('.story-bureau:not(.story-fantome)').forEach(function(x){
+        if(x.getAttribute('data-story-id') === b.id) el = x;
+      });
+      if(!el){
+        const t = document.createElement('div');
+        t.innerHTML = htmlCarteStory(groupes[i], i, ' story-bureau');
+        el = t.firstChild;
+        document.body.appendChild(el);
+        armerBulleBureau(el);
+      }
+      // Le rang a pu changer (une story plus récente devant elle).
+      el.setAttribute('data-story-groupe', String(i));
+      if(!el.classList.contains('story-tiree')) placerBulleBureau(el, b.x, b.y);
+    });
+  }
+  // Tirer une bulle posée : elle suit le doigt tout de suite. Sans bouger,
+  // c'est un appui : la story s'ouvre.
+  function armerBulleBureau(el){
+    let t = null;
+    el.addEventListener('pointerdown', function(e){
+      if(e.button > 0) return;
+      const r = el.getBoundingClientRect();
+      t = { x: e.clientX, y: e.clientY, dx: e.clientX - r.left, dy: e.clientY - r.top, bouge: false };
+      try{ el.setPointerCapture(e.pointerId); }catch(err){}
+    });
+    el.addEventListener('pointermove', function(e){
+      if(!t) return;
+      if(!t.bouge && Math.abs(e.clientX - t.x) + Math.abs(e.clientY - t.y) < 6) return;
+      t.bouge = true;
+      el.classList.add('story-tiree');
+      el.style.left = Math.round(e.clientX - t.dx) + 'px';
+      el.style.top = Math.round(e.clientY - t.dy) + 'px';
+    });
+    el.addEventListener('pointerup', function(e){
+      if(!t) return;
+      const bouge = t.bouge, dx = t.dx, dy = t.dy;
+      t = null;
+      el.classList.remove('story-tiree');
+      if(!bouge) return;
+      el.__vientDeTirer = true;
+      setTimeout(function(){ el.__vientDeTirer = false; }, 400);
+      const id = el.getAttribute('data-story-id');
+      if(surLaRangeeStory(e.clientX, e.clientY)){ rendreStoryALaRangee(id); return; }
+      poserStorySurLEcran(id, e.clientX - dx, e.clientY - dy);
+    });
+    el.addEventListener('pointercancel', function(){ t = null; el.classList.remove('story-tiree'); });
+    el.addEventListener('click', function(){
+      if(el.__vientDeTirer) return;
+      ouvrirGroupe(Number(el.getAttribute('data-story-groupe')), 0);
+    });
+    el.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+  }
+  window.addEventListener('resize', function(){ dessinerStoriesBureau(); });
 
   // ---- Les cartes s'animent, chacune son tour ----
   // Un sary grossit doucement quatre secondes ; une vidéo joue, sans le son,
@@ -1598,7 +1718,9 @@
       if(g.carte){
         g.carte.classList.remove('story-tiree');
         g.carte.style.transform = '';
+        g.carte.style.opacity = '';
       }
+      if(g.fantome) g.fantome.remove();
       g = null;
     }
     storyRangee.addEventListener('pointerdown', function(e){
@@ -1624,6 +1746,24 @@
         return;
       }
       e.preventDefault();
+      g.lx = e.clientX;
+      g.ly = e.clientY;
+      // Hors de la rangée, la fenêtre la couperait : un double la suit sur
+      // l'écran, tenu par son milieu, et se posera là où on le lâche.
+      if(!surLaRangeeStory(e.clientX, e.clientY)){
+        if(!g.fantome){
+          g.fantome = g.carte.cloneNode(true);
+          g.fantome.classList.add('story-bureau', 'story-tiree', 'story-fantome');
+          g.fantome.style.transform = '';
+          document.body.appendChild(g.fantome);
+          g.carte.style.opacity = '0.3';
+          g.carte.style.transform = '';
+        }
+        g.fantome.style.left = Math.round(e.clientX - 44) + 'px';
+        g.fantome.style.top = Math.round(e.clientY - 44) + 'px';
+        return;
+      }
+      if(g.fantome){ g.fantome.remove(); g.fantome = null; g.carte.style.opacity = ''; }
       g.carte.style.transform = 'translate(' + (e.clientX - g.dx0) + 'px,' + (e.clientY - g.dy0) + 'px) scale(1.06)';
       // La carte sous le doigt (hors celle qu'on tient) : on se glisse devant
       // ou derrière elle, selon le côté.
@@ -1651,6 +1791,16 @@
     function fin(){
       if(!g) return;
       clearTimeout(g.minuterie);
+      // Lâchée hors de la rangée : elle se pose sur l'écran, là.
+      if(g.carte && g.fantome){
+        const id = g.carte.getAttribute('data-story-id');
+        const x = g.lx - 44, y = g.ly - 44;
+        storyRangee.__vientDeTirer = true;
+        setTimeout(function(){ storyRangee.__vientDeTirer = false; }, 400);
+        annuler();
+        poserStorySurLEcran(id, x, y);
+        return;
+      }
       if(g.carte){
         const ids = [].map.call(storyRangee.querySelectorAll('.story-carte[data-story-id]'), function(c){
           return c.getAttribute('data-story-id');
