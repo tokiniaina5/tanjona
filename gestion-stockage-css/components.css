@@ -1395,9 +1395,12 @@
   align-items:center; justify-content:center; background:var(--cyan); color:#fff;
   font-size:0.72rem; font-weight:700;
 }
+/* L'anneau violet autour du visage, sur chaque carte. 4px de marge : le
+   liseré sombre du visage (2px) en couvre la moitié, il reste 2px de violet. */
 .story-anneau{
   position:absolute; left:0.4rem; top:0.4rem; z-index:1;
-  padding:2px; border-radius:50%; background:var(--cyan); display:inline-flex;
+  padding:4px; border-radius:50%; background:#a259ff; display:inline-flex;
+  box-shadow:0 0 8px rgba(162,89,255,0.75);
 }
 .story-anneau .story-avatar{ box-shadow:0 0 0 2px var(--panel); }
 /* « Hanampy story » : son visage en haut, le « + » à la jointure. */
