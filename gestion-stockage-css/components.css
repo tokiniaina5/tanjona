@@ -1699,3 +1699,43 @@ body.story-ouverte .fb-reaction-avis{ z-index:413; }
 .story-carte.story-bureau.story-tiree{ z-index:150; cursor:grabbing; }
 .story-carte.story-fantome{ z-index:420; pointer-events:none; opacity:0.95; }
 body:not(.appli-ouverte) .story-bureau{ display:none !important; }
+
+/* ⏻ « Herinaratra » au bas du menu N : un bouton, et sa petite liste qui
+   monte au-dessus de lui, comme le menu d'arrêt de Windows. */
+.menu-herinaratra{ position:relative; margin-top:0.6rem; }
+.menu-herinaratra-btn{ width:100%; }
+.menu-herinaratra-lisitra{
+  position:absolute; left:0; right:0; bottom:calc(100% + 6px); z-index:5;
+  display:flex; flex-direction:column; padding:0.3rem;
+  background:var(--panel); border:1px solid var(--line); border-radius:10px;
+  box-shadow:0 10px 26px rgba(0,0,0,0.4);
+}
+.menu-herinaratra-lisitra[hidden]{ display:none; }
+.menu-herinaratra-lisitra button{
+  display:flex; align-items:center; gap:0.7rem; width:100%;
+  padding:0.55rem 0.7rem; border:none; border-radius:7px; background:none;
+  color:var(--text); font:inherit; font-size:0.88rem; text-align:left; cursor:pointer;
+}
+.menu-herinaratra-lisitra button:hover,
+.menu-herinaratra-lisitra button:focus-visible{ background:var(--panel-2); outline:none; }
+.menu-herinaratra-lisitra button span{ width:1.2rem; text-align:center; }
+
+/* 🔒 L'écran verrouillé : l'heure en grand, et de quoi le rouvrir. */
+.ecran-hidy{
+  position:fixed; inset:0; z-index:2000;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.4rem;
+  background:linear-gradient(160deg, #0b1d26, #05090c 70%);
+  color:#fff; padding:16px; text-align:center;
+}
+.ecran-hidy-ora{ font-size:clamp(3.5rem, 16vw, 6rem); font-weight:300; line-height:1; font-variant-numeric:tabular-nums; }
+.ecran-hidy-daty{ font-size:1rem; opacity:0.8; text-transform:capitalize; margin-bottom:2rem; }
+.ecran-hidy-boaty{ display:flex; flex-direction:column; gap:0.6rem; width:min(300px, 100%); }
+.ecran-hidy-anarana{ font-weight:600; }
+.ecran-hidy-teny{
+  width:100%; box-sizing:border-box; padding:0.65rem 0.8rem; border-radius:10px;
+  border:1px solid rgba(255,255,255,0.25); background:rgba(255,255,255,0.08); color:#fff; font:inherit;
+}
+.ecran-hidy-hadisoana{ min-height:1.2em; color:#ff8a8a; font-size:0.85rem; }
+
+/* 🌙 L'écran en veille : tout noir, un appui le rallume. */
+.ecran-atory{ position:fixed; inset:0; z-index:2000; background:#000; cursor:none; }

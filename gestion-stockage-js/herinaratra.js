@@ -1,0 +1,147 @@
+// ⏻ « Herinaratra » : le petit menu du bas du menu N, comme celui de Windows.
+//
+//   🔒 Hidio    — l'écran se couvre ; on le rouvre avec son mot de passe.
+//                 Rechargée, la page reste couverte : verrouiller n'est pas
+//                 une politesse qu'un F5 efface.
+//   🌙 Atory    — l'écran s'éteint (noir) ; un appui ou une touche le rallume.
+//   ⏻ Vonoy    — on sort du compte (le bouton « Se déconnecter »).
+//   🔄 Avereno  — l'application se recharge.
+(function(){
+  var CLE_HIDY = 'nyasako_ecran_hidy';
+  var bouton = document.getElementById('herinaratraBtn');
+  var lisitra = document.getElementById('herinaratraLisitra');
+  if(!bouton || !lisitra) return;
+
+  function ouvrir(oui){
+    lisitra.hidden = !oui;
+    bouton.setAttribute('aria-expanded', oui ? 'true' : 'false');
+  }
+  bouton.addEventListener('click', function(e){
+    e.stopPropagation();
+    ouvrir(lisitra.hidden);
+  });
+  document.addEventListener('click', function(e){
+    if(!lisitra.hidden && !lisitra.contains(e.target) && e.target !== bouton) ouvrir(false);
+  });
+  lisitra.addEventListener('click', function(e){
+    var b = e.target.closest('[data-h]');
+    if(!b) return;
+    e.stopPropagation();
+    ouvrir(false);
+    var quoi = b.getAttribute('data-h');
+    if(quoi === 'hidio') hidio();
+    else if(quoi === 'atory') atory();
+    else if(quoi === 'vonoy') vonoy();
+    else if(quoi === 'avereno') location.reload();
+  });
+
+  function adresse(){
+    var el = document.getElementById('currentUserEmail');
+    var t = el ? el.textContent.trim() : '';
+    return /@/.test(t) ? t : '';
+  }
+  function nom(){
+    var el = document.getElementById('currentUserName');
+    var t = el ? el.textContent.trim() : '';
+    return t && t !== '—' ? t : '';
+  }
+  function ora(){
+    var d = new Date();
+    return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  }
+
+  // ---- 🔒 Hidio ----
+  function hidio(){
+    try{ localStorage.setItem(CLE_HIDY, '1'); }catch(e){}
+    if(document.getElementById('ecranHidy')) return;
+    var email = adresse();
+    var ecran = document.createElement('div');
+    ecran.id = 'ecranHidy';
+    ecran.className = 'ecran-hidy';
+    ecran.setAttribute('role', 'dialog');
+    ecran.setAttribute('aria-label', 'Écran verrouillé');
+    ecran.innerHTML =
+      '<div class="ecran-hidy-ora" data-ora>' + ora() + '</div>' +
+      '<div class="ecran-hidy-daty">' + new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) + '</div>' +
+      '<form class="ecran-hidy-boaty" autocomplete="on">' +
+        '<div class="ecran-hidy-anarana">🔒 ' + (nom() || 'Ny asako').replace(/</g, '&lt;') + '</div>' +
+        (email
+          ? '<input type="password" class="ecran-hidy-teny" placeholder="Tenimiafina" autocomplete="current-password" required>' +
+            '<button type="submit" class="btn btn-primary">Sokafy</button>'
+          : '<button type="submit" class="btn btn-primary">Sokafy</button>') +
+        '<div class="ecran-hidy-hadisoana" role="alert"></div>' +
+      '</form>';
+    document.body.appendChild(ecran);
+    var minuterie = setInterval(function(){
+      var o = ecran.querySelector('[data-ora]');
+      if(!o || !ecran.isConnected){ clearInterval(minuterie); return; }
+      o.textContent = ora();
+    }, 10000);
+    var formulaire = ecran.querySelector('form');
+    var champ = ecran.querySelector('.ecran-hidy-teny');
+    var erreur = ecran.querySelector('.ecran-hidy-hadisoana');
+    if(champ) setTimeout(function(){ champ.focus(); }, 50);
+    formulaire.addEventListener('submit', function(e){
+      e.preventDefault();
+      // Sans adresse (entré sans compte), il n'y a pas de mot de passe à
+      // demander : l'écran se rouvre d'un appui.
+      if(!email){ sokafy(); return; }
+      var auth = window.__sb && window.__sb.auth;
+      if(!auth || !auth.signInWithPassword){ sokafy(); return; }
+      var envoyer = formulaire.querySelector('button');
+      envoyer.disabled = true;
+      erreur.textContent = '';
+      auth.signInWithPassword({ email: email, password: champ.value }).then(function(r){
+        envoyer.disabled = false;
+        if(r && !r.error){ sokafy(); return; }
+        erreur.textContent = 'Diso ny tenimiafina. Andramo indray.';
+        champ.select();
+      }, function(){
+        envoyer.disabled = false;
+        erreur.textContent = 'Tsy nety : jereo ny fifandraisanao.';
+      });
+    });
+    function sokafy(){
+      try{ localStorage.removeItem(CLE_HIDY); }catch(e){}
+      clearInterval(minuterie);
+      ecran.remove();
+    }
+  }
+  // Verrouillé avant de recharger : on le retrouve verrouillé, une fois
+  // l'application ouverte (sans compte ouvert, il n'y a rien à cacher).
+  // On guette l'ouverture plutôt que de l'attendre un temps donné : sur un
+  // téléphone lent, elle peut tarder bien plus de dix secondes.
+  function verifier(){
+    var hidy = false;
+    try{ hidy = localStorage.getItem(CLE_HIDY) === '1'; }catch(e){}
+    if(hidy && document.body.classList.contains('appli-ouverte')) hidio();
+  }
+  verifier();
+  new MutationObserver(verifier).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
+  // ---- 🌙 Atory ----
+  function atory(){
+    if(document.getElementById('ecranAtory')) return;
+    var ecran = document.createElement('div');
+    ecran.id = 'ecranAtory';
+    ecran.className = 'ecran-atory';
+    ecran.setAttribute('aria-label', 'Écran en veille — touchez pour réveiller');
+    document.body.appendChild(ecran);
+    function mifoha(){
+      ecran.remove();
+      document.removeEventListener('keydown', mifoha, true);
+    }
+    // Le clic qui l'a ouvert ne doit pas le refermer aussitôt.
+    setTimeout(function(){
+      ecran.addEventListener('pointerdown', mifoha);
+      document.addEventListener('keydown', mifoha, true);
+    }, 300);
+  }
+
+  // ---- ⏻ Vonoy ----
+  function vonoy(){
+    if(!confirm('Hivoaka amin\'ny kaontinao ve ianao ?')) return;
+    var sortie = document.getElementById('logoutBtn');
+    if(sortie) sortie.click();
+  }
+})();
