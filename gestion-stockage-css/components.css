@@ -304,7 +304,8 @@
   }
   .icone-bureau.tire{ opacity: 0.8; cursor: grabbing; z-index: 141; }
   .icone-bureau .epingle-retirer{ top: 0; right: 6px; }
-  /* Comme dans la rangée : la croix ne paraît qu'en mode manuel. */
+  /* Comme dans la rangée : la croix (body.retrait-manuel, posé dans les deux
+     modes depuis que l'automatique la montre aussi). */
   .icone-bureau .epingle-retirer{ display: none; }
   body.retrait-manuel .icone-bureau .epingle-retirer{ display: block; }
   /* Ce qui suit le doigt pendant le geste. */

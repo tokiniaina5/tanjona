@@ -5031,10 +5031,14 @@
 
     function direLeMode(){
       const mode = lireMode();
-      rangee.classList.toggle('mode-manuel', mode === 'manuel');
-      // Les icônes posées sur le fond obéissent au même réglage, et sont hors
-      // de la rangée : c'est le corps de la page qui porte la consigne.
-      document.body.classList.toggle('retrait-manuel', mode === 'manuel');
+      // La croix ✕ paraît dans les deux modes : en automatique aussi, on
+      // retire soi-même une icône dont on ne veut pas, sans attendre que
+      // l'usage la fasse partir. (Les deux classes ne portent que la croix et
+      // la place qu'on lui réserve.)
+      rangee.classList.add('mode-manuel');
+      // Les icônes posées sur le fond aussi, et sont hors de la rangée :
+      // c'est le corps de la page qui porte la consigne.
+      document.body.classList.add('retrait-manuel');
       if(panneau){
         panneau.querySelectorAll('.reglage-mode').forEach(function(b){
           b.classList.toggle('actif', b.dataset.mode === mode);
@@ -5045,7 +5049,7 @@
       if(note){
         note.textContent = mode === 'manuel'
           ? "Ianao no manala : tsindrio ny ✕ eo amin'ny sary."
-          : "Ny sary " + GARDEES + " farany nampiasainao no mijanona ; ny hafa miala ho azy.";
+          : "Ny sary " + GARDEES + " farany nampiasainao no mijanona ; ny hafa miala ho azy. Azonao esorina koa amin'ny ✕.";
       }
     }
 
