@@ -1459,11 +1459,20 @@
   // La présence change sans que les stories soient relues : on repeint
   // seulement les bords.
   window.__storiesEnLigne = function(){
-    if(!storyRangee) return;
-    storyRangee.querySelectorAll('[data-story-auteur]').forEach(function(c){
+    if(storyRangee) storyRangee.querySelectorAll('[data-story-auteur]').forEach(function(c){
       c.classList.toggle('en-ligne', auteurEnLigne(c.getAttribute('data-story-auteur')));
     });
+    // Et le visage des billets, sur la même présence.
+    document.querySelectorAll('[data-en-ligne-email]').forEach(function(a){
+      a.classList.toggle('en-ligne', emailEnLigne(a.getAttribute('data-en-ligne-email')));
+    });
   };
+  // La présence est rangée par adresse : celle d'un billet suffit.
+  function emailEnLigne(email){
+    if(!email || typeof presenceState !== 'object' || !presenceState) return false;
+    const e = String(email).trim().toLowerCase();
+    return Object.keys(presenceState).some(function(k){ return String(k).trim().toLowerCase() === e; });
+  }
 
   function avatarStory(photo, nom){
     return photo
@@ -1868,7 +1877,7 @@
           return '<span class="story-barre' + (k < i ? ' vita' : '') + '"><i' +
             (k === i ? ' style="animation-duration:' + duree + 'ms"' : '') + '></i></span>';
         }).join('') + '</div>' +
-        '<div class="story-tete">' + avatarStory(g.photo, g.nom) +
+        '<div class="story-tete">' + (auteurEnLigne(g.auteur_id) ? '<span class="story-anneau-tete en-ligne">' + avatarStory(g.photo, g.nom) + '</span>' : avatarStory(g.photo, g.nom)) +
           '<strong>' + escapeHtml(g.nom || 'Client') + '</strong><span>' + depuisQuandStory(s.created_at) + '</span>' +
           (moi ? '<span class="story-fafana" role="button" tabindex="0" title="Hamafa" aria-label="Hamafa">' + LOGO_FAFANA + '</span>' : '') +
           '<button type="button" class="story-hidy" aria-label="Hidio" title="Hidio">✕</button></div>' +
@@ -3803,7 +3812,9 @@
               // à une homonyme. Sans photo, les initiales. Un billet de la
               // maison, lui, porte le logo du site : il n'appartient à
               // personne en particulier.
-              '<div class="fb-avatar">' + (photoAffichee(n)
+              // Un bord vert si l'auteur est là en ce moment (live.js).
+              '<div class="fb-avatar' + (emailEnLigne(n.author_email) ? ' en-ligne' : '') + '"' +
+                (n.author_email ? ' data-en-ligne-email="' + escapeHtml(String(n.author_email).trim().toLowerCase()) + '"' : '') + '>' + (photoAffichee(n)
                 ? '<img src="' + escapeHtml(photoAffichee(n)) + '" alt="' + escapeHtml(nomAffiche(n)) + '">'
                 : escapeHtml(initials(nomAffiche(n)))) + '</div>' +
               '<div>' +
