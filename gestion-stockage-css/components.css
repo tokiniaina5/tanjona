@@ -1395,12 +1395,11 @@
   align-items:center; justify-content:center; background:var(--cyan); color:#fff;
   font-size:0.72rem; font-weight:700;
 }
-/* L'anneau violet autour du visage, sur chaque carte. 4px de marge : le
-   liseré sombre du visage (2px) en couvre la moitié, il reste 2px de violet. */
+/* Le visage, en haut à gauche de la carte : son seul liseré, sans anneau de
+   couleur — le violet est pour le bord de la carte, quand l'auteur est là. */
 .story-anneau{
   position:absolute; left:0.4rem; top:0.4rem; z-index:1;
-  padding:4px; border-radius:50%; background:#a259ff; display:inline-flex;
-  box-shadow:0 0 8px rgba(162,89,255,0.75);
+  border-radius:50%; display:inline-flex;
 }
 .story-anneau .story-avatar{ box-shadow:0 0 0 2px var(--panel); }
 /* « Hanampy story » : son visage en haut, le « + » à la jointure. */
@@ -1588,8 +1587,8 @@ body.story-ouverte .fb-reaction-avis{ z-index:413; }
 .story-mpijery-vide{ color:var(--muted); font-size:0.85rem; margin:0.4rem 0; }
 .story-mpijery-olona .story-avatar{ flex:none; width:36px; height:36px; }
 
-/* Le client est en ligne : la grande carte de sa story a un bord vert vif. */
-.story-carte.en-ligne{ box-shadow:0 0 0 4px #16e05a, 0 0 14px rgba(22,224,90,0.7); }
+/* Le client est en ligne : la grande carte de sa story a un bord violet vif. */
+.story-carte.en-ligne{ box-shadow:0 0 0 4px #a259ff, 0 0 14px rgba(162,89,255,0.75); }
 
 /* Une carte de story qu'on tient pour la déplacer : soulevée, devant les
    autres. Pas de sélection ni de menu d'image au doigt long. */

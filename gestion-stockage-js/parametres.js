@@ -1449,8 +1449,7 @@
   }
 
   // En ligne : son compte est dans la présence (live.js), qui porte son
-  // identifiant. La grande carte de sa story prend alors un bord vert vif
-  // (l'anneau du visage, lui, reste violet).
+  // identifiant. La grande carte de sa story prend alors un bord violet vif.
   function auteurEnLigne(id){
     if(!id || typeof presenceState !== 'object' || !presenceState) return false;
     return Object.keys(presenceState).some(function(k){
