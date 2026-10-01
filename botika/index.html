@@ -248,6 +248,41 @@
     }, function () { fini([]); });
   }
 
+  // Les sary d'une rangée se succèdent d'eux-mêmes : toutes les trois
+  // secondes, la rangée avance d'une image, et revient au début au bout.
+  // Seules bougent celles qu'on voit à l'écran ; un doigt ou la souris
+  // dessus l'arrêtent, et elle repart quatre secondes après.
+  var APERCU_PAS_MS = 3000;
+  document.addEventListener('pointerdown', retenirRangee, true);
+  document.addEventListener('touchstart', retenirRangee, { passive: true, capture: true });
+  document.addEventListener('wheel', retenirRangee, { passive: true, capture: true });
+  // La souris posée dessus (pas le doigt : sur un téléphone, le survol reste
+  // collé après un appui).
+  document.addEventListener('mousemove', retenirRangee, { passive: true, capture: true });
+  function retenirRangee(e) {
+    var r = e.target && e.target.closest && e.target.closest('.bk-apercu');
+    if (r) r.__attente = Date.now() + 4000;
+  }
+  setInterval(function () {
+    if (document.hidden || ecran) return;
+    var haut = window.innerHeight;
+    [].forEach.call(document.querySelectorAll('.bk-apercu[data-fait]'), function (r) {
+      if (r.__attente && Date.now() < r.__attente) return;
+      var max = r.scrollWidth - r.clientWidth;
+      if (max <= 2) return;
+      var b = r.getBoundingClientRect();
+      if (b.bottom < 0 || b.top > haut) return;
+      // L'image suivante : la première dont le bord gauche dépasse celui de
+      // la rangée.
+      var liens = r.children, cible = null;
+      for (var i = 0; i < liens.length; i++) {
+        if (liens[i].offsetLeft - r.offsetLeft > r.scrollLeft + 4) { cible = liens[i]; break; }
+      }
+      var x = r.scrollLeft >= max - 2 || !cible ? 0 : Math.min(max, cible.offsetLeft - r.offsetLeft);
+      r.scrollTo({ left: x, behavior: 'smooth' });
+    });
+  }, APERCU_PAS_MS);
+
   function dessiner(lignes) {
     var fil = $('bkFil');
     $('bkVide').style.display = lignes.length ? 'none' : '';
