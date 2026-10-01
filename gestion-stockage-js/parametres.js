@@ -1486,7 +1486,7 @@
     const maPhoto = jeSuisLaMaison() ? MARQUE_LOGO : ((currentUser && currentUser.logo) || '');
     let html =
       '<button type="button" class="story-carte story-ajouter" data-story-ajouter>' +
-        '<span class="story-ajouter-fond">' + avatarStory(maPhoto, (currentUser && currentUser.name) || '') + '</span>' +
+        '<span class="story-rond story-ajouter-fond">' + avatarStory(maPhoto, (currentUser && currentUser.name) || '') + '</span>' +
         '<span class="story-plus" aria-hidden="true">+</span>' +
         '<span class="story-nom">Hanampy story</span>' +
       '</button>';
@@ -1498,11 +1498,14 @@
       html +=
         '<button type="button" class="story-carte' + (auteurEnLigne(g.auteur_id) ? ' en-ligne' : '') + '" data-story-groupe="' + i + '" data-story-id="' + escapeHtml(g.liste[0].id) + '" data-story-auteur="' + escapeHtml(g.auteur_id) + '"' +
           '>' +
-          // Le sary dans son propre calque : il grossit doucement à son tour.
+          // Le rond en relief qui porte le sary ou la vidéo ; le sary y a son
+          // propre calque, qui grossit doucement à son tour sans déborder.
+          '<span class="story-rond">' +
           (video ? '' : '<span class="story-carte-fond" style="background-image:url(\'' + String(derniere.media).replace(/'/g, '%27') + '\')"></span>') +
           (video ? '<video class="story-carte-video" src="' + escapeHtml(derniere.media) + '#t=' + ((derniere.video_debut || 0) + 0.5) + '" muted playsinline preload="metadata"' +
               ' data-debut="' + (Number(derniere.video_debut) || 0) + '" data-fin="' + (Number(derniere.video_fin) || 0) + '"></video>' +
             '<span class="story-carte-play" aria-hidden="true">▶</span>' : '') +
+          '</span>' +
           '<span class="story-helice" aria-hidden="true"></span>' +
           '<span class="story-anneau">' + avatarStory(g.photo, g.nom) + '</span>' +
           '<span class="story-nom">' + escapeHtml(g.auteur_id === monIdStory ? 'Ny story-nao' : (g.nom || 'Client')) + '</span>' +

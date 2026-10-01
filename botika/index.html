@@ -20,7 +20,7 @@
 <meta property="og:type" content="website">
 <link rel="icon" href="/icone-192.png">
 <link rel="stylesheet" href="/gestion-stockage-css/base.css?v=505a9236">
-<link rel="stylesheet" href="/gestion-stockage-css/components.css?v=54d625b0">
+<link rel="stylesheet" href="/gestion-stockage-css/components.css?v=d51bddf3">
 <style>
   .bk-entete{
     display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;
@@ -302,10 +302,14 @@
     rangee.innerHTML = g.map(function (x, i) {
       var d = x.liste[x.liste.length - 1];
       var video = d.genre === 'video';
-      return '<button type="button" class="story-carte" data-groupe="' + i + '"' +
-        (video ? '' : ' style="background-image:url(\'' + String(d.media).replace(/'/g, '%27') + '\')"') + '>' +
+      // Le rond en relief, comme dans l'application (components.css).
+      return '<button type="button" class="story-carte" data-groupe="' + i + '">' +
+        '<span class="story-rond">' +
+        (video ? '' : '<span class="story-carte-fond" style="background-image:url(\'' + String(d.media).replace(/'/g, '%27') + '\')"></span>') +
         (video ? '<video class="story-carte-video" src="' + echap(d.media) + '#t=' + ((d.video_debut || 0) + 0.5) + '" muted playsinline preload="metadata"></video>' +
           '<span class="story-carte-play" aria-hidden="true">▶</span>' : '') +
+        '</span>' +
+        '<span class="story-helice" aria-hidden="true"></span>' +
         '<span class="story-anneau">' + avatar(x.photo, x.nom) + '</span>' +
         '<span class="story-nom">' + echap(x.nom || 'Client') + '</span></button>';
     }).join('');
