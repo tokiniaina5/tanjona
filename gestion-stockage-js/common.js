@@ -4781,9 +4781,31 @@
       if(id === 'dash-communadmin') return 'id:menuCommunAdmin';
       return '';
     }
+    // Six pages seulement se reconnaissaient à leur nom ; les autres (Panier,
+    // Portefeuille…) gardaient leur icône à la fermeture. On retient donc,
+    // à chaque entrée pressée, la page qui s'ouvre derrière elle.
+    const CLE_PAGE_ICONE = 'stockmanager_barre_page_icone';
+    function lirePageIcone(){
+      try{ return JSON.parse(localStorage.getItem(CLE_PAGE_ICONE)) || {}; }catch(e){ return {}; }
+    }
+    function retenirLaPageDe(cle){
+      // La page paraît un instant après le clic : on la cherche alors, la
+      // fenêtre active du dessus.
+      setTimeout(function(){
+        const ouvertes = [].slice.call(document.querySelectorAll('.fenetre-page.active'))
+          .filter(function(el){ return el.id && el.id !== 'dash-accueil' && el.offsetParent !== null; });
+        if(!ouvertes.length) return;
+        ouvertes.sort(function(a, b){ return (Number(getComputedStyle(b).zIndex) || 0) - (Number(getComputedStyle(a).zIndex) || 0); });
+        const id = ouvertes[0].id;
+        if(cleDeLaPage(id)) return;
+        const l = lirePageIcone();
+        l[id] = cle;
+        try{ localStorage.setItem(CLE_PAGE_ICONE, JSON.stringify(l)); }catch(e){}
+      }, 250);
+    }
     window.__pageFermee = function(id){
       if(lireMode() !== 'auto') return;
-      const cle = cleDeLaPage(id);
+      const cle = cleDeLaPage(id) || lirePageIcone()[id];
       if(!cle) return;
       ecrireEpingles(lireEpingles().filter(function(e){ return e.cle !== cle; }));
       const bouton = rangee.querySelector('[data-epingle="' + cle + '"]');
@@ -4986,7 +5008,7 @@
       }
       const cle = cleDe(entree);
       if(surLeFond(cle)) return;
-      if(!remplissage) noterUsage(cle);
+      if(!remplissage){ noterUsage(cle); retenirLaPageDe(cle); }
       const liste = lireEpingles();
       const connue = liste.filter(function(e){ return e.cle === cle; })[0];
       if(connue) connue.vu = Date.now();
@@ -5031,14 +5053,13 @@
 
     function direLeMode(){
       const mode = lireMode();
-      // La croix ✕ paraît dans les deux modes : en automatique aussi, on
-      // retire soi-même une icône dont on ne veut pas, sans attendre que
-      // l'usage la fasse partir. (Les deux classes ne portent que la croix et
-      // la place qu'on lui réserve.)
-      rangee.classList.add('mode-manuel');
-      // Les icônes posées sur le fond aussi, et sont hors de la rangée :
-      // c'est le corps de la page qui porte la consigne.
-      document.body.classList.add('retrait-manuel');
+      // La croix ✕ des petites icônes, en manuel seulement. En automatique,
+      // c'est la croix de la page ouverte qui retire son icône
+      // (window.__pageFermee).
+      rangee.classList.toggle('mode-manuel', mode === 'manuel');
+      // Les icônes posées sur le fond obéissent au même réglage, et sont hors
+      // de la rangée : c'est le corps de la page qui porte la consigne.
+      document.body.classList.toggle('retrait-manuel', mode === 'manuel');
       if(panneau){
         panneau.querySelectorAll('.reglage-mode').forEach(function(b){
           b.classList.toggle('actif', b.dataset.mode === mode);
@@ -5049,7 +5070,7 @@
       if(note){
         note.textContent = mode === 'manuel'
           ? "Ianao no manala : tsindrio ny ✕ eo amin'ny sary."
-          : "Ny sary " + GARDEES + " farany nampiasainao no mijanona ; ny hafa miala ho azy. Azonao esorina koa amin'ny ✕.";
+          : "Ny sary " + GARDEES + " farany nampiasainao no mijanona ; ny hafa miala ho azy, ary miala koa ny an'ny pejy hidinao amin'ny ✕.";
       }
     }
 
