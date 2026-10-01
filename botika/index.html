@@ -404,6 +404,38 @@
     var c = e.target.closest('[data-groupe]');
     if (c) ouvrir(Number(c.getAttribute('data-groupe')), 0);
   });
+  // La rangée glisse d'elle-même tant que personne n'y touche, et revient au
+  // début au bout ; un doigt ou la souris l'arrêtent, elle repart trois
+  // secondes après (comme defilerStoriesSeules, parametres.js).
+  (function defilerSeule(r) {
+    if (!r || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+    var pos = 0, attente = performance.now() + 2500, dedans = false, avant = 0;
+    function retenir(ms) { attente = Math.max(attente, performance.now() + ms); }
+    ['pointerdown', 'touchstart', 'wheel', 'focusin'].forEach(function (t) {
+      r.addEventListener(t, function () { retenir(4000); }, { passive: true });
+    });
+    r.addEventListener('pointerenter', function (e) { if (e.pointerType === 'mouse') dedans = true; });
+    r.addEventListener('pointerleave', function () { dedans = false; retenir(3000); });
+    ['pointerup', 'touchend', 'pointercancel'].forEach(function (t) {
+      r.addEventListener(t, function () { retenir(3000); }, { passive: true });
+    });
+    function pas(t) {
+      requestAnimationFrame(pas);
+      var dt = Math.min(t - (avant || t), 50);
+      avant = t;
+      var max = r.scrollWidth - r.clientWidth;
+      if (max <= 0 || dedans || t < attente || document.hidden || ecran) { pos = r.scrollLeft; return; }
+      if (Math.abs(r.scrollLeft - pos) > 2) pos = r.scrollLeft;
+      if (pos >= max - 1) {
+        retenir(4000);
+        setTimeout(function () { r.scrollTo({ left: 0, behavior: 'smooth' }); }, 1500);
+        return;
+      }
+      pos = Math.min(max, pos + dt * 0.03);
+      r.scrollLeft = pos;
+    }
+    requestAnimationFrame(pas);
+  })($('bkStories'));
   function lireStories() {
     if (!window.__sb) return;
     window.__sb.from('botika_stories')

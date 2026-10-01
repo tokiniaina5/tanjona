@@ -2377,9 +2377,49 @@
     majFleches();
   }
 
+  // ---- La rangée glisse d'elle-même ----
+  // Tant que personne n'y touche, elle avance doucement de côté ; au bout,
+  // elle marque un temps et revient au début. Un doigt, la souris ou la
+  // molette dessus l'arrêtent ; elle repart trois secondes après qu'on l'a
+  // lâchée. Même chose dans botika/index.html.
+  function defilerStoriesSeules(r){
+    if(!r || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+    let pos = r.scrollLeft, attente = 0, dedans = false, avant = 0;
+    function retenir(ms){ attente = Math.max(attente, performance.now() + ms); }
+    ['pointerdown', 'touchstart', 'wheel', 'focusin'].forEach(function(t){
+      r.addEventListener(t, function(){ retenir(4000); }, { passive: true });
+    });
+    r.addEventListener('pointerenter', function(e){ if(e.pointerType === 'mouse') dedans = true; });
+    r.addEventListener('pointerleave', function(){ dedans = false; retenir(3000); });
+    ['pointerup', 'touchend', 'pointercancel'].forEach(function(t){
+      r.addEventListener(t, function(){ retenir(3000); }, { passive: true });
+    });
+    function pas(t){
+      requestAnimationFrame(pas);
+      const dt = Math.min(t - (avant || t), 50);
+      avant = t;
+      const max = r.scrollWidth - r.clientWidth;
+      if(max <= 0 || dedans || t < attente || document.hidden || !r.offsetParent ||
+        r.querySelector('.story-tiree') || r.classList.contains('story-glisse')) { pos = r.scrollLeft; return; }
+      // Quelqu'un l'a fait glisser entre-temps : on repart de là.
+      if(Math.abs(r.scrollLeft - pos) > 2) pos = r.scrollLeft;
+      if(pos >= max - 1){
+        // Un temps au bout, le retour, puis un temps au début.
+        retenir(4000);
+        setTimeout(function(){ r.scrollTo({ left: 0, behavior: 'smooth' }); }, 1500);
+        return;
+      }
+      pos = Math.min(max, pos + dt * 0.03);
+      r.scrollLeft = pos;
+    }
+    retenir(2500);
+    requestAnimationFrame(pas);
+  }
+
   if(storyRangee){
     armerDeplacementStories();
     armerDefilementStories();
+    defilerStoriesSeules(storyRangee);
     storyRangee.addEventListener('click', function(e){
       // Le relâché d'un déplacement n'est pas un appui : rien ne s'ouvre.
       if(storyRangee.__vientDeTirer){ storyRangee.__vientDeTirer = false; e.preventDefault(); return; }
