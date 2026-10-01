@@ -306,13 +306,66 @@
       return '<button type="button" class="story-carte" data-groupe="' + i + '">' +
         '<span class="story-rond">' +
         (video ? '' : '<span class="story-carte-fond" style="background-image:url(\'' + String(d.media).replace(/'/g, '%27') + '\')"></span>') +
-        (video ? '<video class="story-carte-video" src="' + echap(d.media) + '#t=' + ((d.video_debut || 0) + 0.5) + '" muted playsinline preload="metadata"></video>' +
+        (video ? '<video class="story-carte-video" src="' + echap(d.media) + '#t=' + ((d.video_debut || 0) + 0.5) + '" muted playsinline preload="metadata"' +
+          ' data-debut="' + (Number(d.video_debut) || 0) + '" data-fin="' + (Number(d.video_fin) || 0) + '"></video>' +
           '<span class="story-carte-play" aria-hidden="true">▶</span>' : '') +
         '</span>' +
         '<span class="story-helice" aria-hidden="true"></span>' +
         '<span class="story-anneau">' + avatar(x.photo, x.nom) + '</span>' +
         '<span class="story-nom">' + echap(x.nom || 'Client') + '</span></button>';
     }).join('');
+    jouerCartes();
+  }
+
+  // Les bulles s'animent chacune son tour, comme dans l'application
+  // (jouerVideosCartes, parametres.js) : un sary grossit quatre secondes, une
+  // vidéo joue sans le son de son début à sa fin (quinze secondes au plus),
+  // puis la suivante. Rien ne bouge pendant qu'une story est ouverte.
+  var tourCartes = 0;
+  function jouerCartes() {
+    var tour = ++tourCartes, n = 0, rangee = $('bkStories');
+    function suivante() {
+      if (tour !== tourCartes) return;
+      var cartes = rangee.querySelectorAll('.story-carte');
+      if (!cartes.length) return;
+      if (document.hidden || ecran) { setTimeout(suivante, 1500); return; }
+      var carte = cartes[n % cartes.length];
+      n++;
+      var el = carte.querySelector('.story-carte-video');
+      if (!el) {
+        carte.classList.add('story-joue');
+        setTimeout(function () { carte.classList.remove('story-joue'); setTimeout(suivante, 300); }, 4000);
+        return;
+      }
+      var debut = Number(el.getAttribute('data-debut')) || 0;
+      var finChoisie = Number(el.getAttribute('data-fin')) || 0;
+      var fini = false, garde;
+      function arreter() {
+        if (fini) return;
+        fini = true;
+        clearTimeout(garde);
+        el.removeEventListener('timeupdate', surTemps);
+        el.removeEventListener('ended', arreter);
+        el.removeEventListener('error', arreter);
+        el.pause();
+        carte.classList.remove('story-joue');
+        setTimeout(suivante, cartes.length > 1 ? 300 : 1500);
+      }
+      function surTemps() {
+        if (tour !== tourCartes || document.hidden || ecran) { arreter(); return; }
+        if (finChoisie && el.currentTime >= finChoisie) arreter();
+      }
+      garde = setTimeout(arreter, 15000);
+      el.addEventListener('timeupdate', surTemps);
+      el.addEventListener('ended', arreter);
+      el.addEventListener('error', arreter);
+      el.muted = true;
+      try { el.currentTime = debut; } catch (e) {}
+      carte.classList.add('story-joue');
+      var p = el.play();
+      if (p && p.catch) p.catch(arreter);
+    }
+    setTimeout(suivante, 600);
   }
   function taire() { if (son) { try { son.pause(); } catch (e) {} son = null; } }
   function fermer() {
