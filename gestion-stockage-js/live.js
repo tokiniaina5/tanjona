@@ -83,7 +83,7 @@
       updateLiveReachInfo();
       veillerSurLesLives();
       if(typeof updateOwnerPresenceLabel === 'function') updateOwnerPresenceLabel();
-      // Le bord vert des stories de ceux qui sont là (parametres.js).
+      // L'anneau vert sur le visage des billets de ceux qui sont là (parametres.js).
       if(typeof window.__storiesEnLigne === 'function') window.__storiesEnLigne();
     });
     presenceChannel.subscribe(function(status){

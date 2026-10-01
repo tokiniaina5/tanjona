@@ -1448,21 +1448,10 @@
     });
   }
 
-  // En ligne : son compte est dans la présence (live.js), qui porte son
-  // identifiant. La carte de sa story prend alors un bord vert vif.
-  function auteurEnLigne(id){
-    if(!id || typeof presenceState !== 'object' || !presenceState) return false;
-    return Object.keys(presenceState).some(function(k){
-      return presenceState[k] && presenceState[k].uid === id;
-    });
-  }
-  // La présence change sans que les stories soient relues : on repeint
-  // seulement les bords.
+  // En ligne : la marque est sur le visage des billets du Botika, pas sur
+  // les stories. La présence (live.js) change sans que le fil soit relu :
+  // on repeint seulement les anneaux.
   window.__storiesEnLigne = function(){
-    if(storyRangee) storyRangee.querySelectorAll('[data-story-auteur]').forEach(function(c){
-      c.classList.toggle('en-ligne', auteurEnLigne(c.getAttribute('data-story-auteur')));
-    });
-    // Et le visage des billets, sur la même présence.
     document.querySelectorAll('[data-en-ligne-email]').forEach(function(a){
       a.classList.toggle('en-ligne', emailEnLigne(a.getAttribute('data-en-ligne-email')));
     });
@@ -1495,8 +1484,7 @@
       // le son, en tient lieu.
       const video = derniere.genre === 'video';
       html +=
-        '<button type="button" class="story-carte' + (auteurEnLigne(g.auteur_id) ? ' en-ligne' : '') +
-          '" data-story-groupe="' + i + '" data-story-id="' + escapeHtml(g.liste[0].id) + '" data-story-auteur="' + escapeHtml(g.auteur_id) + '"' +
+        '<button type="button" class="story-carte" data-story-groupe="' + i + '" data-story-id="' + escapeHtml(g.liste[0].id) + '" data-story-auteur="' + escapeHtml(g.auteur_id) + '"' +
           '>' +
           // Le sary dans son propre calque : il grossit doucement à son tour.
           (video ? '' : '<span class="story-carte-fond" style="background-image:url(\'' + String(derniere.media).replace(/'/g, '%27') + '\')"></span>') +
@@ -1877,7 +1865,7 @@
           return '<span class="story-barre' + (k < i ? ' vita' : '') + '"><i' +
             (k === i ? ' style="animation-duration:' + duree + 'ms"' : '') + '></i></span>';
         }).join('') + '</div>' +
-        '<div class="story-tete">' + (auteurEnLigne(g.auteur_id) ? '<span class="story-anneau-tete en-ligne">' + avatarStory(g.photo, g.nom) + '</span>' : avatarStory(g.photo, g.nom)) +
+        '<div class="story-tete">' + avatarStory(g.photo, g.nom) +
           '<strong>' + escapeHtml(g.nom || 'Client') + '</strong><span>' + depuisQuandStory(s.created_at) + '</span>' +
           (moi ? '<span class="story-fafana" role="button" tabindex="0" title="Hamafa" aria-label="Hamafa">' + LOGO_FAFANA + '</span>' : '') +
           '<button type="button" class="story-hidy" aria-label="Hidio" title="Hidio">✕</button></div>' +
