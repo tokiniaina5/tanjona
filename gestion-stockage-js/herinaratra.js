@@ -8,7 +8,8 @@
 //                 libre »), il n'y a pas de mot de passe de compte : on en
 //                 choisit un pour l'écran, gardé sur l'appareil seulement, et
 //                 seulement son empreinte (SHA-256), jamais le mot lui-même.
-//   🌙 Atory    — l'écran s'éteint (noir) ; un appui ou une touche le rallume.
+//   🌙 Atory    — l'écran s'éteint (noir) ; un appui ou une touche le rallume,
+//                 sur l'écran verrouillé : on rentre avec son mot de passe.
 //   ⏻ Déconnecter — on sort du compte (le bouton « Se déconnecter »).
 //   🔄 Avereno  — l'application se recharge.
 (function(){
@@ -220,14 +221,21 @@
   // ---- 🌙 Atory ----
   function atory(){
     if(document.getElementById('ecranAtory')) return;
+    // Le verrou d'abord, sous le noir : au réveil, c'est lui qu'on trouve, et
+    // une page rechargée pendant la veille reste verrouillée.
+    hidio();
     var ecran = document.createElement('div');
     ecran.id = 'ecranAtory';
     ecran.className = 'ecran-atory';
     ecran.setAttribute('aria-label', 'Écran en veille — touchez pour réveiller');
     document.body.appendChild(ecran);
-    function mifoha(){
+    function mifoha(e){
+      // La touche qui réveille ne s'écrit pas dans le champ du mot de passe.
+      if(e && e.type === 'keydown'){ e.preventDefault(); e.stopPropagation(); }
       ecran.remove();
       document.removeEventListener('keydown', mifoha, true);
+      var champ = document.querySelector('#ecranHidy [data-teny="1"]');
+      if(champ) champ.focus();
     }
     // Le clic qui l'a ouvert ne doit pas le refermer aussitôt.
     setTimeout(function(){
