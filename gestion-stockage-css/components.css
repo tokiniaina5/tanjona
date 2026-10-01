@@ -1670,13 +1670,15 @@ body.story-ouverte .fb-reaction-avis{ z-index:413; }
 .story-carte.story-tiree{ box-shadow:none; filter:drop-shadow(0 12px 16px rgba(0,0,0,0.5)); }
 .story-fleche{ top:calc(44px + 0.35rem); }
 
-/* Une story posée sur l'écran, comme les petites icônes : sous les fenêtres,
-   au-dessus du fond ; son nom lisible sur n'importe quelle image de fond.
+/* Une story posée sur l'écran, comme les petites icônes, mais au-dessus des
+   fenêtres (sous la rangée du bas) : posée sur la fenêtre du Botika — sur un
+   téléphone, elle couvre tout l'écran — elle y disparaissait. Au-dessus du
+   fond, son nom lisible sur n'importe quelle image.
    Tenue, elle passe devant tout. Rien de tout cela sur la page d'entrée. */
 .story-carte.story-bureau{
-  position:fixed; z-index:92; touch-action:none; cursor:grab;
+  position:fixed; z-index:105; touch-action:none; cursor:grab;
 }
 .story-carte.story-bureau .story-nom{ color:#fff; text-shadow:0 1px 5px rgba(0,0,0,0.9); }
-.story-carte.story-bureau.story-tiree{ z-index:96; cursor:grabbing; }
+.story-carte.story-bureau.story-tiree{ z-index:150; cursor:grabbing; }
 .story-carte.story-fantome{ z-index:420; pointer-events:none; opacity:0.95; }
 body:not(.appli-ouverte) .story-bureau{ display:none !important; }

@@ -1742,7 +1742,8 @@
       if(!g) return;
       if(!g.carte){
         // Bougé avant d'être soulevée : c'est un défilement.
-        if(Math.abs(e.clientX - g.x) + Math.abs(e.clientY - g.y) > 8){ clearTimeout(g.minuterie); g = null; }
+        // 14px : un doigt qui tient ne reste jamais tout à fait immobile.
+        if(Math.abs(e.clientX - g.x) + Math.abs(e.clientY - g.y) > 14){ clearTimeout(g.minuterie); g = null; }
         return;
       }
       e.preventDefault();
