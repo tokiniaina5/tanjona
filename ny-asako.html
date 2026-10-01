@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="bec6141d">
+<meta name="ny-asako-version" content="74ec3d97">
 <title>Ny asako — Tanjona</title>
 <!-- Application installable : le manifeste décrit le nom, l'icône et la façon
      de s'ouvrir ; le reste est affaire de service worker, enregistré plus bas. -->
@@ -136,7 +136,7 @@
 <!-- fin des écrans de démarrage iOS -->
 <link rel="icon" href="/icone-192.png" type="image/png">
 <link rel="stylesheet" href="gestion-stockage-css/base.css?v=505a9236">
-<link rel="stylesheet" href="gestion-stockage-css/components.css?v=2aacf9fb">
+<link rel="stylesheet" href="gestion-stockage-css/components.css?v=0323eb12">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" crossorigin="anonymous"></script>
@@ -824,7 +824,18 @@
           </div>
           <!-- Les stories : vingt-quatre heures, en rangée sous le titre
                (parametres.js). -->
-          <div class="story-rangee" id="storyRangee" aria-label="Stories"></div>
+          <!-- En haut, de quoi envoyer sary, video ou clip (plusieurs à la
+               fois) ; la rangée pleine défile de côté, flèches à l'appui. -->
+          <div class="story-alefa-bar">
+            <button type="button" class="story-alefa-haut" id="storyAlefaHaut" data-story-ajouter-haut>
+              <span aria-hidden="true">📷</span> Alefaso sary, video na clip
+            </button>
+          </div>
+          <div class="story-cadre">
+            <button type="button" class="story-fleche story-fleche-g" id="storyFlecheG" aria-label="Story teo aloha" hidden>‹</button>
+            <div class="story-rangee" id="storyRangee" aria-label="Stories"></div>
+            <button type="button" class="story-fleche story-fleche-d" id="storyFlecheD" aria-label="Story manaraka" hidden>›</button>
+          </div>
           <input type="file" id="storyFichier" accept="image/*,video/*" multiple hidden>
 
           <div class="community-grid">
@@ -3067,7 +3078,7 @@
 <script src="gestion-stockage-js/zara-rehetra.js?v=1d7a9c94"></script>
 <script src="gestion-stockage-js/live.js?v=6643b184"></script>
 <script src="gestion-stockage-js/traduction.js?v=8f5605bc"></script>
-<script src="gestion-stockage-js/parametres.js?v=5fa46994"></script>
+<script src="gestion-stockage-js/parametres.js?v=04f064aa"></script>
 <!-- Le partage reçu du dehors remplit la boîte « Écrire », que parametres.js
      tient : il se charge après elle. -->
 <script src="gestion-stockage-js/zara-miditra.js?v=bfe2ae80"></script>

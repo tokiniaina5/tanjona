@@ -2228,20 +2228,87 @@
     }, Promise.resolve([])).then(function(elements){ return { elements: elements, erreurs: erreurs }; });
   }
 
+  // Choisir sary, video ou clip (plusieurs d'un coup) : depuis le « + » de la
+  // rangée comme depuis le bouton du haut.
+  function choisirFichiersStory(bouton){
+    sessionStory().then(function(session){
+      if(!session){ direPresDuBouton(bouton, 'Midira amin\'ny tenimiafinao aloha vao afaka mametraka story.'); return; }
+      storyFichier.value = '';
+      storyFichier.click();
+    });
+  }
+
+  // ---- Faire défiler une rangée pleine ----
+  // Au doigt elle glisse déjà ; à la souris, il faut les flèches, la molette
+  // ou la tirer. Les flèches ne paraissent que s'il reste à voir de ce côté.
+  function armerDefilementStories(){
+    const g = document.getElementById('storyFlecheG');
+    const d = document.getElementById('storyFlecheD');
+    function majFleches(){
+      const max = storyRangee.scrollWidth - storyRangee.clientWidth;
+      if(g) g.hidden = storyRangee.scrollLeft <= 2;
+      if(d) d.hidden = storyRangee.scrollLeft >= max - 2;
+    }
+    function pousser(sens){
+      storyRangee.scrollBy({ left: sens * Math.max(storyRangee.clientWidth * 0.8, 100), behavior: 'smooth' });
+    }
+    if(g) g.addEventListener('click', function(){ pousser(-1); });
+    if(d) d.addEventListener('click', function(){ pousser(1); });
+    storyRangee.addEventListener('scroll', majFleches, { passive: true });
+    // Cachée tant que la page Botika n'est pas ouverte : sa taille change en
+    // paraissant, et les flèches se recalculent alors.
+    if(window.ResizeObserver) new ResizeObserver(majFleches).observe(storyRangee);
+    else window.addEventListener('resize', majFleches);
+    new MutationObserver(majFleches).observe(storyRangee, { childList: true });
+    // La molette verticale fait glisser la rangée, tant qu'elle peut glisser.
+    storyRangee.addEventListener('wheel', function(e){
+      if(Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+      const max = storyRangee.scrollWidth - storyRangee.clientWidth;
+      if(max <= 0) return;
+      if(e.deltaY < 0 && storyRangee.scrollLeft <= 0) return;
+      if(e.deltaY > 0 && storyRangee.scrollLeft >= max) return;
+      e.preventDefault();
+      storyRangee.scrollLeft += e.deltaY;
+    }, { passive: false });
+    // Tirer à la souris : bouger avant le tiers de seconde, c'est défiler.
+    let t = null;
+    storyRangee.addEventListener('pointerdown', function(e){
+      if(e.pointerType !== 'mouse' || e.button > 0) return;
+      t = { x: e.clientX, depart: storyRangee.scrollLeft, bouge: false };
+    });
+    storyRangee.addEventListener('pointermove', function(e){
+      if(!t || storyRangee.querySelector('.story-tiree')) return;
+      const dx = e.clientX - t.x;
+      if(!t.bouge && Math.abs(dx) < 8) return;
+      t.bouge = true;
+      storyRangee.classList.add('story-glisse');
+      storyRangee.scrollLeft = t.depart - dx;
+    });
+    function lacher(){
+      if(t && t.bouge){
+        // Le relâché n'ouvre pas la story sous la souris.
+        storyRangee.__vientDeTirer = true;
+        setTimeout(function(){ storyRangee.__vientDeTirer = false; }, 400);
+      }
+      t = null;
+      storyRangee.classList.remove('story-glisse');
+    }
+    window.addEventListener('pointerup', lacher);
+    window.addEventListener('pointercancel', lacher);
+    storyRangee.addEventListener('dragstart', function(e){ e.preventDefault(); });
+    majFleches();
+  }
+
   if(storyRangee){
     armerDeplacementStories();
+    armerDefilementStories();
+    const alefaHaut = document.getElementById('storyAlefaHaut');
+    if(alefaHaut) alefaHaut.addEventListener('click', function(){ choisirFichiersStory(alefaHaut); });
     storyRangee.addEventListener('click', function(e){
       // Le relâché d'un déplacement n'est pas un appui : rien ne s'ouvre.
       if(storyRangee.__vientDeTirer){ storyRangee.__vientDeTirer = false; e.preventDefault(); return; }
       const ajouter = e.target.closest('[data-story-ajouter]');
-      if(ajouter){
-        sessionStory().then(function(session){
-          if(!session){ direPresDuBouton(ajouter, 'Midira amin\'ny tenimiafinao aloha vao afaka mametraka story.'); return; }
-          storyFichier.value = '';
-          storyFichier.click();
-        });
-        return;
-      }
+      if(ajouter){ choisirFichiersStory(ajouter); return; }
       const carte = e.target.closest('[data-story-groupe]');
       if(carte) ouvrirGroupe(Number(carte.getAttribute('data-story-groupe')), 0);
     });
