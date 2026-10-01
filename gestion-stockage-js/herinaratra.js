@@ -1,4 +1,6 @@
-// ⏻ « Herinaratra » : le petit menu du bas du menu N, comme celui de Windows.
+// ⏻ « Herinaratra » : le petit menu d'arrêt, comme celui de Windows. On tient
+// le N de la rangée du bas appuyé (ou clic droit sur un ordinateur) : il monte
+// au-dessus de lui. Un appui court sur le N ouvre le menu, comme toujours.
 //
 //   🔒 Hidio    — l'écran se couvre ; on le rouvre avec son mot de passe.
 //                 Rechargée, la page reste couverte : verrouiller n'est pas
@@ -8,21 +10,58 @@
 //   🔄 Avereno  — l'application se recharge.
 (function(){
   var CLE_HIDY = 'nyasako_ecran_hidy';
-  var bouton = document.getElementById('herinaratraBtn');
+  var bouton = document.getElementById('menuToggle');
   var lisitra = document.getElementById('herinaratraLisitra');
   if(!bouton || !lisitra) return;
+  document.body.appendChild(lisitra);
 
   function ouvrir(oui){
     lisitra.hidden = !oui;
-    bouton.setAttribute('aria-expanded', oui ? 'true' : 'false');
+    if(!oui) return;
+    // Juste au-dessus du N, sans sortir de l'écran.
+    var r = bouton.getBoundingClientRect();
+    var large = lisitra.offsetWidth || 200;
+    lisitra.style.left = Math.round(Math.max(8, Math.min(r.left, window.innerWidth - large - 8))) + 'px';
+    lisitra.style.bottom = Math.round(window.innerHeight - r.top + 8) + 'px';
+    lisitra.style.top = 'auto';
   }
-  bouton.addEventListener('click', function(e){
-    e.stopPropagation();
-    ouvrir(lisitra.hidden);
+  // Tenu une demi-seconde : le panneau s'ouvre, et le relâché qui suit
+  // n'ouvre pas le menu.
+  var minuterie = null, depart = null, tenu = false;
+  bouton.addEventListener('pointerdown', function(e){
+    if(e.button > 0) return;
+    tenu = false;
+    depart = { x: e.clientX, y: e.clientY };
+    clearTimeout(minuterie);
+    minuterie = setTimeout(function(){
+      tenu = true;
+      if(navigator.vibrate) try{ navigator.vibrate(15); }catch(err){}
+      ouvrir(true);
+    }, 500);
+  });
+  bouton.addEventListener('pointermove', function(e){
+    if(depart && Math.abs(e.clientX - depart.x) + Math.abs(e.clientY - depart.y) > 12) clearTimeout(minuterie);
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(function(t){
+    bouton.addEventListener(t, function(){ clearTimeout(minuterie); depart = null; });
   });
   document.addEventListener('click', function(e){
-    if(!lisitra.hidden && !lisitra.contains(e.target) && e.target !== bouton) ouvrir(false);
+    if(tenu && e.target.closest && e.target.closest('#menuToggle')){
+      tenu = false;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      return;
+    }
+    if(!lisitra.hidden && !lisitra.contains(e.target)) ouvrir(false);
+  }, true);
+  // Un appui long sur un téléphone ouvre aussi le menu du navigateur ; sur
+  // un ordinateur, le clic droit fait le même travail que tenir.
+  bouton.addEventListener('contextmenu', function(e){
+    e.preventDefault();
+    clearTimeout(minuterie);
+    ouvrir(true);
   });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') ouvrir(false); });
   lisitra.addEventListener('click', function(e){
     var b = e.target.closest('[data-h]');
     if(!b) return;

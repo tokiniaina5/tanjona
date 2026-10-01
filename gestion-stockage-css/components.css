@@ -1700,12 +1700,10 @@ body.story-ouverte .fb-reaction-avis{ z-index:413; }
 .story-carte.story-fantome{ z-index:420; pointer-events:none; opacity:0.95; }
 body:not(.appli-ouverte) .story-bureau{ display:none !important; }
 
-/* ⏻ « Herinaratra » au bas du menu N : un bouton, et sa petite liste qui
-   monte au-dessus de lui, comme le menu d'arrêt de Windows. */
-.menu-herinaratra{ position:relative; margin-top:0.6rem; }
-.menu-herinaratra-btn{ width:100%; }
+/* ⏻ « Herinaratra » : la petite liste qui monte au-dessus du N quand on le
+   tient appuyé, comme le menu d'arrêt de Windows (herinaratra.js la place). */
 .menu-herinaratra-lisitra{
-  position:absolute; left:0; right:0; bottom:calc(100% + 6px); z-index:5;
+  position:fixed; z-index:180; width:200px;
   display:flex; flex-direction:column; padding:0.3rem;
   background:var(--panel); border:1px solid var(--line); border-radius:10px;
   box-shadow:0 10px 26px rgba(0,0,0,0.4);

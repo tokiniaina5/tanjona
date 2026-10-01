@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="6cba7b4b">
+<meta name="ny-asako-version" content="f94c8f71">
 <title>Ny asako — Tanjona</title>
 <!-- Application installable : le manifeste décrit le nom, l'icône et la façon
      de s'ouvrir ; le reste est affaire de service worker, enregistré plus bas. -->
@@ -136,7 +136,7 @@
 <!-- fin des écrans de démarrage iOS -->
 <link rel="icon" href="/icone-192.png" type="image/png">
 <link rel="stylesheet" href="gestion-stockage-css/base.css?v=505a9236">
-<link rel="stylesheet" href="gestion-stockage-css/components.css?v=bec02187">
+<link rel="stylesheet" href="gestion-stockage-css/components.css?v=eaec217f">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" crossorigin="anonymous"></script>
@@ -676,17 +676,6 @@
         <!-- Entré sans compte : à cette place, il n'y a pas de quoi se
              déconnecter — mais de quoi s'inscrire. -->
         <button class="btn btn-primary btn-sm" id="creerCompteBtn" style="margin-top:0.8rem;">Créer mon compte</button>
-        <!-- ⏻ Le petit menu « Herinaratra », comme celui de Windows :
-             verrouiller, mettre en veille, sortir, relancer (herinaratra.js). -->
-        <div class="menu-herinaratra">
-          <button type="button" class="btn btn-sm menu-herinaratra-btn" id="herinaratraBtn" aria-expanded="false" aria-haspopup="menu">⏻ Herinaratra</button>
-          <div class="menu-herinaratra-lisitra" id="herinaratraLisitra" role="menu" hidden>
-            <button type="button" role="menuitem" data-h="hidio" title="Verrouiller"><span aria-hidden="true">🔒</span> Hidio</button>
-            <button type="button" role="menuitem" data-h="atory" title="Mettre en veille"><span aria-hidden="true">🌙</span> Atory</button>
-            <button type="button" role="menuitem" data-h="vonoy" title="Se déconnecter"><span aria-hidden="true">⏻</span> Vonoy</button>
-            <button type="button" role="menuitem" data-h="avereno" title="Redémarrer"><span aria-hidden="true">🔄</span> Avereno</button>
-          </div>
-        </div>
         <!-- L'empreinte de la version installée. Sans elle, « c'est encore
              l'ancienne » et « c'est la nouvelle » se ressemblent trop. -->
         <div class="menu-version" id="menuVersion">version —</div>
@@ -739,6 +728,15 @@
         <p class="panneau-note" id="rechercheScanStatut" hidden></p>
         <div id="rechercheResultats" class="recherche-resultats"></div>
         <p class="panneau-note" id="rechercheVide" style="display:none;">Tsy misy hita.</p>
+      </div>
+
+      <!-- ⏻ « Herinaratra », comme le menu d'arrêt de Windows : il monte
+           au-dessus du N quand on tient le N appuyé (herinaratra.js). -->
+      <div class="panneau-flottant panneau-boite menu-herinaratra-lisitra" id="herinaratraLisitra" role="menu" aria-label="Herinaratra" hidden>
+        <button type="button" role="menuitem" data-h="hidio" title="Verrouiller"><span aria-hidden="true">🔒</span> Hidio</button>
+        <button type="button" role="menuitem" data-h="atory" title="Mettre en veille"><span aria-hidden="true">🌙</span> Atory</button>
+        <button type="button" role="menuitem" data-h="vonoy" title="Se déconnecter"><span aria-hidden="true">⏻</span> Vonoy</button>
+        <button type="button" role="menuitem" data-h="avereno" title="Redémarrer"><span aria-hidden="true">🔄</span> Avereno</button>
       </div>
 
       <!-- Petit panneau des réglages de la rangée : il monte au-dessus d'elle,
@@ -3070,7 +3068,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
 <script src="gestion-stockage-js/common.js?v=b6ef27f0"></script>
-<script src="gestion-stockage-js/herinaratra.js?v=5bb27925"></script>
+<script src="gestion-stockage-js/herinaratra.js?v=1eea6b18"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=92ad47d0"></script>
