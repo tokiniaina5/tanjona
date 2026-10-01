@@ -1614,3 +1614,21 @@ body.story-ouverte .fb-reaction-avis{ z-index:413; }
   position:relative; z-index:5; opacity:0.92; cursor:grabbing;
   box-shadow:0 12px 28px rgba(0,0,0,0.45); transition:none;
 }
+
+/* Le bord de chaque carte de story en hélice : des rubans violets et cyan
+   en biais qui courent tout autour, comme enroulés sur la carte. Un masque
+   ne garde que les 3px du bord. */
+.story-helice{
+  position:absolute; inset:0; z-index:1; pointer-events:none;
+  border-radius:inherit; padding:3px;
+  /* Un motif de 28,28px (= 40px / √2) : décalé de 40px, il retombe sur
+     lui-même ; posé en carreaux de 40px, ils se raccordent sans couture. */
+  background:repeating-linear-gradient(135deg, #a259ff 0 12px, #3ee6ff 12px 24px, #ffffff 24px 26px, #a259ff 26px 28.284px);
+  background-size:40px 40px;
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+          mask:linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  animation:story-helice 3s linear infinite;
+}
+@keyframes story-helice{ from{ background-position:0 0; } to{ background-position:40px 0; } }
+@media (prefers-reduced-motion: reduce){ .story-helice{ animation:none; } }

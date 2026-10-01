@@ -1503,6 +1503,7 @@
           (video ? '<video class="story-carte-video" src="' + escapeHtml(derniere.media) + '#t=' + ((derniere.video_debut || 0) + 0.5) + '" muted playsinline preload="metadata"' +
               ' data-debut="' + (Number(derniere.video_debut) || 0) + '" data-fin="' + (Number(derniere.video_fin) || 0) + '"></video>' +
             '<span class="story-carte-play" aria-hidden="true">▶</span>' : '') +
+          '<span class="story-helice" aria-hidden="true"></span>' +
           '<span class="story-anneau">' + avatarStory(g.photo, g.nom) + '</span>' +
           '<span class="story-nom">' + escapeHtml(g.auteur_id === monIdStory ? 'Ny story-nao' : (g.nom || 'Client')) + '</span>' +
         '</button>';
