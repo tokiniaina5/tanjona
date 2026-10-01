@@ -4137,10 +4137,11 @@
             // aria-label, pour le survol et pour qui lit à voix haute.
             '<span class="fb-like-action" data-like role="button" title="J\'aime" aria-label="J\'aime" style="cursor:pointer;">' + logoAvec(POUCE_LOGO) + '</span>' +
             '<span class="fb-comment-action fb-partager" data-comment role="button" title="Commenter" aria-label="Commenter" style="cursor:pointer;">' + BULLE_COMMENTER + '</span>' +
-            // Le panier, juste après : on met de côté ce qu'on achètera.
-            (type === 'entana'
-              ? '<span class="fb-share-action fb-partager fb-panier-action" data-panier role="button" title="Panier" aria-label="Panier" style="cursor:pointer;">' + LOGO_PANIER + '</span>'
-              : '') +
+            // Le panier, juste après : on met de côté ce qu'on achètera. Sous
+            // chaque billet, et non sous les seuls articles : une nouvelle
+            // parle souvent d'un entana, et les cinq logos restent alignés
+            // d'un billet à l'autre.
+            '<span class="fb-share-action fb-partager fb-panier-action" data-panier role="button" title="Panier" aria-label="Panier" style="cursor:pointer;">' + LOGO_PANIER + '</span>' +
             // « Acheter » n'est plus ici : on passe par le panier, qui achète
             // avec la quantité voulue (« Hividy », buyFromPost).
             '<span class="fb-share-action fb-partager" data-share role="button" title="Partager" aria-label="Partager" style="cursor:pointer;">' + FLECHE_PARTAGE + '</span>' +

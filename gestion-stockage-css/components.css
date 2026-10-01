@@ -1354,6 +1354,13 @@
 @media (max-width: 480px){
   .fb-post-actions span.fb-logo-partage{ font-size:0.95rem; }
 }
+/* Bien alignés : les cinq logos dans cinq colonnes égales, et la place de
+   « Hamafa » gardée à droite même quand il n'y est pas — d'un billet à
+   l'autre, chaque logo tombe au même endroit. */
+.fb-post-actions{ display:grid; grid-template-columns:minmax(0, 1fr) 2rem; gap:0.4rem; align-items:center; }
+.fb-actions-milieu{ display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); justify-items:center; gap:0; }
+.fb-actions-milieu > *{ justify-content:center; }
+.fb-post-actions > [data-delete-post]{ grid-column:2; margin-left:0; justify-self:end; }
 /* « Groupe » : un petit groupe de personnes sur la pastille violette. */
 .fb-logo-partage.groupe svg{ background:#8b5cf6; }
 
