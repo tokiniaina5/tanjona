@@ -1737,3 +1737,9 @@ body:not(.appli-ouverte) .story-bureau{ display:none !important; }
 
 /* 🌙 L'écran en veille : tout noir, un appui le rallume. */
 .ecran-atory{ position:fixed; inset:0; z-index:2000; background:#000; cursor:none; }
+.ecran-hidy-toro{ font-size:0.85rem; opacity:0.85; }
+.ecran-hidy-hadino{
+  border:none; background:none; color:#fff; opacity:0.7; font:inherit; font-size:0.8rem;
+  text-decoration:underline; cursor:pointer; padding:0.2rem;
+}
+.ecran-hidy-hadino:hover{ opacity:1; }
