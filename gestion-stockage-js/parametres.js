@@ -2648,6 +2648,8 @@
   // Effacer : la corbeille dans une pastille rouge, sans mot — le mot reste
   // dans title et aria-label, pour le survol et pour qui lit à voix haute.
   const LOGO_FAFANA = logoAvec('M9 3h6l1 2h4v2H4V5h4zM6 9h12l-1 11a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2z', 'fafana');
+  // « Ovay » : la même pastille, un crayon dessus.
+  const LOGO_OVAY = logoAvec('M3 17.25V21h3.75L17.81 9.94l-3.75-3.75zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75z', 'ovay');
   // Le panier : un caddie dans la pastille.
   const LOGO_PANIER = logoAvec('M3 4h2.2l2.1 10.3a2 2 0 0 0 2 1.7h7.9a2 2 0 0 0 1.9-1.4L21 8H7M10 21a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm8 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z', 'panier');
   const BULLE_COMMENTER =logoAvec('M4 4h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 4v-4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z');
@@ -2956,7 +2958,8 @@
     b.className = 'fb-comment-ovay';
     b.setAttribute('role', 'button');
     b.tabIndex = 0;
-    b.textContent = '✏️ Ovay';
+    b.innerHTML = LOGO_OVAY;
+    b.setAttribute('aria-label', 'Ovay');
     b.title = 'Ovay';
     b.addEventListener('click', function(e){
       e.stopPropagation();

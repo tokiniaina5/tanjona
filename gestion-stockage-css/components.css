@@ -818,6 +818,10 @@
   .fb-logo-partage.fafana{ margin-right:0.15em; }
   .fb-logo-partage.fafana svg{ background:var(--red, #e5484d); }
   .fb-comment-fafana .fb-logo-partage{ font-size:0.95rem; }
+  /* « Ovay » : la même pastille que « Fafana », un crayon jaune dessus. */
+  .fb-logo-partage.ovay{ margin-right:0.15em; }
+  .fb-logo-partage.ovay svg{ background:#f5a524; }
+  .fb-comment-ovay .fb-logo-partage{ font-size:0.95rem; }
   .fb-comment-fafana:hover{ text-decoration:none; }
 
   /* « J'aime » : la pastille est grise tant qu'on n'a pas aimé, bleue ensuite. */
