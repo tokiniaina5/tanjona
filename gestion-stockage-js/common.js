@@ -4956,6 +4956,13 @@
       for(const id in l){ if(l[id] === cle) return document.getElementById(id); }
       return null;
     }
+    // Un panneau est ouvert quand son entrée du menu le dit (aria-expanded).
+    // Une entrée sans cet état (Chrome, Edge…) n'ouvre rien qui reste :
+    // elle n'a pas d'icône en automatique.
+    function panneauOuvert(cle){
+      const entree = entreeDe(cle);
+      return !!(entree && entree.getAttribute('aria-expanded') === 'true');
+    }
     function elaguer(){
       if(lireMode() !== 'auto') return;
       const liste = lireEpingles();
@@ -4964,6 +4971,7 @@
       const gardees = liste.filter(function(e){
         const bouton = rangee.querySelector('[data-epingle="' + e.cle + '"]');
         if(bouton && bouton.classList.contains('reduite')) return true;
+        if(panneauOuvert(e.cle)) return true;
         const page = pageDeLaCle(e.cle);
         if(page && page.classList.contains('active')) return true;
         if(bouton) bouton.remove();
@@ -4989,6 +4997,17 @@
         const bouton = document.getElementById(f[0]);
         if(!bouton || surLeFond('fixe:' + f[0])) return;
         bouton.style.display = (f[1]() || bouton.classList.contains('reduite')) ? '' : 'none';
+      });
+      // Les panneaux (cloche, lune, achats, livraison…) aussi : leur icône
+      // paraît tant qu'ils sont ouverts. Leur entrée le dit elle-même
+      // (aria-expanded).
+      entreesEpinglables().forEach(function(entree){
+        const cle = cleDe(entree);
+        // Écrire et l'Accueil ont déjà leur bouton fixe (le crayon, la maison).
+        if(JUMEAUX[entree.id] || !panneauOuvert(cle) || surLeFond(cle)) return;
+        if(gardees.some(function(e){ return e.cle === cle; })) return;
+        gardees.push({ cle: cle, vu: Date.now() });
+        poser(cle);
       });
       if(retirees.length) ecrireRetireesAuto(retirees);
       if(gardees.length !== liste.length || gardees.some(function(e, i){ return !liste[i] || liste[i].cle !== e.cle; })){
