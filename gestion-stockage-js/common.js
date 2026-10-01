@@ -4634,9 +4634,6 @@
     if(!rangee) return;
     const CLE = 'stockmanager_barre_epingles';
     const CLE_MODE = 'stockmanager_barre_mode';
-    // Six icônes tiennent sur la largeur d'un téléphone sans qu'il faille tirer
-    // la rangée : c'est la limite du mode automatique.
-    const GARDEES = 6;
 
     // Chaque épingle retient sa dernière visite : c'est elle qui décide, en
     // automatique, laquelle cède la place.
@@ -4945,28 +4942,54 @@
     // récemment restent. À égalité — jamais servies —, l'ordre du menu
     // départage : ce qui y vient en tête est ce qui compte le plus.
     // En manuel, rien ne part sans qu'on le dise.
+    // En automatique, la rangée ne montre que ce qui est ouvert, comme la
+    // barre des tâches d'un ordinateur : une page s'ouvre, son icône paraît ;
+    // on la ferme, l'icône s'en va. Une page réduite garde la sienne (elle
+    // clignote). Plus de « six dernières » : ce qui n'est pas ouvert n'y est
+    // pas.
+    function pageDeLaCle(cle){
+      if(cle.indexOf('section:') === 0) return document.getElementById('section-' + cle.slice(8));
+      const connues = { 'id:menuArticles': 'dash-articles', 'id:menuTableauBord': 'dash-dashboard',
+        'id:menuCommun': 'dash-commun', 'id:menuCommunAdmin': 'dash-communadmin' };
+      if(connues[cle]) return document.getElementById(connues[cle]);
+      const l = lirePageIcone();
+      for(const id in l){ if(l[id] === cle) return document.getElementById(id); }
+      return null;
+    }
     function elaguer(){
       if(lireMode() !== 'auto') return;
-      let liste = lireEpingles();
-      if(liste.length <= GARDEES) return;
-      const usages = lireUsages();
-      liste.sort(function(a, b){
-        const ecart = (usages[b.cle] || 0) - (usages[a.cle] || 0);
-        return ecart !== 0 ? ecart : rangDansLeMenu(a.cle) - rangDansLeMenu(b.cle);
-      });
+      const liste = lireEpingles();
       // Ce qu'il retire, il le retient : revenu en manuel, on le retrouve.
-      // Sans cela, passer en automatique puis revenir laissait six icônes
-      // sur vingt-sept, et rien ne disait où étaient passées les autres.
       const retirees = lireRetireesAuto();
-      liste.slice(GARDEES).forEach(function(e){
+      const gardees = liste.filter(function(e){
         const bouton = rangee.querySelector('[data-epingle="' + e.cle + '"]');
+        if(bouton && bouton.classList.contains('reduite')) return true;
+        const page = pageDeLaCle(e.cle);
+        if(page && page.classList.contains('active')) return true;
         if(bouton) bouton.remove();
         if(retirees.indexOf(e.cle) < 0) retirees.push(e.cle);
+        return false;
       });
-      ecrireRetireesAuto(retirees);
-      ecrireEpingles(liste.slice(0, GARDEES));
+      // Les pages ouvertes qui n'ont pas encore leur icône la reçoivent —
+      // celle rouverte au démarrage, par exemple, sans passer par le menu.
+      [].forEach.call(document.querySelectorAll('.fenetre-page.active'), function(page){
+        if(!page.id || page.id === 'dash-accueil') return;
+        const cle = cleDeLaPage(page.id) || lirePageIcone()[page.id];
+        if(!cle || surLeFond(cle) || !entreeDe(cle)) return;
+        if(gardees.some(function(e){ return e.cle === cle; })) return;
+        gardees.push({ cle: cle, vu: Date.now() });
+        poser(cle);
+      });
+      if(retirees.length) ecrireRetireesAuto(retirees);
+      if(gardees.length !== liste.length || gardees.some(function(e, i){ return !liste[i] || liste[i].cle !== e.cle; })){
+        ecrireEpingles(gardees);
+      }
       mesurer();
     }
+    // Une page s'ouvre ou se ferme de bien des façons (menu, icône, croix,
+    // retour au démarrage) : la rangée se remet d'accord avec l'écran toutes
+    // les secondes, plutôt que de compter sur chacune.
+    setInterval(function(){ if(lireMode() === 'auto' && !document.hidden) elaguer(); }, 1000);
     const CLE_RETIREES_AUTO = 'stockmanager_barre_retirees_auto';
     function lireRetireesAuto(){
       try{ const l = JSON.parse(localStorage.getItem(CLE_RETIREES_AUTO)); return Array.isArray(l) ? l : []; }
@@ -5070,7 +5093,7 @@
       if(note){
         note.textContent = mode === 'manuel'
           ? "Ianao no manala : tsindrio ny ✕ eo amin'ny sary."
-          : "Ny sary " + GARDEES + " farany nampiasainao no mijanona ; ny hafa miala ho azy, ary miala koa ny an'ny pejy hidinao amin'ny ✕.";
+          : "Ny sarin'ny pejy misokatra ihany no eo ; miala izy rehefa hidinao amin'ny ✕ ilay pejy.";
       }
     }
 
