@@ -2820,7 +2820,16 @@
       document.addEventListener('click', function(e){
         if(menuReactions && !menuReactions.hidden && !menuReactions.contains(e.target)) cacherReactions();
       });
-      window.addEventListener('scroll', cacherReactions, { passive: true, capture: true });
+      // Se referme quand le billet bouge sous lui (la page ou la fenêtre qui
+      // défile), et non au moindre défilement : la rangée des stories et
+      // les images des liens glissent d'elles-mêmes, et le menu se
+      // refermait à peine ouvert.
+      window.addEventListener('scroll', function(e){
+        if(!menuPour) return;
+        const t = e.target;
+        if(t === document || t === document.documentElement || t === document.body ||
+          (t && t.contains && t.contains(menuPour.el))) cacherReactions();
+      }, { passive: true, capture: true });
       document.body.appendChild(menuReactions);
     }
     menuPour = { el: el, cle: cle };
