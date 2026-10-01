@@ -1563,15 +1563,6 @@ body.story-ouverte .fb-reaction-avis{ z-index:413; }
 /* Une carte de story qu'on tient pour la déplacer : soulevée, devant les
    autres. Pas de sélection ni de menu d'image au doigt long. */
 .story-carte{ -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
-/* Envoyer une story depuis le haut, sans remonter la rangée jusqu'au « + ». */
-.story-alefa-bar{ display:flex; justify-content:flex-start; margin:0 0 0.5rem; }
-.story-alefa-haut{
-  display:inline-flex; align-items:center; gap:0.45rem;
-  border:1px solid var(--line); border-radius:999px; padding:0.45rem 0.95rem;
-  background:var(--panel); color:var(--text); font:inherit; font-size:0.85rem; font-weight:600;
-  cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.15);
-}
-.story-alefa-haut:hover{ border-color:var(--cyan); }
 /* La rangée pleine : deux flèches pour la faire glisser. */
 .story-cadre{ position:relative; }
 .story-fleche{
@@ -1581,7 +1572,10 @@ body.story-ouverte .fb-reaction-avis{ z-index:413; }
   box-shadow:0 2px 8px rgba(0,0,0,0.35);
 }
 .story-fleche[hidden]{ display:none; }
-.story-fleche-g{ left:4px; }
+/* « Hanampy story » reste en tête quand la rangée défile ; la flèche de
+   gauche se pose juste après lui. */
+.story-rangee .story-ajouter{ position:sticky; left:0; z-index:4; }
+.story-fleche-g{ left:calc(92px + 0.55rem + 4px); }
 .story-fleche-d{ right:4px; }
 .story-rangee.story-glisse{ cursor:grabbing; }
 .story-carte.story-tiree{

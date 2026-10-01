@@ -2228,8 +2228,8 @@
     }, Promise.resolve([])).then(function(elements){ return { elements: elements, erreurs: erreurs }; });
   }
 
-  // Choisir sary, video ou clip (plusieurs d'un coup) : depuis le « + » de la
-  // rangée comme depuis le bouton du haut.
+  // Choisir sary, video ou clip (plusieurs d'un coup) depuis le « + » de la
+  // rangée.
   function choisirFichiersStory(bouton){
     sessionStory().then(function(session){
       if(!session){ direPresDuBouton(bouton, 'Midira amin\'ny tenimiafinao aloha vao afaka mametraka story.'); return; }
@@ -2302,8 +2302,6 @@
   if(storyRangee){
     armerDeplacementStories();
     armerDefilementStories();
-    const alefaHaut = document.getElementById('storyAlefaHaut');
-    if(alefaHaut) alefaHaut.addEventListener('click', function(){ choisirFichiersStory(alefaHaut); });
     storyRangee.addEventListener('click', function(e){
       // Le relâché d'un déplacement n'est pas un appui : rien ne s'ouvre.
       if(storyRangee.__vientDeTirer){ storyRangee.__vientDeTirer = false; e.preventDefault(); return; }
