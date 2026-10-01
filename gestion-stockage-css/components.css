@@ -1345,11 +1345,17 @@
     text-shadow: none;
   }
 
-/* Les logos des actions (J'aime, Commenter, Panier, Partager, Rehetra) :
-   plus grands que le mot qui les suit, qui garde sa taille. En fin de
-   fichier, pour passer devant les « font-size:inherit » des actions. */
-.fb-post-actions span.fb-logo-partage{ font-size:1.2rem; }
-.fb-post-actions .fb-logo-maison{ width:1.6rem; height:1.6rem; }
+/* Les logos des actions (J'aime, Commenter, Panier, Partager, Groupe) : un
+   peu plus grands que le mot qui les suit, sans plus. Au double, ils
+   écrasaient la ligne sur un téléphone et la faisaient passer sur deux. En
+   fin de fichier, pour passer devant les « font-size:inherit » des actions. */
+.fb-post-actions span.fb-logo-partage{ font-size:0.95rem; }
+.fb-post-actions .fb-logo-maison{ width:1.25rem; height:1.25rem; }
+@media (max-width: 480px){
+  .fb-post-actions span.fb-logo-partage{ font-size:0.85rem; }
+  .fb-post-actions .fb-logo-maison{ width:1.1rem; height:1.1rem; }
+  .fb-actions-milieu{ gap:0.5rem 0.3rem; }
+}
 
 /* Le logo du menu, au bord gauche de la rangée : il remplit sa tuile, comme
    celui du bouton flottant, au lieu d'un petit N au milieu d'un carré. */
