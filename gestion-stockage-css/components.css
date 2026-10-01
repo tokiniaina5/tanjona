@@ -1345,17 +1345,17 @@
     text-shadow: none;
   }
 
-/* Les logos des actions (J'aime, Commenter, Panier, Partager, Groupe) : un
-   peu plus grands que le mot qui les suit, sans plus. Au double, ils
-   écrasaient la ligne sur un téléphone et la faisaient passer sur deux. En
-   fin de fichier, pour passer devant les « font-size:inherit » des actions. */
-.fb-post-actions span.fb-logo-partage{ font-size:0.95rem; }
-.fb-post-actions .fb-logo-maison{ width:1.25rem; height:1.25rem; }
+/* Les actions d'un billet (J'aime, Commenter, Panier, Partager, Groupe) :
+   le logo seul, sans le mot, à taille normale — au double, ils écrasaient
+   la ligne sur un téléphone. Rien ne suit le logo : pas de marge à droite.
+   En fin de fichier, pour passer devant les « font-size:inherit ». */
+.fb-post-actions span.fb-logo-partage{ font-size:1.05rem; margin-right:0; }
+.fb-post-actions .fb-like-action .fb-logo-partage{ margin-right:0; }
 @media (max-width: 480px){
-  .fb-post-actions span.fb-logo-partage{ font-size:0.85rem; }
-  .fb-post-actions .fb-logo-maison{ width:1.1rem; height:1.1rem; }
-  .fb-actions-milieu{ gap:0.5rem 0.3rem; }
+  .fb-post-actions span.fb-logo-partage{ font-size:0.95rem; }
 }
+/* « Groupe » : un petit groupe de personnes sur la pastille violette. */
+.fb-logo-partage.groupe svg{ background:#8b5cf6; }
 
 /* Le logo du menu, au bord gauche de la rangée : il remplit sa tuile, comme
    celui du bouton flottant, au lieu d'un petit N au milieu d'un carré. */

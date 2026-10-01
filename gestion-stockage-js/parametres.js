@@ -2650,6 +2650,8 @@
   const LOGO_FAFANA = logoAvec('M9 3h6l1 2h4v2H4V5h4zM6 9h12l-1 11a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2z', 'fafana');
   // « Ovay » : la même pastille, un crayon dessus.
   const LOGO_OVAY = logoAvec('M3 17.25V21h3.75L17.81 9.94l-3.75-3.75zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75z', 'ovay');
+  // « Groupe » : la pastille, un petit groupe de personnes dessus.
+  const LOGO_GROUPE = logoAvec('M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm-8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm0 2c-2.7 0-8 1.3-8 4v3h16v-3c0-2.7-5.3-4-8-4zm8 0c-.3 0-.7 0-1.1.1 1.3.9 2.1 2.1 2.1 3.9v3h7v-3c0-2.7-5.3-4-8-4z', 'groupe');
   // Le panier : un caddie dans la pastille.
   const LOGO_PANIER = logoAvec('M3 4h2.2l2.1 10.3a2 2 0 0 0 2 1.7h7.9a2 2 0 0 0 1.9-1.4L21 8H7M10 21a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm8 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z', 'panier');
   const BULLE_COMMENTER =logoAvec('M4 4h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 4v-4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z');
@@ -2730,9 +2732,16 @@
     // Le bouton dit ce qu'on a choisi ; le nombre vit à côté, et disparaît
     // quand il n'y a rien à compter.
     const r = info.mine ? reactionDe(info.mine) : null;
+    // Sous un billet, le logo (ou le visage choisi) sans le mot ; sous un
+    // commentaire, qui n'a pas de logo, le mot reste.
     el.innerHTML = (r && r.id !== 'like')
-      ? '<span class="fb-reaction-emoji">' + visage(r) + '</span><span>' + r.nom + '</span>'
-      : (s.pouce ? logoAvec(POUCE_LOGO, r ? 'aime' : '') : '') + '<span>J\'aime</span>';
+      ? '<span class="fb-reaction-emoji">' + visage(r) + '</span>' + (s.pouce ? '' : '<span>' + r.nom + '</span>')
+      : (s.pouce ? logoAvec(POUCE_LOGO, r ? 'aime' : '') : '<span>J\'aime</span>');
+    if(s.pouce){
+      const mot = r ? r.nom : 'J\'aime';
+      el.title = mot;
+      el.setAttribute('aria-label', mot);
+    }
     el.classList.toggle('liked', !!r);
     el.style.color = r ? r.couleur : '';
 
@@ -4124,20 +4133,22 @@
             // au bord droit (components.css, « .fb-actions-milieu »).
             '<div class="fb-post-actions">' +
             '<div class="fb-actions-milieu">' +
-            '<span class="fb-like-action" data-like style="cursor:pointer;">' + logoAvec(POUCE_LOGO) + '<span>J\'aime</span></span>' +
-            '<span class="fb-comment-action fb-partager" data-comment style="cursor:pointer;">' + BULLE_COMMENTER + '<span>Commenter</span></span>' +
+            // Le logo seul, sans le mot : le mot reste dans title et
+            // aria-label, pour le survol et pour qui lit à voix haute.
+            '<span class="fb-like-action" data-like role="button" title="J\'aime" aria-label="J\'aime" style="cursor:pointer;">' + logoAvec(POUCE_LOGO) + '</span>' +
+            '<span class="fb-comment-action fb-partager" data-comment role="button" title="Commenter" aria-label="Commenter" style="cursor:pointer;">' + BULLE_COMMENTER + '</span>' +
             // Le panier, juste après : on met de côté ce qu'on achètera.
             (type === 'entana'
-              ? '<span class="fb-share-action fb-partager fb-panier-action" data-panier style="cursor:pointer;">' + LOGO_PANIER + '<span>Panier</span></span>'
+              ? '<span class="fb-share-action fb-partager fb-panier-action" data-panier role="button" title="Panier" aria-label="Panier" style="cursor:pointer;">' + LOGO_PANIER + '</span>'
               : '') +
             // « Acheter » n'est plus ici : on passe par le panier, qui achète
             // avec la quantité voulue (« Hividy », buyFromPost).
-            '<span class="fb-share-action fb-partager" data-share style="cursor:pointer;">' + FLECHE_PARTAGE + '<span>Partager</span></span>' +
+            '<span class="fb-share-action fb-partager" data-share role="button" title="Partager" aria-label="Partager" style="cursor:pointer;">' + FLECHE_PARTAGE + '</span>' +
             // La feuille de WhatsApp coche cinq personnes et s'arrête là.
             // Celui-ci passe par la liste des clients (zara-rehetra.js) :
             // tout cocher d'un coup, sans plafond.
-            '<span class="fb-share-action fb-partager" data-share-all style="cursor:pointer;">' +
-              '<img class="fb-logo-maison" src="/icone-192.png" alt="" aria-hidden="true" draggable="false"><span>Groupe</span></span>' +
+            '<span class="fb-share-action fb-partager" data-share-all role="button" title="Groupe" aria-label="Groupe" style="cursor:pointer;">' +
+              LOGO_GROUPE + '</span>' +
             '</div>' +
             // Effacer n'est offert qu'à qui a écrit le billet : l'adresse du
             // billet est celle du compte. La base dit la même chose de son
