@@ -4980,14 +4980,16 @@
         gardees.push({ cle: cle, vu: Date.now() });
         poser(cle);
       });
-      // Le crayon (« Écrire ») suit la même règle : là tant que la boîte
-      // d'écriture est ouverte ou réduite, parti quand on la ferme à sa ✕.
-      const crayon = document.getElementById('barComposer');
-      if(crayon && !surLeFond('fixe:barComposer')){
-        const boite = document.getElementById('fbComposer');
-        const ouverte = (boite && getComputedStyle(boite).display !== 'none') || crayon.classList.contains('reduite');
-        crayon.style.display = ouverte ? '' : 'none';
-      }
+      // Le crayon (« Écrire ») et la maison (« Botika ») suivent la même
+      // règle : là tant que leur fenêtre est ouverte ou réduite, partis quand
+      // on la ferme à sa ✕.
+      [['barComposer', function(){ const b = document.getElementById('fbComposer'); return b && getComputedStyle(b).display !== 'none'; }],
+       ['barAccueil', function(){ const v = document.getElementById('dash-accueil'); return v && v.classList.contains('active'); }]
+      ].forEach(function(f){
+        const bouton = document.getElementById(f[0]);
+        if(!bouton || surLeFond('fixe:' + f[0])) return;
+        bouton.style.display = (f[1]() || bouton.classList.contains('reduite')) ? '' : 'none';
+      });
       if(retirees.length) ecrireRetireesAuto(retirees);
       if(gardees.length !== liste.length || gardees.some(function(e, i){ return !liste[i] || liste[i].cle !== e.cle; })){
         ecrireEpingles(gardees);
@@ -5150,11 +5152,13 @@
           // ramène à six. Le retour en manuel rend ce qu'il avait retiré.
           if(b.dataset.mode === 'manuel' && avant === 'auto'){
             rendreLesRetireesAuto();
-            // Le crayon reprend sa place, sauf si on l'avait retiré soi-même
-            // à sa croix, ou posé sur le fond.
-            const crayon = document.getElementById('barComposer');
-            if(crayon) crayon.style.display =
-              (lireRetirees().indexOf('barComposer') >= 0 || surLeFond('fixe:barComposer')) ? 'none' : '';
+            // Le crayon et la maison reprennent leur place, sauf si on les
+            // avait retirés soi-même à leur croix, ou posés sur le fond.
+            ['barComposer', 'barAccueil'].forEach(function(id){
+              const bouton = document.getElementById(id);
+              if(bouton) bouton.style.display =
+                (lireRetirees().indexOf(id) >= 0 || surLeFond('fixe:' + id)) ? 'none' : '';
+            });
           }
           elaguer();
           mesurer();
