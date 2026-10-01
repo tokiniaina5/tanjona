@@ -45,6 +45,15 @@
   .bk-carte-nom{ font-size:0.82rem; font-weight:600; line-height:1.3; overflow:hidden;
     display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
   .bk-carte-prix{ font-size:0.85rem; font-weight:700; color:var(--cyan); margin-top:auto; }
+  /* Les sary du site au bout d'un lien : tous, en rangée qu'on fait glisser.
+     Une bannière, une icône ou une image refusée s'efface d'elle-même. */
+  .bk-apercu{ display:flex; gap:6px; overflow-x:auto; margin-top:0.6rem; scrollbar-width:thin; overscroll-behavior-x:contain; }
+  .bk-apercu:empty{ display:none; }
+  .bk-apercu a{ flex:0 0 auto; display:block; }
+  .bk-apercu img{
+    width:150px; height:150px; object-fit:cover; display:block; border-radius:10px;
+    background:var(--panel-2); transition:opacity 0.2s;
+  }
 </style>
 </head>
 <body>
@@ -156,7 +165,8 @@
         sary +
         (n.price ? '<div class="fb-post-price">' + ariary(n.price) + '</div>' : '') +
         (n.link && /^https?:\/\//i.test(n.link)
-          ? '<a href="' + echap(n.link) + '" target="_blank" rel="noopener" class="fb-post-link">🔗 ' + echap(n.link) + '</a>'
+          ? '<div class="bk-apercu" data-lien="' + echap(n.link) + '"></div>' +
+            '<a href="' + echap(n.link) + '" target="_blank" rel="noopener" class="fb-post-link">🔗 ' + echap(n.link) + '</a>'
           : '') +
         // Acheter demande un compte : c'est une commande, elle doit porter un
         // nom. Le bouton mène donc à l'entrée, et non à un panier anonyme.
@@ -167,11 +177,83 @@
       return div;
   }
 
+  // ---- Les sary au bout d'un lien ----
+  // La fonction « apercu » (supabase/functions/apercu) lit la page du site et
+  // en rapporte les images ; on les montre toutes, en rangée. Une à la fois,
+  // les adresses : trente appels ensemble feraient attendre les trente. Ce
+  // qu'on a reçu se garde un jour sur l'appareil.
+  var APERCU_CLE = 'bk-apercus', APERCU_JOUR = 24 * 60 * 60 * 1000;
+  function apercusGardes() {
+    try { return JSON.parse(localStorage.getItem(APERCU_CLE)) || {}; } catch (e) { return {}; }
+  }
+  function garderApercu(url, images) {
+    try {
+      var tous = apercusGardes();
+      tous[url] = { images: images, le: Date.now() };
+      var cles = Object.keys(tous);
+      if (cles.length > 100) {
+        cles.sort(function (a, b) { return tous[a].le - tous[b].le; });
+        cles.slice(0, cles.length - 100).forEach(function (k) { delete tous[k]; });
+      }
+      localStorage.setItem(APERCU_CLE, JSON.stringify(tous));
+    } catch (e) {}
+  }
+  // Une photo d'entana est à peu près carrée et assez grande ; une bande
+  // large est une bannière, un petit carré une icône (comme parametres.js).
+  function formeBonne(img) {
+    var l = img.naturalWidth, h = img.naturalHeight;
+    return l >= 120 && h >= 120 && l / h <= 1.8 && h / l <= 1.8;
+  }
+  function poserApercu(cadre, images) {
+    var lien = cadre.getAttribute('data-lien');
+    cadre.innerHTML = images.map(function (src) {
+      return '<a href="' + echap(lien) + '" target="_blank" rel="noopener">' +
+        '<img src="' + echap(src) + '" alt="" loading="lazy" referrerpolicy="no-referrer" style="opacity:0"></a>';
+    }).join('');
+    [].forEach.call(cadre.querySelectorAll('img'), function (img) {
+      img.addEventListener('load', function () {
+        if (formeBonne(img)) img.style.opacity = '1';
+        else img.parentNode.remove();
+      });
+      img.addEventListener('error', function () { img.parentNode.remove(); });
+    });
+  }
+  // Trois adresses à la fois : une à une, trente sites faisaient attendre
+  // les derniers près d'une minute ; toutes ensemble, les premières aussi.
+  var APERCU_ENSEMBLE = 3, enVol = {};
+  function chercherApercus() {
+    var cadres = document.querySelectorAll('.bk-apercu[data-lien]:not([data-fait])');
+    for (var i = 0; i < cadres.length && Object.keys(enVol).length < APERCU_ENSEMBLE; i++) {
+      var url = cadres[i].getAttribute('data-lien');
+      if (!enVol[url]) demanderApercu(url);
+    }
+  }
+  function demanderApercu(url) {
+    var memes = function () {
+      return document.querySelectorAll('.bk-apercu[data-lien="' + (window.CSS && CSS.escape ? CSS.escape(url) : url) + '"]:not([data-fait])');
+    };
+    var poser = function (images) {
+      [].forEach.call(memes(), function (c) { c.setAttribute('data-fait', ''); poserApercu(c, images); });
+    };
+    var garde = apercusGardes()[url];
+    if (garde && Date.now() - garde.le < APERCU_JOUR) { poser(garde.images || []); chercherApercus(); return; }
+    if (!window.__sb || !window.__sb.functions) { poser([]); return; }
+    enVol[url] = true;
+    var fini = function (images) { delete enVol[url]; poser(images); chercherApercus(); };
+    window.__sb.functions.invoke('apercu', { body: { url: url } }).then(function (res) {
+      var a = res && res.data && !res.data.error ? res.data : null;
+      var images = (a && (a.images || (a.image ? [a.image] : []))) || [];
+      garderApercu(url, images);
+      fini(images);
+    }, function () { fini([]); });
+  }
+
   function dessiner(lignes) {
     var fil = $('bkFil');
     $('bkVide').style.display = lignes.length ? 'none' : '';
     fil.innerHTML = '';
     lignes.forEach(function (n) { fil.appendChild(carteBillet(n)); });
+    chercherApercus();
     if (vise) {
       var el = fil.querySelector('.bk-visee');
       if (el && el.scrollIntoView) el.scrollIntoView({ block: 'center' });
