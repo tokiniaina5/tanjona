@@ -316,7 +316,10 @@
     var q = window.__sb.from('client_news').select(COLONNES).gte('created_at', depuis);
     if (enLigne) q = q.is('deleted_at', null);
     if (entanaSeuls) q = q.eq('type', 'entana');
-    return q.order('created_at', { ascending: false }).limit(entanaSeuls ? 60 : 30);
+    // Tout ce qui vit encore, et non les trente derniers : rien ne doit
+    // rester caché ici. Mille est le plafond d'une lecture chez Supabase ; en
+    // trente jours, le fil n'en approche pas.
+    return q.order('created_at', { ascending: false }).limit(1000);
   }
   function demander(entanaSeuls) {
     return requete(true, entanaSeuls)
@@ -324,9 +327,8 @@
   }
 
   // ---- La vitrine ----
-  // Le fil ne montre que les trente derniers billets : les directs et les
-  // nouvelles y poussaient les articles dehors. La vitrine, elle, ne montre
-  // qu'eux, tous ceux qui sont en vente.
+  // Les articles en vente, à part : dans le fil, les directs et les nouvelles
+  // les noient. La vitrine ne montre qu'eux, tous ceux qui sont en vente.
   var VIDEO = /\.(mp4|webm|mov|m4v|ogv)(\?|$)/i;
 
   // Le nom de l'article : la ligne « 📦 … » de sa fiche (parametres.js), et
@@ -340,8 +342,8 @@
   }
 
   // Un appui sur la vitrine mène à l'annonce : là sont la fiche entière et le
-  // bouton pour acheter. Absente du fil (trop ancienne pour les trente
-  // derniers), elle y est posée en tête.
+  // bouton pour acheter. Absente du fil (redessiné entre-temps), elle y est
+  // posée en tête.
   function montrerLAnnonce(n) {
     var fil = $('bkFil');
     var el = document.getElementById('bk-' + n.id);
