@@ -678,27 +678,24 @@
   // le fil de la Botika, sous la marque, sans attendre que la machine
   // (vaovao-boutique) la tire à son tour. Le même geste sert aux boutiques
   // et aux transporteurs.
-  function brancherLEnregistrement(sorte, idBouton, idNom, idUrl){
+  //
+  // On ne tape que le nom : pas d'adresse à chercher ni à recopier. La carte
+  // mène à la recherche de ce nom, et c'est le nom qu'on y lit.
+  function brancherLEnregistrement(sorte, idBouton, idNom){
     const bouton = document.getElementById(idBouton);
     if(!bouton) return;
     const conf = LES_SIENS[sorte];
     bouton.addEventListener('click', function(){
       const champNom = document.getElementById(idNom);
-      const champUrl = document.getElementById(idUrl);
       const name = champNom.value.trim();
-      let url = champUrl.value.trim();
       if(!name){ champNom.focus(); return; }
-      if(!url){ champUrl.focus(); return; }
-      // « dhgate.com » tapé sans rien devant ouvrirait une page de ce site-ci.
-      if(!/^https?:\/\//i.test(url)) url = 'https://' + url;
-      try{ new URL(url); }catch(e){ alert('Tsy mety ny lien.'); champUrl.focus(); return; }
+      const url = 'https://www.google.com/search?q=' + encodeURIComponent(name);
       if(!window.__sb){ alert('Tsy misy fifandraisana amin\'ny serveur.'); return; }
       bouton.disabled = true;
       window.__sb.from(conf.table).insert({ name: name, url: url }).select('id')
         .then(function(res){
           if(!res || res.error){ throw (res && res.error) || new Error('refus'); }
           champNom.value = '';
-          champUrl.value = '';
           redessiner(sorte);
           return window.__sb.from('client_news').insert({
             client_name: MARQUE_NOM, network: conf.reseau,
@@ -715,8 +712,8 @@
           function(){ bouton.disabled = false; alert('Tsy voatahiry : ny tompon\'ny Botika ihany no afaka manampy.'); });
     });
   }
-  brancherLEnregistrement('boutique', 'addMarketBtn', 'newMarketName', 'newMarketUrl');
-  brancherLEnregistrement('livraison', 'addLivraisonBtn', 'newLivraisonName', 'newLivraisonUrl');
+  brancherLEnregistrement('boutique', 'addMarketBtn', 'newMarketName');
+  brancherLEnregistrement('livraison', 'addLivraisonBtn', 'newLivraisonName');
 
   // Le portrait complet pèse des dizaines de kilo-octets. Recopié sur chaque
   // publication, il alourdirait le fil d'autant de fois qu'il y a de billets,
@@ -3730,6 +3727,16 @@
   // pas de cadre du tout.
   const APERCU_IMAGES = 3;
 
+  // Une boutique enregistrée par son seul nom mène à la recherche de ce nom
+  // (brancherLEnregistrement) : sa carte doit dire ce nom, et non « google.com ».
+  function nomRecherche(url){
+    try{
+      const u = new URL(url);
+      if(!/(^|\.)google\.[a-z.]+$/i.test(u.hostname) || u.pathname !== '/search') return '';
+      return (u.searchParams.get('q') || '').trim();
+    }catch(e){ return ''; }
+  }
+
   function dessinerLApercu(cadre, apercu){
     const url = cadre.getAttribute('data-apercu');
     // Le nom imposé l'emporte : dans la liste des boutiques, on sait comment
@@ -3740,8 +3747,9 @@
     // Les vignettes de la liste des boutiques sont plus basses que celles du
     // fil : trente cartes à la hauteur d'un billet, c'est un couloir.
     const haut = Number(cadre.getAttribute('data-apercu-haut')) || 120;
-    const toutes = ((apercu && apercu.images) || (apercu && apercu.image ? [apercu.image] : []))
-      .filter(Boolean);
+    // Une page de recherche n'a d'images que celles du moteur : rien à montrer.
+    const toutes = nomRecherche(url) ? [] :
+      ((apercu && apercu.images) || (apercu && apercu.image ? [apercu.image] : [])).filter(Boolean);
     // Toute la réserve reste attachée au cadre : c'est elle qui tourne.
     cadre.__images = toutes;
     cadre.__tour = 0;
@@ -4228,6 +4236,7 @@
               : (lienDuBillet
                 ? '<a href="' + escapeHtml(lienDuBillet) + '" target="_blank" rel="noopener" ' +
                   'data-apercu="' + escapeHtml(lienDuBillet) + '" data-apercu-attendu ' +
+                  (nomRecherche(lienDuBillet) ? 'data-apercu-nom="' + escapeHtml(nomRecherche(lienDuBillet)) + '" ' : '') +
                   'style="display:block; margin-top:0.6rem; border:1px solid var(--line); ' +
                   'border-radius:10px; overflow:hidden; text-decoration:none; color:inherit;"></a>'
                 : '')) +
