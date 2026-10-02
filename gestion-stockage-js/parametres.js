@@ -3763,6 +3763,33 @@
     }catch(e){ return ''; }
   }
 
+  // Une carte sans image — boutique qui n'en donne pas, ou enregistrée par son
+  // seul nom et menant à une recherche — n'était qu'une ligne de texte dans un
+  // cadre vide. Elle a désormais son affiche : le nom en grand sur un fond
+  // dont la couleur vient du nom lui-même, toujours la même pour le même nom.
+  function afficheDuNom(nom, taille){
+    const texte = String(nom || '?');
+    let h = 0;
+    for(let i = 0; i < texte.length; i++) h = (h * 31 + texte.charCodeAt(i)) >>> 0;
+    const teinte = h % 360;
+    const lettres = texte.length > 14 ? 26 : texte.length > 8 ? 34 : 44;
+    const svg =
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100" preserveAspectRatio="xMidYMid slice" ' +
+        'style="width:100%; height:100%; display:block;" aria-hidden="true">' +
+        '<defs><linearGradient id="g' + h + '" x1="0" y1="0" x2="1" y2="1">' +
+          '<stop offset="0" stop-color="hsl(' + teinte + ',70%,45%)"/>' +
+          '<stop offset="1" stop-color="hsl(' + ((teinte + 40) % 360) + ',75%,30%)"/>' +
+        '</linearGradient></defs>' +
+        '<rect width="200" height="100" fill="url(#g' + h + ')"/>' +
+        '<circle cx="175" cy="15" r="40" fill="#fff" opacity="0.08"/>' +
+        '<circle cx="20" cy="95" r="30" fill="#fff" opacity="0.06"/>' +
+        '<text x="100" y="50" text-anchor="middle" dominant-baseline="central" fill="#fff" ' +
+          'font-family="system-ui, sans-serif" font-weight="700" font-size="' + (lettres * 0.5) + '">' +
+          escapeHtml(texte.slice(0, 22)) + '</text>' +
+      '</svg>';
+    return '<div style="' + taille + ' overflow:hidden;">' + svg + '</div>';
+  }
+
   function dessinerLApercu(cadre, apercu){
     const url = cadre.getAttribute('data-apercu');
     // Le nom imposé l'emporte : dans la liste des boutiques, on sait comment
@@ -3796,6 +3823,9 @@
     // côte et échangent leurs places à chaque tour.
     const seule = grand || toutes.length === 1;
     cadre.innerHTML =
+      (!images.length
+        ? afficheDuNom(site, grand ? 'aspect-ratio:2 / 1;' : 'height:' + Math.round(haut * 1.8) + 'px;')
+        : '') +
       (images.length
         ? (seule
           ? '<div data-rang="0" data-seule style="' + (grand ? 'aspect-ratio:1 / 1;' : 'height:' + Math.round(haut * 1.8) + 'px;') + '">' +
