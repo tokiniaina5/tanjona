@@ -5999,6 +5999,7 @@
       { nom: 'Amazon', url: 'https://www.amazon.fr/s?k=' },
       { nom: 'AliExpress', url: 'https://www.aliexpress.com/wholesale?SearchText=' },
       { nom: 'Alibaba', url: 'https://www.alibaba.com/trade/search?SearchText=' },
+      { nom: 'Pinduoduo', url: 'https://mobile.yangkeduo.com/search_result.html?search_key=' },
       { nom: 'eBay', url: 'https://www.ebay.fr/sch/i.html?_nkw=' },
       { nom: 'SHEIN', url: 'https://www.shein.com/pdsearch/' }
     ];

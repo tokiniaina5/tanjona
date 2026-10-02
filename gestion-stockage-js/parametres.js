@@ -302,6 +302,7 @@
         { name: 'Alibaba', url: 'https://www.alibaba.com' },
         { name: 'AliExpress', url: 'https://www.aliexpress.com' },
         { name: 'Taobao', url: 'https://world.taobao.com' },
+        { name: 'Pinduoduo', url: 'https://www.pinduoduo.com' },
         { name: 'Lazada', url: 'https://www.lazada.com' }
       ]
     },

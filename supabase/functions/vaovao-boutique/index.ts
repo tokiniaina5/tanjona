@@ -71,6 +71,7 @@ const BOUTIQUES: { groupe: string; nom: string; url: string }[] = [
   { groupe: "Ambongadiny sy Azia", nom: "Alibaba", url: "https://www.alibaba.com" },
   { groupe: "Ambongadiny sy Azia", nom: "AliExpress", url: "https://www.aliexpress.com" },
   { groupe: "Ambongadiny sy Azia", nom: "Taobao", url: "https://world.taobao.com" },
+  { groupe: "Ambongadiny sy Azia", nom: "Pinduoduo", url: "https://www.pinduoduo.com" },
   { groupe: "Ambongadiny sy Azia", nom: "Lazada", url: "https://www.lazada.com" },
   { groupe: "Ny zavatra rehetra", nom: "Amazon", url: "https://www.amazon.fr" },
   { groupe: "Ny zavatra rehetra", nom: "eBay", url: "https://www.ebay.fr" },
