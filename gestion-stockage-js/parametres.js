@@ -384,7 +384,10 @@
     row.appendChild(a);
   }
 
-  function ajouterUnGroupe(boite, titre, liens){
+  // « effacer », quand il est donné, pose une ✕ sur chaque carte : ce sont
+  // les boutiques ajoutées à la main, que la maison peut retirer comme elle
+  // les a mises. Celles du fond (DEFAULT_MARKETPLACES) n'en ont pas.
+  function ajouterUnGroupe(boite, titre, liens, effacer){
     if(!liens.length) return;
     const nom = document.createElement('div');
     nom.className = 'marketplace-titre';
@@ -392,8 +395,47 @@
     boite.appendChild(nom);
     const ligne = document.createElement('div');
     ligne.className = 'marketplace-cartes';
-    liens.forEach(function(m){ addMarketplaceBtn(ligne, m.name, m.url); });
+    liens.forEach(function(m){
+      if(!effacer){ addMarketplaceBtn(ligne, m.name, m.url); return; }
+      const cadre = document.createElement('div');
+      cadre.className = 'marketplace-sien';
+      addMarketplaceBtn(cadre, m.name, m.url);
+      const croix = document.createElement('button');
+      croix.type = 'button';
+      croix.className = 'marketplace-fafao';
+      croix.textContent = '✕';
+      croix.title = 'Fafao ' + m.name;
+      croix.setAttribute('aria-label', 'Fafao ' + m.name);
+      croix.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        effacer(m, croix);
+      });
+      cadre.appendChild(croix);
+      ligne.appendChild(cadre);
+    });
     boite.appendChild(ligne);
+  }
+
+  // Retirer une boutique ajoutée : de la liste, et du fil de la Botika où
+  // son billet était parti à l'enregistrement — il y ferait encore la
+  // réclame d'une adresse qu'on a jugé bon d'enlever. Le billet va à la
+  // corbeille, comme tout billet effacé depuis le fil.
+  function effacerUneBoutique(m, croix){
+    if(!window.__sb || !m.id) return;
+    if(!confirm('Hofafana ve i « ' + m.name + ' » ?')) return;
+    croix.disabled = true;
+    window.__sb.from('marketplace_links').delete().eq('id', m.id).select('id')
+      .then(function(res){
+        if(!res || res.error || !res.data || !res.data.length){
+          croix.disabled = false;
+          alert('Tsy voafafa : ny tompon\'ny Botika ihany no afaka mamafa.');
+          return;
+        }
+        renderMarketplaceLinks();
+        return window.__sb.from('client_news').update({ deleted_at: new Date().toISOString() })
+          .eq('link', m.url).eq('client_name', MARQUE_NOM).is('deleted_at', null)
+          .then(function(){ renderCommunityNews(); }, function(){});
+      }, function(){ croix.disabled = false; alert('Tsy voafafa.'); });
   }
 
   function renderMarketplaceLinks(){
@@ -402,12 +444,13 @@
     boite.innerHTML = '';
     DEFAULT_MARKETPLACES.forEach(function(g){ ajouterUnGroupe(boite, g.groupe, g.liens); });
     if(window.__sb){
-      window.__sb.from('marketplace_links').select('name,url').order('created_at', { ascending: true })
+      window.__sb.from('marketplace_links').select('id,name,url').order('created_at', { ascending: true })
         .then(function(res){
           const siens = (res && res.data) || [];
           // Sous son propre titre : on doit pouvoir distinguer d'un coup d'œil
           // ce qu'on a ajouté soi-même de ce qui était là.
-          ajouterUnGroupe(boite, '⭐ Ny anao', siens.filter(function(m){ return m && m.name && m.url; }));
+          ajouterUnGroupe(boite, '⭐ Ny anao', siens.filter(function(m){ return m && m.name && m.url; }),
+            jeSuisLaMaison() ? effacerUneBoutique : null);
           chercherLesApercus();
         }, function(){});
     }
@@ -613,16 +656,40 @@
 
   const addMarketBtn = document.getElementById('addMarketBtn');
   if(addMarketBtn){
+    // Enregistrer, c'est aussi l'annoncer : la boutique part tout de suite
+    // dans le fil de la Botika, sous la marque, sans attendre que la
+    // machine (vaovao-boutique) la tire à son tour.
     addMarketBtn.addEventListener('click', function(){
-      const name = document.getElementById('newMarketName').value.trim();
-      const url = document.getElementById('newMarketUrl').value.trim();
-      if(!name || !url) return;
+      const champNom = document.getElementById('newMarketName');
+      const champUrl = document.getElementById('newMarketUrl');
+      const name = champNom.value.trim();
+      let url = champUrl.value.trim();
+      if(!name){ champNom.focus(); return; }
+      if(!url){ champUrl.focus(); return; }
+      // « dhgate.com » tapé sans rien devant ouvrirait une page de ce site-ci.
+      if(!/^https?:\/\//i.test(url)) url = 'https://' + url;
+      try{ new URL(url); }catch(e){ alert('Tsy mety ny lien.'); champUrl.focus(); return; }
       if(!window.__sb){ alert('Tsy misy fifandraisana amin\'ny serveur.'); return; }
-      window.__sb.from('marketplace_links').insert({ name: name, url: url }).then(function(){
-        document.getElementById('newMarketName').value = '';
-        document.getElementById('newMarketUrl').value = '';
-        renderMarketplaceLinks();
-      }, function(){ alert("Tsy voaray ny fanampiana rohy."); });
+      addMarketBtn.disabled = true;
+      window.__sb.from('marketplace_links').insert({ name: name, url: url }).select('id')
+        .then(function(res){
+          if(!res || res.error){ throw (res && res.error) || new Error('refus'); }
+          champNom.value = '';
+          champUrl.value = '';
+          renderMarketplaceLinks();
+          return window.__sb.from('client_news').insert({
+            client_name: MARQUE_NOM, network: 'Boutique',
+            message: '🛍️ ' + name + '\nTsindrio ny rohy hijerena izay amidy any.',
+            link: url, type: 'vaovao', price: null, image: null,
+            author_email: (currentUser && currentUser.email) || null,
+            author_photo: MARQUE_LOGO
+          }).then(function(r){
+            if(r && r.error) alert('Voatahiry ny magazay, fa tsy tafiditra tao amin\'ny Botika.');
+            renderCommunityNews();
+          });
+        })
+        .then(function(){ addMarketBtn.disabled = false; },
+          function(){ addMarketBtn.disabled = false; alert('Tsy voatahiry : ny tompon\'ny Botika ihany no afaka manampy.'); });
     });
   }
 

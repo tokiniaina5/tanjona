@@ -226,10 +226,20 @@ create policy "anyone can read marketplace links"
   on public.marketplace_links for select
   to anon, authenticated using (true);
 
+-- Seule la maison ajoute et retire : une boutique enregistrée part dans le
+-- fil de la Botika, sous la marque, et tourne avec les autres (vaovao-boutique).
 drop policy if exists "anyone can add marketplace links" on public.marketplace_links;
-create policy "anyone can add marketplace links"
+drop policy if exists "la maison ajoute des boutiques" on public.marketplace_links;
+create policy "la maison ajoute des boutiques"
   on public.marketplace_links for insert
-  to anon, authenticated with check (true);
+  to authenticated
+  with check (lower(auth.jwt() ->> 'email') = 'rasolofonirainytokiniaina@gmail.com');
+
+drop policy if exists "la maison retire des boutiques" on public.marketplace_links;
+create policy "la maison retire des boutiques"
+  on public.marketplace_links for delete
+  to authenticated
+  using (lower(auth.jwt() ->> 'email') = 'rasolofonirainytokiniaina@gmail.com');
 
 
 -- Fil d'actualité de l'accueil (annonces publiées par les clients)

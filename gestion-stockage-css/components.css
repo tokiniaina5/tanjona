@@ -617,6 +617,13 @@
   .marketplace-carte{ display:block; border:1px solid var(--line); border-radius:10px;
     overflow:hidden; text-decoration:none; color:inherit; background:var(--panel-2); }
   .marketplace-carte:hover{ border-color:var(--cyan); }
+  /* Une boutique ajoutée à la main : sa ✕ dans le coin, pour la maison. */
+  .marketplace-sien{ position:relative; }
+  .marketplace-fafao{ position:absolute; top:6px; right:6px; width:26px; height:26px; border-radius:50%;
+    border:1px solid var(--line); background:var(--panel); color:var(--text); font-size:0.75rem;
+    line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:2; }
+  .marketplace-fafao:hover{ border-color:#e53935; color:#e53935; }
+  .marketplace-fafao:disabled{ opacity:0.5; cursor:wait; }
   .marketplace-row{ display:flex; flex-wrap:wrap; gap:0.6rem; }
   .marketplace-row a.btn{ display:inline-block; text-align:center; width:auto; }
 

@@ -253,13 +253,21 @@ Deno.serve(async (req: Request) => {
     .limit(200);
   if (erreurLecture) return json({ error: erreurLecture.message }, 500);
 
+  // Les boutiques que la maison a ajoutées depuis la page (« ⭐ Ny anao »,
+  // table marketplace_links) tournent avec les autres. Une table illisible
+  // ne fait pas taire le fil : on continue avec la liste d'ici.
+  const { data: ajoutees } = await admin.from("marketplace_links").select("name,url");
+  const siennes: Adresse[] = ((ajoutees ?? []) as { name?: string; url?: string }[])
+    .filter((m) => m.name && m.url && !TOUTES.some((b) => b.url === m.url))
+    .map((m) => ({ groupe: "Ny anao", nom: String(m.name), url: String(m.url), sorte: "boutique" as const }));
+
   const lignes = (deja ?? []) as { link?: string; network?: string }[];
   const vues = new Set(lignes.map((r) => String(r.link ?? "")));
   // Chaque sorte a sa file. Une file vide recommence son tour seule : sans
   // cela la maison se tairait le jour où la liste serait épuisée.
   const files: Record<Adresse["sorte"], Adresse[]> = { boutique: [], livraison: [] };
   for (const sorte of ["boutique", "livraison"] as const) {
-    const toutes = TOUTES.filter((b) => b.sorte === sorte);
+    const toutes = [...TOUTES, ...siennes].filter((b) => b.sorte === sorte);
     files[sorte] = toutes.filter((b) => !vues.has(b.url));
     if (!files[sorte].length) files[sorte] = toutes.slice();
   }
