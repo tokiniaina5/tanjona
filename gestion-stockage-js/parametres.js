@@ -679,8 +679,30 @@
   // (vaovao-boutique) la tire à son tour. Le même geste sert aux boutiques
   // et aux transporteurs.
   //
-  // On ne tape que le nom : pas d'adresse à chercher ni à recopier. La carte
-  // mène à la recherche de ce nom, et c'est le nom qu'on y lit.
+  // On ne tape que le nom : pas d'adresse à chercher ni à recopier. Le site
+  // officiel est cherché ici même, et la carte y mène tout droit ; faute de
+  // le trouver, elle mène à la recherche de ce nom. C'est le nom qu'on y lit.
+  //
+  // Le site vient de DuckDuckGo (réponse instantanée, ouverte au navigateur) :
+  // il connaît le site officiel des marques connues, et rien d'une petite
+  // maison d'ici — d'où la recherche en repli. Un nom tapé comme une adresse
+  // (« wish.com ») est pris tel quel.
+  function trouverLeSite(name){
+    if(/^https?:\/\/\S+$/i.test(name)) return Promise.resolve(name);
+    if(/^[a-z0-9-]+(\.[a-z0-9-]+)+(\/\S*)?$/i.test(name)) return Promise.resolve('https://' + name);
+    const repli = 'https://www.google.com/search?q=' + encodeURIComponent(name);
+    const attente = new Promise(function(ok){ setTimeout(function(){ ok(repli); }, 6000); });
+    const question = fetch('https://api.duckduckgo.com/?format=json&no_html=1&skip_disambig=1&q=' + encodeURIComponent(name))
+      .then(function(r){ return r.ok ? r.json() : {}; })
+      .then(function(d){
+        const premier = d && d.Results && d.Results[0] && d.Results[0].FirstURL;
+        const site = (d && d.OfficialWebsite) || premier || '';
+        return /^https?:\/\//i.test(site) ? site : repli;
+      })
+      .catch(function(){ return repli; });
+    return Promise.race([question, attente]);
+  }
+
   function brancherLEnregistrement(sorte, idBouton, idNom){
     const bouton = document.getElementById(idBouton);
     if(!bouton) return;
@@ -689,10 +711,14 @@
       const champNom = document.getElementById(idNom);
       const name = champNom.value.trim();
       if(!name){ champNom.focus(); return; }
-      const url = 'https://www.google.com/search?q=' + encodeURIComponent(name);
       if(!window.__sb){ alert('Tsy misy fifandraisana amin\'ny serveur.'); return; }
       bouton.disabled = true;
-      window.__sb.from(conf.table).insert({ name: name, url: url }).select('id')
+      let url = '';
+      trouverLeSite(name)
+        .then(function(trouve){
+          url = trouve;
+          return window.__sb.from(conf.table).insert({ name: name, url: url }).select('id');
+        })
         .then(function(res){
           if(!res || res.error){ throw (res && res.error) || new Error('refus'); }
           champNom.value = '';
