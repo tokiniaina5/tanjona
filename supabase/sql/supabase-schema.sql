@@ -242,6 +242,35 @@ create policy "la maison retire des boutiques"
   using (lower(auth.jwt() ->> 'email') = 'rasolofonirainytokiniaina@gmail.com');
 
 
+-- Transporteurs « Livraison international » ajoutés par la maison : même
+-- règle que les boutiques, et même passage dans le fil de la Botika.
+create table if not exists public.livraison_links (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  url text not null,
+  created_at timestamptz default now()
+);
+
+alter table public.livraison_links enable row level security;
+
+drop policy if exists "tout le monde lit les transporteurs" on public.livraison_links;
+create policy "tout le monde lit les transporteurs"
+  on public.livraison_links for select
+  to anon, authenticated using (true);
+
+drop policy if exists "la maison ajoute des transporteurs" on public.livraison_links;
+create policy "la maison ajoute des transporteurs"
+  on public.livraison_links for insert
+  to authenticated
+  with check (lower(auth.jwt() ->> 'email') = 'rasolofonirainytokiniaina@gmail.com');
+
+drop policy if exists "la maison retire des transporteurs" on public.livraison_links;
+create policy "la maison retire des transporteurs"
+  on public.livraison_links for delete
+  to authenticated
+  using (lower(auth.jwt() ->> 'email') = 'rasolofonirainytokiniaina@gmail.com');
+
+
 -- Fil d'actualité de l'accueil (annonces publiées par les clients)
 -- ATTENTION : la table en service a été créée avec un id BIGINT, pas un uuid.
 -- Ce bloc ne s'exécute plus (if not exists) et ne décrit donc pas ce qui

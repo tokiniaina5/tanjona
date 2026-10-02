@@ -416,26 +416,56 @@
     boite.appendChild(ligne);
   }
 
-  // Retirer une boutique ajoutée : de la liste, et du fil de la Botika où
+  // Les adresses que la maison ajoute elle-même, boutiques comme
+  // transporteurs. Chaque sorte a sa table, et le billet qu'elle laisse dans
+  // le fil porte la même étiquette et la même invitation que ceux de la
+  // machine (SORTES, dans supabase/functions/vaovao-boutique).
+  const LES_SIENS = {
+    boutique: { table: 'marketplace_links', boite: 'marketplaceLinks',
+      reseau: 'Boutique', icone: '🛍️', invite: 'Tsindrio ny rohy hijerena izay amidy any.' },
+    livraison: { table: 'livraison_links', boite: 'livraisonLinks',
+      reseau: 'Livraison international', icone: '🚚', invite: 'Tsindrio ny rohy hijerena ny fomba handefasany entana.' }
+  };
+  function redessiner(sorte){
+    if(sorte === 'livraison') renderLivraisonLinks(); else renderMarketplaceLinks();
+  }
+
+  // Retirer une adresse ajoutée : de la liste, et du fil de la Botika où
   // son billet était parti à l'enregistrement — il y ferait encore la
   // réclame d'une adresse qu'on a jugé bon d'enlever. Le billet va à la
   // corbeille, comme tout billet effacé depuis le fil.
-  function effacerUneBoutique(m, croix){
-    if(!window.__sb || !m.id) return;
-    if(!confirm('Hofafana ve i « ' + m.name + ' » ?')) return;
-    croix.disabled = true;
-    window.__sb.from('marketplace_links').delete().eq('id', m.id).select('id')
+  function effacerUnLien(sorte){
+    const conf = LES_SIENS[sorte];
+    return function(m, croix){
+      if(!window.__sb || !m.id) return;
+      if(!confirm('Hofafana ve i « ' + m.name + ' » ?')) return;
+      croix.disabled = true;
+      window.__sb.from(conf.table).delete().eq('id', m.id).select('id')
+        .then(function(res){
+          if(!res || res.error || !res.data || !res.data.length){
+            croix.disabled = false;
+            alert('Tsy voafafa : ny tompon\'ny Botika ihany no afaka mamafa.');
+            return;
+          }
+          redessiner(sorte);
+          return window.__sb.from('client_news').update({ deleted_at: new Date().toISOString() })
+            .eq('link', m.url).eq('client_name', MARQUE_NOM).is('deleted_at', null)
+            .then(function(){ renderCommunityNews(); }, function(){});
+        }, function(){ croix.disabled = false; alert('Tsy voafafa.'); });
+    };
+  }
+
+  // Sous leur propre titre, après le fond : on doit pouvoir distinguer d'un
+  // coup d'œil ce qu'on a ajouté soi-même de ce qui était là.
+  function ajouterLesSiens(boite, sorte){
+    if(!window.__sb) return;
+    window.__sb.from(LES_SIENS[sorte].table).select('id,name,url').order('created_at', { ascending: true })
       .then(function(res){
-        if(!res || res.error || !res.data || !res.data.length){
-          croix.disabled = false;
-          alert('Tsy voafafa : ny tompon\'ny Botika ihany no afaka mamafa.');
-          return;
-        }
-        renderMarketplaceLinks();
-        return window.__sb.from('client_news').update({ deleted_at: new Date().toISOString() })
-          .eq('link', m.url).eq('client_name', MARQUE_NOM).is('deleted_at', null)
-          .then(function(){ renderCommunityNews(); }, function(){});
-      }, function(){ croix.disabled = false; alert('Tsy voafafa.'); });
+        const siens = (res && res.data) || [];
+        ajouterUnGroupe(boite, '⭐ Ny anao', siens.filter(function(m){ return m && m.name && m.url; }),
+          jeSuisLaMaison() ? effacerUnLien(sorte) : null);
+        chercherLesApercus();
+      }, function(){});
   }
 
   function renderMarketplaceLinks(){
@@ -443,17 +473,7 @@
     if(!boite) return;
     boite.innerHTML = '';
     DEFAULT_MARKETPLACES.forEach(function(g){ ajouterUnGroupe(boite, g.groupe, g.liens); });
-    if(window.__sb){
-      window.__sb.from('marketplace_links').select('id,name,url').order('created_at', { ascending: true })
-        .then(function(res){
-          const siens = (res && res.data) || [];
-          // Sous son propre titre : on doit pouvoir distinguer d'un coup d'œil
-          // ce qu'on a ajouté soi-même de ce qui était là.
-          ajouterUnGroupe(boite, '⭐ Ny anao', siens.filter(function(m){ return m && m.name && m.url; }),
-            jeSuisLaMaison() ? effacerUneBoutique : null);
-          chercherLesApercus();
-        }, function(){});
-    }
+    ajouterLesSiens(boite, 'boutique');
     chercherLesApercus();
     veillerSurLeTourDesApercus();
   }
@@ -473,9 +493,8 @@
   // comparateur, pas d'intermédiaire qui prend une commission pour recopier
   // un tarif : on va chez le transporteur, et l'on traite avec lui.
   //
-  // Pas de « Ny anao » ici, contrairement aux boutiques : la liste ne se
-  // complète pas depuis la page, et rien n'est à poser dans la base. Le jour
-  // où il en faudra, c'est "marketplace_links" qu'il faudra imiter.
+  // Comme pour les boutiques, la maison complète la liste depuis la page
+  // (« ⭐ Ny anao », table livraison_links, voir LES_SIENS).
   //
   // La même liste est recopiée dans supabase/functions/vaovao-boutique
   // (TRANSPORTEURS), qui les publie dans le fil : l'une bouge, l'autre suit.
@@ -569,6 +588,7 @@
     if(!boite) return;
     boite.innerHTML = '';
     DEFAULT_TRANSPORTEURS.forEach(function(g){ ajouterUnGroupe(boite, g.groupe, g.liens); });
+    ajouterLesSiens(boite, 'livraison');
     chercherLesApercus();
     veillerSurLeTourDesApercus();
   }
@@ -654,14 +674,17 @@
     });
   })();
 
-  const addMarketBtn = document.getElementById('addMarketBtn');
-  if(addMarketBtn){
-    // Enregistrer, c'est aussi l'annoncer : la boutique part tout de suite
-    // dans le fil de la Botika, sous la marque, sans attendre que la
-    // machine (vaovao-boutique) la tire à son tour.
-    addMarketBtn.addEventListener('click', function(){
-      const champNom = document.getElementById('newMarketName');
-      const champUrl = document.getElementById('newMarketUrl');
+  // Enregistrer, c'est aussi l'annoncer : l'adresse part tout de suite dans
+  // le fil de la Botika, sous la marque, sans attendre que la machine
+  // (vaovao-boutique) la tire à son tour. Le même geste sert aux boutiques
+  // et aux transporteurs.
+  function brancherLEnregistrement(sorte, idBouton, idNom, idUrl){
+    const bouton = document.getElementById(idBouton);
+    if(!bouton) return;
+    const conf = LES_SIENS[sorte];
+    bouton.addEventListener('click', function(){
+      const champNom = document.getElementById(idNom);
+      const champUrl = document.getElementById(idUrl);
       const name = champNom.value.trim();
       let url = champUrl.value.trim();
       if(!name){ champNom.focus(); return; }
@@ -670,28 +693,30 @@
       if(!/^https?:\/\//i.test(url)) url = 'https://' + url;
       try{ new URL(url); }catch(e){ alert('Tsy mety ny lien.'); champUrl.focus(); return; }
       if(!window.__sb){ alert('Tsy misy fifandraisana amin\'ny serveur.'); return; }
-      addMarketBtn.disabled = true;
-      window.__sb.from('marketplace_links').insert({ name: name, url: url }).select('id')
+      bouton.disabled = true;
+      window.__sb.from(conf.table).insert({ name: name, url: url }).select('id')
         .then(function(res){
           if(!res || res.error){ throw (res && res.error) || new Error('refus'); }
           champNom.value = '';
           champUrl.value = '';
-          renderMarketplaceLinks();
+          redessiner(sorte);
           return window.__sb.from('client_news').insert({
-            client_name: MARQUE_NOM, network: 'Boutique',
-            message: '🛍️ ' + name + '\nTsindrio ny rohy hijerena izay amidy any.',
+            client_name: MARQUE_NOM, network: conf.reseau,
+            message: conf.icone + ' ' + name + '\n' + conf.invite,
             link: url, type: 'vaovao', price: null, image: null,
             author_email: (currentUser && currentUser.email) || null,
             author_photo: MARQUE_LOGO
           }).then(function(r){
-            if(r && r.error) alert('Voatahiry ny magazay, fa tsy tafiditra tao amin\'ny Botika.');
+            if(r && r.error) alert('Voatahiry, fa tsy tafiditra tao amin\'ny Botika.');
             renderCommunityNews();
           });
         })
-        .then(function(){ addMarketBtn.disabled = false; },
-          function(){ addMarketBtn.disabled = false; alert('Tsy voatahiry : ny tompon\'ny Botika ihany no afaka manampy.'); });
+        .then(function(){ bouton.disabled = false; },
+          function(){ bouton.disabled = false; alert('Tsy voatahiry : ny tompon\'ny Botika ihany no afaka manampy.'); });
     });
   }
+  brancherLEnregistrement('boutique', 'addMarketBtn', 'newMarketName', 'newMarketUrl');
+  brancherLEnregistrement('livraison', 'addLivraisonBtn', 'newLivraisonName', 'newLivraisonUrl');
 
   // Le portrait complet pèse des dizaines de kilo-octets. Recopié sur chaque
   // publication, il alourdirait le fil d'autant de fois qu'il y a de billets,
@@ -4959,12 +4984,12 @@
     }
     renderCommunityNews();
     renderMarketplaceLinks();
-    const marketAdmin = document.getElementById('marketplaceAdminForm');
-    if(marketAdmin){
-      const isAdmin = currentUser && currentUser.email &&
-        currentUser.email.trim().toLowerCase() === OWNER_EMAIL.toLowerCase();
-      marketAdmin.style.display = isAdmin ? 'block' : 'none';
-    }
+    renderLivraisonLinks();
+    const isAdmin = jeSuisLaMaison();
+    ['marketplaceAdminForm', 'livraisonAdminForm'].forEach(function(id){
+      const formulaire = document.getElementById(id);
+      if(formulaire) formulaire.style.display = isAdmin ? 'block' : 'none';
+    });
   }
 
   document.getElementById('generateManualCodeBtn').addEventListener('click', function(){

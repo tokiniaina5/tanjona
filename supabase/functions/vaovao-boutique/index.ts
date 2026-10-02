@@ -253,13 +253,18 @@ Deno.serve(async (req: Request) => {
     .limit(200);
   if (erreurLecture) return json({ error: erreurLecture.message }, 500);
 
-  // Les boutiques que la maison a ajoutées depuis la page (« ⭐ Ny anao »,
-  // table marketplace_links) tournent avec les autres. Une table illisible
-  // ne fait pas taire le fil : on continue avec la liste d'ici.
-  const { data: ajoutees } = await admin.from("marketplace_links").select("name,url");
-  const siennes: Adresse[] = ((ajoutees ?? []) as { name?: string; url?: string }[])
-    .filter((m) => m.name && m.url && !TOUTES.some((b) => b.url === m.url))
-    .map((m) => ({ groupe: "Ny anao", nom: String(m.name), url: String(m.url), sorte: "boutique" as const }));
+  // Les boutiques et les transporteurs que la maison a ajoutés depuis la page
+  // (« ⭐ Ny anao », tables marketplace_links et livraison_links) tournent
+  // avec les autres. Une table illisible ne fait pas taire le fil : on
+  // continue avec la liste d'ici.
+  const siennes: Adresse[] = [];
+  for (const [table, sorte] of [["marketplace_links", "boutique"], ["livraison_links", "livraison"]] as const) {
+    const { data: ajoutees } = await admin.from(table).select("name,url");
+    for (const m of (ajoutees ?? []) as { name?: string; url?: string }[]) {
+      if (!m.name || !m.url || TOUTES.some((b) => b.url === m.url)) continue;
+      siennes.push({ groupe: "Ny anao", nom: String(m.name), url: String(m.url), sorte });
+    }
+  }
 
   const lignes = (deja ?? []) as { link?: string; network?: string }[];
   const vues = new Set(lignes.map((r) => String(r.link ?? "")));

@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="f0a18469">
+<meta name="ny-asako-version" content="aeeafcc6">
 <title>Ny asako — Tanjona</title>
 <!-- Application installable : le manifeste décrit le nom, l'icône et la façon
      de s'ouvrir ; le reste est affaire de service worker, enregistré plus bas. -->
@@ -580,6 +580,19 @@
             <div style="padding:0.8rem 0.9rem;">
               <p class="community-sub" style="margin-bottom:0.8rem;">Mpitatitra manerantany, voasokajy: an-dranomasina, an'habakabaka, kolisy haingana, transitaire.</p>
               <div id="livraisonLinks" class="marketplace-groupes"></div>
+              <div id="livraisonAdminForm" style="display:none; margin-top:1rem; border-top:1px solid var(--line); padding-top:1rem;">
+                <div class="form-grid">
+                  <div class="field" style="margin-bottom:0;">
+                    <label>Anarana</label>
+                    <input type="text" id="newLivraisonName" placeholder="Ex: Colis Express Mada">
+                  </div>
+                  <div class="field" style="margin-bottom:0;">
+                    <label>Lien</label>
+                    <input type="url" id="newLivraisonUrl" placeholder="https://...">
+                  </div>
+                  <button type="button" class="btn btn-violet btn-sm" id="addLivraisonBtn">💾 Save</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -3082,7 +3095,7 @@
 <script src="gestion-stockage-js/zara-rehetra.js?v=1d7a9c94"></script>
 <script src="gestion-stockage-js/live.js?v=31a0f27f"></script>
 <script src="gestion-stockage-js/traduction.js?v=8f5605bc"></script>
-<script src="gestion-stockage-js/parametres.js?v=3b3ebf96"></script>
+<script src="gestion-stockage-js/parametres.js?v=5cdd6957"></script>
 <!-- Le partage reçu du dehors remplit la boîte « Écrire », que parametres.js
      tient : il se charge après elle. -->
 <script src="gestion-stockage-js/zara-miditra.js?v=bfe2ae80"></script>
