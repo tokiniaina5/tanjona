@@ -12,7 +12,7 @@
 //   supabase functions deploy tambajotra --no-verify-jwt
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { configures, publier } from "../_shared/tambajotra.ts";
+import { configures, hamarinoTelegram, publier } from "../_shared/tambajotra.ts";
 import { alefaWhatsApp, numerosClients, numeroInternational, whatsappVonona } from "../_shared/whatsapp.ts";
 
 const CORS = {
@@ -48,6 +48,9 @@ Deno.serve(async (req: Request) => {
   const action = String(corps.action ?? "");
 
   if (action === "canaux") return json({ canaux: { ...configures(), whatsapp_client: whatsappVonona() } });
+
+  // Les clefs posées marchent-elles ? (Telegram seulement, pour l'instant.)
+  if (action === "hamarino") return json({ telegram: await hamarinoTelegram() });
 
   if (action === "whatsapp") {
     const texte = String(corps.texte ?? "").trim();

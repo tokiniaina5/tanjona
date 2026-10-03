@@ -55,15 +55,62 @@ function raison(d: Record<string, unknown> | null, status: number): string {
 }
 
 // ---- Telegram ----
+// Le jeton tel que @BotFather le donne (« 123456789:AA… »), même collé avec
+// « bot » devant, entre guillemets ou dans une adresse api.telegram.org.
+function jetonTelegram(): string {
+  const brut = env("TELEGRAM_BOT_TOKEN");
+  const m = /(\d{5,}:[A-Za-z0-9_-]{20,})/.exec(brut);
+  return m ? m[1] : brut;
+}
+
+// « @moncanal », « -100… », ou une adresse t.me/moncanal.
+function chatTelegram(): string {
+  let c = env("TELEGRAM_CHAT_ID").replace(/^["']|["']$/g, "");
+  const lien = /t(?:elegram)?\.me\/([A-Za-z0-9_]{4,})/i.exec(c);
+  if (lien) c = lien[1];
+  if (!/^-?\d+$/.test(c) && !c.startsWith("@")) c = "@" + c;
+  return c;
+}
+
+// Ce que Telegram répond, dit avec ce qu'il faut faire.
+function raisonTelegram(d: Record<string, unknown> | null, status: number): string {
+  const desc = String(d?.description ?? "");
+  if (status === 404 || status === 401) {
+    return "TELEGRAM_BOT_TOKEN diso (" + (desc || status) + ") : adikao indray ny token avy amin'ny @BotFather";
+  }
+  if (/chat not found/i.test(desc)) {
+    return "TELEGRAM_CHAT_ID tsy hita (" + desc + ") : @anaran'ny canal na -100…, ary ampidiro ao ilay bot";
+  }
+  if (status === 403 || /not enough rights|not a member|kicked/i.test(desc)) {
+    return "Tsy afaka manoratra ao ilay bot (" + desc + ") : ataovy administrateur ao amin'ny canal/groupe";
+  }
+  return desc || "HTTP " + status;
+}
+
 async function telegram(texte: string, rohy: string): Promise<Resultat> {
   const corps = couper(texte, 4000 - rohy.length) + (rohy ? "\n" + rohy : "");
-  const res = await fetch(`https://api.telegram.org/bot${env("TELEGRAM_BOT_TOKEN")}/sendMessage`, {
+  const res = await fetch(`https://api.telegram.org/bot${jetonTelegram()}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chat_id: env("TELEGRAM_CHAT_ID"), text: corps }),
+    body: JSON.stringify({ chat_id: chatTelegram(), text: corps }),
   });
   const d = await lireJson(res);
-  return res.ok && d?.ok ? { ok: true, detail: "lasa" } : { ok: false, detail: raison(d, res.status) };
+  return res.ok && d?.ok ? { ok: true, detail: "lasa" } : { ok: false, detail: raisonTelegram(d, res.status) };
+}
+
+// Vérifie le jeton (getMe) puis le canal (getChat), sans rien publier.
+export async function hamarinoTelegram(): Promise<Resultat> {
+  if (!configures().telegram) return { ok: false, detail: "tsy voarindra" };
+  const base = `https://api.telegram.org/bot${jetonTelegram()}`;
+  const moi = await fetch(base + "/getMe");
+  const dm = await lireJson(moi);
+  if (!moi.ok || !dm?.ok) return { ok: false, detail: raisonTelegram(dm, moi.status) };
+  const bot = "@" + String((dm.result as Record<string, unknown>)?.username ?? "");
+  const chat = await fetch(base + "/getChat?chat_id=" + encodeURIComponent(chatTelegram()));
+  const dc = await lireJson(chat);
+  if (!chat.ok || !dc?.ok) return { ok: false, detail: bot + " — " + raisonTelegram(dc, chat.status) };
+  const r = (dc.result ?? {}) as Record<string, unknown>;
+  return { ok: true, detail: bot + " → " + String(r.title ?? r.username ?? chatTelegram()) };
 }
 
 // ---- Facebook (Page) ----

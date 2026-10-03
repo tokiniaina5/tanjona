@@ -610,6 +610,15 @@
         page.querySelector('[data-wa-auto]').style.display = waAuto ? '' : 'none';
         page.querySelector('[data-wa-ho-azy]').style.display = waAuto ? '' : 'none';
         page.querySelector('[data-wa-tanana]').style.display = waAuto ? 'none' : '';
+        // Une clef posée mais fausse : le dire tout de suite, pas après l'envoi.
+        if (c.telegram) {
+          window.__sb.functions.invoke('tambajotra', { body: { action: 'hamarino' } }).then(function (r) {
+            var t = r && r.data && r.data.telegram;
+            if (!t || statutAuto.textContent) return;
+            statutAuto.innerHTML = t.ok ? '✅ Telegram vonona : ' + echap(t.detail)
+              : '<span style="color:var(--amber);">⚠ Telegram tsy mandeha : ' + echap(t.detail) + '</span>';
+          }, function () {});
+        }
       }, function () { /* fonction absente : tout reste à la main */ });
     }
 
