@@ -157,6 +157,8 @@
     const sous = document.getElementById('currentUserEmail');
     if (sous) sous.textContent = ROLES[p.role] || p.role || '';
 
+    porterSonNom(p);
+
     const attente = document.getElementById('mpiasaScreen');
     if (attente) attente.style.display = 'none';
     entre = true;
@@ -175,6 +177,39 @@
     // Le patron voit tout de suite où il en est, sans attendre un premier
     // changement.
     envoyerMonStock();
+  }
+
+  // ---------- Le site à son nom ----------
+  // Ouvert par son lien, le site porte le nom de la personne : l'onglet, la
+  // fenêtre de l'application installée, le bandeau. Le manifeste aussi est
+  // le sien — son nom, et son lien comme adresse de départ : installée,
+  // l'application rouvre SA page, et ne se confond pas avec celle du patron
+  // (un « id » à elle).
+  function porterSonNom(p) {
+    const nom = String(p.nom || '').trim();
+    if (!nom) return;
+    const titre = nom + (p.role === 'livreur' ? ' — Livreur' : '');
+    document.title = titre;
+    const appleTitre = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+    if (appleTitre) appleTitre.setAttribute('content', nom);
+    document.querySelectorAll('.brand-sub').forEach(function (el) { el.textContent = titre; });
+
+    const lien = document.querySelector('link[rel="manifest"]');
+    if (!lien || !window.fetch) return;
+    const ici = window.location.origin + window.location.pathname + '?mpiasa=' + encodeURIComponent(jeton);
+    fetch(lien.href).then(function (r) { return r.json(); }).then(function (m) {
+      m.id = window.location.pathname + '?mpiasa=' + jeton;
+      m.name = titre;
+      m.short_name = nom.slice(0, 12);
+      m.start_url = ici;
+      m.scope = window.location.origin + '/';
+      // Un manifeste écrit dans la page ne connaît pas l'adresse du site :
+      // ses images doivent la porter en entier.
+      (m.icons || []).forEach(function (i) { i.src = new URL(i.src, window.location.origin).href; });
+      delete m.share_target;
+      delete m.shortcuts;
+      lien.setAttribute('href', 'data:application/manifest+json,' + encodeURIComponent(JSON.stringify(m)));
+    }).catch(function () {});
   }
 
   // ---------- Ny momba ahy ----------
