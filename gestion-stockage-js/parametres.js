@@ -713,7 +713,8 @@
     return Promise.race([question, attente]);
   }
 
-  function brancherLEnregistrement(sorte, idBouton, idNom){
+  // Le lien, quand on le donne, passe avant la recherche par le nom.
+  function brancherLEnregistrement(sorte, idBouton, idNom, idLien){
     const bouton = document.getElementById(idBouton);
     if(!bouton) return;
     const conf = LES_SIENS[sorte];
@@ -722,9 +723,11 @@
       const name = champNom.value.trim();
       if(!name){ champNom.focus(); return; }
       if(!window.__sb){ alert('Tsy misy fifandraisana amin\'ny serveur.'); return; }
+      const champLien = idLien ? document.getElementById(idLien) : null;
+      const lien = champLien ? champLien.value.trim() : '';
       bouton.disabled = true;
       let url = '';
-      trouverLeSite(name)
+      trouverLeSite(lien || name)
         .then(function(trouve){
           url = trouve;
           return window.__sb.from(conf.table).insert({ name: name, url: url }).select('id');
@@ -732,6 +735,7 @@
         .then(function(res){
           if(!res || res.error){ throw (res && res.error) || new Error('refus'); }
           champNom.value = '';
+          if(champLien) champLien.value = '';
           redessiner(sorte);
           return window.__sb.from('client_news').insert({
             client_name: MARQUE_NOM, network: conf.reseau,
@@ -748,8 +752,8 @@
           function(){ bouton.disabled = false; alert('Tsy voatahiry : ny tompon\'ny Botika ihany no afaka manampy.'); });
     });
   }
-  brancherLEnregistrement('boutique', 'addMarketBtn', 'newMarketName');
-  brancherLEnregistrement('livraison', 'addLivraisonBtn', 'newLivraisonName');
+  brancherLEnregistrement('boutique', 'addMarketBtn', 'newMarketName', 'newMarketUrl');
+  brancherLEnregistrement('livraison', 'addLivraisonBtn', 'newLivraisonName', 'newLivraisonUrl');
 
   // Le portrait complet pèse des dizaines de kilo-octets. Recopié sur chaque
   // publication, il alourdirait le fil d'autant de fois qu'il y a de billets,
