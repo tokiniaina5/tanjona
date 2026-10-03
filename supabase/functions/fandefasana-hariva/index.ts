@@ -166,13 +166,13 @@ Deno.serve(async (req: Request) => {
     if (action === "tehirizo") {
       let recu: Record<string, unknown> = {};
       try { recu = JSON.parse(texteCorps || "{}"); } catch { /* vide */ }
-      const ora = String(recu.ora ?? "");
+      // Une heure vide : la tâche ne part plus toute seule.
+      const ora = recu.ora ? String(recu.ora) : null;
       const daty = (v: unknown) => {
         const s = String(v ?? "");
         return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
       };
-      const m = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(ora);
-      if (!m) return json({ error: "ora tsy mety (HH:MM)" }, 400);
+      if (ora && !/^([01]\d|2[0-3]):([0-5]\d)$/.test(ora)) return json({ error: "ora tsy mety (HH:MM)" }, 400);
       const manomboka = daty(recu.manomboka);
       const hatramin = daty(recu.hatramin);
       if (manomboka && hatramin && hatramin < manomboka) {
@@ -184,7 +184,7 @@ Deno.serve(async (req: Request) => {
     }
     const { data, error } = await lireFikirana();
     if (error) return json({ error: TSY_MISY_FIKIRANA + " (" + error.message + ")" }, 500);
-    return json({ fikirana: data ?? { ora: "18:00", manomboka: null, hatramin: null, farany_nalefa: null } });
+    return json({ fikirana: data ?? { ora: null, manomboka: null, hatramin: null, farany_nalefa: null } });
   }
 
   // ---- La tâche passe chaque minute : elle ne part qu'une fois par jour,
@@ -193,10 +193,11 @@ Deno.serve(async (req: Request) => {
   if (loharano === "hariva") {
     const { data: f, error } = await lireFikirana();
     if (error) return json({ error: TSY_MISY_FIKIRANA + " (" + error.message + ")" }, 500);
+    if (!f?.ora) return json({ miandry: "tsy misy ora" });
     const mada = new Date(Date.now() + 3 * 60 * 60 * 1000);
     const androany = mada.toISOString().slice(0, 10);
     const minitraIzao = mada.getUTCHours() * 60 + mada.getUTCMinutes();
-    const [h, mn] = String(f?.ora ?? "18:00").split(":").map(Number);
+    const [h, mn] = String(f.ora).split(":").map(Number);
     const minitraVoafidy = h * 60 + mn;
     if (f?.manomboka && androany < f.manomboka) return json({ miandry: "mbola tsy tonga ny daty" });
     if (f?.hatramin && androany > f.hatramin) return json({ miandry: "lany ny daty" });

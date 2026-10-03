@@ -235,16 +235,17 @@
             'Amin\'ny ora voafidy eto, ny publication rehetra nivoaka androany ao amin\'ny Botika dia ' +
             '<strong style="color:var(--text);">alefa ho azy amin\'ny mailaka</strong> any amin\'ny client rehetra ' +
             '(sy amin\'ireo tambajotra ⚡), tsy misy tsindriana. Raha misy daty, ao anatin\'io fotoana io ihany ' +
-            'no mandeha ; raha foana, tsy misy fetra.' +
+            'no mandeha ; raha foana, tsy misy fetra. Raha esorina ny ora, tsy misy alefa ho azy.' +
           '</p>' +
           '<div style="display:flex; gap:0.8rem; flex-wrap:wrap; align-items:flex-end;">' +
             '<div class="field" style="margin:0;"><label for="zrOra">Ora sy minitra</label>' +
-              '<input type="time" id="zrOra" data-hariva-ora step="60" value="18:00" style="width:auto;"></div>' +
+              '<input type="time" id="zrOra" data-hariva-ora step="60" style="width:auto;"></div>' +
             '<div class="field" style="margin:0;"><label for="zrManomboka">Manomboka ny</label>' +
               '<input type="date" id="zrManomboka" data-hariva-manomboka style="width:auto;"></div>' +
             '<div class="field" style="margin:0;"><label for="zrHatramin">Hatramin\'ny</label>' +
               '<input type="date" id="zrHatramin" data-hariva-hatramin style="width:auto;"></div>' +
             '<button type="button" class="btn btn-sm" data-hariva-tehirizo style="width:auto;">💾 Tehirizo</button>' +
+            '<button type="button" class="btn btn-sm" data-hariva-esory style="width:auto;">✕ Esory ny ora</button>' +
           '</div>' +
           '<p data-hariva-statut style="font-size:0.78rem; color:var(--muted); margin:0.6rem 0 0; min-height:1.1em;">Mamaky…</p>' +
           // Le carnet : à qui sont partis les derniers envois.
@@ -285,6 +286,7 @@
 
     // L'heure et les dates de la tâche du soir.
     var bTehirizo = page.querySelector('[data-hariva-tehirizo]');
+    var bEsory = page.querySelector('[data-hariva-esory]');
     var champOra = page.querySelector('[data-hariva-ora]');
     var champManomboka = page.querySelector('[data-hariva-manomboka]');
     var champHatramin = page.querySelector('[data-hariva-hatramin]');
@@ -449,6 +451,11 @@
         : f.manomboka ? ', manomboka ny ' + dateFr(f.manomboka)
         : f.hatramin ? ', hatramin\'ny ' + dateFr(f.hatramin)
         : ', tsy misy fetra';
+      if (!f.ora) {
+        statutHariva.innerHTML = '⏸ Tsy misy ora : <strong style="color:var(--text);">tsy misy alefa ho azy</strong>.' +
+          (f.farany_nalefa ? ' Farany : ' + echapper(dateFr(f.farany_nalefa)) + '.' : '');
+        return;
+      }
       var androany = new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10);
       var lany = f.hatramin && f.hatramin < androany;
       statutHariva.innerHTML = (lany ? '<span style="color:var(--amber);">⚠ Lany ny daty : tsy mandeha intsony.</span> ' : '✓ ') +
@@ -459,33 +466,36 @@
       if (!window.__sb || !window.__sb.functions) { statutHariva.textContent = 'Tsy tafiditra ny serveur.'; return; }
       appelerHariva({ action: 'fikirana' }).then(function (d) {
         var f = d.fikirana || {};
-        champOra.value = f.ora || '18:00';
+        champOra.value = f.ora || '';
         champManomboka.value = f.manomboka || '';
         champHatramin.value = f.hatramin || '';
         direFikirana(f);
       }, function (e) { statutHariva.textContent = 'Tsy voavaky ny ora : ' + e.message; });
     }
     chargerFikirana();
-    bTehirizo.addEventListener('click', function () {
+    // Une heure vide : plus rien ne part tout seul.
+    function tehirizo() {
       if (!window.__sb || !window.__sb.functions) { statutHariva.textContent = 'Tsy tafiditra ny serveur.'; return; }
-      var ora = String(champOra.value || '').slice(0, 5);
-      if (!/^\d{2}:\d{2}$/.test(ora)) { statutHariva.textContent = 'Fidio ny ora sy ny minitra.'; return; }
+      var ora = String(champOra.value || '').slice(0, 5) || null;
+      if (ora && !/^\d{2}:\d{2}$/.test(ora)) { statutHariva.textContent = 'Fidio ny ora sy ny minitra.'; return; }
       var manomboka = champManomboka.value || null;
       var hatramin = champHatramin.value || null;
       if (manomboka && hatramin && hatramin < manomboka) {
         statutHariva.textContent = 'Tsy maintsy aorian\'ny « Manomboka » ny « Hatramin\'ny ».';
         return;
       }
-      bTehirizo.disabled = true;
+      bTehirizo.disabled = bEsory.disabled = true;
       statutHariva.textContent = 'Mitahiry…';
       appelerHariva({ action: 'tehirizo', ora: ora, manomboka: manomboka, hatramin: hatramin }).then(function (d) {
-        bTehirizo.disabled = false;
+        bTehirizo.disabled = bEsory.disabled = false;
         direFikirana(d.fikirana || { ora: ora, manomboka: manomboka, hatramin: hatramin });
       }, function (e) {
-        bTehirizo.disabled = false;
+        bTehirizo.disabled = bEsory.disabled = false;
         statutHariva.textContent = 'Tsy voatahiry : ' + e.message;
       });
-    });
+    }
+    bTehirizo.addEventListener('click', tehirizo);
+    bEsory.addEventListener('click', function () { champOra.value = ''; tehirizo(); });
 
     var boite = page.querySelector('[data-liste]');
     var vide = page.querySelector('[data-vide]');

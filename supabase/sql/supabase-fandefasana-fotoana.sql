@@ -17,12 +17,16 @@
 
 create table if not exists public.fandefasana_fikirana (
   id integer primary key default 1 check (id = 1),
-  ora text not null default '18:00' check (ora ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'),
+  ora text check (ora ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'),
   manomboka date,        -- vide : dès maintenant
   hatramin date,         -- vide : sans fin
   farany_nalefa date,    -- le dernier jour (Madagascar) où la tâche est partie
   updated_at timestamptz not null default now()
 );
+
+-- Sans heure (null), rien ne part tout seul.
+alter table public.fandefasana_fikirana alter column ora drop not null;
+alter table public.fandefasana_fikirana alter column ora drop default;
 
 insert into public.fandefasana_fikirana (id) values (1) on conflict (id) do nothing;
 
