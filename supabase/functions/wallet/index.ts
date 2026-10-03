@@ -64,10 +64,14 @@ function fraisRetrait(montant: number): number {
 // Depuis le 26/09/2026 au soir, seul le Mobile Money reste ouvert : c'est
 // là que partent les dépôts et les parrainages (Papi n'envoie pas d'argent,
 // le propriétaire exécute). Wise, Payoneer, Skrill et banque sont fermés.
-const METHODS = new Set(["mobile"]);
+// « merchant » (03/10/2026) : un achat dans une boutique à l'étranger
+// (« Achats internationaux »), payé avec la vola tena izy seule — jamais
+// avec les parrainages ni les sommes de l'appli. Le propriétaire l'achète
+// depuis le lien et le fait livrer à l'adresse donnée.
+const METHODS = new Set(["mobile", "merchant"]);
 // Les portefeuilles internationaux ne connaissent pas l'ariary.
 const METHODES_EN_DEVISE = new Set(["wise", "payoneer", "skrill"]);
-const PURCHASE_METHODS = new Set<string>();
+const PURCHASE_METHODS = new Set(["merchant"]);
 
 // Frais de dépôt, retirés de ce qui est crédité — le même taux que Papi.
 const DEPOSIT_FEE_PCT = Number(Deno.env.get("DEPOSIT_FEE_PCT") ?? "0");
@@ -262,6 +266,9 @@ async function partsSolde(admin: Admin, email: string, balance: number): Promise
     const somme = (Number(p.amount_ar) || 0) + (Number(p.fee_ar) || 0);
     if (p.kind === "insite") {
       if (p.method === "papi") abonnements += somme;
+    } else if (p.kind === "purchase") {
+      // Un achat à l'étranger se paie avec la vola tena izy seule.
+      abonnements += somme;
     } else {
       retraits += somme;
     }
@@ -522,6 +529,31 @@ Deno.serve(async (req: Request) => {
     const instructions = String(body.instructions ?? "").trim().slice(0, 2000);
     const kind = PURCHASE_METHODS.has(method) ? "purchase" : "payout";
 
+    // Un achat à l'étranger : le lien de l'entana, l'adresse où le livrer,
+    // et la vola tena izy pour le payer — rien d'autre. Pas de frais : le
+    // propriétaire paie la boutique, il n'envoie pas d'argent.
+    const acheterAilleurs = async () => {
+      if (!/^https?:\/\//i.test(link)) {
+        return json({ error: "Apetaho ny rohin'ilay entana (https://…)." }, 400);
+      }
+      const balance = await balanceFor(admin, email);
+      const { papi } = await partsSolde(admin, email, balance);
+      if (amount > papi) {
+        return json({
+          error: `Vola tena izy : ${ar(papi)}. Ilaina : ${ar(amount)}. ` +
+            "Ny vola tena izy ihany no andoavana ny entana any ivelany (tsy ny parrainage). " +
+            "Ampidiro vola amin'ny Mobile Money aloha.",
+        }, 400);
+      }
+      const { data, error } = await admin.from("wallet_payouts").insert({
+        email: email, name: name, amount_ar: amount, method: method, kind: kind,
+        destination: destination, link: link, instructions: instructions || null,
+        currency: "MGA", amount_out: amount, rate: 1, status: "pending", fee_ar: 0,
+      }).select("id,amount_ar,fee_ar,currency,amount_out").single();
+      if (error) return json({ error: error.message }, 500);
+      return json({ payout: data, balanceAr: balance - amount, etat: "pending", message: "", auto: null });
+    };
+
     if (!METHODS.has(method)) return json({ error: "moyen de retrait inconnu" }, 400);
     if (!destination) return json({ error: "indiquez où envoyer l'argent" }, 400);
     // Wise, Payoneer et Skrill ne tiennent pas de compte en ariary :
@@ -536,6 +568,7 @@ Deno.serve(async (req: Request) => {
       return json({ error: "Le Mobile Money reçoit en ariary (MGA)." }, 400);
     }
     if (!(amount > 0)) return json({ error: "montant invalide" }, 400);
+    if (kind === "purchase") return await acheterAilleurs();
     if (amount < MIN_PAYOUT_AR) {
       return json({ error: `Le retrait minimum est de ${MIN_PAYOUT_AR.toLocaleString("fr-FR")} Ar.` }, 400);
     }

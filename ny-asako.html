@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="8a985cf4">
+<meta name="ny-asako-version" content="7d294611">
 <title>Ny asako — Tanjona</title>
 <!-- Application installable : le manifeste décrit le nom, l'icône et la façon
      de s'ouvrir ; le reste est affaire de service worker, enregistré plus bas. -->
@@ -552,6 +552,8 @@
             </div>
             <div style="padding:0.8rem 0.9rem;">
               <p class="community-sub" style="margin-bottom:0.8rem;">Magazay 31 any ivelany, voasokajy araka izay tadiavinao. Ampio ny anao eo ambany.</p>
+              <!-- Payer l'entana trouvé avec la vola tena izy du portefeuille. -->
+              <button type="button" class="btn btn-primary btn-sm" id="marketPayerBtn" style="width:100%; margin-bottom:0.8rem;">💰 Aloa amin'ny vola tena izy</button>
               <div id="marketplaceLinks" class="marketplace-groupes"></div>
               <div id="marketplaceAdminForm" style="display:none; margin-top:1rem; border-top:1px solid var(--line); padding-top:1rem;">
                 <div class="form-grid">
@@ -2391,6 +2393,41 @@
             <p id="payoutStatus" style="font-size:0.8rem; color:var(--cyan); margin-top:0.8rem; line-height:1.5;"></p>
           </div>
 
+          <!-- ---- ACHATS INTERNATIONAUX : payés avec la vola tena izy ----
+               Le lien de l'entana (Alibaba, AliExpress…), son prix en ariary,
+               l'adresse de livraison : le propriétaire l'achète et le fait
+               livrer (fonction wallet, méthode « merchant »). Les parrainages
+               ne paient pas ces achats. -->
+          <div class="panel" id="walletEtrangerPanel">
+            <h3>🌍 Hividy entana any ivelany</h3>
+            <p style="font-size:0.82rem; color:var(--muted); line-height:1.6; margin-bottom:1rem;">
+              Apetaho ny rohin'ilay entana hita tao amin'ny « Achats internationaux ». Ny
+              <strong style="color:var(--text);">vola tena izy</strong> ihany no andoavana azy, fa tsy ny parrainage.
+              Ny tompony no mividy azy ary mampandefa azy any amin'ny adiresinao. Raha tsy vita ny fividianana dia averina ny vola.
+            </p>
+            <div class="field">
+              <label for="etrangerLien">Rohin'ilay entana</label>
+              <input id="etrangerLien" type="url" placeholder="https://www.alibaba.com/product/…">
+            </div>
+            <div class="form-grid">
+              <div class="field" style="margin-bottom:0;">
+                <label for="etrangerPrix">Vidiny (Ar), livraison tafiditra</label>
+                <input id="etrangerPrix" type="number" min="0" step="1000" placeholder="150000">
+              </div>
+              <div class="field" style="margin-bottom:0;">
+                <label for="etrangerAdresse">Adiresy fandefasana sy laharana finday</label>
+                <input id="etrangerAdresse" type="text" placeholder="Lot II A 12, Antananarivo — 034 00 000 00">
+              </div>
+            </div>
+            <div class="field" style="margin-top:1rem;">
+              <label for="etrangerConsigne">Fanazavana (habe, loko, isa…)</label>
+              <input id="etrangerConsigne" type="text" placeholder="2 pièces, loko mainty, taille M">
+            </div>
+            <p id="etrangerDispo" style="font-size:0.78rem; color:var(--muted); margin-bottom:0.6rem; line-height:1.5;"></p>
+            <button type="button" class="btn btn-primary btn-sm" id="etrangerBtn" style="width:auto;">🛒 Hividy amin'ny vola tena izy</button>
+            <p id="etrangerStatus" style="font-size:0.8rem; color:var(--cyan); margin-top:0.8rem; line-height:1.5;"></p>
+          </div>
+
           <!-- ---- ACHATS DU FIL ---- -->
           <!-- Payés avec le portefeuille depuis le panier : l'argent est tenu
                jusqu'à ce que l'acheteur ait reçu l'entana (fonction wallet,
@@ -3073,7 +3110,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=31c3207c"></script>
+<script src="gestion-stockage-js/common.js?v=5d0da9a1"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=622d64e8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>

@@ -1006,6 +1006,8 @@
         (appli ? ligne('🏷️ Avy amin\'ny appli', appli, 'Ato anatiny ihany (abonnement, déblocage…)') : '') +
         '</div>';
     }
+    const dispoEl = document.getElementById('etrangerDispo');
+    if(dispoEl) dispoEl.textContent = 'Vola tena izy azo ampiasaina : ' + formatWalletAr(walletState.papiAr || 0);
     renderWalletCanaux();
     updatePayoutDestinationField();
     updateWalletConversion();
@@ -1492,6 +1494,61 @@
         refreshWalletFromServer();
       }, function(err){
         payoutRequestBtn.disabled = false;
+        statusEl.textContent = err.message;
+      });
+    });
+  }
+
+  // ---- Achats internationaux, payés avec la vola tena izy ----
+  // Le bouton du panneau « Achats internationaux » mène ici ; la demande
+  // part comme un retrait « merchant », que le propriétaire exécute.
+  const marketPayerBtn = document.getElementById('marketPayerBtn');
+  if(marketPayerBtn){
+    marketPayerBtn.addEventListener('click', function(){
+      const panneau = document.getElementById('marketPanel');
+      if(panneau) panneau.style.display = 'none';
+      const nav = document.querySelector('.nav-item[data-section="wallet"]');
+      if(nav) nav.click();
+      setTimeout(function(){
+        const cible = document.getElementById('walletEtrangerPanel');
+        if(cible && cible.offsetParent) cible.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 200);
+    });
+  }
+  const etrangerBtn = document.getElementById('etrangerBtn');
+  if(etrangerBtn){
+    etrangerBtn.addEventListener('click', function(){
+      const statusEl = document.getElementById('etrangerStatus');
+      const lien = document.getElementById('etrangerLien').value.trim();
+      const prix = Math.floor(Number(document.getElementById('etrangerPrix').value) || 0);
+      const adresse = document.getElementById('etrangerAdresse').value.trim();
+      const consigne = document.getElementById('etrangerConsigne').value.trim();
+      if(!/^https?:\/\//i.test(lien)){ statusEl.textContent = 'Apetaho ny rohin\'ilay entana (https://…).'; return; }
+      if(!(prix > 0)){ statusEl.textContent = 'Ampidiro ny vidiny amin\'ny ariary.'; return; }
+      if(!adresse){ statusEl.textContent = 'Ampidiro ny adiresy fandefasana.'; return; }
+      const vola = (walletState && walletState.papiAr) || 0;
+      if(prix > vola){
+        statusEl.textContent = 'Tsy ampy ny vola tena izy : ' + formatWalletAr(vola) + ' no misy, ' +
+          formatWalletAr(prix) + ' no ilaina. Ampidiro vola amin\'ny Mobile Money aloha.';
+        return;
+      }
+      etrangerBtn.disabled = true;
+      statusEl.textContent = 'Alefa ny fangatahana…';
+      callWallet({
+        action: 'payout', amountAr: prix, method: 'merchant', currency: 'MGA',
+        destination: adresse, link: lien, instructions: consigne,
+        name: (currentUser && currentUser.name) || ''
+      }).then(function(){
+        etrangerBtn.disabled = false;
+        ['etrangerLien', 'etrangerPrix', 'etrangerConsigne'].forEach(function(id){
+          document.getElementById(id).value = '';
+        });
+        statusEl.textContent = 'Voaray ny fangatahana : ' + formatWalletAr(prix) +
+          ' voatazona amin\'ny vola tena izy. Ny tompony no mividy ilay entana ; hampandrenesina ianao.';
+        pushNotification('parrainage', 'Fividianana any ivelany : ' + formatWalletAr(prix) + '.');
+        refreshWalletFromServer();
+      }, function(err){
+        etrangerBtn.disabled = false;
         statusEl.textContent = err.message;
       });
     });
