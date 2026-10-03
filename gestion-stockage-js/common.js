@@ -1004,7 +1004,6 @@
         ligne('💰 Vola tena izy', vola, 'Dépôt Papi sy varotra') +
         ligne('🎁 Parrainage', parrainage) +
         (appli ? ligne('🏷️ Avy amin\'ny appli', appli, 'Ato anatiny ihany (abonnement, déblocage…)') : '') +
-        ligne('💵 Azo alaina', r, 'Vola tena izy + parrainage') +
         '</div>';
     }
     renderWalletCanaux();
