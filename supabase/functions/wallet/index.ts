@@ -48,7 +48,7 @@ function tarifParrainage(email: string): number {
 const MIN_PAYOUT_AR = Number(Deno.env.get("MIN_PAYOUT_AR") ?? "10000");
 // Frais de retrait, en pourcentage, ajoutés à la somme demandée : la personne
 // reçoit ce qu'elle a demandé, et son solde baisse de la somme + les frais.
-const PAYOUT_FEE_PCT = Number(Deno.env.get("PAYOUT_FEE_PCT") ?? "5");
+const PAYOUT_FEE_PCT = Number(Deno.env.get("PAYOUT_FEE_PCT") ?? "0.5");
 function fraisRetrait(montant: number): number {
   return PAYOUT_FEE_PCT > 0 ? Math.ceil(montant * PAYOUT_FEE_PCT / 100) : 0;
 }
@@ -70,7 +70,7 @@ const METHODES_EN_DEVISE = new Set(["wise", "payoneer", "skrill"]);
 const PURCHASE_METHODS = new Set<string>();
 
 // Frais de dépôt, retirés de ce qui est crédité — le même taux que Papi.
-const DEPOSIT_FEE_PCT = Number(Deno.env.get("DEPOSIT_FEE_PCT") ?? "5");
+const DEPOSIT_FEE_PCT = Number(Deno.env.get("DEPOSIT_FEE_PCT") ?? "0");
 function fraisDepot(brut: number): number {
   return DEPOSIT_FEE_PCT > 0 ? Math.ceil(brut * DEPOSIT_FEE_PCT / 100) : 0;
 }
@@ -240,6 +240,15 @@ async function retirableFor(admin: Admin, email: string, balance: number): Promi
 //     (un retrait puise d'abord dans les parrainages, qui ne servent qu'à ça)
 // Jamais plus que le solde lui-même.
 async function argentPapiFor(admin: Admin, email: string, balance: number): Promise<number> {
+  return (await partsSolde(admin, email, balance)).papi;
+}
+
+// Le solde en trois parts, que la page montre à part :
+//   papi       — l'argent vraiment payé qui reste (voir plus haut) ;
+//   parrainage — les gains de parrainage moins les retraits, qui y puisent
+//                d'abord ;
+//   le reste   — ce que l'application a inscrit d'elle-même, à dépenser ici.
+async function partsSolde(admin: Admin, email: string, balance: number): Promise<{ papi: number; parrainage: number }> {
   const { data: depots } = await admin.from("wallet_deposits")
     .select("amount_ar").eq("email", email).eq("status", "confirme").in("provider", PROVIDERS_REELS);
   const entre = (depots ?? []).reduce(
@@ -263,7 +272,8 @@ async function argentPapiFor(admin: Admin, email: string, balance: number): Prom
   retraits += achats.depense;
   const parrainage = await gainsParrainage(admin, email);
   const reste = entre + achats.recu - abonnements - Math.max(0, retraits - parrainage);
-  return Math.max(0, Math.min(balance, reste));
+  const papi = Math.max(0, Math.min(balance, reste));
+  return { papi, parrainage: Math.max(0, Math.min(balance - papi, parrainage - retraits)) };
 }
 
 Deno.serve(async (req: Request) => {
@@ -342,8 +352,9 @@ Deno.serve(async (req: Request) => {
     }
 
     const retirable = await retirableFor(admin, email, balance);
+    const parts = await partsSolde(admin, email, balance);
     return json({
-      balanceAr: balance, retirableAr: retirable, papiAr: await argentPapiFor(admin, email, balance), arPerReferral: tarifParrainage(email), minPayoutAr: MIN_PAYOUT_AR, payoutFeePct: PAYOUT_FEE_PCT,
+      balanceAr: balance, retirableAr: retirable, papiAr: parts.papi, parrainageAr: parts.parrainage, arPerReferral: tarifParrainage(email), minPayoutAr: MIN_PAYOUT_AR, payoutFeePct: PAYOUT_FEE_PCT,
       depositFeePct: DEPOSIT_FEE_PCT,
       // Ce qui marche vraiment sur ce serveur, pour que la page ne propose
       // pas un canal dont les clefs manquent.

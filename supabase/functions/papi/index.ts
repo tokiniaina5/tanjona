@@ -10,14 +10,14 @@
 //       -> on NE croit PAS le corps : on relit l'état chez Papi avec notre clef.
 //
 // Frais : le client paie la somme saisie ; son solde reçoit cette somme moins
-// DEPOSIT_FEE_PCT % (5 % par défaut). La somme payée chez Papi est gardée
+// DEPOSIT_FEE_PCT % (0 % par défaut). La somme payée chez Papi est gardée
 // dans raw.brut, c'est elle qu'on compare à ce que Papi dit avoir encaissé.
 //
 // verify_jwt est désactivé parce que Papi appelle sans jeton Supabase ;
 // "create" et "check" vérifient eux-mêmes la session.
 //
 // Secrets : PAPI_TOKEN (clef API de la boutique, onglet Développeur).
-// Optionnels : DEPOSIT_FEE_PCT (défaut 5), PAPI_MAX_AR,
+// Optionnels : DEPOSIT_FEE_PCT (défaut 0), PAPI_MAX_AR,
 // PAPI_ALLOW_TEST="true" pour créditer les paiements de test (essais seulement).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -26,7 +26,7 @@ const PAPI = "https://app.papi.mg/engine/api/payment-links";
 const PROVIDERS = new Set(["MVOLA", "AIRTEL_MONEY", "ORANGE_MONEY", "BRED"]);
 const MIN_AR = 300;
 const MAX_AR = Number(Deno.env.get("PAPI_MAX_AR") ?? "2000000");
-const DEPOSIT_FEE_PCT = Number(Deno.env.get("DEPOSIT_FEE_PCT") ?? "5");
+const DEPOSIT_FEE_PCT = Number(Deno.env.get("DEPOSIT_FEE_PCT") ?? "0");
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",

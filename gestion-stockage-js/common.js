@@ -984,16 +984,28 @@
         ? 'soit ' + Math.floor((walletState.balanceAr || 0) / par) + ' parrainage(s) à ' + formatWalletAr(par)
         : '';
     }
-    // Ce qui peut sortir pour de bon : l'argent vraiment payé. Le reste
-    // (parrainages, sommes inscrites par l'application) se dépense ici.
+    // Ce qui peut sortir pour de bon : l'argent vraiment payé et les
+    // parrainages. Les sommes inscrites par l'application se dépensent ici.
     const retirableEl = document.getElementById('walletRetirable');
     if(retirableEl){
       const r = walletState.retirableAr;
+      // Telo samy hafa, asehoy misaraka : vola tena izy (dépôts Papi +
+      // ventes), parrainage, ary ny vola nampidirin'ny appli ho azy.
+      const vola = Math.max(0, walletState.papiAr || 0);
+      const parrainage = Math.max(0, walletState.parrainageAr || 0);
+      const appli = Math.max(0, (walletState.balanceAr || 0) - vola - parrainage);
+      const ligne = function(label, montant, note){
+        return '<div style="display:flex; justify-content:space-between; align-items:baseline; gap:0.8rem; padding:0.35rem 0; border-top:1px solid var(--line);">' +
+          '<span>' + label + (note ? '<br><span style="font-size:0.72rem;">' + note + '</span>' : '') + '</span>' +
+          '<strong style="color:var(--text); white-space:nowrap;">' + formatWalletAr(montant) + '</strong></div>';
+      };
       retirableEl.innerHTML = (r === undefined || r === null) ? '' :
-        '💵 Azo alaina (dépôt + parrainage) : <strong style="color:var(--text);">' + formatWalletAr(r) + '</strong>' +
-        (r < (walletState.balanceAr || 0)
-          ? '<br><span style="font-size:0.72rem;">Ny vola nampidirin\'ny appli ho azy dia ampiasaina ato anatiny ihany (abonnement, déblocage…).</span>'
-          : '');
+        '<div style="margin-top:0.4rem;">' +
+        ligne('💰 Vola tena izy', vola, 'Dépôt Papi sy varotra') +
+        ligne('🎁 Parrainage', parrainage) +
+        (appli ? ligne('🏷️ Avy amin\'ny appli', appli, 'Ato anatiny ihany (abonnement, déblocage…)') : '') +
+        ligne('💵 Azo alaina', r, 'Vola tena izy + parrainage') +
+        '</div>';
     }
     renderWalletCanaux();
     updatePayoutDestinationField();
