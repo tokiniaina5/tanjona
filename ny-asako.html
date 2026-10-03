@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="33b949f9">
+<meta name="ny-asako-version" content="d71a56ce">
 <title>Ny asako — Tanjona</title>
 <!-- Application installable : le manifeste décrit le nom, l'icône et la façon
      de s'ouvrir ; le reste est affaire de service worker, enregistré plus bas. -->
@@ -2784,6 +2784,9 @@
             <button type="button" class="btn btn-primary btn-sm" id="tadiavoBtn" style="width:auto;">📍 Tadiavo ny livreur rehetra</button>
           </div>
           <p id="tadiavoStatut" class="seulement-patron" style="font-size:0.8rem; color:var(--cyan); margin:0 0 0.8rem; line-height:1.5;"></p>
+          <!-- Chercher un livreur par son nom ou son téléphone : la carte et la
+               liste ne gardent que ceux qui correspondent (equipe.js). -->
+          <input type="search" id="livreurRecherche" placeholder="🔍 Karohy livreur (anarana, laharana…)" autocomplete="off" style="margin:0 0 0.8rem;">
           <div id="carteLivreur" style="height:320px; border-radius:10px; overflow:hidden; border:1px solid var(--line); display:none;"></div>
           <p id="carteSansCle" style="font-size:0.78rem; color:var(--muted); line-height:1.6; margin:0 0 0.8rem; display:none;"></p>
           <div id="positionsListe" style="margin-top:0.8rem;"></div>
@@ -3204,7 +3207,7 @@
 <script src="gestion-stockage-js/identite.js?v=32177fac"></script>
 <script src="gestion-stockage-js/fond.js?v=66e9ffc6"></script>
 <script src="gestion-stockage-js/carte-libre.js?v=732ab00c"></script>
-<script src="gestion-stockage-js/equipe.js?v=84c31680"></script>
+<script src="gestion-stockage-js/equipe.js?v=57df35d0"></script>
 <script src="gestion-stockage-js/vue-mpiasa.js?v=703bbcb1"></script>
 <script src="gestion-stockage-js/vue-suivi.js?v=77f7b0f5"></script>
 <script src="gestion-stockage-js/fitaovana.js?v=bf90a8a5"></script>

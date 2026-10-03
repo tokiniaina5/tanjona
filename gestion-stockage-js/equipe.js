@@ -685,6 +685,11 @@
     });
     lignes.sort(function (a, b) { return new Date(b.pos.at) - new Date(a.pos.at); });
 
+    // La recherche : par nom ou téléphone, sur la carte comme dans la liste.
+    const q = rechercheLivreur();
+    const garde = function (p) { return correspond(p, q); };
+    for (let k = lignes.length - 1; k >= 0; k--) if (!garde(lignes[k].p)) lignes.splice(k, 1);
+
     liste.innerHTML = '';
     if (vide) vide.style.display = lignes.length ? 'none' : 'block';
 
@@ -692,7 +697,8 @@
       const lat = Number(l.pos.lat), lng = Number(l.pos.lng);
       const div = document.createElement('div');
       div.style.cssText = 'border:1px solid var(--line); border-radius:8px; padding:0.7rem 0.9rem; margin-bottom:0.6rem; font-size:0.82rem; line-height:1.6;';
-      div.innerHTML =
+      div.style.borderLeft = '5px solid ' + couleurDe(l.p.id);
+      div.innerHTML = pastille(l.p.id) +
         '<strong style="color:var(--text);">' + html(l.p.nom) + '</strong>' +
         ' · <span style="color:var(--cyan);">' + html(depuis(l.pos.at)) + '</span>' +
         '<br><span style="color:var(--muted);">' + lat.toFixed(5) + ', ' + lng.toFixed(5) +
@@ -706,20 +712,23 @@
     // Les livreurs actifs qui n'ont encore rien envoyé : nommés aussi, pour
     // qu'on voie l'équipe entière et qui reste à chercher.
     const sansPosition = equipe.filter(function (p) {
-      return (p.role || 'mpiasa') === 'livreur' && p.actif &&
+      return (p.role || 'mpiasa') === 'livreur' && p.actif && garde(p) &&
         !lignes.some(function (l) { return l.p.id === p.id; });
     });
     sansPosition.forEach(function (p) {
       const div = document.createElement('div');
-      div.style.cssText = 'border:1px dashed var(--line); border-radius:8px; padding:0.7rem 0.9rem; margin-bottom:0.6rem; font-size:0.82rem; line-height:1.6;';
-      div.innerHTML =
+      div.style.cssText = 'border:1px dashed var(--line); border-left:5px solid ' + couleurDe(p.id) + '; border-radius:8px; padding:0.7rem 0.9rem; margin-bottom:0.6rem; font-size:0.82rem; line-height:1.6;';
+      div.innerHTML = pastille(p.id) +
         '<strong style="color:var(--text);">' + html(p.nom) + '</strong>' +
         ' · <span style="color:var(--muted);">mbola tsy nandefa ny toerana misy azy</span>' +
         (p.jeton ? '' : '<br><span style="color:var(--muted);">Tsy mbola nomena rohy.</span>') +
         (p.telephone ? '<br><a href="tel:' + html(p.telephone) + '" style="color:var(--cyan);">' + html(p.telephone) + '</a>' : '');
       liste.appendChild(div);
     });
-    if (vide) vide.style.display = (lignes.length || sansPosition.length) ? 'none' : 'block';
+    if (vide) {
+      vide.style.display = (lignes.length || sansPosition.length) ? 'none' : 'block';
+      vide.textContent = q ? 'Tsy misy livreur mifanaraka amin\'ny « ' + q + ' ».' : 'Mbola tsy nisy nandefa ny toerana misy azy.';
+    }
 
     poserLaCarte(lignes);
   }
@@ -756,6 +765,30 @@
       setTimeout(function () { fini(!!(window.google && window.google.maps)); }, 12000);
     });
     return mapsDemandee;
+  }
+
+  // Une couleur par livreur, toujours la même : tirée de son identifiant,
+  // elle ne change pas quand un autre livreur arrive ou s'en va.
+  function couleurDe(id) {
+    let h = 0;
+    String(id || '').split('').forEach(function (c) { h = (h * 31 + c.charCodeAt(0)) >>> 0; });
+    return COULEURS_TRACE[h % COULEURS_TRACE.length];
+  }
+  function pastille(id) {
+    return '<span style="display:inline-block; width:11px; height:11px; border-radius:50%; background:' +
+      couleurDe(id) + '; border:2px solid #fff; box-shadow:0 0 0 1px var(--line); margin-right:0.4rem; vertical-align:-1px;"></span>';
+  }
+  function rechercheLivreur() {
+    const champ = document.getElementById('livreurRecherche');
+    return champ ? champ.value.trim() : '';
+  }
+  function correspond(p, q) {
+    if (!q) return true;
+    const nu = function (x) { return String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); };
+    const n = nu(q);
+    const chiffres = q.replace(/\D/g, '');
+    return nu(p.nom).indexOf(n) >= 0 ||
+      (chiffres.length >= 3 && String(p.telephone || '').replace(/\D/g, '').indexOf(chiffres) >= 0);
   }
 
   function minuit() {
@@ -801,6 +834,7 @@
         let m = reperesLibres[l.p.id];
         if (!m) {
           m = repereCarteLibre(point).addTo(carteLibre);
+          m.setStyle({ fillColor: couleurDe(l.p.id), color: '#ffffff', weight: 3 });
           m.bindTooltip(html(l.p.nom), { permanent: true, direction: 'top', offset: [0, -10] });
           m.bindPopup(texte);
           reperesLibres[l.p.id] = m;
@@ -817,10 +851,10 @@
       // Le chemin du jour : redessiné en entier à chaque relecture.
       if (tracesLibres) tracesLibres.clearLayers();
       else tracesLibres = L.layerGroup().addTo(carteLibre);
-      lignes.forEach(function (l, i) {
+      lignes.forEach(function (l) {
         const chemin = cheminDe(l.p.id);
         if (!chemin.length) return;
-        const couleur = COULEURS_TRACE[i % COULEURS_TRACE.length];
+        const couleur = couleurDe(l.p.id);
         const pts = chemin.map(function (c) { return [c.lat, c.lng]; });
         if (pts.length > 1) {
           L.polyline(pts, { color: couleur, weight: 4, opacity: 0.75 }).addTo(tracesLibres);
@@ -908,7 +942,12 @@
         vivants[l.p.id] = true;
         let m = reperes[l.p.id];
         if (!m) {
-          m = new g.Marker({ map: carte, position: point, title: l.p.nom });
+          m = new g.Marker({
+            map: carte, position: point, title: l.p.nom, zIndex: 1000,
+            label: { text: String(l.p.nom || ''), color: '#111', fontSize: '12px', fontWeight: '700' },
+            icon: { path: g.SymbolPath.CIRCLE, scale: 9, fillColor: couleurDe(l.p.id), fillOpacity: 1,
+              strokeColor: '#fff', strokeWeight: 3, labelOrigin: new g.Point(0, -2.6) }
+          });
           m.__bulle = new g.InfoWindow();
           m.addListener('click', function () {
             m.__bulle.setContent(m.__texte || '');
@@ -930,10 +969,10 @@
       // Le chemin du jour, comme sur la carte gratuite.
       tracesGoogle.forEach(function (o) { o.setMap(null); });
       tracesGoogle = [];
-      lignes.forEach(function (l, i) {
+      lignes.forEach(function (l) {
         const chemin = cheminDe(l.p.id);
         if (!chemin.length) return;
-        const couleur = COULEURS_TRACE[i % COULEURS_TRACE.length];
+        const couleur = couleurDe(l.p.id);
         if (chemin.length > 1) {
           tracesGoogle.push(new g.Polyline({
             map: carte, path: chemin.map(function (c) { return { lat: c.lat, lng: c.lng }; }),
@@ -1770,6 +1809,9 @@
     if (cleChamp) cleChamp.value = cleMaps();
 
     const tadiavoTous = document.getElementById('tadiavoBtn');
+    const rechercheL = document.getElementById('livreurRecherche');
+    if (rechercheL) rechercheL.addEventListener('input', dessinerCarte);
+
     if (tadiavoTous) tadiavoTous.addEventListener('click', function () {
       const livreurs = equipe.filter(function (p) { return suivable(p) && p.actif; });
       tadiavo(livreurs.map(function (p) { return p.id; }), tadiavoTous);
