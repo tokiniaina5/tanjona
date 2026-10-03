@@ -6082,8 +6082,6 @@
       if(el.id === 'navStock') return false;
       if(el.id === 'navAdmin') return !!(currentUser && currentUser.email && isOwnerEmail(currentUser.email));
       if(el.classList.contains('seulement-mpiasa')) return document.body.classList.contains('mode-mpiasa');
-      // Le livreur entré par son lien : sa page, Andro / Alina, les notifications.
-      if(document.body.classList.contains('mode-livreur')) return ['navMoi', 'menuTheme', 'notifToggle'].indexOf(el.id) >= 0;
       return true;
     }
 

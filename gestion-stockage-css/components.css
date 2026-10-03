@@ -1166,14 +1166,6 @@
   body.mode-mpiasa [data-epingle="section:mpiasa"],
   body.mode-mpiasa .icone-bureau[data-cle="section:mpiasa"]{ display:none !important; }
 
-  /* ---- Le livreur entré par son lien ----
-     Trois entrées seulement : sa page (« Ny momba ahy »), Andro / Alina, et
-     les notifications — au menu, dans la rangée du bas et sur le fond. */
-  body.mode-livreur #navList > .nav-item:not(#navMoi),
-  body.mode-livreur #navList > .nav-action:not(#menuTheme):not(#notifToggle),
-  body.mode-livreur [data-epingle]:not([data-epingle="section:moi"]):not([data-epingle="id:menuTheme"]):not([data-epingle="id:notifToggle"]),
-  body.mode-livreur .icone-bureau:not([data-cle="section:moi"]):not([data-cle="id:menuTheme"]):not([data-cle="id:notifToggle"]){ display:none !important; }
-
   /* ---- Entré sans compte, les premiers jours ----
      Même place dans le menu, l'autre sens : on ne quitte pas un compte qu'on
      n'a pas ouvert, on l'ouvre. */
