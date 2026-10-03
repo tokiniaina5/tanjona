@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="831154e0">
+<meta name="ny-asako-version" content="0e3994dd">
 <title>Ny asako — Tanjona</title>
 <!-- Application installable : le manifeste décrit le nom, l'icône et la façon
      de s'ouvrir ; le reste est affaire de service worker, enregistré plus bas. -->
@@ -2306,7 +2306,20 @@
                 <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
                   <strong id="walletIdKey" style="font-family:var(--font-mono); font-size:1.05rem; color:var(--text); letter-spacing:0.05em;">—</strong>
                   <button type="button" class="btn btn-sm" id="walletIdKeyCopy" style="width:auto;">📋 Adikao</button>
+                  <button type="button" class="btn btn-sm" id="walletIdKeyEdit" style="width:auto;">✏️ Ovaina</button>
+                  <button type="button" class="btn btn-sm" id="walletIdKeyDelete" style="width:auto; display:none;">🗑️ Esory</button>
                 </div>
+                <div class="plan-note" id="walletIdKeyType" style="font-size:0.72rem;"></div>
+                <!-- Une clef choisie : enregistrer (créer ou modifier), annuler.
+                     « Esory » la retire et rend une clef automatique. -->
+                <div id="walletIdKeyForm" style="display:none; margin-top:0.5rem;">
+                  <input id="walletIdKeyInput" type="text" maxlength="20" placeholder="Ex : TOKY-2026" autocomplete="off" style="font-family:var(--font-mono); text-transform:uppercase;">
+                  <div style="display:flex; gap:0.5rem; margin-top:0.4rem;">
+                    <button type="button" class="btn btn-primary btn-sm" id="walletIdKeySave" style="width:auto;">💾 Save</button>
+                    <button type="button" class="btn btn-sm" id="walletIdKeyCancel" style="width:auto;">Ajanony</button>
+                  </div>
+                </div>
+                <p id="walletIdKeyStatus" style="font-size:0.75rem; color:var(--cyan); margin-top:0.3rem;"></p>
               </div>
               <div>
                 <div class="plan-note">Solde disponible</div>
@@ -3167,7 +3180,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=f250661b"></script>
+<script src="gestion-stockage-js/common.js?v=d2df6da7"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=622d64e8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>

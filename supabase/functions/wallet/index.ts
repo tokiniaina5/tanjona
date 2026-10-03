@@ -245,8 +245,19 @@ function tirerCle(): string {
   const c = Array.from(octets, (o) => ALPHABET_CLE[o % ALPHABET_CLE.length]).join("");
   return "NA-" + c.slice(0, 4) + "-" + c.slice(4);
 }
+// Une clef se compare sans tirets ni espaces, en majuscules. Une clef
+// automatique se reconnaît aussi sans son « NA » de tête.
 function normCle(value: unknown): string {
-  return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "").replace(/^NA/, "");
+  return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+function memeCle(stockee: string, saisie: string): boolean {
+  const s = normCle(stockee);
+  const n = normCle(saisie);
+  return s === n || s === "NA" + n || "NA" + s === n;
+}
+// Clef automatique : « NA-XXXX-XXXX ». Toute autre forme a été choisie.
+function estCleAuto(cle: string | null): boolean {
+  return /^NA-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(String(cle ?? ""));
 }
 async function cleFor(admin: Admin, email: string): Promise<string | null> {
   const { data: deja, error } = await admin.from("wallet_cles").select("cle").eq("email", email).maybeSingle();
@@ -454,7 +465,7 @@ Deno.serve(async (req: Request) => {
       });
 
     return json({
-      idKey, transferts, transferFeePct: TRANSFER_FEE_PCT,
+      idKey, idKeyAuto: estCleAuto(idKey), transferts, transferFeePct: TRANSFER_FEE_PCT,
       balanceAr: balance, retirableAr: retirable, papiAr: parts.papi, parrainageAr: parts.parrainage, arPerReferral: tarifParrainage(email), minPayoutAr: MIN_PAYOUT_AR, payoutFeePct: PAYOUT_FEE_PCT,
       depositFeePct: DEPOSIT_FEE_PCT,
       // Ce qui marche vraiment sur ce serveur, pour que la page ne propose
@@ -612,14 +623,43 @@ Deno.serve(async (req: Request) => {
     return json({ currency, rate });
   }
 
+  // ---- Choisir son ID KEY, la changer, ou revenir à l'automatique ----
+  // Vide : la clef choisie s'efface et une clef automatique neuve la
+  // remplace. Sinon : 4 à 20 lettres ou chiffres (tirets permis), libre chez
+  // personne d'autre — comparée sans tirets, comme à la recherche.
+  if (action === "cle-modifier") {
+    const saisie = String(body.cle ?? "").trim().toUpperCase().replace(/\s+/g, "-");
+    if (!saisie) {
+      const { error: e } = await admin.from("wallet_cles").delete().eq("email", email);
+      if (e) return json({ error: e.message }, 500);
+      const cle = await cleFor(admin, email);
+      return json({ idKey: cle, idKeyAuto: true });
+    }
+    if (!/^[A-Z0-9][A-Z0-9-]{2,18}[A-Z0-9]$/.test(saisie) || normCle(saisie).length < 4) {
+      return json({ error: "ID KEY : litera sy isa 4 ka hatramin'ny 20 (azo asiana « - »)." }, 400);
+    }
+    if (estCleAuto(saisie)) {
+      return json({ error: "Ny endrika « NA-XXXX-XXXX » dia natokana ho an'ny ID KEY automatique." }, 400);
+    }
+    const { data: lignes, error: e1 } = await admin.from("wallet_cles").select("email,cle");
+    if (e1) return json({ error: e1.message }, 500);
+    const pris = ((lignes ?? []) as Array<{ email: string; cle: string }>)
+      .some((l) => l.email !== email && memeCle(l.cle, saisie));
+    if (pris) return json({ error: "Efa misy olona hafa mampiasa io ID KEY io." }, 409);
+    const { error: e2 } = await admin.from("wallet_cles")
+      .upsert({ email, cle: saisie }, { onConflict: "email" });
+    if (e2) return json({ error: e2.message }, 500);
+    return json({ idKey: saisie, idKeyAuto: false });
+  }
+
   // ---- Voir à qui appartient une ID KEY, avant d'envoyer ----
   // On ne rend que le prénom affiché du compte (s'il en a un) : de quoi
   // vérifier qu'on ne s'est pas trompé de clef, sans livrer l'email.
   if (action === "cle") {
     const cle = normCle(body.cle);
-    if (cle.length !== 8) return json({ error: "ID KEY diso : NA-XXXX-XXXX." }, 400);
+    if (cle.length < 4) return json({ error: "ID KEY diso." }, 400);
     const { data: lignes } = await admin.from("wallet_cles").select("email,cle");
-    const trouve = ((lignes ?? []) as Array<{ email: string; cle: string }>).find((l) => normCle(l.cle) === cle);
+    const trouve = ((lignes ?? []) as Array<{ email: string; cle: string }>).find((l) => memeCle(l.cle, cle));
     if (!trouve) return json({ error: "Tsy misy wallet manana io ID KEY io." }, 404);
     if (trouve.email === email) return json({ error: "Anao io ID KEY io." }, 400);
     const { data: nom } = await admin.from("wallet_payouts").select("name")
@@ -635,12 +675,12 @@ Deno.serve(async (req: Request) => {
     const cle = normCle(body.cle);
     const amount = Math.floor(Number(body.amountAr ?? 0));
     const note = String(body.note ?? "").trim().slice(0, 300);
-    if (cle.length !== 8) return json({ error: "ID KEY diso : NA-XXXX-XXXX." }, 400);
+    if (cle.length < 4) return json({ error: "ID KEY diso." }, 400);
     if (!(amount > 0)) return json({ error: "Ampidiro ny vola halefa." }, 400);
 
     const { data: lignes, error: errCles } = await admin.from("wallet_cles").select("email,cle");
     if (errCles) return json({ error: "Mbola tsy vonona ny famindrana (supabase-portefeuille-famindrana.sql)." }, 500);
-    const dest = ((lignes ?? []) as Array<{ email: string; cle: string }>).find((l) => normCle(l.cle) === cle);
+    const dest = ((lignes ?? []) as Array<{ email: string; cle: string }>).find((l) => memeCle(l.cle, cle));
     if (!dest) return json({ error: "Tsy misy wallet manana io ID KEY io." }, 404);
     if (dest.email === email) return json({ error: "Tsy azo alefa any aminao ihany." }, 400);
 

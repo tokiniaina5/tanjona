@@ -1008,6 +1008,12 @@
     }
     const cleEl = document.getElementById('walletIdKey');
     if(cleEl) cleEl.textContent = walletState.idKey || '—';
+    const cleType = document.getElementById('walletIdKeyType');
+    if(cleType) cleType.textContent = walletState.idKey
+      ? (walletState.idKeyAuto ? 'Automatique — azonao ovaina ho anao manokana.' : 'Noforoninao.')
+      : '';
+    const cleSuppr = document.getElementById('walletIdKeyDelete');
+    if(cleSuppr) cleSuppr.style.display = walletState.idKey && !walletState.idKeyAuto ? '' : 'none';
     renderTransferts();
     transfertCalculer();
     const dispoEl = document.getElementById('etrangerDispo');
@@ -1578,20 +1584,64 @@
       }
     });
   }
+  // Créer / modifier sa propre ID KEY, ou l'effacer (retour à l'automatique).
+  function cleEnregistrer(valeur, message){
+    const statusEl = document.getElementById('walletIdKeyStatus');
+    statusEl.textContent = '…';
+    return callWallet({ action: 'cle-modifier', cle: valeur }).then(function(res){
+      if(walletState){ walletState.idKey = res.idKey; walletState.idKeyAuto = res.idKeyAuto; }
+      document.getElementById('walletIdKeyForm').style.display = 'none';
+      statusEl.textContent = message;
+      renderWalletBalance();
+    }, function(err){
+      statusEl.textContent = '⚠️ ' + err.message;
+    });
+  }
+  const idKeyEdit = document.getElementById('walletIdKeyEdit');
+  if(idKeyEdit){
+    idKeyEdit.addEventListener('click', function(){
+      const form = document.getElementById('walletIdKeyForm');
+      const input = document.getElementById('walletIdKeyInput');
+      form.style.display = 'block';
+      input.value = walletState && !walletState.idKeyAuto ? (walletState.idKey || '') : '';
+      input.focus();
+    });
+    document.getElementById('walletIdKeyCancel').addEventListener('click', function(){
+      document.getElementById('walletIdKeyForm').style.display = 'none';
+      document.getElementById('walletIdKeyStatus').textContent = '';
+    });
+    document.getElementById('walletIdKeySave').addEventListener('click', function(){
+      const valeur = document.getElementById('walletIdKeyInput').value.trim().toUpperCase();
+      if(!valeur){ document.getElementById('walletIdKeyStatus').textContent = 'Soraty ny ID KEY tianao.'; return; }
+      cleEnregistrer(valeur, '✅ Voatahiry ny ID KEY-nao.');
+    });
+    document.getElementById('walletIdKeyDelete').addEventListener('click', function(){
+      if(!window.confirm('Hofafana ny ID KEY noforoninao ?\nHisy ID KEY automatique vaovao hisolo azy.')) return;
+      cleEnregistrer('', '🗑️ Voafafa ; ID KEY automatique vaovao no misy.');
+    });
+  }
   const transfertMontant = document.getElementById('transfertMontant');
   if(transfertMontant) transfertMontant.addEventListener('input', transfertCalculer);
-  // Qui va recevoir : vérifié dès que la clef est entière, pour ne pas
-  // envoyer à une clef mal recopiée.
+  // Qui va recevoir : vérifié quand on s'arrête de taper, pour ne pas
+  // envoyer à une clef mal recopiée. Une clef peut être choisie par son
+  // propriétaire : sa longueur ne dit donc plus qu'elle est entière.
   const transfertCle = document.getElementById('transfertCle');
   let transfertCleVue = '';
+  let transfertCleAttente = null;
   if(transfertCle){
     transfertCle.addEventListener('input', function(){
       const qui = document.getElementById('transfertQui');
-      const brut = transfertCle.value.toUpperCase().replace(/[^A-Z0-9]/g, '').replace(/^NA/, '');
-      if(brut.length !== 8){ qui.textContent = ''; transfertCleVue = ''; return; }
+      const brut = transfertCle.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      clearTimeout(transfertCleAttente);
+      if(brut.length < 4){ qui.textContent = ''; transfertCleVue = ''; return; }
       if(brut === transfertCleVue) return;
       transfertCleVue = brut;
       qui.textContent = 'Jerena…';
+      transfertCleAttente = setTimeout(function(){ chercherCle(brut, qui); }, 600);
+    });
+  }
+  function chercherCle(brut, qui){
+      if(transfertCleVue !== brut) return;
       callWallet({ action: 'cle', cle: brut }).then(function(res){
         if(transfertCleVue !== brut) return;
         qui.textContent = '✅ ' + res.cle + (res.nom ? ' — ' + res.nom : ' — wallet hita');
@@ -1599,7 +1649,6 @@
         if(transfertCleVue !== brut) return;
         qui.textContent = '⚠️ ' + err.message;
       });
-    });
   }
   const transfertBtn = document.getElementById('transfertBtn');
   if(transfertBtn){
