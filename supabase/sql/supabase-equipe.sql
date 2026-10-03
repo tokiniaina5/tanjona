@@ -131,3 +131,7 @@ from information_schema.tables
 where table_schema = 'public'
   and table_name in ('equipe', 'livraisons')
 order by table_name;
+
+-- 03/10/2026 : le lien du livreur, saisi à la main sous « Rohy » (partage
+-- de position Google Maps, WhatsApp…), gardé avec la personne.
+alter table public.equipe add column if not exists lien text;

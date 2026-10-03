@@ -503,10 +503,68 @@
       rohy.className = 'btn btn-sm';
       rohy.textContent = p.jeton ? 'Rohy' : 'Hamorona rohy';
       rohy.title = 'Ny rohy hidirany amin\'ny Ny asako feno — stock azy manokana, ekipanao iraisana';
+      // « Rohy » ouvre un petit panneau : le lien Ny asako de la personne,
+      // et un lien à elle saisi à la main (partage de position Google Maps,
+      // WhatsApp…), enregistré dans equipe.lien.
+      const panneauRohy = document.createElement('div');
+      panneauRohy.style.cssText = 'display:none; margin-top:0.6rem; border-top:1px solid var(--line); padding-top:0.6rem;';
+      const champLien = document.createElement('input');
+      champLien.type = 'url';
+      champLien.placeholder = 'https://maps.app.goo.gl/…';
+      // La liste se redessine chaque minute : le panneau ouvert et ce qu'on
+      // y tapait doivent survivre au redessin.
+      champLien.value = rohyOuvert && rohyOuvert.id === p.id ? rohyOuvert.brouillon : (p.lien || '');
+      champLien.addEventListener('input', function () {
+        if (rohyOuvert && rohyOuvert.id === p.id) rohyOuvert.brouillon = champLien.value;
+      });
+      if (rohyOuvert && rohyOuvert.id === p.id) panneauRohy.style.display = 'block';
+      const etiquette = document.createElement('label');
+      etiquette.textContent = 'Lien an\'i ' + (p.nom || 'ilay olona');
+      etiquette.style.cssText = 'display:block; font-size:0.78rem; color:var(--muted); margin-bottom:0.3rem;';
+      const ligneBoutons = document.createElement('div');
+      ligneBoutons.style.cssText = 'display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.4rem;';
+      const sauver = document.createElement('button');
+      sauver.type = 'button';
+      sauver.className = 'btn btn-primary btn-sm';
+      sauver.style.width = 'auto';
+      sauver.textContent = '💾 Save';
+      sauver.addEventListener('click', function () {
+        let v = champLien.value.trim();
+        if (v && !/^https?:\/\//i.test(v)) v = 'https://' + v;
+        rohyOuvert = null;
+        majPersonne(p.id, { lien: v || null }, sauver);
+        direPartout(v ? 'Voatahiry ny lien an\'i ' + p.nom + '.' : 'Nesorina ny lien an\'i ' + p.nom + '.');
+      });
+      ligneBoutons.appendChild(sauver);
+      if (p.lien) {
+        const ouvrirLien = document.createElement('a');
+        ouvrirLien.className = 'btn btn-sm';
+        ouvrirLien.style.width = 'auto';
+        ouvrirLien.href = p.lien;
+        ouvrirLien.target = '_blank';
+        ouvrirLien.rel = 'noopener';
+        ouvrirLien.textContent = '↗ Sokafy';
+        ligneBoutons.appendChild(ouvrirLien);
+      }
+      const lienApp = document.createElement('button');
+      lienApp.type = 'button';
+      lienApp.className = 'btn btn-sm';
+      lienApp.style.width = 'auto';
+      lienApp.textContent = p.jeton ? '📋 Rohy Ny asako' : 'Hamorona rohy Ny asako';
+      lienApp.addEventListener('click', function () { donnerLeLien(p, lienApp); });
+      ligneBoutons.appendChild(lienApp);
+      panneauRohy.appendChild(etiquette);
+      panneauRohy.appendChild(champLien);
+      panneauRohy.appendChild(ligneBoutons);
+
       rohy.addEventListener('click', function () {
-        donnerLeLien(p, rohy);
-        // Un livreur : le lien donné, on le cherche aussitôt — sa page,
-        // ouverte, enverra où il est.
+        const ouvert = panneauRohy.style.display !== 'none';
+        panneauRohy.style.display = ouvert ? 'none' : 'block';
+        rohyOuvert = ouvert ? null : { id: p.id, brouillon: champLien.value };
+        if (ouvert) return;
+        champLien.focus();
+        // Un livreur : on le cherche aussitôt — sa page, ouverte, enverra
+        // où il est.
         if (suivable(p) && p.actif && p.jeton) tadiavo([p.id], null);
       });
       actions.appendChild(rohy);
@@ -545,7 +603,7 @@
       // L'employé lit l'équipe, il n'y touche pas : ni ouvrir quelqu'un, ni
       // lui faire un lien, ni le pauser, ni le retirer. Avec ces boutons, un
       // lien suffisait à suspendre les autres — et soi-même, sans retour.
-      if (!(typeof MODE_MPIASA !== 'undefined' && MODE_MPIASA)) div.appendChild(actions);
+      if (!(typeof MODE_MPIASA !== 'undefined' && MODE_MPIASA)) { div.appendChild(actions); div.appendChild(panneauRohy); }
       liste.appendChild(div);
     });
   }
@@ -843,6 +901,8 @@
   // guette — puis relit toutes les cinq secondes. Au bout de 45 secondes, on
   // nomme ceux qui n'ont pas répondu, plutôt que de chercher sans fin.
   let recherche = null;
+  // Le panneau « Rohy » ouvert, et le lien qu'on y tape (voir dessinerMetier).
+  let rohyOuvert = null;
 
   function tadiavo(ids, bouton) {
     const client = sb();
