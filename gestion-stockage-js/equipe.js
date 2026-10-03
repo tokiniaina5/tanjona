@@ -39,6 +39,12 @@
   // La carte gratuite (carte-libre.js), quand il n'y a pas de clé Google.
   let carteLibre = null;
   let reperesLibres = {};
+  // Le chemin de chacun depuis minuit : ses relevés dans l'ordre, reliés
+  // d'un trait sur la carte, chaque relevé marqué d'un point.
+  let traces = {};
+  let tracesLibres = null;
+  let tracesGoogle = [];
+  const COULEURS_TRACE = ['#e53935', '#1e88e5', '#43a047', '#fb8c00', '#8e24aa', '#00897b', '#d81b60', '#6d4c41'];
   // La carte sans personne est posée sur Antananarivo une fois, pas à chaque
   // relecture : celui qui l'a déplacée entre-temps ne doit pas y être ramené.
   let vueVide = false;
@@ -428,8 +434,15 @@
       // Les cent derniers relevés suffisent : on ne garde que le plus récent
       // de chacun, et une équipe n'a pas cent livreurs.
       client.from('positions').select('equipe_id,lat,lng,precision_m,at')
-        .eq('owner_email', email).order('at', { ascending: false }).limit(100)
+        .eq('owner_email', email).order('at', { ascending: false }).limit(100),
+      // Le chemin du jour, du plus ancien au plus récent.
+      client.from('positions').select('equipe_id,lat,lng,at')
+        .eq('owner_email', email).gte('at', minuit()).order('at', { ascending: true }).limit(2000)
     ]).then(function (res) {
+      traces = {};
+      ((res[4] && res[4].data) || []).forEach(function (r) {
+        (traces[r.equipe_id] = traces[r.equipe_id] || []).push(r);
+      });
       equipe = (res[0] && res[0].data) || [];
       livraisons = (res[1] && res[1].data) || [];
       ouverts = {};
@@ -727,6 +740,19 @@
     return mapsDemandee;
   }
 
+  function minuit() {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d.toISOString();
+  }
+
+  // Le trait et les points du chemin d'une personne, et leur légende.
+  function cheminDe(id) {
+    return (traces[id] || []).map(function (r) {
+      return { lat: Number(r.lat), lng: Number(r.lng), at: r.at };
+    }).filter(function (r) { return isFinite(r.lat) && isFinite(r.lng); });
+  }
+
   // ---------- La carte gratuite ----------
   // OpenStreetMap, sans clé ni facturation. Elle se pose quand il n'y a pas
   // de clé Google, ou que la clé est refusée : une carte vaut toujours mieux
@@ -769,11 +795,40 @@
       Object.keys(reperesLibres).forEach(function (id) {
         if (!vivants[id]) { reperesLibres[id].remove(); delete reperesLibres[id]; }
       });
+      // Le chemin du jour : redessiné en entier à chaque relecture.
+      if (tracesLibres) tracesLibres.clearLayers();
+      else tracesLibres = L.layerGroup().addTo(carteLibre);
+      lignes.forEach(function (l, i) {
+        const chemin = cheminDe(l.p.id);
+        if (!chemin.length) return;
+        const couleur = COULEURS_TRACE[i % COULEURS_TRACE.length];
+        const pts = chemin.map(function (c) { return [c.lat, c.lng]; });
+        if (pts.length > 1) {
+          L.polyline(pts, { color: couleur, weight: 4, opacity: 0.75 }).addTo(tracesLibres);
+        }
+        chemin.forEach(function (c, k) {
+          const debut = k === 0;
+          L.circleMarker([c.lat, c.lng], {
+            radius: debut ? 6 : 4, color: '#fff', weight: 1.5,
+            fillColor: couleur, fillOpacity: 1
+          }).bindTooltip(html(l.p.nom) + (debut ? ' — niainga' : '') + ' · ' +
+            new Date(c.at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }))
+            .addTo(tracesLibres);
+          points.push([c.lat, c.lng]);
+        });
+      });
+      // Le repère de la position actuelle reste au-dessus du chemin.
+      Object.keys(reperesLibres).forEach(function (id) {
+        if (reperesLibres[id].bringToFront) reperesLibres[id].bringToFront();
+        else if (reperesLibres[id].setZIndexOffset) reperesLibres[id].setZIndexOffset(1000);
+      });
       if (!points.length) {
         if (!vueVide) { carteLibre.setView([centreParDefaut.lat, centreParDefaut.lng], 12); vueVide = true; }
       } else {
         vueVide = false;
-        if (points.length === 1) carteLibre.setView(points[0], 15);
+        if (points.length === 1 || lignes.length && points.every(function (q) {
+          return q[0] === points[0][0] && q[1] === points[0][1];
+        })) carteLibre.setView(points[0], 15);
         else carteLibre.fitBounds(points, { padding: [30, 30] });
       }
       // La page s'ouvre en fenêtre, qui ne prend sa taille qu'un instant
@@ -851,6 +906,30 @@
       // Celui qu'on a retiré de l'équipe ne doit pas rester planté là.
       Object.keys(reperes).forEach(function (id) {
         if (!vivants[id]) { reperes[id].setMap(null); delete reperes[id]; }
+      });
+      // Le chemin du jour, comme sur la carte gratuite.
+      tracesGoogle.forEach(function (o) { o.setMap(null); });
+      tracesGoogle = [];
+      lignes.forEach(function (l, i) {
+        const chemin = cheminDe(l.p.id);
+        if (!chemin.length) return;
+        const couleur = COULEURS_TRACE[i % COULEURS_TRACE.length];
+        if (chemin.length > 1) {
+          tracesGoogle.push(new g.Polyline({
+            map: carte, path: chemin.map(function (c) { return { lat: c.lat, lng: c.lng }; }),
+            strokeColor: couleur, strokeOpacity: 0.75, strokeWeight: 4
+          }));
+        }
+        chemin.forEach(function (c, k) {
+          bornes.extend({ lat: c.lat, lng: c.lng });
+          tracesGoogle.push(new g.Marker({
+            map: carte, position: { lat: c.lat, lng: c.lng }, zIndex: 1,
+            title: l.p.nom + (k === 0 ? ' — niainga' : '') + ' · ' +
+              new Date(c.at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+            icon: { path: g.SymbolPath.CIRCLE, scale: k === 0 ? 6 : 4, fillColor: couleur,
+              fillOpacity: 1, strokeColor: '#fff', strokeWeight: 1.5 }
+          }));
+        });
       });
       if (!lignes.length) {
         if (!vueVide) { carte.setCenter(centreParDefaut); carte.setZoom(12); vueVide = true; }
