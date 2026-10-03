@@ -1002,6 +1002,8 @@
   let recherche = null;
   // Le panneau « Rohy » ouvert, et le lien qu'on y tape (voir dessinerMetier).
   let rohyOuvert = null;
+  // Le panneau « Lien mpanjifa » ouvert sur une course, et ce qu'on y tape.
+  let lienClientOuvert = null;
 
   function tadiavo(ids, bouton) {
     const client = sb();
@@ -1216,6 +1218,81 @@
       rohyClient.addEventListener('click', function () { donnerLeLienClient(l, rohyClient); });
       actions.appendChild(rohyClient);
 
+      // ---- Le lien que voit le client pour suivre son livreur ----
+      // Saisi à la main (partage de position Google Maps, WhatsApp…), gardé
+      // sur la course (livraisons.lien_client) : enregistrer, modifier,
+      // effacer. La page du client (vue-suivi.js) en fait un bouton.
+      const panneauLien = document.createElement('div');
+      panneauLien.style.cssText = 'display:none; margin-top:0.6rem; border-top:1px solid var(--line); padding-top:0.6rem;';
+      const etiquette = document.createElement('label');
+      etiquette.textContent = 'Lien hahitan\'ny mpanjifa ny livreur';
+      etiquette.style.cssText = 'display:block; font-size:0.78rem; color:var(--muted); margin-bottom:0.3rem;';
+      const champ = document.createElement('input');
+      champ.type = 'url';
+      champ.placeholder = 'https://maps.app.goo.gl/…';
+      // La liste se redessine chaque minute : le panneau ouvert et ce qu'on
+      // y tape survivent au redessin.
+      const ouvertIci = lienClientOuvert && lienClientOuvert.id === l.id;
+      champ.value = ouvertIci ? lienClientOuvert.brouillon : (l.lien_client || '');
+      if (ouvertIci) panneauLien.style.display = 'block';
+      champ.addEventListener('input', function () {
+        if (lienClientOuvert && lienClientOuvert.id === l.id) lienClientOuvert.brouillon = champ.value;
+      });
+      const boutons = document.createElement('div');
+      boutons.style.cssText = 'display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.4rem;';
+      const sauver = document.createElement('button');
+      sauver.type = 'button';
+      sauver.className = 'btn btn-primary btn-sm';
+      sauver.style.width = 'auto';
+      sauver.textContent = l.lien_client ? '💾 Ovaina' : '💾 Save';
+      sauver.addEventListener('click', function () {
+        let v = champ.value.trim();
+        if (!v) { dire('livraisonStatut', 'Soraty ny lien aloha.', true); return; }
+        if (!/^https?:\/\//i.test(v)) v = 'https://' + v;
+        lienClientOuvert = null;
+        majLivraison(l.id, { lien_client: v }, sauver);
+        dire('livraisonStatut', l.lien_client ? 'Voaova ny lien ho an\'ny mpanjifa.' : 'Voatahiry ny lien ho an\'ny mpanjifa.');
+      });
+      boutons.appendChild(sauver);
+      if (l.lien_client) {
+        const ouvrirL = document.createElement('a');
+        ouvrirL.className = 'btn btn-sm';
+        ouvrirL.style.width = 'auto';
+        ouvrirL.href = l.lien_client;
+        ouvrirL.target = '_blank';
+        ouvrirL.rel = 'noopener';
+        ouvrirL.textContent = '↗ Sokafy';
+        boutons.appendChild(ouvrirL);
+        const effacer = document.createElement('button');
+        effacer.type = 'button';
+        effacer.className = 'btn btn-red btn-sm';
+        effacer.style.width = 'auto';
+        effacer.textContent = '🗑️ Esory';
+        effacer.addEventListener('click', function () {
+          if (!confirm('Hofafana ny lien ho an\'ny mpanjifa ?')) return;
+          lienClientOuvert = null;
+          majLivraison(l.id, { lien_client: null }, effacer);
+          dire('livraisonStatut', 'Voafafa ny lien ho an\'ny mpanjifa.');
+        });
+        boutons.appendChild(effacer);
+      }
+      panneauLien.appendChild(etiquette);
+      panneauLien.appendChild(champ);
+      panneauLien.appendChild(boutons);
+
+      const lienClientBtn = document.createElement('button');
+      lienClientBtn.type = 'button';
+      lienClientBtn.className = 'btn btn-sm';
+      lienClientBtn.style.width = 'auto';
+      lienClientBtn.textContent = l.lien_client ? '🔗 Lien mpanjifa ✓' : '🔗 Lien mpanjifa';
+      lienClientBtn.addEventListener('click', function () {
+        const ouvert = panneauLien.style.display !== 'none';
+        panneauLien.style.display = ouvert ? 'none' : 'block';
+        lienClientOuvert = ouvert ? null : { id: l.id, brouillon: champ.value };
+        if (!ouvert) champ.focus();
+      });
+      actions.appendChild(lienClientBtn);
+
       const retirer = document.createElement('button');
       retirer.type = 'button';
       retirer.className = 'btn btn-red btn-sm';
@@ -1229,7 +1306,7 @@
       // Les courses se lisent aussi sans se toucher : les créer, les faire
       // avancer, les annuler, en donner le lien au client ou les effacer
       // revient au patron.
-      if (!(typeof MODE_MPIASA !== 'undefined' && MODE_MPIASA)) div.appendChild(actions);
+      if (!(typeof MODE_MPIASA !== 'undefined' && MODE_MPIASA)) { div.appendChild(actions); div.appendChild(panneauLien); }
       liste.appendChild(div);
     });
   }

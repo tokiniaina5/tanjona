@@ -231,6 +231,14 @@
         '</div>';
     }
 
+    // Le lien donné par le patron pour voir le livreur (Google Maps…).
+    if (d.lien && /^https?:\/\//i.test(d.lien)) {
+      sortie += '<div class="panel" style="margin-top:1rem;">' +
+        '<div class="panneau-titre">Jereo ny livreur</div>' +
+        '<a class="btn btn-primary btn-sm" style="width:auto; display:inline-block;" href="' + html(d.lien) +
+        '" target="_blank" rel="noopener">📍 Sokafy ny lien</a></div>';
+    }
+
     sortie += '<p style="font-size:0.75rem; color:var(--muted); line-height:1.6; margin:1.2rem 0 0; text-align:center;">' +
       'Havaozina ho azy isaky ny 45 segondra ity pejy ity.</p>';
 

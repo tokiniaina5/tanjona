@@ -57,7 +57,7 @@ Deno.serve(async (req: Request) => {
   const admin = createClient(supabaseUrl, serviceKey);
 
   const { data: course } = await admin.from("livraisons")
-    .select("id,owner_email,designation,client,statut,livreur_id,livreur_nom,created_at,updated_at")
+    .select("id,owner_email,designation,client,statut,livreur_id,livreur_nom,created_at,updated_at,lien_client")
     .eq("jeton", jeton).maybeSingle();
 
   if (!course) return json({ error: "lien invalide" }, 401);
@@ -102,6 +102,8 @@ Deno.serve(async (req: Request) => {
     // Le prénom du livreur suffit à savoir qui frappe à la porte.
     livreur: course.livreur_nom ?? null,
     position,
+    // Le lien que le patron a donné pour voir le livreur (Google Maps…).
+    lien: course.lien_client ?? null,
     cle: reglages?.cle_maps ?? null,
     maj: course.updated_at ?? course.created_at,
   });
