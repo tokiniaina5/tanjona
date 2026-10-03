@@ -1515,16 +1515,54 @@
       }, 200);
     });
   }
+  // Les devises de l'achat sont celles de « Voir dans une autre devise » :
+  // recopiées de ce menu-là, elles ne peuvent pas diverger. Une devise
+  // s'ajoute donc à un seul endroit (ny-asako.html, #walletCurrency).
+  const etrangerDevise = document.getElementById('etrangerDevise');
+  const walletCurrencySel = document.getElementById('walletCurrency');
+  let etrangerTaux = 1;
+  function etrangerEstimer(){
+    const enAr = document.getElementById('etrangerEnAr');
+    if(!enAr || !etrangerDevise) return;
+    const prix = Number(document.getElementById('etrangerPrix').value) || 0;
+    const devise = etrangerDevise.value;
+    if(devise === 'MGA' || !prix){ enAr.textContent = ''; return; }
+    enAr.textContent = etrangerTaux > 0
+      ? '≈ ' + formatWalletAr(Math.ceil(prix / etrangerTaux)) + ' (taux du jour, voafaritry ny serveur)'
+      : 'Taux ' + devise + ' tsy hita androany.';
+  }
+  if(etrangerDevise && walletCurrencySel){
+    etrangerDevise.innerHTML = walletCurrencySel.innerHTML;
+    etrangerDevise.value = 'MGA';
+    etrangerDevise.addEventListener('change', function(){
+      const devise = etrangerDevise.value;
+      etrangerTaux = 1;
+      document.getElementById('etrangerPrix').step = devise === 'MGA' ? '1000' : 'any';
+      if(devise === 'MGA'){ etrangerEstimer(); return; }
+      document.getElementById('etrangerEnAr').textContent = '…';
+      callWallet({ action: 'rate', currency: devise }).then(function(res){
+        if(etrangerDevise.value !== devise) return;
+        etrangerTaux = res.rate || 0;
+        etrangerEstimer();
+      }, function(){ etrangerTaux = 0; etrangerEstimer(); });
+    });
+    document.getElementById('etrangerPrix').addEventListener('input', etrangerEstimer);
+  }
   const etrangerBtn = document.getElementById('etrangerBtn');
   if(etrangerBtn){
     etrangerBtn.addEventListener('click', function(){
       const statusEl = document.getElementById('etrangerStatus');
       const lien = document.getElementById('etrangerLien').value.trim();
-      const prix = Math.floor(Number(document.getElementById('etrangerPrix').value) || 0);
+      const devise = etrangerDevise ? etrangerDevise.value : 'MGA';
+      const saisi = Number(document.getElementById('etrangerPrix').value) || 0;
+      // En ariary ici seulement pour vérifier d'avance ; le serveur refait
+      // le compte au taux du jour.
+      const prix = devise === 'MGA' ? Math.floor(saisi) : (etrangerTaux > 0 ? Math.ceil(saisi / etrangerTaux) : 0);
       const adresse = document.getElementById('etrangerAdresse').value.trim();
       const consigne = document.getElementById('etrangerConsigne').value.trim();
       if(!/^https?:\/\//i.test(lien)){ statusEl.textContent = 'Apetaho ny rohin\'ilay entana (https://…).'; return; }
-      if(!(prix > 0)){ statusEl.textContent = 'Ampidiro ny vidiny amin\'ny ariary.'; return; }
+      if(!(saisi > 0)){ statusEl.textContent = 'Ampidiro ny vidiny.'; return; }
+      if(!(prix > 0)){ statusEl.textContent = 'Tsy hita ny taux ' + devise + ' androany. Andramo indray.'; return; }
       if(!adresse){ statusEl.textContent = 'Ampidiro ny adiresy fandefasana.'; return; }
       const vola = (walletState && walletState.papiAr) || 0;
       if(prix > vola){
@@ -1535,17 +1573,21 @@
       etrangerBtn.disabled = true;
       statusEl.textContent = 'Alefa ny fangatahana…';
       callWallet({
-        action: 'payout', amountAr: prix, method: 'merchant', currency: 'MGA',
+        action: 'payout', amountAr: devise === 'MGA' ? prix : 0, prixDevise: saisi,
+        method: 'merchant', currency: devise,
         destination: adresse, link: lien, instructions: consigne,
         name: (currentUser && currentUser.name) || ''
-      }).then(function(){
+      }).then(function(res){
         etrangerBtn.disabled = false;
+        const tena = (res && res.payout && res.payout.amount_ar) || prix;
         ['etrangerLien', 'etrangerPrix', 'etrangerConsigne'].forEach(function(id){
           document.getElementById(id).value = '';
         });
-        statusEl.textContent = 'Voaray ny fangatahana : ' + formatWalletAr(prix) +
+        etrangerEstimer();
+        statusEl.textContent = 'Voaray ny fangatahana : ' + formatWalletAr(tena) +
+          (devise !== 'MGA' ? ' (' + saisi.toLocaleString('fr-FR') + ' ' + devise + ')' : '') +
           ' voatazona amin\'ny vola tena izy. Ny tompony no mividy ilay entana ; hampandrenesina ianao.';
-        pushNotification('parrainage', 'Fividianana any ivelany : ' + formatWalletAr(prix) + '.');
+        pushNotification('parrainage', 'Fividianana any ivelany : ' + formatWalletAr(tena) + '.');
         refreshWalletFromServer();
       }, function(err){
         etrangerBtn.disabled = false;

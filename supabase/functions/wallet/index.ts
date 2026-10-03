@@ -536,6 +536,22 @@ Deno.serve(async (req: Request) => {
       if (!/^https?:\/\//i.test(link)) {
         return json({ error: "Apetaho ny rohin'ilay entana (https://…)." }, 400);
       }
+      // Le prix s'écrit dans la devise de la boutique (les mêmes que « Voir
+      // dans une autre devise ») ; c'est ICI qu'il devient de l'ariary, au
+      // taux du jour — la page ne dit jamais combien d'ariary cela fait.
+      let amount = Math.floor(Number(body.amountAr ?? 0));
+      let prixDevise = amount;
+      let taux = 1;
+      if (currency !== "MGA") {
+        prixDevise = Number(Number(body.prixDevise ?? 0).toFixed(2));
+        if (!(prixDevise > 0)) return json({ error: "Ampidiro ny vidiny." }, 400);
+        taux = await rateFromAr(currency);
+        if (!(taux > 0)) {
+          return json({ error: `Tsy hita ny taux ${currency} androany. Andramo indray, na soraty amin'ny ariary.` }, 400);
+        }
+        amount = Math.ceil(prixDevise / taux);
+      }
+      if (!(amount > 0)) return json({ error: "montant invalide" }, 400);
       const balance = await balanceFor(admin, email);
       const { papi } = await partsSolde(admin, email, balance);
       if (amount > papi) {
@@ -548,7 +564,7 @@ Deno.serve(async (req: Request) => {
       const { data, error } = await admin.from("wallet_payouts").insert({
         email: email, name: name, amount_ar: amount, method: method, kind: kind,
         destination: destination, link: link, instructions: instructions || null,
-        currency: "MGA", amount_out: amount, rate: 1, status: "pending", fee_ar: 0,
+        currency: currency, amount_out: prixDevise, rate: taux, status: "pending", fee_ar: 0,
       }).select("id,amount_ar,fee_ar,currency,amount_out").single();
       if (error) return json({ error: error.message }, 500);
       return json({ payout: data, balanceAr: balance - amount, etat: "pending", message: "", auto: null });
@@ -567,8 +583,8 @@ Deno.serve(async (req: Request) => {
     if (method === "mobile" && currency !== "MGA") {
       return json({ error: "Le Mobile Money reçoit en ariary (MGA)." }, 400);
     }
-    if (!(amount > 0)) return json({ error: "montant invalide" }, 400);
     if (kind === "purchase") return await acheterAilleurs();
+    if (!(amount > 0)) return json({ error: "montant invalide" }, 400);
     if (amount < MIN_PAYOUT_AR) {
       return json({ error: `Le retrait minimum est de ${MIN_PAYOUT_AR.toLocaleString("fr-FR")} Ar.` }, 400);
     }

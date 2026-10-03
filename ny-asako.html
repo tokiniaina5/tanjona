@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="a16c7627">
+<meta name="ny-asako-version" content="62add40c">
 <title>Ny asako — Tanjona</title>
 <!-- Application installable : le manifeste décrit le nom, l'icône et la façon
      de s'ouvrir ; le reste est affaire de service worker, enregistré plus bas. -->
@@ -2324,6 +2324,11 @@
                   <option value="GBP">Livre sterling (GBP)</option>
                   <option value="CAD">Dollar canadien (CAD)</option>
                   <option value="CNY">Yuan chinois (CNY)</option>
+                  <option value="JPY">Yen japonais (JPY)</option>
+                  <option value="INR">Roupie indienne (INR)</option>
+                  <option value="AED">Dirham des Émirats (AED)</option>
+                  <option value="TRY">Livre turque (TRY)</option>
+                  <option value="HKD">Dollar de Hong Kong (HKD)</option>
                 </select>
                 <strong id="walletConverted" style="font-family:var(--font-mono); font-size:1.1rem; color:var(--text);">—</strong>
               </div>
@@ -2419,8 +2424,14 @@
             </div>
             <div class="form-grid">
               <div class="field" style="margin-bottom:0;">
-                <label for="etrangerPrix">Vidiny (Ar), livraison tafiditra</label>
-                <input id="etrangerPrix" type="number" min="0" step="1000" placeholder="150000">
+                <label for="etrangerPrix">Vidiny, livraison tafiditra</label>
+                <!-- Les devises sont celles de « Voir dans une autre devise »,
+                     recopiées par common.js : une seule liste à tenir. -->
+                <div style="display:flex; gap:0.5rem;">
+                  <input id="etrangerPrix" type="number" min="0" step="any" placeholder="150000" style="flex:1; min-width:0;">
+                  <select id="etrangerDevise" style="width:auto; max-width:45%;"></select>
+                </div>
+                <p id="etrangerEnAr" style="font-size:0.78rem; color:var(--muted); margin-top:0.3rem;"></p>
               </div>
               <div class="field" style="margin-bottom:0;">
                 <label for="etrangerAdresse">Adiresy fandefasana sy laharana finday</label>
@@ -3118,7 +3129,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=5d0da9a1"></script>
+<script src="gestion-stockage-js/common.js?v=6d1467b9"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=622d64e8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
