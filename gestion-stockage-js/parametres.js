@@ -2298,6 +2298,88 @@
       });
   }
 
+  // ✂️ Le morceau choisi, enregistré ici même avant l'envoi : la vidéo
+  // entière (souvent des dizaines de Mo) ne passait pas sur une connexion de
+  // téléphone — « Failed to fetch », sans que rien n'arrive au serveur. On la
+  // rejoue sans bruit dans une toile, image et son, de debut à fin, et l'on
+  // garde ce que MediaRecorder en a fait. Le morceau dure ce qu'il dure : 30 s
+  // au plus. Rend null là où le navigateur ne sait pas faire (on envoie alors
+  // le fichier d'origine, comme avant).
+  function tapahoVideo(x, progres){
+    const canvasOk = window.MediaRecorder && HTMLCanvasElement.prototype.captureStream;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(!canvasOk || !AC) return Promise.resolve(null);
+    const types = ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4;codecs=avc1,mp4a', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4'];
+    const type = types.filter(function(t){ return MediaRecorder.isTypeSupported(t); })[0];
+    if(!type) return Promise.resolve(null);
+    return new Promise(function(resolve){
+      const video = document.createElement('video');
+      video.playsInline = true;
+      video.preload = 'auto';
+      video.src = x.apercu;
+      let fini = false, audio = null, recorder = null, garde = null;
+      function finir(fichier){
+        if(fini) return;
+        fini = true;
+        clearTimeout(garde);
+        try{ video.pause(); }catch(e){}
+        if(audio) audio.close().catch(function(){});
+        resolve(fichier);
+      }
+      video.addEventListener('error', function(){ finir(null); });
+      video.addEventListener('loadedmetadata', function(){
+        const w0 = video.videoWidth || 720, h0 = video.videoHeight || 1280;
+        const echelle = Math.min(1, 720 / Math.max(w0, h0));
+        const toile = document.createElement('canvas');
+        toile.width = Math.round(w0 * echelle / 2) * 2;
+        toile.height = Math.round(h0 * echelle / 2) * 2;
+        const c2d = toile.getContext('2d');
+        const flux = toile.captureStream(30);
+        // Le son passe par Web Audio, sans aller jusqu'aux haut-parleurs.
+        try{
+          audio = new AC();
+          const sortie = audio.createMediaStreamDestination();
+          audio.createMediaElementSource(video).connect(sortie);
+          sortie.stream.getAudioTracks().forEach(function(p){ flux.addTrack(p); });
+        }catch(e){ video.muted = true; }
+        const morceaux = [];
+        try{
+          recorder = new MediaRecorder(flux, { mimeType: type, videoBitsPerSecond: 2000000 });
+        }catch(e){ finir(null); return; }
+        recorder.ondataavailable = function(e){ if(e.data && e.data.size) morceaux.push(e.data); };
+        recorder.onstop = function(){
+          const base = type.split(';')[0];
+          const blob = new Blob(morceaux, { type: base });
+          if(!blob.size){ finir(null); return; }
+          finir(new File([blob], 'story.' + (base === 'video/mp4' ? 'mp4' : 'webm'), { type: base }));
+        };
+        const debut = x.debut || 0, fin = x.fin || Math.min(video.duration, debut + MAX_STORY_SECONDES);
+        function peindre(){
+          if(fini || recorder.state === 'inactive') return;
+          c2d.drawImage(video, 0, 0, toile.width, toile.height);
+          if(progres) progres(Math.min(video.currentTime - debut, fin - debut), fin - debut);
+          if(video.currentTime >= fin || video.ended){ recorder.stop(); return; }
+          // Une minuterie, pas requestAnimationFrame : celle-ci s'arrête net
+          // dès que la page passe derrière une autre.
+          setTimeout(peindre, 33);
+        }
+        video.addEventListener('seeked', function(){
+          if(recorder.state !== 'inactive' || fini) return;
+          if(audio && audio.state === 'suspended') audio.resume().catch(function(){});
+          video.play().then(function(){
+            recorder.start(1000);
+            peindre();
+          }, function(){ finir(null); });
+        }, { once: true });
+        // Jamais bloqué : la durée du morceau, et une marge.
+        garde = setTimeout(function(){
+          if(recorder.state !== 'inactive') recorder.stop(); else finir(null);
+        }, (fin - debut + 20) * 1000);
+        video.currentTime = debut;
+      });
+    });
+  }
+
   function composerStory(elements, erreurs){
     const v = cadreVisionneuse();
     let courant = 0;
@@ -2578,9 +2660,33 @@
         // L'une après l'autre : dans l'ordre choisi, et sans lancer dix
         // envois de vidéo à la fois sur une connexion de téléphone.
         return elements.reduce(function(p, x){
+          let debut = x.debut || 0, fin = x.fin;
           return p.then(function(){
             etape((fait + 1) + '/' + elements.length);
-            return (x.genre === 'video' ? envoyerAuBucketStory(x.fichier, session.user.id) : Promise.resolve(x.media));
+            if(x.genre !== 'video') return x.media;
+            // Une vidéo courte et légère part telle quelle ; sinon, seul le
+            // morceau choisi part.
+            const entiere = debut < 0.1 && (!x.duree || fin >= x.duree - 0.1);
+            const tapahina = entiere && x.fichier.size < 8 * 1048576 ? Promise.resolve(null)
+              : tapahoVideo(x, function(t, total){
+                  etape('✂️ ' + (elements.length > 1 ? (fait + 1) + '/' + elements.length + ' · ' : '') +
+                    Math.max(0, Math.round(t)) + '/' + Math.round(total) + ' s');
+                });
+            return tapahina.then(function(morceau){
+              if(morceau && morceau.size < x.fichier.size){
+                fin = fin - debut;
+                debut = 0;
+              }else morceau = null;
+              etape((elements.length > 1 ? (fait + 1) + '/' + elements.length + ' · ' : '') + 'mandefa…');
+              return envoyerAuBucketStory(morceau || x.fichier, session.user.id).catch(function(err){
+                // « Failed to fetch » ne dit rien : dire plutôt ce qui pèse.
+                const mo = ((morceau || x.fichier).size / 1048576).toFixed(1);
+                if(/fetch|network|réseau/i.test((err && err.message) || '')){
+                  throw new Error('tapaka ny connexion teo am-pandefasana ny video (' + mo + ' Mo). Andramo indray');
+                }
+                throw err;
+              });
+            });
           }).then(function(media){
             return window.__sb.from('botika_stories').insert({
               auteur_nom: maison ? MARQUE_NOM : ((currentUser && currentUser.name) || 'Client'),
@@ -2591,8 +2697,8 @@
               hira: urlHira,
               hira_nom: urlHira ? hira.nom : null,
               hira_debut: urlHira ? (hira.debut || 0) : null,
-              video_debut: x.genre === 'video' ? (x.debut || 0) : null,
-              video_fin: x.genre === 'video' ? x.fin : null
+              video_debut: x.genre === 'video' ? debut : null,
+              video_fin: x.genre === 'video' ? fin : null
             });
           }).then(function(res){
             if(res && res.error) throw res.error;
