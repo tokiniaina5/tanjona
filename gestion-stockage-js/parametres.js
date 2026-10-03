@@ -2363,8 +2363,10 @@
           (elements.length < MAX_STORIES_D_UN_COUP ? '<span class="story-vignette story-vignette-plus" data-plus title="Hanampy" aria-label="Hanampy">+</span>' : '');
       alefa.textContent = elements.length > 1 ? 'Alefa (' + elements.length + ')' : 'Alefa';
     }
-    // ✂️ Le morceau de la vidéo : où il commence, et combien il dure (trente
-    // secondes au plus). Deux curseurs, et l'aperçu saute au début choisi.
+    // ✂️ Le morceau de la vidéo, sur une frise : la vidéo entière en rouge
+    // (ce qui ne partira pas), le morceau choisi en clair par-dessus — trente
+    // secondes au plus. On tire ses deux bords, on le fait glisser en entier,
+    // ou on touche le rouge pour l'y amener ; l'aperçu suit le doigt.
     function mn(t){
       t = Math.max(0, Math.round(t || 0));
       return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
@@ -2373,34 +2375,84 @@
       const zone = v.querySelector('.story-tapaka');
       const x = elements[courant];
       if(!x || x.genre !== 'video' || !(x.duree > 1)){ zone.hidden = true; zone.innerHTML = ''; return; }
-      const maxHalava = Math.min(MAX_STORY_SECONDES, x.duree);
       zone.hidden = false;
       zone.innerHTML =
-        '<div class="story-tapaka-titre">✂️ Video : <b data-voalohany>' + mn(x.debut) + '</b> → <b data-farany>' + mn(x.fin) + '</b>' +
-          ' · <span data-halava>' + Math.round(x.fin - x.debut) + ' s</span></div>' +
-        '<label>Manomboka<input type="range" data-tapaka-debut min="0" max="' + Math.max(0, x.duree - 1).toFixed(1) +
-          '" step="0.5" value="' + x.debut + '"></label>' +
-        '<label>Halavany<input type="range" data-tapaka-halava min="1" max="' + maxHalava.toFixed(1) +
-          '" step="0.5" value="' + (x.fin - x.debut) + '"></label>';
-      const debut = zone.querySelector('[data-tapaka-debut]');
-      const halava = zone.querySelector('[data-tapaka-halava]');
-      function appliquer(){
-        x.debut = Math.min(Number(debut.value), Math.max(0, x.duree - 1));
-        const reste = Math.min(MAX_STORY_SECONDES, x.duree - x.debut);
-        halava.max = reste.toFixed(1);
-        const l = Math.max(1, Math.min(Number(halava.value), reste));
-        halava.value = l;
-        x.fin = x.debut + l;
+        '<div class="story-tapaka-titre">✂️ Halefa : <b data-voalohany></b> → <b data-farany></b>' +
+          ' · <span data-halava></span> <span class="story-frise-max">(' + MAX_STORY_SECONDES + ' s farany)</span></div>' +
+        '<div class="story-frise" data-frise>' +
+          '<div class="story-frise-voafidy" data-voafidy>' +
+            '<i class="story-frise-sisiny" data-sisiny="debut"></i><i class="story-frise-sisiny" data-sisiny="fin"></i>' +
+          '</div>' +
+          '<div class="story-frise-tete" data-tete></div>' +
+        '</div>' +
+        '<div class="story-frise-legende"><span>0:00</span>' +
+          '<span><i class="story-frise-mena"></i>tsy halefa</span><span>' + mn(x.duree) + '</span></div>';
+      const frise = zone.querySelector('[data-frise]');
+      const voafidy = zone.querySelector('[data-voafidy]');
+      const tete = zone.querySelector('[data-tete]');
+      const pct = function(t){ return (t / x.duree * 100) + '%'; };
+      function afficher(){
+        voafidy.style.left = pct(x.debut);
+        voafidy.style.width = pct(x.fin - x.debut);
         zone.querySelector('[data-voalohany]').textContent = mn(x.debut);
         zone.querySelector('[data-farany]').textContent = mn(x.fin);
-        zone.querySelector('[data-halava]').textContent = Math.round(l) + ' s';
+        zone.querySelector('[data-halava]').textContent = Math.round(x.fin - x.debut) + ' s';
       }
-      debut.addEventListener('input', function(){
-        appliquer();
-        const lecteur = v.querySelector('.story-apercu video');
-        if(lecteur) lecteur.currentTime = x.debut;
+      function lecteur(){ return v.querySelector('.story-apercu video'); }
+      function aller(t){ const l = lecteur(); if(l) l.currentTime = t; }
+      // Le temps sous le doigt.
+      function temps(clientX){
+        const r = frise.getBoundingClientRect();
+        return Math.min(x.duree, Math.max(0, (clientX - r.left) / (r.width || 1) * x.duree));
+      }
+      let prise = null; // { mode, depart, debut, fin }
+      frise.addEventListener('pointerdown', function(e){
+        const t = temps(e.clientX);
+        const sisiny = e.target.closest('[data-sisiny]');
+        const longueur = x.fin - x.debut;
+        let mode = sisiny ? sisiny.getAttribute('data-sisiny') : (e.target.closest('[data-voafidy]') ? 'tout' : 'saute');
+        if(mode === 'saute'){
+          // Touché dans le rouge : le morceau vient commencer là.
+          x.debut = Math.min(Math.max(0, t - longueur / 2), x.duree - longueur);
+          x.fin = x.debut + longueur;
+          afficher();
+          aller(x.debut);
+          mode = 'tout';
+        }
+        prise = { mode: mode, depart: t, debut: x.debut, fin: x.fin };
+        try{ frise.setPointerCapture(e.pointerId); }catch(err){}
+        e.preventDefault();
       });
-      halava.addEventListener('input', appliquer);
+      frise.addEventListener('pointermove', function(e){
+        if(!prise) return;
+        const t = temps(e.clientX);
+        if(prise.mode === 'debut'){
+          x.debut = Math.min(Math.max(t, prise.fin - MAX_STORY_SECONDES, 0), prise.fin - 1);
+          aller(x.debut);
+        }else if(prise.mode === 'fin'){
+          x.fin = Math.max(Math.min(t, prise.debut + MAX_STORY_SECONDES, x.duree), prise.debut + 1);
+          aller(Math.max(x.debut, x.fin - 0.3));
+        }else{
+          const l = prise.fin - prise.debut;
+          x.debut = Math.min(Math.max(0, prise.debut + t - prise.depart), x.duree - l);
+          x.fin = x.debut + l;
+          aller(x.debut);
+        }
+        afficher();
+      });
+      function lacher(){
+        if(!prise) return;
+        prise = null;
+        aller(x.debut);
+        const l = lecteur();
+        if(l && l.paused) l.play().catch(function(){});
+      }
+      frise.addEventListener('pointerup', lacher);
+      frise.addEventListener('pointercancel', lacher);
+      // La tête de lecture, pour voir où en est l'aperçu.
+      const l = lecteur();
+      if(l) l.addEventListener('timeupdate', function(){ tete.style.left = pct(Math.min(l.currentTime, x.duree)); });
+      afficher();
     }
 
     // 🎵 Où commence la chanson : un curseur, et on l'entend de là.

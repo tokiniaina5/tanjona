@@ -1588,6 +1588,40 @@ body.story-ouverte .fb-reaction-avis{ z-index:413; }
 .story-tapaka input[type=range], .story-hira-tapaka input[type=range]{ flex:1; min-width:0; accent-color:var(--cyan); }
 .story-hira-tapaka label{ flex-wrap:wrap; }
 
+/* La frise : toute la vidéo en rouge (ce qui ne part pas), le morceau
+   choisi en clair par-dessus, avec ses deux bords à tirer. */
+.story-frise{
+  position:relative; height:34px; margin:0.25rem 0.5rem 0;
+  border-radius:6px; background:rgba(220,38,38,0.55);
+  touch-action:none; cursor:pointer; user-select:none;
+}
+.story-frise-voafidy{
+  position:absolute; top:0; bottom:0;
+  background:#0b3d42; border:2px solid var(--cyan); border-radius:6px;
+  box-sizing:border-box; cursor:grab;
+}
+.story-frise-sisiny{
+  position:absolute; top:-2px; bottom:-2px; width:16px; background:var(--cyan); cursor:ew-resize;
+}
+.story-frise-sisiny::after{
+  content:''; position:absolute; top:30%; bottom:30%; left:7px; width:2px; border-radius:1px; background:#fff;
+}
+.story-frise-sisiny[data-sisiny="debut"]{ left:-8px; border-radius:6px 0 0 6px; }
+.story-frise-sisiny[data-sisiny="fin"]{ right:-8px; border-radius:0 6px 6px 0; }
+.story-frise-tete{
+  position:absolute; top:-3px; bottom:-3px; width:2px; margin-left:-1px; background:#fff;
+  pointer-events:none; box-shadow:0 0 3px rgba(0,0,0,0.6);
+}
+.story-frise-legende{
+  display:flex; justify-content:space-between; align-items:center; margin:0 0.5rem;
+  font-size:0.7rem; opacity:0.8; font-variant-numeric:tabular-nums;
+}
+.story-frise-mena{
+  display:inline-block; width:10px; height:10px; margin-right:0.3rem; vertical-align:-1px;
+  border-radius:2px; background:rgba(220,38,38,0.8);
+}
+.story-frise-max{ opacity:0.7; }
+
 /* 👁 Ceux qui ont vu sa story : le nombre en bas à gauche, et leur liste
    qui monte du bas quand on l'ouvre. */
 .story-mpijery{
