@@ -703,6 +703,24 @@
       liste.appendChild(div);
     });
 
+    // Les livreurs actifs qui n'ont encore rien envoyé : nommés aussi, pour
+    // qu'on voie l'équipe entière et qui reste à chercher.
+    const sansPosition = equipe.filter(function (p) {
+      return (p.role || 'mpiasa') === 'livreur' && p.actif &&
+        !lignes.some(function (l) { return l.p.id === p.id; });
+    });
+    sansPosition.forEach(function (p) {
+      const div = document.createElement('div');
+      div.style.cssText = 'border:1px dashed var(--line); border-radius:8px; padding:0.7rem 0.9rem; margin-bottom:0.6rem; font-size:0.82rem; line-height:1.6;';
+      div.innerHTML =
+        '<strong style="color:var(--text);">' + html(p.nom) + '</strong>' +
+        ' · <span style="color:var(--muted);">mbola tsy nandefa ny toerana misy azy</span>' +
+        (p.jeton ? '' : '<br><span style="color:var(--muted);">Tsy mbola nomena rohy.</span>') +
+        (p.telephone ? '<br><a href="tel:' + html(p.telephone) + '" style="color:var(--cyan);">' + html(p.telephone) + '</a>' : '');
+      liste.appendChild(div);
+    });
+    if (vide) vide.style.display = (lignes.length || sansPosition.length) ? 'none' : 'block';
+
     poserLaCarte(lignes);
   }
 
@@ -765,6 +783,7 @@
       // Google occupait la boîte : sa carte n'y est plus.
       if (carte) { carte = null; reperes = {}; boite.innerHTML = ''; }
       if (!carteLibre) {
+        tracesLibres = null;
         carteLibre = L.map(boite);
         fondCarteLibre(carteLibre);
         vueVide = false;
@@ -817,11 +836,6 @@
           points.push([c.lat, c.lng]);
         });
       });
-      // Le repère de la position actuelle reste au-dessus du chemin.
-      Object.keys(reperesLibres).forEach(function (id) {
-        if (reperesLibres[id].bringToFront) reperesLibres[id].bringToFront();
-        else if (reperesLibres[id].setZIndexOffset) reperesLibres[id].setZIndexOffset(1000);
-      });
       if (!points.length) {
         if (!vueVide) { carteLibre.setView([centreParDefaut.lat, centreParDefaut.lng], 12); vueVide = true; }
       } else {
@@ -829,8 +843,14 @@
         if (points.length === 1 || lignes.length && points.every(function (q) {
           return q[0] === points[0][0] && q[1] === points[0][1];
         })) carteLibre.setView(points[0], 15);
-        else carteLibre.fitBounds(points, { padding: [30, 30] });
+        else carteLibre.fitBounds(points, { padding: [30, 30], maxZoom: 16 });
       }
+      // Le repère de la position actuelle reste au-dessus du chemin. Après
+      // la vue seulement : avant, Leaflet n'a pas encore dessiné le repère,
+      // et bringToFront lève une erreur qui laissait la carte grise.
+      Object.keys(reperesLibres).forEach(function (id) {
+        try { if (reperesLibres[id].bringToFront) reperesLibres[id].bringToFront(); } catch (e) {}
+      });
       // La page s'ouvre en fenêtre, qui ne prend sa taille qu'un instant
       // après : mesurée trop tôt, la carte ne remplirait qu'un coin.
       setTimeout(function () { if (carteLibre) carteLibre.invalidateSize(); }, 300);
@@ -868,7 +888,7 @@
         return;
       }
       // La carte gratuite occupait la boîte : Google prend sa place.
-      if (carteLibre) { carteLibre.remove(); carteLibre = null; reperesLibres = {}; }
+      if (carteLibre) { carteLibre.remove(); carteLibre = null; reperesLibres = {}; tracesLibres = null; }
       const g = window.google.maps;
       const premier = lignes.length
         ? { lat: Number(lignes[0].pos.lat), lng: Number(lignes[0].pos.lng) }
