@@ -503,7 +503,12 @@
       rohy.className = 'btn btn-sm';
       rohy.textContent = p.jeton ? 'Rohy' : 'Hamorona rohy';
       rohy.title = 'Ny rohy hidirany amin\'ny Ny asako feno — stock azy manokana, ekipanao iraisana';
-      rohy.addEventListener('click', function () { donnerLeLien(p, rohy); });
+      rohy.addEventListener('click', function () {
+        donnerLeLien(p, rohy);
+        // Un livreur : le lien donné, on le cherche aussitôt — sa page,
+        // ouverte, enverra où il est.
+        if (suivable(p) && p.actif && p.jeton) tadiavo([p.id], null);
+      });
       actions.appendChild(rohy);
 
       if (suivable(p) && p.actif) {
@@ -883,6 +888,30 @@
         fin('Tsy tafita ny fangatahana.', true);
       });
   }
+
+  // ---------- Suivre sans appuyer ----------
+  // Tant que la page Livreur est ouverte et visible, les positions se
+  // relisent chaque minute ; toutes les deux minutes, on demande en silence
+  // une position neuve aux livreurs actifs (comme « Tadiavo », sans message).
+  // La page fermée ou cachée, rien ne part : on ne vide pas les téléphones
+  // pour une carte que personne ne regarde.
+  let toursSuivi = 0;
+  setInterval(function () {
+    const section = document.getElementById('section-livreur');
+    if (!section || !section.classList.contains('active')) return;
+    if (document.visibilityState !== 'visible' || recherche) return;
+    if (typeof MODE_MPIASA !== 'undefined' && MODE_MPIASA) return;
+    const client = sb();
+    if (!client || !monEmail()) return;
+    toursSuivi += 1;
+    const ids = equipe.filter(function (p) { return suivable(p) && p.actif && p.jeton; })
+      .map(function (p) { return p.id; });
+    if (toursSuivi % 2 === 0 && ids.length) {
+      client.from('equipe').update({ position_demandee_at: new Date().toISOString() }).in('id', ids)
+        .then(function () {}, function () {});
+    }
+    charger();
+  }, 60000);
 
   // Le rôle ne se choisit plus dans une liste : il est celui de la page où
   // l'on se trouve. Une case de moins, et une erreur de moins.
