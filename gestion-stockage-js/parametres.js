@@ -455,6 +455,14 @@
     };
   }
 
+  // Le champ « Anarana » n'est qu'à la maison (la base refuse les autres).
+  // Il se règle à chaque ouverture du panneau : réglé seulement avec le
+  // fil, il restait caché tant que le fil n'avait pas été ouvert.
+  function montrerLeFormulaireDeLaMaison(id){
+    const formulaire = document.getElementById(id);
+    if(formulaire) formulaire.style.display = jeSuisLaMaison() ? 'block' : 'none';
+  }
+
   // Sous leur propre titre, après le fond : on doit pouvoir distinguer d'un
   // coup d'œil ce qu'on a ajouté soi-même de ce qui était là.
   function ajouterLesSiens(boite, sorte){
@@ -474,6 +482,7 @@
     boite.innerHTML = '';
     DEFAULT_MARKETPLACES.forEach(function(g){ ajouterUnGroupe(boite, g.groupe, g.liens); });
     ajouterLesSiens(boite, 'boutique');
+    montrerLeFormulaireDeLaMaison('marketplaceAdminForm');
     chercherLesApercus();
     veillerSurLeTourDesApercus();
   }
@@ -589,6 +598,7 @@
     boite.innerHTML = '';
     DEFAULT_TRANSPORTEURS.forEach(function(g){ ajouterUnGroupe(boite, g.groupe, g.liens); });
     ajouterLesSiens(boite, 'livraison');
+    montrerLeFormulaireDeLaMaison('livraisonAdminForm');
     chercherLesApercus();
     veillerSurLeTourDesApercus();
   }
@@ -5208,11 +5218,6 @@
     renderCommunityNews();
     renderMarketplaceLinks();
     renderLivraisonLinks();
-    const isAdmin = jeSuisLaMaison();
-    ['marketplaceAdminForm', 'livraisonAdminForm'].forEach(function(id){
-      const formulaire = document.getElementById(id);
-      if(formulaire) formulaire.style.display = isAdmin ? 'block' : 'none';
-    });
   }
 
   document.getElementById('generateManualCodeBtn').addEventListener('click', function(){
