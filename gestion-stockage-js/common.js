@@ -1006,6 +1006,10 @@
         (appli ? ligne('🏷️ Avy amin\'ny appli', appli, 'Ato anatiny ihany (abonnement, déblocage…)') : '') +
         '</div>';
     }
+    const cleEl = document.getElementById('walletIdKey');
+    if(cleEl) cleEl.textContent = walletState.idKey || '—';
+    renderTransferts();
+    transfertCalculer();
     const dispoEl = document.getElementById('etrangerDispo');
     if(dispoEl) dispoEl.textContent = 'Vola tena izy azo ampiasaina : ' + formatWalletAr(walletState.papiAr || 0);
     renderWalletCanaux();
@@ -1515,6 +1519,123 @@
       }, 200);
     });
   }
+  // ---- ID KEY et transferts entre portefeuilles ----
+  // L'argent part de la vola tena izy seule ; les frais (transferFeePct,
+  // 0,5 %) s'ajoutent à la somme et reviennent au propriétaire. Le serveur
+  // refait tout le compte : la page ne fait qu'annoncer.
+  function transfertFrais(montant){
+    const pct = (walletState && walletState.transferFeePct) || 0;
+    return pct > 0 ? Math.ceil(montant * pct / 100) : 0;
+  }
+  function transfertCalculer(){
+    const el = document.getElementById('transfertFrais');
+    const champ = document.getElementById('transfertMontant');
+    if(!el || !champ || !walletState) return;
+    const montant = Math.floor(Number(champ.value) || 0);
+    const vola = walletState.papiAr || 0;
+    const pct = walletState.transferFeePct || 0;
+    el.textContent = montant > 0
+      ? 'Frais ' + pct.toLocaleString('fr-FR') + ' % : ' + formatWalletAr(transfertFrais(montant)) +
+        ' — hiala amin\'ny vola tena izy : ' + formatWalletAr(montant + transfertFrais(montant)) +
+        ' (misy : ' + formatWalletAr(vola) + ').'
+      : 'Vola tena izy azo afindra : ' + formatWalletAr(vola) + ' · frais ' + pct.toLocaleString('fr-FR') + ' %.';
+  }
+  function renderTransferts(){
+    const list = document.getElementById('transfertList');
+    const empty = document.getElementById('transfertEmpty');
+    if(!list || !walletState) return;
+    const rows = walletState.transferts || [];
+    list.innerHTML = '';
+    if(empty) empty.style.display = rows.length ? 'none' : 'block';
+    rows.forEach(function(t){
+      const sortant = t.sens === 'envoye';
+      const div = document.createElement('div');
+      div.style.cssText = 'border:1px solid var(--line); border-radius:8px; padding:0.7rem 0.9rem; margin-bottom:0.6rem; font-size:0.8rem; color:var(--muted); line-height:1.7;';
+      div.innerHTML =
+        '<strong style="color:' + (sortant ? 'var(--text)' : 'var(--cyan)') + ';">' +
+        (sortant ? '− ' : '+ ') + formatWalletAr(t.amount_ar) + '</strong>' +
+        (sortant && t.fee_ar ? ' <span>(+ frais ' + formatWalletAr(t.fee_ar) + ')</span>' : '') +
+        ' · ' + (sortant ? 'Nalefa any amin\'ny ' : 'Avy amin\'ny ') +
+        '<span style="font-family:var(--font-mono);">' + escapeHtml(t.cle || '—') + '</span><br>' +
+        new Date(t.created_at).toLocaleString('fr-FR') +
+        (t.note ? '<br>' + escapeHtml(t.note) : '');
+      list.appendChild(div);
+    });
+  }
+  const idKeyCopy = document.getElementById('walletIdKeyCopy');
+  if(idKeyCopy){
+    idKeyCopy.addEventListener('click', function(){
+      const cle = walletState && walletState.idKey;
+      if(!cle) return;
+      const fait = function(){
+        idKeyCopy.textContent = '✅ Voadika';
+        setTimeout(function(){ idKeyCopy.textContent = '📋 Adikao'; }, 1500);
+      };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(cle).then(fait, function(){ window.prompt('ID KEY', cle); });
+      } else {
+        window.prompt('ID KEY', cle);
+      }
+    });
+  }
+  const transfertMontant = document.getElementById('transfertMontant');
+  if(transfertMontant) transfertMontant.addEventListener('input', transfertCalculer);
+  // Qui va recevoir : vérifié dès que la clef est entière, pour ne pas
+  // envoyer à une clef mal recopiée.
+  const transfertCle = document.getElementById('transfertCle');
+  let transfertCleVue = '';
+  if(transfertCle){
+    transfertCle.addEventListener('input', function(){
+      const qui = document.getElementById('transfertQui');
+      const brut = transfertCle.value.toUpperCase().replace(/[^A-Z0-9]/g, '').replace(/^NA/, '');
+      if(brut.length !== 8){ qui.textContent = ''; transfertCleVue = ''; return; }
+      if(brut === transfertCleVue) return;
+      transfertCleVue = brut;
+      qui.textContent = 'Jerena…';
+      callWallet({ action: 'cle', cle: brut }).then(function(res){
+        if(transfertCleVue !== brut) return;
+        qui.textContent = '✅ ' + res.cle + (res.nom ? ' — ' + res.nom : ' — wallet hita');
+      }, function(err){
+        if(transfertCleVue !== brut) return;
+        qui.textContent = '⚠️ ' + err.message;
+      });
+    });
+  }
+  const transfertBtn = document.getElementById('transfertBtn');
+  if(transfertBtn){
+    transfertBtn.addEventListener('click', function(){
+      const statusEl = document.getElementById('transfertStatus');
+      const cle = document.getElementById('transfertCle').value.trim();
+      const montant = Math.floor(Number(document.getElementById('transfertMontant').value) || 0);
+      const note = document.getElementById('transfertNote').value.trim();
+      if(!cle){ statusEl.textContent = 'Ampidiro ny ID KEY an\'ilay handray.'; return; }
+      if(!(montant > 0)){ statusEl.textContent = 'Ampidiro ny vola halefa.'; return; }
+      const total = montant + transfertFrais(montant);
+      if(total > ((walletState && walletState.papiAr) || 0)){
+        statusEl.textContent = 'Tsy ampy ny vola tena izy : ' + formatWalletAr(total) + ' no ilaina (frais tafiditra).';
+        return;
+      }
+      if(!window.confirm('Hamindra ' + formatWalletAr(montant) + ' any amin\'ny ' + cle.toUpperCase() +
+        ' ?\nFrais : ' + formatWalletAr(total - montant) + '. Tsy azo averina intsony.')) return;
+      transfertBtn.disabled = true;
+      statusEl.textContent = 'Afindra…';
+      callWallet({ action: 'transfert', cle: cle, amountAr: montant, note: note }).then(function(res){
+        transfertBtn.disabled = false;
+        ['transfertCle', 'transfertMontant', 'transfertNote'].forEach(function(id){
+          document.getElementById(id).value = '';
+        });
+        document.getElementById('transfertQui').textContent = '';
+        transfertCleVue = '';
+        statusEl.textContent = '✅ Lasa ' + formatWalletAr(montant) + ' any amin\'ny ' + (res.cle || cle) + '.';
+        pushNotification('parrainage', 'Famindrana : ' + formatWalletAr(montant) + ' → ' + (res.cle || cle) + '.');
+        refreshWalletFromServer();
+      }, function(err){
+        transfertBtn.disabled = false;
+        statusEl.textContent = err.message;
+      });
+    });
+  }
+
   // Les devises de l'achat sont celles de « Voir dans une autre devise » :
   // recopiées de ce menu-là, elles ne peuvent pas diverger. Une devise
   // s'ajoute donc à un seul endroit (ny-asako.html, #walletCurrency).

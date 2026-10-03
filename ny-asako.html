@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="62add40c">
+<meta name="ny-asako-version" content="831154e0">
 <title>Ny asako — Tanjona</title>
 <!-- Application installable : le manifeste décrit le nom, l'icône et la façon
      de s'ouvrir ; le reste est affaire de service worker, enregistré plus bas. -->
@@ -2301,6 +2301,12 @@
               <div>
                 <div class="plan-note">Compte vérifié</div>
                 <div class="plan-price" id="walletVerifiedEmail" style="font-size:1rem;">—</div>
+                <!-- L'ID KEY : ce qu'on donne pour recevoir un transfert. -->
+                <div class="plan-note" style="margin-top:0.7rem;">🔑 ID KEY</div>
+                <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+                  <strong id="walletIdKey" style="font-family:var(--font-mono); font-size:1.05rem; color:var(--text); letter-spacing:0.05em;">—</strong>
+                  <button type="button" class="btn btn-sm" id="walletIdKeyCopy" style="width:auto;">📋 Adikao</button>
+                </div>
               </div>
               <div>
                 <div class="plan-note">Solde disponible</div>
@@ -2447,6 +2453,35 @@
             <p id="etrangerStatus" style="font-size:0.8rem; color:var(--cyan); margin-top:0.8rem; line-height:1.5;"></p>
           </div>
 
+          <!-- ---- TRANSFERT vers un autre portefeuille, par son ID KEY ----
+               Vola tena izy seule ; frais au propriétaire (fonction wallet,
+               « transfert » ; supabase-portefeuille-famindrana.sql). -->
+          <div class="panel" id="walletTransfertPanel">
+            <h3>🔁 Hamindra vola any amin'ny wallet hafa</h3>
+            <p style="font-size:0.82rem; color:var(--muted); line-height:1.6; margin-bottom:1rem;">
+              Angataho ny <strong style="color:var(--text);">ID KEY</strong> an'ilay olona. Ny vola tena izy ihany no afindra.
+              Tonga avy hatrany any aminy ilay vola, ary tsy azo averina intsony.
+            </p>
+            <div class="form-grid">
+              <div class="field" style="margin-bottom:0;">
+                <label for="transfertCle">ID KEY an'ilay handray</label>
+                <input id="transfertCle" type="text" placeholder="NA-XXXX-XXXX" autocomplete="off" style="font-family:var(--font-mono); text-transform:uppercase;">
+              </div>
+              <div class="field" style="margin-bottom:0;">
+                <label for="transfertMontant">Vola halefa (Ar)</label>
+                <input id="transfertMontant" type="number" min="0" step="1000" placeholder="10000">
+              </div>
+            </div>
+            <p id="transfertQui" style="font-size:0.78rem; color:var(--muted); margin-top:0.3rem;"></p>
+            <div class="field" style="margin-top:0.7rem;">
+              <label for="transfertNote">Antony (tsy voatery)</label>
+              <input id="transfertNote" type="text" placeholder="Vidin'ny entana…">
+            </div>
+            <p id="transfertFrais" style="font-size:0.78rem; color:var(--muted); margin-bottom:0.6rem; line-height:1.5;"></p>
+            <button type="button" class="btn btn-primary btn-sm" id="transfertBtn" style="width:auto;">🔁 Afindra</button>
+            <p id="transfertStatus" style="font-size:0.8rem; color:var(--cyan); margin-top:0.8rem; line-height:1.5;"></p>
+          </div>
+
           <!-- ---- ACHATS DU FIL ---- -->
           <!-- Payés avec le portefeuille depuis le panier : l'argent est tenu
                jusqu'à ce que l'acheteur ait reçu l'entana (fonction wallet,
@@ -2469,6 +2504,9 @@
             <h3 style="font-size:0.95rem; margin-top:1.2rem;">Mes retraits</h3>
             <div id="payoutList" style="margin-top:0.7rem;"></div>
             <p class="empty-hint" id="payoutEmpty" style="display:none;">Aucun retrait demandé.</p>
+            <h3 style="font-size:0.95rem; margin-top:1.2rem;">Famindrana</h3>
+            <div id="transfertList" style="margin-top:0.7rem;"></div>
+            <p class="empty-hint" id="transfertEmpty" style="display:none;">Tsy mbola nisy famindrana.</p>
           </div>
 
           <!-- ---- FILE DES RETRAITS À ENVOYER (propriétaire uniquement) ---- -->
@@ -3129,7 +3167,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=6d1467b9"></script>
+<script src="gestion-stockage-js/common.js?v=f250661b"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=622d64e8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>

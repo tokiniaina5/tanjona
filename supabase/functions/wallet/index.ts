@@ -200,7 +200,67 @@ async function balanceFor(admin: Admin, email: string): Promise<number> {
   // 5) les achats du fil : payés comme acheteur, reçus comme vendeur.
   const achats = await achatsFor(admin, email);
 
-  return Math.max(0, earned + deposited + achats.recu - withdrawn - spent - achats.depense);
+  // 6) les transferts entre portefeuilles (et, pour le propriétaire, leurs frais).
+  const transferts = await transfertsFor(admin, email);
+
+  return Math.max(0, earned + deposited + achats.recu + transferts.recu -
+    withdrawn - spent - achats.depense - transferts.envoye);
+}
+
+// ---- Transferts entre portefeuilles (supabase-portefeuille-famindrana.sql) ----
+// La vola tena izy passe d'un compte à l'autre par son ID KEY. L'expéditeur
+// paie la somme + TRANSFER_FEE_PCT % ; les frais reviennent au propriétaire.
+// Ce qui est reçu est de l'argent vraiment payé : il se retire et se dépense
+// comme un dépôt.
+const TRANSFER_FEE_PCT = Number(Deno.env.get("TRANSFER_FEE_PCT") ?? "0.5");
+function fraisTransfert(montant: number): number {
+  return TRANSFER_FEE_PCT > 0 ? Math.ceil(montant * TRANSFER_FEE_PCT / 100) : 0;
+}
+
+async function transfertsFor(admin: Admin, email: string): Promise<{ recu: number; envoye: number }> {
+  // Table absente (SQL pas encore passé) : rien n'a bougé, et le solde reste juste.
+  const { data: lignes, error } = await admin.from("wallet_transferts")
+    .select("from_email,to_email,amount_ar,fee_ar")
+    .or(`from_email.eq.${email},to_email.eq.${email}`);
+  if (error) return { recu: 0, envoye: 0 };
+  let recu = 0;
+  let envoye = 0;
+  for (const t of (lignes ?? []) as Array<{ from_email: string; to_email: string; amount_ar: number; fee_ar: number }>) {
+    if (t.to_email === email) recu += Number(t.amount_ar) || 0;
+    if (t.from_email === email) envoye += (Number(t.amount_ar) || 0) + (Number(t.fee_ar) || 0);
+  }
+  const proprio = norm(Deno.env.get("OWNER_EMAIL"));
+  if (proprio && email === proprio) {
+    const { data: frais } = await admin.from("wallet_transferts").select("fee_ar").gt("fee_ar", 0);
+    recu += (frais ?? []).reduce((sum: number, f: { fee_ar: number }) => sum + (Number(f.fee_ar) || 0), 0);
+  }
+  return { recu, envoye };
+}
+
+// L'ID KEY du compte : tirée au hasard la première fois, puis toujours la
+// même. Sans lettres qui se confondent (0/O, 1/I/L) : elle se dicte.
+const ALPHABET_CLE = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+function tirerCle(): string {
+  const octets = crypto.getRandomValues(new Uint8Array(8));
+  const c = Array.from(octets, (o) => ALPHABET_CLE[o % ALPHABET_CLE.length]).join("");
+  return "NA-" + c.slice(0, 4) + "-" + c.slice(4);
+}
+function normCle(value: unknown): string {
+  return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "").replace(/^NA/, "");
+}
+async function cleFor(admin: Admin, email: string): Promise<string | null> {
+  const { data: deja, error } = await admin.from("wallet_cles").select("cle").eq("email", email).maybeSingle();
+  if (error) return null;
+  if (deja?.cle) return deja.cle;
+  for (let essai = 0; essai < 5; essai++) {
+    const cle = tirerCle();
+    const { error: e } = await admin.from("wallet_cles").insert({ email, cle });
+    if (!e) return cle;
+    // Deux appels en même temps : l'autre a gagné, on reprend la sienne.
+    const { data: autre } = await admin.from("wallet_cles").select("cle").eq("email", email).maybeSingle();
+    if (autre?.cle) return autre.cle;
+  }
+  return null;
 }
 
 // ---- Ce qui peut sortir en vrai argent ----
@@ -229,8 +289,11 @@ async function retirableFor(admin: Admin, email: string, balance: number): Promi
     .reduce((sum: number, p: { amount_ar: number; fee_ar: number }) =>
       sum + (Number(p.amount_ar) || 0) + (Number(p.fee_ar) || 0), 0);
   // Les ventes reçues sont de l'argent payé ; les achats en sont sortis.
+  // Les transferts reçus aussi ; ceux envoyés en sont sortis.
   const achats = await achatsFor(admin, email);
-  return Math.max(0, Math.min(balance, entre + achats.recu - sorti - achats.depense));
+  const transferts = await transfertsFor(admin, email);
+  return Math.max(0, Math.min(balance,
+    entre + achats.recu + transferts.recu - sorti - achats.depense - transferts.envoye));
 }
 
 // ---- L'argent vraiment payé qui reste, pour l'abonnement ----
@@ -278,7 +341,11 @@ async function partsSolde(admin: Admin, email: string, balance: number): Promise
   const achats = await achatsFor(admin, email);
   retraits += achats.depense;
   const parrainage = await gainsParrainage(admin, email);
-  const reste = entre + achats.recu - abonnements - Math.max(0, retraits - parrainage);
+  // Un transfert reçu est de la vola tena izy ; un transfert envoyé n'en
+  // part que d'elle (jamais des parrainages).
+  const transferts = await transfertsFor(admin, email);
+  const reste = entre + achats.recu + transferts.recu - abonnements - transferts.envoye -
+    Math.max(0, retraits - parrainage);
   const papi = Math.max(0, Math.min(balance, reste));
   return { papi, parrainage: Math.max(0, Math.min(balance - papi, parrainage - retraits)) };
 }
@@ -360,7 +427,34 @@ Deno.serve(async (req: Request) => {
 
     const retirable = await retirableFor(admin, email, balance);
     const parts = await partsSolde(admin, email, balance);
+
+    // L'ID KEY du compte, et les derniers transferts. L'autre partie se
+    // montre par sa clef, jamais par son email.
+    const idKey = await cleFor(admin, email);
+    const { data: lignesT } = await admin.from("wallet_transferts")
+      .select("id,from_email,to_email,amount_ar,fee_ar,note,created_at")
+      .or(`from_email.eq.${email},to_email.eq.${email}`)
+      .order("created_at", { ascending: false }).limit(20);
+    const autres = [...new Set((lignesT ?? []).map((t: { from_email: string; to_email: string }) =>
+      t.from_email === email ? t.to_email : t.from_email))];
+    const clesAutres: Record<string, string> = {};
+    if (autres.length) {
+      const { data: cles } = await admin.from("wallet_cles").select("email,cle").in("email", autres);
+      for (const c of (cles ?? []) as Array<{ email: string; cle: string }>) clesAutres[c.email] = c.cle;
+    }
+    const transferts = ((lignesT ?? []) as Array<{ id: string; from_email: string; to_email: string; amount_ar: number; fee_ar: number; note: string | null; created_at: string }>)
+      .map((t) => {
+        const sortant = t.from_email === email;
+        const autre = sortant ? t.to_email : t.from_email;
+        return {
+          id: t.id, sens: sortant ? "envoye" : "recu", amount_ar: t.amount_ar,
+          fee_ar: sortant ? t.fee_ar : 0, note: t.note, created_at: t.created_at,
+          cle: clesAutres[autre] ?? "—",
+        };
+      });
+
     return json({
+      idKey, transferts, transferFeePct: TRANSFER_FEE_PCT,
       balanceAr: balance, retirableAr: retirable, papiAr: parts.papi, parrainageAr: parts.parrainage, arPerReferral: tarifParrainage(email), minPayoutAr: MIN_PAYOUT_AR, payoutFeePct: PAYOUT_FEE_PCT,
       depositFeePct: DEPOSIT_FEE_PCT,
       // Ce qui marche vraiment sur ce serveur, pour que la page ne propose
@@ -516,6 +610,60 @@ Deno.serve(async (req: Request) => {
     const currency = String(body.currency ?? "").toUpperCase();
     const rate = await rateFromAr(currency);
     return json({ currency, rate });
+  }
+
+  // ---- Voir à qui appartient une ID KEY, avant d'envoyer ----
+  // On ne rend que le prénom affiché du compte (s'il en a un) : de quoi
+  // vérifier qu'on ne s'est pas trompé de clef, sans livrer l'email.
+  if (action === "cle") {
+    const cle = normCle(body.cle);
+    if (cle.length !== 8) return json({ error: "ID KEY diso : NA-XXXX-XXXX." }, 400);
+    const { data: lignes } = await admin.from("wallet_cles").select("email,cle");
+    const trouve = ((lignes ?? []) as Array<{ email: string; cle: string }>).find((l) => normCle(l.cle) === cle);
+    if (!trouve) return json({ error: "Tsy misy wallet manana io ID KEY io." }, 404);
+    if (trouve.email === email) return json({ error: "Anao io ID KEY io." }, 400);
+    const { data: nom } = await admin.from("wallet_payouts").select("name")
+      .eq("email", trouve.email).neq("name", "").order("created_at", { ascending: false }).limit(1).maybeSingle();
+    return json({ cle: trouve.cle, nom: nom?.name ?? null });
+  }
+
+  // ---- Transférer de la vola tena izy vers un autre portefeuille ----
+  // Par son ID KEY. L'expéditeur paie la somme + les frais (TRANSFER_FEE_PCT),
+  // pris sur sa seule vola tena izy ; le destinataire reçoit la somme entière,
+  // le propriétaire les frais.
+  if (action === "transfert") {
+    const cle = normCle(body.cle);
+    const amount = Math.floor(Number(body.amountAr ?? 0));
+    const note = String(body.note ?? "").trim().slice(0, 300);
+    if (cle.length !== 8) return json({ error: "ID KEY diso : NA-XXXX-XXXX." }, 400);
+    if (!(amount > 0)) return json({ error: "Ampidiro ny vola halefa." }, 400);
+
+    const { data: lignes, error: errCles } = await admin.from("wallet_cles").select("email,cle");
+    if (errCles) return json({ error: "Mbola tsy vonona ny famindrana (supabase-portefeuille-famindrana.sql)." }, 500);
+    const dest = ((lignes ?? []) as Array<{ email: string; cle: string }>).find((l) => normCle(l.cle) === cle);
+    if (!dest) return json({ error: "Tsy misy wallet manana io ID KEY io." }, 404);
+    if (dest.email === email) return json({ error: "Tsy azo alefa any aminao ihany." }, 400);
+
+    const frais = fraisTransfert(amount);
+    const balance = await balanceFor(admin, email);
+    const { papi } = await partsSolde(admin, email, balance);
+    if (amount + frais > papi) {
+      return json({
+        error: `Vola tena izy : ${ar(papi)}. Ilaina : ${ar(amount + frais)} ` +
+          `(${ar(amount)} + frais ${ar(frais)}, ${TRANSFER_FEE_PCT} %). ` +
+          "Ny vola tena izy ihany no afindra (tsy ny parrainage).",
+      }, 400);
+    }
+
+    const { data, error } = await admin.from("wallet_transferts").insert({
+      from_email: email, to_email: dest.email, amount_ar: amount, fee_ar: frais, note: note || null,
+    }).select("id,amount_ar,fee_ar,created_at").single();
+    if (error) return json({ error: error.message }, 500);
+
+    const maCle = await cleFor(admin, email);
+    await prevenir(admin, dest.email,
+      `💸 Nahazo ${ar(amount)} avy amin'ny ${maCle ?? "wallet iray"}` + (note ? ` : ${note}` : "") + ".");
+    return json({ transfert: data, cle: dest.cle, balanceAr: balance - amount - frais });
   }
 
   // ---- Demander un retrait ----
