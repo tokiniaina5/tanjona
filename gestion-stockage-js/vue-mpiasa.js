@@ -162,9 +162,7 @@
     // page, Andro / Alina, les notifications (components.css,
     // « mode-livreur »). Son lien ouvert dans le navigateur garde le menu
     // entier, dans son ordre.
-    const installee = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
-      window.navigator.standalone === true;
-    if (p.role === 'livreur' && installee) document.body.classList.add('mode-livreur');
+    if (p.role === 'livreur' && estInstallee()) document.body.classList.add('mode-livreur');
 
     const attente = document.getElementById('mpiasaScreen');
     if (attente) attente.style.display = 'none';
@@ -184,6 +182,12 @@
     // Le patron voit tout de suite où il en est, sans attendre un premier
     // changement.
     envoyerMonStock();
+  }
+
+  // Ouverte comme application installée, et non dans un onglet du navigateur.
+  function estInstallee() {
+    return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+      window.navigator.standalone === true;
   }
 
   // ---------- Le site à son nom ----------
@@ -281,7 +285,9 @@
     // ---- Son tableau de bord et ses allées et venues ----
     // Pour le livreur, sous sa carte : ils ne sont plus dans la fenêtre que
     // le patron ouvre sur lui (equipe.js).
-    if (p.role === 'livreur') {
+    // Dans l'application installée seulement, pas dans le lien ouvert au
+    // navigateur.
+    if (p.role === 'livreur' && estInstallee()) {
       sortie += '<div class="panel" style="margin-top:1rem;">' +
         '<div class="panneau-titre">Tableau de bord</div>' +
         (typeof window.htmlTableauStock === 'function'
