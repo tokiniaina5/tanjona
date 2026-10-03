@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="ee19b839">
+<meta name="ny-asako-version" content="10727c9b">
 <title>Ny asako — Tanjona</title>
 <!-- Application installable : le manifeste décrit le nom, l'icône et la façon
      de s'ouvrir ; le reste est affaire de service worker, enregistré plus bas. -->
@@ -2903,7 +2903,9 @@
           <p id="personneLienMailNote" style="font-size:0.78rem; color:var(--muted); margin:0.7rem 0 0; line-height:1.5;"></p>
         </div>
 
-        <div class="panel" style="margin-top:1rem;">
+        <!-- Pour un livreur, ces deux panneaux passent dans SA page, sous sa
+             carte (vue-mpiasa.js) : equipe.js les cache ici. -->
+        <div class="panel" id="personneTableauPanel" style="margin-top:1rem;">
           <div class="panneau-titre">Tableau de bord</div>
           <!-- Le stock que la personne tient depuis son lien, tel que son
                application l'a envoyé en dernier : equipe.js le remplit. -->
@@ -2911,7 +2913,7 @@
           <div id="personneTableau"></div>
         </div>
 
-        <div class="panel" style="margin-top:1rem;">
+        <div class="panel" id="personnePointagesPanel" style="margin-top:1rem;">
           <div class="panneau-titre">Ny fivezivezena</div>
           <div id="personnePointages" style="margin-top:0.7rem;"></div>
           <p class="empty-hint" id="personnePointagesVide" style="display:none;">Mbola tsy nisy pointage.</p>
@@ -3202,8 +3204,8 @@
 <script src="gestion-stockage-js/identite.js?v=32177fac"></script>
 <script src="gestion-stockage-js/fond.js?v=66e9ffc6"></script>
 <script src="gestion-stockage-js/carte-libre.js?v=732ab00c"></script>
-<script src="gestion-stockage-js/equipe.js?v=f0154529"></script>
-<script src="gestion-stockage-js/vue-mpiasa.js?v=5b71125d"></script>
+<script src="gestion-stockage-js/equipe.js?v=f41f48b2"></script>
+<script src="gestion-stockage-js/vue-mpiasa.js?v=b65301a2"></script>
 <script src="gestion-stockage-js/vue-suivi.js?v=cb9f7da7"></script>
 <script src="gestion-stockage-js/fitaovana.js?v=bf90a8a5"></script>
 <script src="gestion-stockage-js/photocopie.js?v=be4f35a5"></script>

@@ -1313,6 +1313,12 @@
     const fond = document.getElementById('section-stock');
     if (fond) fond.classList.add('active');
     section.classList.add('active');
+    // Le tableau de bord et les allées et venues d'un livreur sont dans sa
+    // page à lui, sous sa carte : ils ne se répètent pas ici.
+    ['personneTableauPanel', 'personnePointagesPanel'].forEach(function (id) {
+      const el = document.getElementById(id);
+      if (el) el.style.display = p.role === 'livreur' ? 'none' : '';
+    });
     dessinerLienPersonne(p);
     dessinerTableauPersonne();
     chargerPersonne(p.id);
@@ -1397,15 +1403,20 @@
       return;
     }
 
-    const articles = Array.isArray(ligne.articles) ? ligne.articles : [];
-    const mouvements = (Array.isArray(ligne.mouvements) ? ligne.mouvements : [])
-      .filter(function (m) { return m && m.date && !isNaN(new Date(m.date)); })
-      .sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
-
     if (maj) {
       maj.textContent = 'Nohavaozina : ' + new Date(ligne.maj).toLocaleString('fr-FR') +
         ' (' + depuis(ligne.maj) + ').';
     }
+    boite.innerHTML = htmlTableauStock(ligne.articles, ligne.mouvements);
+  }
+
+  // Le tableau d'un stock (articles + mouvements) en HTML : pour la fenêtre
+  // d'une personne, et pour la page du livreur lui-même (vue-mpiasa.js).
+  function htmlTableauStock(articlesBruts, mouvementsBruts) {
+    const articles = Array.isArray(articlesBruts) ? articlesBruts : [];
+    const mouvements = (Array.isArray(mouvementsBruts) ? mouvementsBruts : [])
+      .filter(function (m) { return m && m.date && !isNaN(new Date(m.date)); })
+      .sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
 
     const qte = function (a) { return Number(a.qty) || 0; };
     const prix = function (a) { return Number(a.price) || 0; };
@@ -1488,8 +1499,9 @@
       t += '</tbody></table></div>';
     }
 
-    boite.innerHTML = t;
+    return t;
   }
+  window.htmlTableauStock = htmlTableauStock;
 
   function chargerPersonne(id) {
     const client = sb();
