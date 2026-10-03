@@ -282,6 +282,20 @@
         '<div id="maCarte" style="height:260px; border-radius:10px; overflow:hidden; border:1px solid var(--line); margin:0 0 0.8rem;"></div>' +
         '<p id="maPosition" style="font-size:0.85rem; line-height:1.6; margin:0 0 0.7rem;">—</p>' +
         '<button type="button" class="btn btn-primary btn-sm" id="maPositionBtn" style="width:auto;">Manaiky — alefaso ny toerako</button>' +
+        // Un lien de position donné à la main (Google Maps, WhatsApp…) : il
+        // remplace le GPS quand le téléphone refuse, et le patron le voit.
+        '<div style="margin-top:1rem; border-top:1px solid var(--line); padding-top:0.8rem;">' +
+        '<label for="monLien" style="display:block; font-size:0.78rem; color:var(--muted); margin-bottom:0.3rem;">Lien hijerena ny toerana misy anao (Google Maps, WhatsApp…)</label>' +
+        '<input type="url" id="monLien" placeholder="https://maps.app.goo.gl/…" value="' + html(p.lien || '') + '">' +
+        '<div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.4rem;">' +
+        '<button type="button" class="btn btn-primary btn-sm" id="monLienSave" style="width:auto;">' + (p.lien ? '💾 Ovaina' : '💾 Save') + '</button>' +
+        (p.lien
+          ? '<a class="btn btn-sm" style="width:auto;" href="' + html(p.lien) + '" target="_blank" rel="noopener">↗ Sokafy</a>' +
+            '<button type="button" class="btn btn-red btn-sm" id="monLienEsory" style="width:auto;">🗑️ Esory</button>'
+          : '') +
+        '</div>' +
+        '<p id="monLienStatut" style="font-size:0.78rem; color:var(--cyan); margin:0.4rem 0 0;"></p>' +
+        '</div>' +
         '</div>';
     }
 
@@ -341,6 +355,7 @@
 
     // La page se redessine : un suivi déjà accepté ne doit pas redemander
     // l'accord, ni perdre la dernière position affichée.
+    brancherMonLien(d);
     const b = document.getElementById('maPositionBtn');
     if (b) {
       if (suivi !== null) { b.disabled = true; b.textContent = 'Alefa…'; }
@@ -357,6 +372,44 @@
       // L'employé n'a plus de course en route : on cesse de dire où il est.
       arreterLeSuivi();
     }
+  }
+
+  // ---------- Son lien de position ----------
+  // Enregistré par la fonction « mpiasa » (action « lien ») dans
+  // equipe.lien : c'est le lien que le patron voit sous « Rohy ».
+  function brancherMonLien(d) {
+    const champ = document.getElementById('monLien');
+    const save = document.getElementById('monLienSave');
+    const esory = document.getElementById('monLienEsory');
+    const statut = document.getElementById('monLienStatut');
+    if (!champ || !save) return;
+    const envoyer = function (valeur, bouton, message) {
+      const client = window.__sb;
+      if (!client || !client.functions) return;
+      bouton.disabled = true;
+      if (statut) statut.textContent = '…';
+      client.functions.invoke('mpiasa', { headers: entetes(), body: { jeton: jeton, action: 'lien', lien: valeur } })
+        .then(function (res) {
+          bouton.disabled = false;
+          if (res && res.error) { if (statut) statut.textContent = 'Tsy voatahiry.'; return; }
+          if (d.personne) d.personne.lien = (res.data && res.data.lien) || null;
+          dessinerMoi(d);
+          const s = document.getElementById('monLienStatut');
+          if (s) s.textContent = message;
+        }, function () {
+          bouton.disabled = false;
+          if (statut) statut.textContent = 'Tsy tafita ny fangatahana.';
+        });
+    };
+    save.addEventListener('click', function () {
+      const v = champ.value.trim();
+      if (!v) { if (statut) statut.textContent = 'Apetaho aloha ny lien.'; return; }
+      envoyer(v, save, '✅ Voatahiry ny lien-nao.');
+    });
+    if (esory) esory.addEventListener('click', function () {
+      if (!confirm('Hofafana ny lien-nao ?')) return;
+      envoyer('', esory, '🗑️ Voafafa ny lien-nao.');
+    });
   }
 
   // ---------- Dire où l'on est ----------

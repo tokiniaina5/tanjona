@@ -177,7 +177,7 @@ Deno.serve(async (req: Request) => {
   const admin = createClient(supabaseUrl, serviceKey);
 
   const { data: personne } = await admin.from("equipe")
-    .select("id,nom,role,telephone,actif,owner_email")
+    .select("id,nom,role,telephone,actif,owner_email,lien")
     .eq("jeton", jeton).maybeSingle();
 
   // Le même message dans les deux cas : dire « ce lien a existé » en
@@ -209,6 +209,18 @@ Deno.serve(async (req: Request) => {
       precision_m: Number.isFinite(precision) ? precision : null,
     });
     return json({ ok: true });
+  }
+
+  // ---- Son lien de position, donné à la main ----
+  // Quand le téléphone refuse de dire où il est, le livreur colle un lien
+  // (partage de position Google Maps, WhatsApp…). Le même champ que celui
+  // que le patron remplit sous « Rohy » (equipe.lien). Vide : effacé.
+  if (action === "lien") {
+    let lien = String(body.lien ?? "").trim().slice(0, 500);
+    if (lien && !/^https?:\/\//i.test(lien)) lien = "https://" + lien;
+    const { error } = await admin.from("equipe").update({ lien: lien || null }).eq("id", personne.id);
+    if (error) return json({ error: error.message }, 500);
+    return json({ ok: true, lien: lien || null });
   }
 
   // ---- « Est-ce qu'on me cherche ? » ----
@@ -356,6 +368,7 @@ Deno.serve(async (req: Request) => {
       nom: personne.nom,
       role: personne.role,
       telephone: personne.telephone,
+      lien: (personne as Record<string, unknown>).lien ?? null,
     },
     // Le stock tel que le patron l'a laissé à sa dernière ouverture : le
     // point de départ de celui de l'employé, pas un stock partagé.
