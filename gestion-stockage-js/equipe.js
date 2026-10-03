@@ -582,6 +582,17 @@
       });
       actions.appendChild(rohy);
 
+      // Envoyer le lien à la personne (WhatsApp, SMS, Messenger…) : le lien
+      // est créé d'abord s'il n'existe pas encore.
+      const zarao = document.createElement('button');
+      zarao.type = 'button';
+      zarao.className = 'btn btn-sm';
+      zarao.style.width = 'auto';
+      zarao.textContent = '📤 Zarao';
+      zarao.title = 'Alefaso any amin\'i ' + (p.nom || 'azy') + ' ny rohiny';
+      zarao.addEventListener('click', function () { partagerLeLien(p, zarao); });
+      actions.appendChild(zarao);
+
       if (suivable(p) && p.actif) {
         const chercher = document.createElement('button');
         chercher.type = 'button';
