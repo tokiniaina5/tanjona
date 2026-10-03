@@ -1027,7 +1027,8 @@
     if(papiBtn) papiBtn.disabled = !c.depotPapi;
   }
 
-  // Le même solde, dans la devise du pays où l'argent doit arriver.
+  // La vola tena izy (argent vraiment payé), dans la devise du pays où
+  // l'argent doit arriver — pas le parrainage ni les sommes de l'appli.
   function updateWalletConversion(){
     const select = document.getElementById('walletCurrency');
     const out = document.getElementById('walletConverted');
@@ -1035,7 +1036,7 @@
     if(!select || !out || !walletState) return;
     const currency = select.value;
     if(currency === 'MGA'){
-      out.textContent = formatWalletAr(walletState.balanceAr);
+      out.textContent = formatWalletAr(walletState.papiAr || 0);
       if(note) note.textContent = '';
       return;
     }
@@ -1046,7 +1047,7 @@
         if(note) note.textContent = 'Taux du jour indisponible pour ' + currency + '.';
         return;
       }
-      const converted = (walletState.balanceAr || 0) * res.rate;
+      const converted = (walletState.papiAr || 0) * res.rate;
       out.textContent = converted.toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' ' + currency;
       if(note){
         note.textContent = 'Taux du jour : 1 ' + currency + ' ≈ ' +
