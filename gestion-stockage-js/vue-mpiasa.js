@@ -201,6 +201,9 @@
     if (!nom) return;
     const titre = nom + (p.role === 'livreur' ? ' — Livreur' : '');
     document.title = titre;
+    // Gardé pour la prochaine ouverture : la page le pose avant même de
+    // charger (ny-asako.html, dans le <head>).
+    try { localStorage.setItem('nyasako_titre_' + String(jeton).slice(0, 16), titre); } catch (e) {}
     const appleTitre = document.querySelector('meta[name="apple-mobile-web-app-title"]');
     if (appleTitre) appleTitre.setAttribute('content', nom);
     document.querySelectorAll('.brand-sub').forEach(function (el) { el.textContent = titre; });
