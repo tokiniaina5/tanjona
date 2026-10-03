@@ -1355,8 +1355,11 @@
     if (!client) return;
     if (bouton) bouton.disabled = true;
     champs.updated_at = new Date().toISOString();
-    client.from('livraisons').update(champs).eq('id', id).then(function () {
+    client.from('livraisons').update(champs).eq('id', id).then(function (res) {
       if (bouton) bouton.disabled = false;
+      // Un refus de la base se dit : sans cela, « Voatahiry » s'affichait
+      // alors que rien n'avait été écrit.
+      if (res && res.error) { dire('livraisonStatut', 'Tsy voatahiry : ' + res.error.message, true); return; }
       charger();
     }, function () {
       if (bouton) bouton.disabled = false;
