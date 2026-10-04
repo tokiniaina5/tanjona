@@ -769,6 +769,8 @@
 
   // Une couleur par livreur, toujours la même : tirée de son identifiant,
   // elle ne change pas quand un autre livreur arrive ou s'en va.
+  // Aussi pour la carte du livreur lui-même (vue-mpiasa.js).
+  window.couleurLivreur = function (id) { return couleurDe(id); };
   function couleurDe(id) {
     let h = 0;
     String(id || '').split('').forEach(function (c) { h = (h * 31 + c.charCodeAt(0)) >>> 0; });

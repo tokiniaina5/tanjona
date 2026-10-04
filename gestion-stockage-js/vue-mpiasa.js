@@ -477,7 +477,13 @@
       if (ici) {
         if (!monRepere) {
           monRepere = repereCarteLibre(ici).addTo(maCarte);
-          monRepere.bindTooltip('Ianao', { permanent: true, direction: 'top', offset: [0, -10] });
+          // Le même point que sur la carte du patron : sa couleur à lui
+          // (equipe.js, couleurDe), un bord blanc, et son nom au-dessus.
+          if (typeof window.couleurLivreur === 'function' && monId) {
+            monRepere.setStyle({ fillColor: window.couleurLivreur(monId), color: '#ffffff', weight: 3 });
+          }
+          monRepere.bindTooltip(html((currentUser && currentUser.name) || 'Ianao'),
+            { permanent: true, direction: 'top', offset: [0, -10] });
           maCarte.setView(ici, 16);
         } else {
           monRepere.setLatLng(ici);
