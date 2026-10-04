@@ -667,6 +667,29 @@
     return new Date(iso).toLocaleString('fr-FR');
   }
 
+  // « En ligne » : une position de moins de cinq minutes. Le livreur en
+  // envoie une par minute au plus, et la page du patron lui en redemande une
+  // toutes les deux minutes : au-delà, son téléphone ne répond plus.
+  const EN_LIGNE_MS = 5 * 60000;
+  function enLigne(iso) {
+    return Date.now() - new Date(iso).getTime() < EN_LIGNE_MS;
+  }
+
+  // Sa couleur bat tant qu'il est en ligne : d'un coup d'œil, on voit qui
+  // répond. Une seule feuille de style, posée à la première liste.
+  function poserLesBattements() {
+    if (document.getElementById('livreur-battements')) return;
+    const st = document.createElement('style');
+    st.id = 'livreur-battements';
+    st.textContent =
+      '@keyframes livreur-pouls{0%{box-shadow:0 0 0 0 var(--c)}70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}' +
+      '@keyframes livreur-bord{50%{border-left-color:color-mix(in srgb,var(--c) 30%,transparent)}}' +
+      '.livreur-en-ligne{animation:livreur-bord 1.6s ease-in-out infinite}' +
+      '.livreur-en-ligne .livreur-pastille{animation:livreur-pouls 1.6s ease-out infinite}' +
+      '@media (prefers-reduced-motion:reduce){.livreur-en-ligne,.livreur-en-ligne .livreur-pastille{animation:none}}';
+    document.head.appendChild(st);
+  }
+
   // Nom, lieu, heure : les trois choses demandées, dans cet ordre.
   function dessinerCarte() {
     const liste = document.getElementById('positionsListe');
@@ -692,12 +715,18 @@
 
     liste.innerHTML = '';
     if (vide) vide.style.display = lignes.length ? 'none' : 'block';
+    poserLesBattements();
 
     lignes.forEach(function (l) {
       const lat = Number(l.pos.lat), lng = Number(l.pos.lng);
       const div = document.createElement('div');
       div.style.cssText = 'border:1px solid var(--line); border-radius:8px; padding:0.7rem 0.9rem; margin-bottom:0.6rem; font-size:0.82rem; line-height:1.6;';
       div.style.borderLeft = '5px solid ' + couleurDe(l.p.id);
+      if (enLigne(l.pos.at)) {
+        div.className = 'livreur-en-ligne';
+        div.style.setProperty('--c', couleurDe(l.p.id));
+        div.title = 'En ligne';
+      }
       div.innerHTML = pastille(l.p.id) +
         '<strong style="color:var(--text);">' + html(l.p.nom) + '</strong>' +
         ' · <span style="color:var(--cyan);">' + html(depuis(l.pos.at)) + '</span>' +
@@ -777,7 +806,7 @@
     return COULEURS_TRACE[h % COULEURS_TRACE.length];
   }
   function pastille(id) {
-    return '<span style="display:inline-block; width:11px; height:11px; border-radius:50%; background:' +
+    return '<span class="livreur-pastille" style="display:inline-block; width:11px; height:11px; border-radius:50%; background:' +
       couleurDe(id) + '; border:2px solid #fff; box-shadow:0 0 0 1px var(--line); margin-right:0.4rem; vertical-align:-1px;"></span>';
   }
   function rechercheLivreur() {
