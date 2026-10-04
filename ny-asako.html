@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="15851f4c">
+<meta name="ny-asako-version" content="1048ffbb">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -3043,6 +3043,14 @@
                 <a class="btn btn-sm" id="profileMapsOpen" href="#" target="_blank" rel="noopener" style="width:auto; display:none;">🌐 Google Maps</a>
                 <button type="button" class="btn btn-sm" id="profileMapsSite" style="width:auto; display:none;">🗺️ Dans le site</button>
               </div>
+              <!-- Envoyer ce lien à un client : son numéro (WhatsApp), son
+                   email, ou le lien de son profil (Messenger…) — common.js. -->
+              <div id="profileMapsEnvoi" style="display:none; margin-top:0.6rem;">
+                <label for="profileMapsDest" style="font-size:0.78rem;">📤 Envoyer à un client</label>
+                <input id="profileMapsDest" type="text" list="profileMapsDestListe" autocomplete="off" placeholder="Numéro, email ou lien du client">
+                <datalist id="profileMapsDestListe"></datalist>
+                <button type="button" class="btn btn-primary btn-sm" id="profileMapsSend" style="width:auto; margin-top:0.4rem;">📤 Envoyer</button>
+              </div>
               <p id="profileMapsStatus" style="font-size:0.72rem; color:var(--muted); margin-top:0.4rem;">Collez le lien « Partager » de Google Maps, ou touchez « Ma position ».</p>
             </div>
             <div class="field" style="margin-bottom:0;">
@@ -3221,7 +3229,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=550533b1"></script>
+<script src="gestion-stockage-js/common.js?v=f5066a8a"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=622d64e8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>

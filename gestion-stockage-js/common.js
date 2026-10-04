@@ -3272,6 +3272,105 @@
       if(a){ a.href = lien || '#'; a.style.display = lien ? '' : 'none'; }
       const b = document.getElementById('profileMapsSite');
       if(b) b.style.display = lien ? '' : 'none';
+      const envoi = document.getElementById('profileMapsEnvoi');
+      if(envoi) envoi.style.display = lien ? '' : 'none';
+    });
+  }
+
+  // ---- Envoyer son lien Maps à un client ----
+  // Ce qu'on écrit dans la case dit par où il part :
+  //  - un numéro → WhatsApp, message déjà écrit ;
+  //  - un email → la messagerie, message déjà écrit ;
+  //  - un lien wa.me → WhatsApp, message déjà écrit ;
+  //  - un autre lien (Facebook, Messenger, Instagram, Telegram…) → ces
+  //    applications ne laissent pas écrire le message à notre place : il est
+  //    copié, la conversation s'ouvre, il n'y a plus qu'à coller ;
+  //  - rien → le partage du téléphone, qui laisse choisir.
+  function messageLienMaps(lien){
+    const nom = (currentUser && (currentUser.company || currentUser.name)) || '';
+    return '📍 ' + (nom ? nom + ' — ' : '') + 'voici où nous trouver : ' + lien;
+  }
+
+  function copierTexte(texte){
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      return navigator.clipboard.writeText(texte).then(function(){ return true; }, function(){ return false; });
+    }
+    return Promise.resolve(false);
+  }
+
+  function envoyerLienMaps(dest, lien, status){
+    const texte = messageLienMaps(lien);
+    const d = String(dest || '').trim();
+    function dire(t){ if(status) status.textContent = t; }
+    function ouvrir(url){ window.open(url, '_blank', 'noopener'); }
+
+    if(!d){
+      if(navigator.share){
+        navigator.share({ text: texte }).then(function(){ dire('Lien envoyé.'); }, function(){});
+      } else {
+        ouvrir('https://wa.me/?text=' + encodeURIComponent(texte));
+      }
+      return;
+    }
+    if(/^[^\s@\/]+@[^\s@\/]+\.[^\s@\/]+$/.test(d)){
+      window.location.href = 'mailto:' + encodeURIComponent(d) +
+        '?subject=' + encodeURIComponent('📍 Notre emplacement') + '&body=' + encodeURIComponent(texte);
+      dire('Votre messagerie s\'ouvre : touchez « Envoyer ».');
+      return;
+    }
+    if(/^[+\d\s().-]+$/.test(d) && d.replace(/\D/g, '').length >= 8){
+      const numero = (typeof toInternationalNumber === 'function') ? toInternationalNumber(d) : d.replace(/\D/g, '');
+      ouvrir('https://wa.me/' + numero + '?text=' + encodeURIComponent(texte));
+      dire('WhatsApp s\'ouvre avec le message : touchez « Envoyer ».');
+      return;
+    }
+    let url = /^https?:\/\//i.test(d) ? d : 'https://' + d;
+    const wa = url.match(/^https?:\/\/(?:wa\.me|api\.whatsapp\.com\/send\?phone=)\/?(\d+)/i);
+    if(wa){
+      ouvrir('https://wa.me/' + wa[1] + '?text=' + encodeURIComponent(texte));
+      dire('WhatsApp s\'ouvre avec le message : touchez « Envoyer ».');
+      return;
+    }
+    if(/facebook\.com\//i.test(url) && typeof facebookToMessenger === 'function'){
+      url = facebookToMessenger(url) || url;
+    }
+    // La copie part avant l'ouverture, et l'ouverture tout de suite : après
+    // une attente, le navigateur ne la voit plus comme venant du doigt et la
+    // bloque.
+    const copie = copierTexte(texte);
+    ouvrir(url);
+    copie.then(function(copie){
+      dire(copie
+        ? 'Message copié : collez-le dans la conversation qui s\'ouvre, puis envoyez.'
+        : 'La conversation s\'ouvre : collez-y ce lien → ' + lien);
+    });
+  }
+
+  // Les clients de « Gestion de compte » proposés dans la case : on choisit
+  // un nom, son numéro s'y inscrit.
+  const profileMapsDest = document.getElementById('profileMapsDest');
+  if(profileMapsDest){
+    profileMapsDest.addEventListener('focus', function(){
+      const liste = document.getElementById('profileMapsDestListe');
+      if(!liste || typeof tousLesClientsMaps !== 'function') return;
+      liste.innerHTML = '';
+      tousLesClientsMaps().forEach(function(x){
+        if(!x.c.phone) return;
+        const o = document.createElement('option');
+        o.value = x.c.phone;
+        o.label = x.c.name || '';
+        o.textContent = x.c.name || '';
+        liste.appendChild(o);
+      });
+    });
+  }
+  const profileMapsSend = document.getElementById('profileMapsSend');
+  if(profileMapsSend){
+    profileMapsSend.addEventListener('click', function(){
+      const lien = lienMapsPropre(document.getElementById('profileMaps').value);
+      const status = document.getElementById('profileMapsStatus');
+      if(!lien){ if(status) status.textContent = 'Mettez d\'abord votre lien Maps.'; return; }
+      envoyerLienMaps(profileMapsDest ? profileMapsDest.value : '', lien, status);
     });
   }
   // Le choix : Google Maps (le lien tel quel) ou la carte du site
