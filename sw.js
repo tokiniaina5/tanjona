@@ -9,7 +9,7 @@
 // Le nom porte l'empreinte du dernier envoi : outils/versionner.mjs le réécrit.
 // Chaque mise en ligne repart donc d'un cache neuf, et l'ancien est effacé —
 // sans quoi les fichiers de toutes les versions passées s'y empileraient.
-const CACHE = 'nyasako-4312cfbf';
+const CACHE = 'nyasako-ad92cdba';
 
 // Le partage reçu des autres applications (manifest.webmanifest, « share_target »).
 // Le téléphone ouvre cette adresse en POST, avec le texte et les fichiers
@@ -234,6 +234,21 @@ self.addEventListener('fetch', function(e){
         }
         return res;
       });
+    })
+  );
+});
+
+// Une notification touchée (un appel qui arrive, live.js) : on ramène
+// devant la page déjà ouverte — c'est elle qui tient l'appel — plutôt
+// que d'en ouvrir une neuve, qui ne saurait rien de lui.
+self.addEventListener('notificationclick', function(e){
+  e.notification.close();
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(fenetres){
+      for(const f of fenetres){
+        if(memeOrigine(f.url) && 'focus' in f) return f.focus();
+      }
+      return self.clients.openWindow ? self.clients.openWindow('/ny-asako.html') : null;
     })
   );
 });

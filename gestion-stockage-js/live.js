@@ -45,7 +45,15 @@
       };
       return n;
     } catch(e){
-      // Amin'ny Chrome finday dia ilaina ny Service Worker : tsy mahavaky ny appli.
+      // Amin'ny Chrome finday dia tsy mety ny « new Notification » : ny
+      // Service Worker no mampiseho azy, ary izy no mamerina ny appli eo
+      // anoloana rehefa tsindriana (sw.js, « notificationclick »).
+      if(navigator.serviceWorker && navigator.serviceWorker.ready){
+        navigator.serviceWorker.ready.then(function(reg){
+          return reg.showNotification(title, { body: body, tag: tag, lang: 'mg', renotify: true,
+            requireInteraction: true, vibrate: [400, 150, 400, 150, 400] });
+        }).catch(function(){});
+      }
       return null;
     }
   }
@@ -249,17 +257,32 @@
         ' avy amin\'i ' + who + '.');
     }
     // Certaines pages décrochent seules : celle du livreur, quand c'est son
-    // patron qui l'appelle (vue-mpiasa.js). Il a les mains sur le guidon.
-    if(typeof window.__antsoRaisinaHoAzy === 'function' && window.__antsoRaisinaHoAzy(payload)){
-      acceptIncomingCall();
-      return;
-    }
+    // patron qui l'appelle (vue-mpiasa.js). Il a les mains sur le guidon. La
+    // sonnerie et la notification partent quand même : ce sont elles qui le
+    // préviennent si la page n'est pas à l'écran.
+    const raisinaHoAzy = typeof window.__antsoRaisinaHoAzy === 'function' && window.__antsoRaisinaHoAzy(payload);
     showIncomingCallUI();
     showSystemNotification(
       (payload.callType === 'video' ? '📹 Antso video' : '📞 Antso feo') + ' avy amin\'i ' + who,
       'Tsindrio ity mba hiverina amin\'ny appli sy hamaly.',
       'antso-' + payload.roomId
     );
+    if(raisinaHoAzy) decrocherDesQueVisible(payload.roomId);
+  }
+
+  // Décrocher seul demande le micro et la caméra, que le navigateur refuse à
+  // une page cachée (écran verrouillé, autre application devant). Visible :
+  // tout de suite. Cachée : la sonnerie et la notification la font revenir,
+  // et l'appel s'ouvre dès qu'elle est de nouveau à l'écran.
+  function decrocherDesQueVisible(roomId){
+    const encore = function(){ return activeCall && activeCall.roomId === roomId && activeCall.status === 'ringing'; };
+    if(!document.hidden){ if(encore()) acceptIncomingCall(); return; }
+    const auRetour = function(){
+      if(document.hidden) return;
+      document.removeEventListener('visibilitychange', auRetour);
+      if(encore()) acceptIncomingCall();
+    };
+    document.addEventListener('visibilitychange', auRetour);
   }
 
   function acceptIncomingCall(){
