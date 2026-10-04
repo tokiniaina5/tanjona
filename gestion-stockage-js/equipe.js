@@ -533,13 +533,25 @@
       if (rohyOuvert && rohyOuvert.id === p.id) panneauRohy.style.display = 'block';
       const etiquette = document.createElement('label');
       etiquette.textContent = 'Lien an\'i ' + (p.nom || 'ilay olona');
-      etiquette.style.cssText = 'display:block; font-size:0.78rem; color:var(--muted); margin-bottom:0.3rem;';
+      // Le champ prend la mise en forme des autres champs de l'application
+      // (.field), et la libellé s'y rattache.
+      const champBloc = document.createElement('div');
+      champBloc.className = 'field';
+      champBloc.style.marginBottom = '0';
+      champLien.id = 'lienEquipe-' + p.id;
+      etiquette.htmlFor = champLien.id;
       const ligneBoutons = document.createElement('div');
-      ligneBoutons.style.cssText = 'display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.4rem;';
+      ligneBoutons.style.cssText = 'display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.6rem;';
+      // Trois boutons de même hauteur, alignés : le lien « Sokafy » est un <a>,
+      // qui sans cela se souligne et s'assied plus bas que les deux autres.
+      const commeBouton = function (b) {
+        b.style.cssText = 'width:auto; flex:1 1 auto; display:inline-flex; align-items:center; justify-content:center;' +
+          ' gap:0.35rem; min-height:2.3rem; text-decoration:none; white-space:nowrap; box-sizing:border-box;';
+      };
       const sauver = document.createElement('button');
       sauver.type = 'button';
       sauver.className = 'btn btn-primary btn-sm';
-      sauver.style.width = 'auto';
+      commeBouton(sauver);
       sauver.textContent = '💾 Save';
       sauver.addEventListener('click', function () {
         let v = champLien.value.trim();
@@ -552,7 +564,7 @@
       if (p.lien) {
         const ouvrirLien = document.createElement('a');
         ouvrirLien.className = 'btn btn-sm';
-        ouvrirLien.style.width = 'auto';
+        commeBouton(ouvrirLien);
         ouvrirLien.href = p.lien;
         ouvrirLien.target = '_blank';
         ouvrirLien.rel = 'noopener';
@@ -562,12 +574,13 @@
       const lienApp = document.createElement('button');
       lienApp.type = 'button';
       lienApp.className = 'btn btn-sm';
-      lienApp.style.width = 'auto';
+      commeBouton(lienApp);
       lienApp.textContent = p.jeton ? '📋 Rohy Ny asako' : 'Hamorona rohy Ny asako';
       lienApp.addEventListener('click', function () { donnerLeLien(p, lienApp); });
       ligneBoutons.appendChild(lienApp);
-      panneauRohy.appendChild(etiquette);
-      panneauRohy.appendChild(champLien);
+      champBloc.appendChild(etiquette);
+      champBloc.appendChild(champLien);
+      panneauRohy.appendChild(champBloc);
       panneauRohy.appendChild(ligneBoutons);
 
       rohy.addEventListener('click', function () {
