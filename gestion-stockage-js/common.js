@@ -2296,7 +2296,9 @@
       logo: local.logo || meta.logo || null,
       company: meta.company || local.company || '',
       nif: meta.nif || local.nif || '',
-      stat: meta.stat || local.stat || ''
+      stat: meta.stat || local.stat || '',
+      // Le lien Maps de l'endroit où se trouve le client (Paramètres).
+      maps: meta.maps || local.maps || ''
     };
   }
 
@@ -2737,7 +2739,8 @@
       logo: profile.logo || null,
       company: profile.company || '',
       nif: profile.nif || '',
-      stat: profile.stat || ''
+      stat: profile.stat || '',
+      maps: profile.maps || ''
     };
     const logins = loadLogins();
     logins.unshift({ name: currentUser.name, email: currentUser.email, phone: currentUser.phone, date: new Date().toLocaleString('fr-FR') });
@@ -3158,19 +3161,30 @@
     const phone = document.getElementById('profilePhone').value.trim();
     const nif = document.getElementById('profileNif').value.trim();
     const stat = document.getElementById('profileStat').value.trim();
+    const mapsInput = document.getElementById('profileMaps');
+    const maps = mapsInput ? lienMapsPropre(mapsInput.value) : (currentUser.maps || '');
     const logoFile = document.getElementById('profileLogo').files[0];
     if(!name || !email){ alert('Le nom et l\'email sont obligatoires.'); return; }
+    if(mapsInput && mapsInput.value.trim() && !maps){
+      alert('Le lien Maps doit commencer par https:// (ex : https://maps.app.goo.gl/…).');
+      return;
+    }
 
     function finishSave(logoDataUrl){
       const logo = logoDataUrl || currentUser.logo || null;
-      currentUser = { name, company, email, phone, nif, stat, logo: logo };
+      currentUser = { name, company, email, phone, nif, stat, logo: logo, maps: maps };
       const codeInput = document.getElementById('profileAccessCode');
       const existing = findProfile(name);
       const newPassword = codeInput ? codeInput.value : '';
       const auth = sbAuth();
       // avec Supabase le mot de passe n'est jamais gardé ici
       const localCode = auth ? '' : (newPassword.trim() || (existing ? existing.accessCode : ''));
-      upsertProfile(name, { name, company, email, phone, nif, stat, logo: logo, accessCode: localCode });
+      upsertProfile(name, { name, company, email, phone, nif, stat, logo: logo, maps: maps, accessCode: localCode });
+      // Le propriétaire le retrouve dans « Nouvelles inscriptions »
+      // (supabase-toerana-mpanjifa.sql). Sans la fonction, rien ne casse.
+      if(window.__sb && window.__sb.rpc){
+        window.__sb.rpc('set_mon_lien_maps', { lien: maps }).then(function(){}, function(){});
+      }
       document.getElementById('currentUserName').textContent = name;
       document.getElementById('currentUserEmail').textContent = email;
       saveSession();
@@ -3181,7 +3195,7 @@
 
       if(auth){
         const update = { data: { name: name, phone: phone, company: company, nif: nif, stat: stat,
-          logo: logoForServer(logo) } };
+          maps: maps, logo: logoForServer(logo) } };
         if(newPassword){
           if(newPassword.length < 6){
             status.textContent = 'Profil enregistré, mais le mot de passe doit faire 6 caractères minimum.';
@@ -3218,6 +3232,43 @@
       finishSave(null);
     }
   });
+
+  // ---------------- LIEN MAPS DU CLIENT (Paramètres) ----------------
+  // N'est gardé que s'il est une vraie adresse web : il finit dans un href,
+  // chez le client comme chez le propriétaire. Collé depuis « Partager » de
+  // Google Maps, le lien arrive parfois précédé du nom du lieu : on ne garde
+  // que l'adresse.
+  function lienMapsPropre(v){
+    const m = String(v || '').trim().match(/https?:\/\/\S+/i);
+    return m ? m[0].slice(0, 500) : '';
+  }
+
+  // « 📍 Ma position » : le téléphone donne sa position, on en fait un lien.
+  const profileMapsGpsBtn = document.getElementById('profileMapsGpsBtn');
+  if(profileMapsGpsBtn){
+    profileMapsGpsBtn.addEventListener('click', function(){
+      const input = document.getElementById('profileMaps');
+      const status = document.getElementById('profileMapsStatus');
+      if(!navigator.geolocation){ if(status) status.textContent = 'Position indisponible sur cet appareil.'; return; }
+      if(status) status.textContent = 'Recherche de la position…';
+      navigator.geolocation.getCurrentPosition(function(pos){
+        const lat = pos.coords.latitude.toFixed(6), lng = pos.coords.longitude.toFixed(6);
+        input.value = 'https://www.google.com/maps?q=' + lat + ',' + lng;
+        input.dispatchEvent(new Event('input'));
+        if(status) status.textContent = 'Position trouvée : touchez « Enregistrer ».';
+      }, function(){
+        if(status) status.textContent = 'Position refusée ou introuvable.';
+      }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+    });
+  }
+  const profileMapsInput = document.getElementById('profileMaps');
+  if(profileMapsInput){
+    profileMapsInput.addEventListener('input', function(){
+      const a = document.getElementById('profileMapsOpen');
+      const lien = lienMapsPropre(profileMapsInput.value);
+      if(a){ a.href = lien || '#'; a.style.display = lien ? '' : 'none'; }
+    });
+  }
 
   // ---------------- MOT DE BIENVENUE ----------------
   // Première chose vue en arrivant sur le site. Tant qu'il est là, l'avis

@@ -40,6 +40,11 @@
     document.getElementById('profilePhone').value = currentUser.phone || '';
     document.getElementById('profileNif').value = currentUser.nif || '';
     document.getElementById('profileStat').value = currentUser.stat || '';
+    const mapsInput = document.getElementById('profileMaps');
+    if(mapsInput){
+      mapsInput.value = currentUser.maps || '';
+      mapsInput.dispatchEvent(new Event('input'));
+    }
     const savedProfile = (typeof findProfile === 'function') ? findProfile(currentUser.name || '') : null;
     const codeInput = document.getElementById('profileAccessCode');
     // avec Supabase le mot de passe n’est pas conservé ici : le champ reste vide
@@ -5463,7 +5468,7 @@
       return;
     }
     window.__sb.from('client_signups')
-      .select('id,name,email,phone,created_at')
+      .select('id,name,email,phone,maps,created_at')
       .order('created_at', { ascending: false })
       .limit(50)
       .then(function(res){
@@ -5486,7 +5491,10 @@
             '<td>' + new Date(row.created_at).toLocaleString('fr-FR') + '</td>' +
             '<td>' + escapeAdminHtml(row.name || '—') + '</td>' +
             '<td>' + escapeAdminHtml(row.email || '—') + '</td>' +
-            '<td>' + escapeAdminHtml(row.phone || '—') + '</td>';
+            '<td>' + escapeAdminHtml(row.phone || '—') + '</td>' +
+            '<td>' + (/^https?:\/\//i.test(row.maps || '')
+              ? '<a class="btn btn-sm" target="_blank" rel="noopener" href="' + escapeAdminHtml(row.maps) + '">📍 Maps</a>'
+              : '—') + '</td>';
           body.appendChild(tr);
         });
       }, function(){

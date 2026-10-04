@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="3a5fa243">
+<meta name="ny-asako-version" content="0e60c6e8">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -3036,6 +3036,15 @@
               <input id="profilePhone" type="tel">
             </div>
             <div class="field" style="margin-bottom:0;">
+              <label for="profileMaps">📍 Lien Maps (là où vous êtes)</label>
+              <input id="profileMaps" type="url" inputmode="url" placeholder="https://maps.app.goo.gl/…">
+              <div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.4rem;">
+                <button type="button" class="btn btn-sm" id="profileMapsGpsBtn" style="width:auto;">📍 Ma position</button>
+                <a class="btn btn-sm" id="profileMapsOpen" href="#" target="_blank" rel="noopener" style="width:auto; display:none;">🗺️ Ouvrir</a>
+              </div>
+              <p id="profileMapsStatus" style="font-size:0.72rem; color:var(--muted); margin-top:0.4rem;">Collez le lien « Partager » de Google Maps, ou touchez « Ma position ».</p>
+            </div>
+            <div class="field" style="margin-bottom:0;">
               <label for="profileAccessCode">Nouveau mot de passe</label>
               <input id="profileAccessCode" type="password" minlength="6" placeholder="Laisser vide pour ne pas changer" autocomplete="new-password">
               <p style="font-size:0.72rem; color:var(--muted); margin-top:0.4rem;">Pour remplacer un code reçu par email : saisissez le vôtre puis « Enregistrer ». Il est utilisable aussitôt.</p>
@@ -3121,7 +3130,7 @@
           <div class="table-scroll">
             <table id="signupsTable">
               <thead>
-                <tr><th>Date</th><th>Nom</th><th>Email</th><th>Téléphone</th></tr>
+                <tr><th>Date</th><th>Nom</th><th>Email</th><th>Téléphone</th><th>Lieu</th></tr>
               </thead>
               <tbody id="signupsTableBody"></tbody>
             </table>
@@ -3195,7 +3204,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=d2df6da7"></script>
+<script src="gestion-stockage-js/common.js?v=e770143a"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=622d64e8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
@@ -3210,7 +3219,7 @@
 <script src="gestion-stockage-js/zara-rehetra.js?v=b4bc508d"></script>
 <script src="gestion-stockage-js/live.js?v=7720b6ae"></script>
 <script src="gestion-stockage-js/traduction.js?v=8f5605bc"></script>
-<script src="gestion-stockage-js/parametres.js?v=48fd7b6e"></script>
+<script src="gestion-stockage-js/parametres.js?v=bfeb2dfb"></script>
 <!-- Le partage reçu du dehors remplit la boîte « Écrire », que parametres.js
      tient : il se charge après elle. -->
 <script src="gestion-stockage-js/zara-miditra.js?v=bfe2ae80"></script>
