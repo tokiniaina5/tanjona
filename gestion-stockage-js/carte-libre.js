@@ -11,7 +11,21 @@
 
 (function () {
   const BASE = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/';
+  // Les rues d'OpenStreetMap. (Les fonds de CARTO, essayés le 04/10/2026,
+  // exigent désormais une clé : ils s'affichent barrés d'« API KEY REQUIRED ».)
+  const TUILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
   let demande = null;
+
+  // Ouvrir les connexions dès le chargement de la page ne coûte presque rien,
+  // et épargne à la première carte l'attente de la poignée de main.
+  [['https://cdnjs.cloudflare.com', true], ['https://tile.openstreetmap.org', false]]
+    .forEach(function (h) {
+      const lien = document.createElement('link');
+      lien.rel = 'preconnect';
+      lien.href = h[0];
+      if (h[1]) lien.crossOrigin = 'anonymous';
+      document.head.appendChild(lien);
+    });
 
   // Où se pose une carte qui n'a encore personne à montrer : Antananarivo.
   // Une carte vide vaut mieux qu'une carte absente — on sait où elle est, et
@@ -25,10 +39,14 @@
       const style = document.createElement('link');
       style.rel = 'stylesheet';
       style.href = BASE + 'leaflet.css';
+      // « anonymous » rend la réponse lisible : le service worker peut alors
+      // la garder, et la carte suivante ne retélécharge plus Leaflet.
+      style.crossOrigin = 'anonymous';
       document.head.appendChild(style);
 
       const script = document.createElement('script');
       script.src = BASE + 'leaflet.js';
+      script.crossOrigin = 'anonymous';
       script.async = true;
       script.onload = function () { fini(!!(window.L && window.L.map)); };
       // Sans réseau, on laisse la porte ouverte à un nouvel essai : la
@@ -41,10 +59,12 @@
 
   // Les rues, et la mention que la licence d'OpenStreetMap demande en échange.
   window.fondCarteLibre = function (carte) {
-    return window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    return window.L.tileLayer(TUILES, {
       maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'
-    }).addTo(carte);
+      // Les tuiles autour de la vue restent prêtes : un glissement de doigt
+      // ne retombe pas sur du gris.
+      keepBuffer: 4,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'    }).addTo(carte);
   };
 
   // Le repère d'un livreur : un point, et son nom au-dessus. Un rond dessiné

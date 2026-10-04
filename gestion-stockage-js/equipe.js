@@ -822,6 +822,14 @@
         carteLibre = L.map(boite);
         fondCarteLibre(carteLibre);
         vueVide = false;
+        // La fenêtre prend sa taille quand elle veut, parfois bien après les
+        // 300 ms d'en bas : mesurée à zéro, la carte ne demande aucune tuile
+        // et reste grise. On la remesure dès que la boîte change de taille.
+        if (window.ResizeObserver) {
+          new ResizeObserver(function () {
+            if (carteLibre) carteLibre.invalidateSize();
+          }).observe(boite);
+        }
       }
       carteLibre.invalidateSize();
 
