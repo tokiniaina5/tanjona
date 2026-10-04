@@ -749,7 +749,9 @@
         (l.pos.precision_m ? ' (± ' + Math.round(l.pos.precision_m) + ' m)' : '') + '</span>' +
         '<br><span style="color:var(--muted);">' + new Date(l.pos.at).toLocaleString('fr-FR') + '</span>' +
         (l.p.telephone ? ' · <a href="tel:' + html(l.p.telephone) + '" style="color:var(--cyan);">' + html(l.p.telephone) + '</a>' : '') +
-        '<br><a href="https://www.google.com/maps?q=' + lat + ',' + lng + '" target="_blank" rel="noopener" style="color:var(--cyan);">Sokafy ao amin&#39;ny Google Maps</a>';
+        // Un vrai bouton, facile à toucher au doigt, plutôt qu'un lien souligné.
+        '<div style="margin-top:0.5rem;"><a class="btn btn-sm" href="https://www.google.com/maps?q=' + lat + ',' + lng + '" target="_blank" rel="noopener"' +
+        ' style="display:inline-flex; align-items:center; gap:0.35rem; min-height:2.3rem; text-decoration:none; box-sizing:border-box;">🗺️ Sokafy ao amin&#39;ny Google Maps</a></div>';
       liste.appendChild(div);
     });
 
