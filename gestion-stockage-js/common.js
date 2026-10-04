@@ -3244,21 +3244,24 @@
   }
 
   // « 📍 Ma position » : le téléphone donne sa position, on en fait un lien.
+  // Aussi pour le lien d'un client (parametres.js) : sur place chez lui, le
+  // patron prend la position du téléphone.
+  function remplirMaPosition(input, status){
+    if(!navigator.geolocation){ if(status) status.textContent = 'Position indisponible sur cet appareil.'; return; }
+    if(status) status.textContent = 'Recherche de la position…';
+    navigator.geolocation.getCurrentPosition(function(pos){
+      const lat = pos.coords.latitude.toFixed(6), lng = pos.coords.longitude.toFixed(6);
+      input.value = 'https://www.google.com/maps?q=' + lat + ',' + lng;
+      input.dispatchEvent(new Event('input'));
+      if(status) status.textContent = 'Position trouvée : touchez « Enregistrer ».';
+    }, function(){
+      if(status) status.textContent = 'Position refusée ou introuvable.';
+    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+  }
   const profileMapsGpsBtn = document.getElementById('profileMapsGpsBtn');
   if(profileMapsGpsBtn){
     profileMapsGpsBtn.addEventListener('click', function(){
-      const input = document.getElementById('profileMaps');
-      const status = document.getElementById('profileMapsStatus');
-      if(!navigator.geolocation){ if(status) status.textContent = 'Position indisponible sur cet appareil.'; return; }
-      if(status) status.textContent = 'Recherche de la position…';
-      navigator.geolocation.getCurrentPosition(function(pos){
-        const lat = pos.coords.latitude.toFixed(6), lng = pos.coords.longitude.toFixed(6);
-        input.value = 'https://www.google.com/maps?q=' + lat + ',' + lng;
-        input.dispatchEvent(new Event('input'));
-        if(status) status.textContent = 'Position trouvée : touchez « Enregistrer ».';
-      }, function(){
-        if(status) status.textContent = 'Position refusée ou introuvable.';
-      }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+      remplirMaPosition(document.getElementById('profileMaps'), document.getElementById('profileMapsStatus'));
     });
   }
   const profileMapsInput = document.getElementById('profileMaps');

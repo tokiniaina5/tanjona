@@ -52,7 +52,119 @@
     if(codeInput) codeInput.value = (!hasAuth && savedProfile && savedProfile.accessCode) ? savedProfile.accessCode : '';
     updateProfilePhotoPreview(currentUser.logo || null);
     if(typeof renderIdentityForm === 'function') renderIdentityForm();
+    renderMapsClients();
   }
+
+  // ---------------- LIEN MAPS DES CLIENTS ----------------
+  // Les clients de « Gestion de compte », tous onglets confondus (comptes.js) :
+  // on en cherche un par son nom ou son numéro, et on range son lien Maps
+  // avec lui (c.maps), sur cet appareil comme le reste de sa fiche.
+  function sansAccents(t){
+    return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  }
+
+  function tousLesClientsMaps(){
+    const onglets = (typeof COMPTES !== 'undefined') ? COMPTES : [''];
+    const tous = [];
+    onglets.forEach(function(sfx){
+      lireClients(sfx).forEach(function(c){ tous.push({ sfx: sfx, c: c }); });
+    });
+    return tous;
+  }
+
+  function enregistrerMapsClient(sfx, id, lien){
+    const list = lireClients(sfx);
+    const c = list.find(function(x){ return x.id === id; });
+    if(!c) return false;
+    if(lien) c.maps = lien; else delete c.maps;
+    ecrireClients(sfx, list);
+    return true;
+  }
+
+  function renderMapsClients(){
+    const boite = document.getElementById('mapsClientsList');
+    const vide = document.getElementById('mapsClientsEmpty');
+    const champ = document.getElementById('mapsClientsSearch');
+    if(!boite || typeof lireClients !== 'function') return;
+    const q = sansAccents(champ ? champ.value.trim() : '');
+    const qChiffres = q.replace(/\D/g, '');
+    const tous = tousLesClientsMaps();
+    const trouves = tous.filter(function(x){
+      if(!q) return true;
+      if(sansAccents(x.c.name).indexOf(q) >= 0) return true;
+      return qChiffres.length >= 3 && String(x.c.phone || '').replace(/\D/g, '').indexOf(qChiffres) >= 0;
+    });
+    // Sans recherche, ceux qui ont déjà leur lien d'abord.
+    if(!q) trouves.sort(function(a, b){ return (b.c.maps ? 1 : 0) - (a.c.maps ? 1 : 0); });
+    const montres = trouves.slice(0, 20);
+
+    boite.innerHTML = '';
+    if(vide){
+      vide.style.display = montres.length ? 'none' : 'block';
+      vide.textContent = !tous.length
+        ? 'Aucun client : ajoutez-les dans « Gestion de compte ».'
+        : 'Aucun client ne correspond à « ' + (champ ? champ.value.trim() : '') + ' ».';
+    }
+
+    montres.forEach(function(x){
+      const c = x.c;
+      const ligne = document.createElement('div');
+      ligne.style.cssText = 'border:1px solid var(--line); border-radius:10px; padding:0.6rem 0.7rem; margin-bottom:0.5rem;';
+      ligne.innerHTML =
+        '<div style="font-size:0.88rem; color:var(--text); margin-bottom:0.4rem;">👤 ' + escapeHtml(c.name) +
+          (c.phone ? ' <span style="color:var(--muted);">— ' + escapeHtml(c.phone) + '</span>' : '') +
+          (x.sfx ? ' <span style="color:var(--muted); font-size:0.72rem;">(compte ' + escapeHtml(x.sfx) + ')</span>' : '') +
+        '</div>' +
+        '<input type="url" inputmode="url" class="mc-lien" placeholder="https://maps.app.goo.gl/…">' +
+        '<div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.4rem;">' +
+          '<button type="button" class="btn btn-primary btn-sm mc-save" style="width:auto;">Enregistrer</button>' +
+          '<button type="button" class="btn btn-sm mc-gps" style="width:auto;">📍 Ma position</button>' +
+          '<a class="btn btn-sm mc-google" target="_blank" rel="noopener" href="#" style="width:auto;">🌐 Google Maps</a>' +
+          '<button type="button" class="btn btn-sm mc-site" style="width:auto;">🗺️ Dans le site</button>' +
+        '</div>' +
+        '<p class="mc-statut" style="font-size:0.72rem; color:var(--muted); margin-top:0.35rem; min-height:0;"></p>';
+      const input = ligne.querySelector('.mc-lien');
+      const google = ligne.querySelector('.mc-google');
+      const site = ligne.querySelector('.mc-site');
+      const statut = ligne.querySelector('.mc-statut');
+      input.value = c.maps || '';
+      function montrer(){
+        const lien = lienMapsPropre(input.value);
+        google.href = lien || '#';
+        google.style.display = site.style.display = lien ? '' : 'none';
+      }
+      montrer();
+      input.addEventListener('input', montrer);
+      ligne.querySelector('.mc-gps').addEventListener('click', function(){ remplirMaPosition(input, statut); });
+      site.addEventListener('click', function(){
+        const lien = lienMapsPropre(input.value);
+        if(lien && window.ouvrirLienMapsDansLeSite) window.ouvrirLienMapsDansLeSite(lien, c.name || '');
+      });
+      ligne.querySelector('.mc-save').addEventListener('click', function(){
+        const lien = lienMapsPropre(input.value);
+        if(input.value.trim() && !lien){
+          statut.textContent = 'Le lien doit commencer par https://';
+          return;
+        }
+        statut.textContent = enregistrerMapsClient(x.sfx, c.id, lien)
+          ? (lien ? 'Lien enregistré.' : 'Lien retiré.')
+          : 'Client introuvable (supprimé ?).';
+        c.maps = lien;
+        input.value = lien;
+        montrer();
+      });
+      boite.appendChild(ligne);
+    });
+    if(trouves.length > montres.length){
+      const plus = document.createElement('p');
+      plus.style.cssText = 'font-size:0.74rem; color:var(--muted);';
+      plus.textContent = (trouves.length - montres.length) + ' autre(s) : précisez la recherche.';
+      boite.appendChild(plus);
+    }
+  }
+
+  const mapsClientsSearch = document.getElementById('mapsClientsSearch');
+  if(mapsClientsSearch) mapsClientsSearch.addEventListener('input', renderMapsClients);
 
   function updateProfilePhotoPreview(src){
     const img = document.getElementById('profilePhotoPreview');
