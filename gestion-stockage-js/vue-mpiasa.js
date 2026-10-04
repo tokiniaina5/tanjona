@@ -158,11 +158,6 @@
     if (sous) sous.textContent = ROLES[p.role] || p.role || '';
 
     porterSonNom(p);
-    // Dans l'application installée, le livreur n'a que trois entrées : sa
-    // page, Andro / Alina, les notifications (components.css,
-    // « mode-livreur »). Son lien ouvert dans le navigateur garde le menu
-    // entier, dans son ordre.
-    if (p.role === 'livreur' && estInstallee()) document.body.classList.add('mode-livreur');
 
     const attente = document.getElementById('mpiasaScreen');
     if (attente) attente.style.display = 'none';
