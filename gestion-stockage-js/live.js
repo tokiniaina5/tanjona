@@ -248,6 +248,12 @@
       pushNotification('antso', (payload.callType === 'video' ? '📹 Antso video' : '📞 Antso feo') +
         ' avy amin\'i ' + who + '.');
     }
+    // Certaines pages décrochent seules : celle du livreur, quand c'est son
+    // patron qui l'appelle (vue-mpiasa.js). Il a les mains sur le guidon.
+    if(typeof window.__antsoRaisinaHoAzy === 'function' && window.__antsoRaisinaHoAzy(payload)){
+      acceptIncomingCall();
+      return;
+    }
     showIncomingCallUI();
     showSystemNotification(
       (payload.callType === 'video' ? '📹 Antso video' : '📞 Antso feo') + ' avy amin\'i ' + who,
@@ -378,13 +384,44 @@
     }
   }
   function attachRemoteStream(stream){
-    document.getElementById('callRemoteVideo').srcObject = stream;
+    const video = document.getElementById('callRemoteVideo');
+    video.srcObject = stream;
     if(activeCall) updateCallUIStatus();
+    // Un appel décroché tout seul n'a pas eu de geste de la main : le
+    // navigateur peut alors refuser d'en jouer le son. On le joue sans son,
+    // et un bouton rend le son au premier toucher.
+    const lecture = video.play && video.play();
+    if(lecture && lecture.catch) lecture.catch(function(){
+      video.muted = true;
+      video.play().catch(function(){});
+      montrerBoutonSon(video);
+    });
+  }
+  function montrerBoutonSon(video){
+    let b = document.getElementById('callSonBtn');
+    if(!b){
+      b = document.createElement('button');
+      b.type = 'button';
+      b.id = 'callSonBtn';
+      b.className = 'btn btn-primary btn-sm';
+      b.style.cssText = 'width:100%; margin-bottom:0.6rem;';
+      b.textContent = '🔊 Tsindrio raha tsy mandre';
+      video.parentNode.insertBefore(b, video);
+    }
+    b.style.display = '';
+    b.onclick = function(){
+      video.muted = false;
+      video.play().catch(function(){});
+      b.style.display = 'none';
+    };
   }
   function hideCallUI(){
     stopRingtone();
     document.getElementById('callOverlay').style.display = 'none';
     document.getElementById('callRemoteVideo').srcObject = null;
+    document.getElementById('callRemoteVideo').muted = false;
+    const son = document.getElementById('callSonBtn');
+    if(son) son.style.display = 'none';
     document.getElementById('callLocalVideo').srcObject = null;
     document.getElementById('callMuteBtn').textContent = '🎙️ Mute';
     const camBtn = document.getElementById('callCamBtn');

@@ -137,6 +137,17 @@
       }, function () {});
   }
 
+  // ---------- Décrocher seul ----------
+  // Le livreur roule : quand son patron l'appelle depuis le site (equipe.js,
+  // « 📞 Antsoy » / « 📹 Video »), l'appel s'ouvre sans qu'il ait à toucher
+  // l'écran (live.js). Les autres appels sonnent comme d'habitude. L'adresse
+  // du patron vient de la fonction (« boutique », chargée à l'entrée).
+  window.__antsoRaisinaHoAzy = function (payload) {
+    const b = window.__boutique;
+    if (!b || !b.email || !payload || !payload.from) return false;
+    return String(payload.from).trim().toLowerCase() === String(b.email).trim().toLowerCase();
+  };
+
   // ---------- Entrer ----------
   // Les appels et le direct reconnaissent les gens à leur email. On lui en
   // donne un qui n'appartient à personne — « .invalid » est réservé à cela —

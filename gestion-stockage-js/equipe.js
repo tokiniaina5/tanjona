@@ -718,16 +718,21 @@
   function boutonAppel(p) {
     if (!p.telephone && !joignable(p)) return '';
     const ici = joignable(p);
-    return '<button type="button" class="btn btn-sm" data-appel="' + html(p.id) + '" style="' + BOUTON_CARTE + '"' +
+    const point = ici ? ' <span style="color:#2e7d32;">●</span>' : '';
+    return '<button type="button" class="btn btn-sm" data-appel="' + html(p.id) + '" data-type="audio" style="' + BOUTON_CARTE + '"' +
       ' title="' + (ici ? 'Antsoy ao amin&#39;ny site' : 'Tsy misokatra ny pejiny : antsoina amin&#39;ny telefaonina') + '">' +
-      '📞 Antsoy' + (ici ? ' <span style="color:#2e7d32;">●</span>' : '') + '</button>';
+      '📞 Antsoy' + point + '</button>' +
+      '<button type="button" class="btn btn-sm" data-appel="' + html(p.id) + '" data-type="video" style="' + BOUTON_CARTE + '"' +
+      ' title="Antso video ao amin&#39;ny site">📹 Video' + point + '</button>';
   }
-  function appeler(p) {
+  function appeler(p, type) {
     if (joignable(p) && typeof startCall === 'function') {
-      startCall(adresseAppel(p), p.nom || 'Livreur', 'audio');
+      startCall(adresseAppel(p), p.nom || 'Livreur', type === 'video' ? 'video' : 'audio');
       return;
     }
     const nom = p.nom || 'ilay livreur';
+    // La vidéo ne passe que par le site : sans sa page ouverte, pas de repli.
+    if (type === 'video') { alert('Tsy misokatra ny pejin\'i ' + nom + ' amin\'izao, ka tsy azo atao ny antso video.'); return; }
     if (!p.telephone) { alert('Tsy misokatra ny pejin\'i ' + nom + ' amin\'izao.'); return; }
     if (confirm('Tsy misokatra ny pejin\'i ' + nom + ', ka tsy azo antsoina ao amin\'ny site.\n' +
       'Antsoina amin\'ny ' + p.telephone + ' ve ?')) {
@@ -768,7 +773,7 @@
         const b = e.target.closest('[data-appel]');
         if (!b) return;
         const p = equipe.filter(function (x) { return String(x.id) === b.getAttribute('data-appel'); })[0];
-        if (p) appeler(p);
+        if (p) appeler(p, b.getAttribute('data-type'));
       });
     }
     poserLesBattements();
@@ -813,7 +818,7 @@
         '<strong style="color:var(--text);">' + html(p.nom) + '</strong>' +
         ' · <span style="color:var(--muted);">mbola tsy nandefa ny toerana misy azy</span>' +
         (p.jeton ? '' : '<br><span style="color:var(--muted);">Tsy mbola nomena rohy.</span>') +
-        (boutonAppel(p) ? '<div style="margin-top:0.5rem;">' + boutonAppel(p) + '</div>' : '');
+        (boutonAppel(p) ? '<div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.5rem;">' + boutonAppel(p) + '</div>' : '');
       liste.appendChild(div);
     });
     if (vide) {
