@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="1065cbe3">
+<meta name="ny-asako-version" content="68ba2333">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -687,6 +687,7 @@
         <div class="nav-item" data-section="wallet">💰 Portefeuille</div>
         <div class="nav-item" data-section="mpiasa">👷 Mpiasa</div>
         <div class="nav-item" data-section="livreur">🛵 Livreur</div>
+        <div class="nav-item" data-section="toerana">📍 Toerana &amp; Maps</div>
         <div class="nav-item" data-section="abonnement">💳 Abonnement</div>
         <div class="nav-item" data-section="fond">🖼️ Fond d'écran</div>
         <!-- Les publications effacées attendent ici : on les reprend, ou on les
@@ -2995,6 +2996,58 @@
         </div>
       </section>
 
+      <!-- ---- TOERANA : le lien Maps de la boutique (envoyé aux clients,
+           avec l'itinéraire) et celui de chaque client (common.js,
+           parametres.js). Une page à part, dans le menu. ---- -->
+      <section class="section" id="section-toerana">
+        <div class="section-head">
+          <div>
+            <h2>📍 Toerana &amp; Maps</h2>
+            <p>Votre lien Maps, l'itinéraire, et l'endroit où se trouve chaque client.</p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>📍 Mon lien Maps</h3>
+          <div class="field" style="margin-bottom:0;">
+            <label for="profileMaps">📍 Lien Maps (là où vous êtes)</label>
+            <input id="profileMaps" type="url" inputmode="url" placeholder="https://maps.app.goo.gl/…">
+            <div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.4rem;">
+              <button type="button" class="btn btn-sm" id="profileMapsGpsBtn" style="width:auto;">📍 Ma position</button>
+              <a class="btn btn-sm" id="profileMapsOpen" href="#" target="_blank" rel="noopener" style="width:auto; display:none;">🌐 Google Maps</a>
+              <button type="button" class="btn btn-sm" id="profileMapsSite" style="width:auto; display:none;">🗺️ Dans le site</button>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" id="profileMapsSave" style="width:auto; margin-top:0.5rem;">Enregistrer</button>
+            <div id="profileMapsItineraire" style="display:none;"></div>
+            <!-- Envoyer ce lien à un client : son numéro (WhatsApp), son
+                 email, ou le lien de son profil (Messenger…) — common.js. -->
+            <div id="profileMapsEnvoi" style="display:none; margin-top:0.6rem;">
+              <label for="profileMapsDest" style="font-size:0.78rem;">📤 Envoyer à un client</label>
+              <input id="profileMapsDest" type="text" list="profileMapsDestListe" autocomplete="off" placeholder="Numéro, email ou lien du client">
+              <datalist id="profileMapsDestListe"></datalist>
+              <button type="button" class="btn btn-primary btn-sm" id="profileMapsSend" style="width:auto; margin-top:0.4rem;">📤 Envoyer</button>
+            </div>
+            <p id="profileMapsStatus" style="font-size:0.72rem; color:var(--muted); margin-top:0.4rem;">Collez le lien « Partager » de Google Maps, ou touchez « Ma position ».</p>
+          </div>
+        </div>
+
+        <!-- Le lien Maps de chaque client de « Gestion de compte » : on le
+             cherche par son nom ou son numéro (parametres.js). -->
+        <div class="panel" id="mapsClientsPanel">
+          <h3>📍 Lien Maps des clients</h3>
+          <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.8rem;">
+            Cherchez un client (nom ou téléphone) puis collez le lien Maps de l'endroit où il se trouve,
+            ou touchez « Ma position » si vous êtes chez lui.
+          </p>
+          <div class="field" style="margin-bottom:0.6rem;">
+            <label for="mapsClientsSearch">🔎 Rechercher un client</label>
+            <input id="mapsClientsSearch" type="search" placeholder="Nom ou téléphone…" autocomplete="off">
+          </div>
+          <div id="mapsClientsList"></div>
+          <p class="empty-hint" id="mapsClientsEmpty" style="display:none;"></p>
+        </div>
+      </section>
+
       <section class="section" id="section-connexions">
         <div class="section-head">
           <div>
@@ -3036,25 +3089,6 @@
               <input id="profilePhone" type="tel">
             </div>
             <div class="field" style="margin-bottom:0;">
-              <label for="profileMaps">📍 Lien Maps (là où vous êtes)</label>
-              <input id="profileMaps" type="url" inputmode="url" placeholder="https://maps.app.goo.gl/…">
-              <div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.4rem;">
-                <button type="button" class="btn btn-sm" id="profileMapsGpsBtn" style="width:auto;">📍 Ma position</button>
-                <a class="btn btn-sm" id="profileMapsOpen" href="#" target="_blank" rel="noopener" style="width:auto; display:none;">🌐 Google Maps</a>
-                <button type="button" class="btn btn-sm" id="profileMapsSite" style="width:auto; display:none;">🗺️ Dans le site</button>
-              </div>
-              <div id="profileMapsItineraire" style="display:none;"></div>
-              <!-- Envoyer ce lien à un client : son numéro (WhatsApp), son
-                   email, ou le lien de son profil (Messenger…) — common.js. -->
-              <div id="profileMapsEnvoi" style="display:none; margin-top:0.6rem;">
-                <label for="profileMapsDest" style="font-size:0.78rem;">📤 Envoyer à un client</label>
-                <input id="profileMapsDest" type="text" list="profileMapsDestListe" autocomplete="off" placeholder="Numéro, email ou lien du client">
-                <datalist id="profileMapsDestListe"></datalist>
-                <button type="button" class="btn btn-primary btn-sm" id="profileMapsSend" style="width:auto; margin-top:0.4rem;">📤 Envoyer</button>
-              </div>
-              <p id="profileMapsStatus" style="font-size:0.72rem; color:var(--muted); margin-top:0.4rem;">Collez le lien « Partager » de Google Maps, ou touchez « Ma position ».</p>
-            </div>
-            <div class="field" style="margin-bottom:0;">
               <label for="profileAccessCode">Nouveau mot de passe</label>
               <input id="profileAccessCode" type="password" minlength="6" placeholder="Laisser vide pour ne pas changer" autocomplete="new-password">
               <p style="font-size:0.72rem; color:var(--muted); margin-top:0.4rem;">Pour remplacer un code reçu par email : saisissez le vôtre puis « Enregistrer ». Il est utilisable aussitôt.</p>
@@ -3094,22 +3128,6 @@
             <p id="profileIdentityStatus" style="font-size:0.78rem; color:var(--cyan); margin-top:0.6rem;"></p>
           </div>
           <span id="profileSaveStatus" style="font-size:0.78rem; color:var(--muted); margin-left:0.6rem;"></span>
-        </div>
-
-        <!-- Le lien Maps de chaque client de « Gestion de compte » : on le
-             cherche par son nom ou son numéro (parametres.js). -->
-        <div class="panel" id="mapsClientsPanel">
-          <h3>📍 Lien Maps des clients</h3>
-          <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.8rem;">
-            Cherchez un client (nom ou téléphone) puis collez le lien Maps de l'endroit où il se trouve,
-            ou touchez « Ma position » si vous êtes chez lui.
-          </p>
-          <div class="field" style="margin-bottom:0.6rem;">
-            <label for="mapsClientsSearch">🔎 Rechercher un client</label>
-            <input id="mapsClientsSearch" type="search" placeholder="Nom ou téléphone…" autocomplete="off">
-          </div>
-          <div id="mapsClientsList"></div>
-          <p class="empty-hint" id="mapsClientsEmpty" style="display:none;"></p>
         </div>
 
         <div class="panel" id="adminVisitsPanel" style="display:none;">
@@ -3230,7 +3248,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=1c0af3dd"></script>
+<script src="gestion-stockage-js/common.js?v=f016214b"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=622d64e8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
@@ -3245,7 +3263,7 @@
 <script src="gestion-stockage-js/zara-rehetra.js?v=b4bc508d"></script>
 <script src="gestion-stockage-js/live.js?v=7720b6ae"></script>
 <script src="gestion-stockage-js/traduction.js?v=8f5605bc"></script>
-<script src="gestion-stockage-js/parametres.js?v=be6e7132"></script>
+<script src="gestion-stockage-js/parametres.js?v=a949cb7b"></script>
 <!-- Le partage reçu du dehors remplit la boîte « Écrire », que parametres.js
      tient : il se charge après elle. -->
 <script src="gestion-stockage-js/zara-miditra.js?v=bfe2ae80"></script>

@@ -3473,6 +3473,33 @@
       });
     });
   }
+  // « Enregistrer » de la page Toerana : le lien seul, sans toucher au reste
+  // du profil (nom, mot de passe… restent dans Paramètres).
+  const profileMapsSave = document.getElementById('profileMapsSave');
+  if(profileMapsSave){
+    profileMapsSave.addEventListener('click', function(){
+      if(!currentUser) return;
+      const input = document.getElementById('profileMaps');
+      const status = document.getElementById('profileMapsStatus');
+      const maps = lienMapsPropre(input.value);
+      if(input.value.trim() && !maps){
+        if(status) status.textContent = 'Le lien doit commencer par https:// (ex : https://maps.app.goo.gl/…).';
+        return;
+      }
+      currentUser.maps = maps;
+      saveSession();
+      if(currentUser.name) upsertProfile(currentUser.name, { maps: maps });
+      const auth = sbAuth();
+      if(auth) auth.updateUser({ data: { maps: maps } }).then(function(){}, function(){});
+      if(window.__sb && window.__sb.rpc){
+        window.__sb.rpc('set_mon_lien_maps', { lien: maps }).then(function(){}, function(){});
+      }
+      input.value = maps;
+      input.dispatchEvent(new Event('input'));
+      if(status) status.textContent = maps ? 'Lien enregistré.' : 'Lien retiré.';
+    });
+  }
+
   const profileMapsSend = document.getElementById('profileMapsSend');
   if(profileMapsSend){
     profileMapsSend.addEventListener('click', function(){
@@ -6876,6 +6903,7 @@
       if(nav.dataset.section === 'live') renderLiveList();
       if(nav.dataset.section === 'appels') renderOnlineClientsForCall();
       if(nav.dataset.section === 'corbeille' && typeof renderCorbeille === 'function') renderCorbeille();
+      if(nav.dataset.section === 'toerana' && typeof ouvrirToerana === 'function') ouvrirToerana();
       // ferme le menu mobile après avoir choisi une section
       if(navList && navList.classList.contains('open')){
         navList.classList.remove('open');

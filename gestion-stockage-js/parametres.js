@@ -166,6 +166,16 @@
     }
   }
 
+  // La page « Toerana & Maps » (menu) : son lien et les clients, à jour.
+  function ouvrirToerana(){
+    const mapsInput = document.getElementById('profileMaps');
+    if(mapsInput && currentUser){
+      mapsInput.value = currentUser.maps || '';
+      mapsInput.dispatchEvent(new Event('input'));
+    }
+    renderMapsClients();
+  }
+
   const mapsClientsSearch = document.getElementById('mapsClientsSearch');
   if(mapsClientsSearch) mapsClientsSearch.addEventListener('input', renderMapsClients);
 
