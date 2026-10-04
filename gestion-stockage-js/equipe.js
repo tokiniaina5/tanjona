@@ -703,6 +703,14 @@
     document.head.appendChild(st);
   }
 
+  // Les boutons d'une fiche de livreur : même hauteur, sans souligné.
+  const BOUTON_CARTE = 'display:inline-flex; align-items:center; gap:0.35rem; min-height:2.3rem;' +
+    ' text-decoration:none; box-sizing:border-box;';
+  function boutonAppel(tel) {
+    if (!tel) return '';
+    return '<a class="btn btn-sm" href="tel:' + html(tel) + '" style="' + BOUTON_CARTE + '">📞 ' + html(tel) + '</a>';
+  }
+
   // Nom, lieu, heure : les trois choses demandées, dans cet ordre.
   function dessinerCarte() {
     const liste = document.getElementById('positionsListe');
@@ -748,10 +756,12 @@
         '<br><span style="color:var(--muted);">' + lat.toFixed(5) + ', ' + lng.toFixed(5) +
         (l.pos.precision_m ? ' (± ' + Math.round(l.pos.precision_m) + ' m)' : '') + '</span>' +
         '<br><span style="color:var(--muted);">' + new Date(l.pos.at).toLocaleString('fr-FR') + '</span>' +
-        (l.p.telephone ? ' · <a href="tel:' + html(l.p.telephone) + '" style="color:var(--cyan);">' + html(l.p.telephone) + '</a>' : '') +
-        // Un vrai bouton, facile à toucher au doigt, plutôt qu'un lien souligné.
-        '<div style="margin-top:0.5rem;"><a class="btn btn-sm" href="https://www.google.com/maps?q=' + lat + ',' + lng + '" target="_blank" rel="noopener"' +
-        ' style="display:inline-flex; align-items:center; gap:0.35rem; min-height:2.3rem; text-decoration:none; box-sizing:border-box;">🗺️ Sokafy ao amin&#39;ny Google Maps</a></div>';
+        // De vrais boutons, faciles à toucher au doigt, plutôt que des liens
+        // soulignés : l'appeler, et voir où il est.
+        '<div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.5rem;">' +
+        boutonAppel(l.p.telephone) +
+        '<a class="btn btn-sm" href="https://www.google.com/maps?q=' + lat + ',' + lng + '" target="_blank" rel="noopener"' +
+        ' style="' + BOUTON_CARTE + '">🗺️ Sokafy ao amin&#39;ny Google Maps</a></div>';
       liste.appendChild(div);
     });
 
@@ -768,7 +778,7 @@
         '<strong style="color:var(--text);">' + html(p.nom) + '</strong>' +
         ' · <span style="color:var(--muted);">mbola tsy nandefa ny toerana misy azy</span>' +
         (p.jeton ? '' : '<br><span style="color:var(--muted);">Tsy mbola nomena rohy.</span>') +
-        (p.telephone ? '<br><a href="tel:' + html(p.telephone) + '" style="color:var(--cyan);">' + html(p.telephone) + '</a>' : '');
+        (p.telephone ? '<div style="margin-top:0.5rem;">' + boutonAppel(p.telephone) + '</div>' : '');
       liste.appendChild(div);
     });
     if (vide) {
