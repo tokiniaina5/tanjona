@@ -683,7 +683,7 @@
     st.id = 'livreur-battements';
     st.textContent =
       '@keyframes livreur-pouls{0%{box-shadow:0 0 0 0 var(--c)}70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}' +
-      '@keyframes livreur-bord{50%{border-left-color:color-mix(in srgb,var(--c) 30%,transparent)}}' +
+      '@keyframes livreur-bord{50%{border-color:color-mix(in srgb,var(--c) 30%,transparent)}}' +
       '.livreur-en-ligne{animation:livreur-bord 1.6s ease-in-out infinite}' +
       '.livreur-en-ligne .livreur-pastille{animation:livreur-pouls 1.6s ease-out infinite}' +
       '@media (prefers-reduced-motion:reduce){.livreur-en-ligne,.livreur-en-ligne .livreur-pastille{animation:none}}';
@@ -721,7 +721,9 @@
       const lat = Number(l.pos.lat), lng = Number(l.pos.lng);
       const div = document.createElement('div');
       div.style.cssText = 'border:1px solid var(--line); border-radius:8px; padding:0.7rem 0.9rem; margin-bottom:0.6rem; font-size:0.82rem; line-height:1.6;';
-      div.style.borderLeft = '5px solid ' + couleurDe(l.p.id);
+      // Sa couleur tout autour, plus épaisse à gauche.
+      div.style.border = '2px solid ' + couleurDe(l.p.id);
+      div.style.borderLeftWidth = '5px';
       if (enLigne(l.pos.at)) {
         div.className = 'livreur-en-ligne';
         div.style.setProperty('--c', couleurDe(l.p.id));
@@ -746,7 +748,7 @@
     });
     sansPosition.forEach(function (p) {
       const div = document.createElement('div');
-      div.style.cssText = 'border:1px dashed var(--line); border-left:5px solid ' + couleurDe(p.id) + '; border-radius:8px; padding:0.7rem 0.9rem; margin-bottom:0.6rem; font-size:0.82rem; line-height:1.6;';
+      div.style.cssText = 'border:2px dashed ' + couleurDe(p.id) + '; border-left:5px solid ' + couleurDe(p.id) + '; border-radius:8px; padding:0.7rem 0.9rem; margin-bottom:0.6rem; font-size:0.82rem; line-height:1.6;';
       div.innerHTML = pastille(p.id) +
         '<strong style="color:var(--text);">' + html(p.nom) + '</strong>' +
         ' · <span style="color:var(--muted);">mbola tsy nandefa ny toerana misy azy</span>' +
