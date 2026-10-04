@@ -22,6 +22,15 @@
   const TUILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
   const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
   const CIEL = ESRI + 'World_Imagery/MapServer/tile/{z}/{y}/{x}';
+  // Jusqu'où Esri a des photos (relevé du 04/10/2026) : zoom 17 partout à
+  // Madagascar, 18 et 19 seulement par endroits — Antananarivo oui, Toliara,
+  // Fianarantsoa, Toamasina, Mahajanga non. Là où elles manquent, Esri renvoie
+  // une tuile grise « Map data not yet available » ; avec « blankTile=false »,
+  // une simple erreur. On pose donc le 17 dessous, le 18 et le 19 dessus : une
+  // tuile fine qui manque s'efface, et la photo d'en dessous reste visible.
+  const ZOOM_SUR = 17;
+  const ZOOMS_FINS = [18, 19];
+  const CIEL_FIN = CIEL + '?blankTile=false';
   const ROUTES = ESRI + 'Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}';
   const LIEUX = ESRI + 'Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}';
   // Les altitudes, en couleurs : le relief de la vue 3D.
@@ -115,15 +124,21 @@
   window.fondCarteLibre = function (carte) {
     const L = window.L;
     // Les tuiles autour de la vue restent prêtes (keepBuffer) : un glissement
-    // de doigt ne retombe pas sur du gris. Au-delà du 18, Esri n'a souvent
-    // plus de photo à Madagascar : on agrandit celle du 18.
+    // de doigt ne retombe pas sur du gris. Au-delà de ce qu'Esri a, la photo
+    // la plus fine est agrandie (maxNativeZoom). On s'arrête au 19 : plus
+    // près, il n'y a plus de détail à montrer, seulement du flou.
     const commun = { maxZoom: 19, maxNativeZoom: 18, keepBuffer: 4 };
+    const photos = [L.tileLayer(CIEL, { attribution: MENTION_ESRI, maxZoom: 19, maxNativeZoom: ZOOM_SUR, keepBuffer: 4, zIndex: 1 })];
+    ZOOMS_FINS.forEach(function (z, k) {
+      const fin = L.tileLayer(CIEL_FIN, { minZoom: z, maxZoom: 19, maxNativeZoom: z, keepBuffer: 4, zIndex: 2 + k });
+      fin.on('tileerror', function (e) { e.tile.style.display = 'none'; });
+      photos.push(fin);
+    });
     const fonds = {
-      ciel: L.layerGroup([
-        L.tileLayer(CIEL, Object.assign({ attribution: MENTION_ESRI }, commun)),
-        L.tileLayer(ROUTES, commun),
-        L.tileLayer(LIEUX, commun)
-      ]),
+      ciel: L.layerGroup(photos.concat([
+        L.tileLayer(ROUTES, Object.assign({ zIndex: 10 }, commun)),
+        L.tileLayer(LIEUX, Object.assign({ zIndex: 11 }, commun))
+      ])),
       plan: L.tileLayer(TUILES, { maxZoom: 19, keepBuffer: 4, attribution: MENTION_OSM })
     };
     let actuel = lireFond();
@@ -268,19 +283,22 @@
           // Leaflet compte ses zooms en tuiles de 256 px, MapLibre en 512 :
           // un cran d'écart pour voir la même chose.
           center: [centre.lng, centre.lat],
-          zoom: Math.max(carte.getZoom() - 1, 2),
+          // Penchée, la carte grossit encore le bas de l'écran : on part un
+          // peu plus haut, et on bloque là où les photos s'arrêtent (le 19
+          // d'Esri, soit 18 ici).
+          zoom: Math.min(Math.max(carte.getZoom() - 1, 2), 17),
+          maxZoom: 18,
           pitch: 60,
           bearing: -20,
           maxPitch: 80,
-          // Un écran de téléphone compte trois pixels pour un : en dessiner
-          // deux suffit à l'œil, et la carte s'anime deux fois plus vite.
-          pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
           fadeDuration: 0,
           attributionControl: { compact: true },
           style: {
             version: 8,
             sources: {
-              ciel: { type: 'raster', tiles: [CIEL], tileSize: 256, maxzoom: 18, attribution: MENTION_ESRI },
+              ciel: { type: 'raster', tiles: [CIEL], tileSize: 256, maxzoom: ZOOM_SUR, attribution: MENTION_ESRI },
+              ciel18: { type: 'raster', tiles: [CIEL_FIN], tileSize: 256, minzoom: 18, maxzoom: 18 },
+              ciel19: { type: 'raster', tiles: [CIEL_FIN], tileSize: 256, minzoom: 19, maxzoom: 19 },
               routes: { type: 'raster', tiles: [ROUTES], tileSize: 256, maxzoom: 18 },
               lieux: { type: 'raster', tiles: [LIEUX], tileSize: 256, maxzoom: 18 },
               relief: { type: 'raster-dem', tiles: [RELIEF], tileSize: 256, maxzoom: 12, encoding: 'terrarium',
@@ -290,6 +308,8 @@
             },
             layers: [
               { id: 'ciel', type: 'raster', source: 'ciel' },
+              { id: 'ciel18', type: 'raster', source: 'ciel18' },
+              { id: 'ciel19', type: 'raster', source: 'ciel19' },
               { id: 'routes', type: 'raster', source: 'routes' },
               { id: 'lieux', type: 'raster', source: 'lieux' },
               { id: 'lignes', type: 'line', source: 'lignes',
@@ -309,6 +329,9 @@
         alert('Tsy mahavita mampiseho 3D ity finday ity.');
         return;
       }
+      // Les tuiles fines qui manquent (404, voir CIEL_FIN) sont attendues :
+      // on ne les crie pas dans la console.
+      m3.on('error', function () {});
       m3.addControl(new ml.NavigationControl({ visualizePitch: true }), 'top-right');
 
       let marqueurs = [];
