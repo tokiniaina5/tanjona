@@ -706,9 +706,33 @@
   // Les boutons d'une fiche de livreur : même hauteur, sans souligné.
   const BOUTON_CARTE = 'display:inline-flex; align-items:center; gap:0.35rem; min-height:2.3rem;' +
     ' text-decoration:none; box-sizing:border-box;';
-  function boutonAppel(tel) {
-    if (!tel) return '';
-    return '<a class="btn btn-sm" href="tel:' + html(tel) + '" style="' + BOUTON_CARTE + '">📞 ' + html(tel) + '</a>';
+  // L'appel passe par le site (live.js) : la page du livreur, ouverte, est
+  // dans la présence sous l'adresse que vue-mpiasa.js lui donne (emailDe).
+  // Fermée, personne ne décrocherait : on propose alors son numéro.
+  function adresseAppel(p) {
+    return 'mpiasa-' + p.id + '@ny-asako.invalid';
+  }
+  function joignable(p) {
+    return typeof presenceState !== 'undefined' && !!presenceState[adresseAppel(p)];
+  }
+  function boutonAppel(p) {
+    if (!p.telephone && !joignable(p)) return '';
+    const ici = joignable(p);
+    return '<button type="button" class="btn btn-sm" data-appel="' + html(p.id) + '" style="' + BOUTON_CARTE + '"' +
+      ' title="' + (ici ? 'Antsoy ao amin&#39;ny site' : 'Tsy misokatra ny pejiny : antsoina amin&#39;ny telefaonina') + '">' +
+      '📞 Antsoy' + (ici ? ' <span style="color:#2e7d32;">●</span>' : '') + '</button>';
+  }
+  function appeler(p) {
+    if (joignable(p) && typeof startCall === 'function') {
+      startCall(adresseAppel(p), p.nom || 'Livreur', 'audio');
+      return;
+    }
+    const nom = p.nom || 'ilay livreur';
+    if (!p.telephone) { alert('Tsy misokatra ny pejin\'i ' + nom + ' amin\'izao.'); return; }
+    if (confirm('Tsy misokatra ny pejin\'i ' + nom + ', ka tsy azo antsoina ao amin\'ny site.\n' +
+      'Antsoina amin\'ny ' + p.telephone + ' ve ?')) {
+      window.location.href = 'tel:' + p.telephone;
+    }
   }
 
   // Nom, lieu, heure : les trois choses demandées, dans cet ordre.
@@ -736,6 +760,17 @@
 
     liste.innerHTML = '';
     if (vide) vide.style.display = lignes.length ? 'none' : 'block';
+    // Un seul écouteur pour tous les boutons « Antsoy », posé une fois : la
+    // liste se redessine chaque minute.
+    if (!liste.dataset.appels) {
+      liste.dataset.appels = '1';
+      liste.addEventListener('click', function (e) {
+        const b = e.target.closest('[data-appel]');
+        if (!b) return;
+        const p = equipe.filter(function (x) { return String(x.id) === b.getAttribute('data-appel'); })[0];
+        if (p) appeler(p);
+      });
+    }
     poserLesBattements();
 
     lignes.forEach(function (l) {
@@ -759,7 +794,7 @@
         // De vrais boutons, faciles à toucher au doigt, plutôt que des liens
         // soulignés : l'appeler, et voir où il est.
         '<div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.5rem;">' +
-        boutonAppel(l.p.telephone) +
+        boutonAppel(l.p) +
         '<a class="btn btn-sm" href="https://www.google.com/maps?q=' + lat + ',' + lng + '" target="_blank" rel="noopener"' +
         ' style="' + BOUTON_CARTE + '">🗺️ Sokafy ao amin&#39;ny Google Maps</a></div>';
       liste.appendChild(div);
@@ -778,7 +813,7 @@
         '<strong style="color:var(--text);">' + html(p.nom) + '</strong>' +
         ' · <span style="color:var(--muted);">mbola tsy nandefa ny toerana misy azy</span>' +
         (p.jeton ? '' : '<br><span style="color:var(--muted);">Tsy mbola nomena rohy.</span>') +
-        (p.telephone ? '<div style="margin-top:0.5rem;">' + boutonAppel(p.telephone) + '</div>' : '');
+        (boutonAppel(p) ? '<div style="margin-top:0.5rem;">' + boutonAppel(p) + '</div>' : '');
       liste.appendChild(div);
     });
     if (vide) {
