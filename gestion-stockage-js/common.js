@@ -3267,6 +3267,19 @@
       const a = document.getElementById('profileMapsOpen');
       const lien = lienMapsPropre(profileMapsInput.value);
       if(a){ a.href = lien || '#'; a.style.display = lien ? '' : 'none'; }
+      const b = document.getElementById('profileMapsSite');
+      if(b) b.style.display = lien ? '' : 'none';
+    });
+  }
+  // Le choix : Google Maps (le lien tel quel) ou la carte du site
+  // (carte-libre.js), qui s'ouvre sans quitter l'application.
+  const profileMapsSite = document.getElementById('profileMapsSite');
+  if(profileMapsSite){
+    profileMapsSite.addEventListener('click', function(){
+      const lien = lienMapsPropre(document.getElementById('profileMaps').value);
+      if(lien && window.ouvrirLienMapsDansLeSite){
+        window.ouvrirLienMapsDansLeSite(lien, (currentUser && currentUser.name) || '');
+      }
     });
   }
 

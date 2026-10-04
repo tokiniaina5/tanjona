@@ -5493,8 +5493,14 @@
             '<td>' + escapeAdminHtml(row.email || '—') + '</td>' +
             '<td>' + escapeAdminHtml(row.phone || '—') + '</td>' +
             '<td>' + (/^https?:\/\//i.test(row.maps || '')
-              ? '<a class="btn btn-sm" target="_blank" rel="noopener" href="' + escapeAdminHtml(row.maps) + '">📍 Maps</a>'
+              ? '<span style="display:inline-flex; gap:0.3rem; flex-wrap:wrap;">' +
+                '<a class="btn btn-sm" target="_blank" rel="noopener" href="' + escapeAdminHtml(row.maps) + '">🌐 Google</a>' +
+                '<button type="button" class="btn btn-sm signup-maps-site">🗺️ Site</button></span>'
               : '—') + '</td>';
+          const site = tr.querySelector('.signup-maps-site');
+          if(site) site.addEventListener('click', function(){
+            if(window.ouvrirLienMapsDansLeSite) window.ouvrirLienMapsDansLeSite(row.maps, row.name || '');
+          });
           body.appendChild(tr);
         });
       }, function(){

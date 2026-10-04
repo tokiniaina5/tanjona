@@ -367,4 +367,81 @@
       document.addEventListener('keydown', echap);
     });
   }
+
+  // ---------- Le lien Maps d'un client, vu dans le site ----------
+  // Un lien Google Maps porte souvent sa position en clair : « ?q=lat,lng »
+  // (celui que fait « 📍 Ma position »), « @lat,lng,17z », « !3dlat!4dlng ».
+  // Un lien court (maps.app.goo.gl) ne la porte pas : il faudrait le suivre,
+  // et Google refuse qu'un navigateur le fasse depuis une autre page. Celui-là
+  // ne s'ouvre que dans Google Maps.
+  window.coordsDuLienMaps = function (lien) {
+    let t = String(lien || '');
+    try { t = decodeURIComponent(t); } catch (e) {}
+    const motifs = [
+      /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/,
+      /[?&](?:q|query|ll|destination|center)=(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/,
+      /@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/,
+      /^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/
+    ];
+    for (let i = 0; i < motifs.length; i++) {
+      const m = t.match(motifs[i]);
+      if (!m) continue;
+      const lat = Number(m[1]), lng = Number(m[2]);
+      if (Math.abs(lat) <= 90 && Math.abs(lng) <= 180) return { lat: lat, lng: lng };
+    }
+    return null;
+  };
+
+  // La carte du site, plein écran, sur ce point-là. Sous la vue 3D
+  // (z-index 10000) : son bouton « 3D » s'ouvre par-dessus.
+  window.ouvrirLienMapsDansLeSite = function (lien, nom) {
+    const pos = window.coordsDuLienMaps(lien);
+    if (!pos) {
+      alert('Ce lien ne contient pas de position (lien court). Ouvrez-le dans Google Maps, ' +
+        'ou remplacez-le par « 📍 Ma position ».');
+      return;
+    }
+    const voile = document.createElement('div');
+    voile.style.cssText = 'position:fixed;inset:0;z-index:9000;background:#0b1114;';
+    const boite = document.createElement('div');
+    boite.style.cssText = 'position:absolute;inset:0;';
+    const fermer = document.createElement('button');
+    fermer.type = 'button';
+    fermer.textContent = '✕  Fermer';
+    fermer.style.cssText = 'position:absolute;top:12px;left:12px;z-index:1000;padding:9px 14px;border:0;' +
+      'border-radius:10px;background:#fff;color:#0b1114;font:600 14px system-ui,sans-serif;' +
+      'box-shadow:0 2px 8px rgba(0,0,0,.4);cursor:pointer;';
+    voile.appendChild(boite);
+    voile.appendChild(fermer);
+    document.body.appendChild(voile);
+
+    let carte = null;
+    function clore() {
+      document.removeEventListener('keydown', echap);
+      if (carte) carte.remove();
+      voile.remove();
+    }
+    function echap(e) { if (e.key === 'Escape') clore(); }
+    fermer.addEventListener('click', clore);
+    document.addEventListener('keydown', echap);
+
+    window.chargerCarteLibre().then(function (prete) {
+      if (!voile.isConnected) return;
+      if (!prete) {
+        boite.innerHTML = '<p style="color:#fff;font:15px system-ui,sans-serif;padding:70px 20px;text-align:center;">' +
+          'Carte indisponible (pas de réseau ?).</p>';
+        return;
+      }
+      const L = window.L;
+      const point = [pos.lat, pos.lng];
+      carte = L.map(boite).setView(point, 17);
+      window.fondCarteLibre(carte);
+      const repere = window.repereCarteLibre(point).addTo(carte);
+      if (nom) {
+        const d = document.createElement('div');
+        d.textContent = nom;
+        repere.bindTooltip(d.innerHTML, { permanent: true, direction: 'top', offset: [0, -10] });
+      }
+    });
+  };
 })();
