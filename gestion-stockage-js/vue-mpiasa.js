@@ -17,6 +17,9 @@
 //     fonction. C'est elle qui dit au nom de quel patron.
 
 (function () {
+  // Les boutons du lien de position : même hauteur, alignés, sans souligné.
+  const BOUTON_LIEN = 'width:auto; flex:1 1 auto; display:inline-flex; align-items:center; justify-content:center;' +
+    ' gap:0.35rem; min-height:2.3rem; text-decoration:none; white-space:nowrap; box-sizing:border-box;';
   const jeton = (function () {
     try { return new URLSearchParams(location.search).get('mpiasa') || ''; }
     catch (e) { return ''; }
@@ -279,14 +282,19 @@
         '<button type="button" class="btn btn-primary btn-sm" id="maPositionBtn" style="width:auto;">Manaiky — alefaso ny toerako</button>' +
         // Un lien de position donné à la main (Google Maps, WhatsApp…) : il
         // remplace le GPS quand le téléphone refuse, et le patron le voit.
+        // Le champ prend la mise en forme des autres (.field), et les boutons
+        // une même hauteur : le lien « Sokafy » est un <a>, qui sans cela se
+        // souligne et s'assied plus bas que les deux autres.
         '<div style="margin-top:1rem; border-top:1px solid var(--line); padding-top:0.8rem;">' +
-        '<label for="monLien" style="display:block; font-size:0.78rem; color:var(--muted); margin-bottom:0.3rem;">Lien hijerena ny toerana misy anao (Google Maps, WhatsApp…)</label>' +
+        '<div class="field" style="margin-bottom:0;">' +
+        '<label for="monLien">Lien hijerena ny toerana misy anao (Google Maps, WhatsApp…)</label>' +
         '<input type="url" id="monLien" placeholder="https://maps.app.goo.gl/…" value="' + html(p.lien || '') + '">' +
-        '<div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.4rem;">' +
-        '<button type="button" class="btn btn-primary btn-sm" id="monLienSave" style="width:auto;">' + (p.lien ? '💾 Ovaina' : '💾 Save') + '</button>' +
+        '</div>' +
+        '<div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.6rem;">' +
+        '<button type="button" class="btn btn-primary btn-sm" id="monLienSave" style="' + BOUTON_LIEN + '">' + (p.lien ? '💾 Ovaina' : '💾 Save') + '</button>' +
         (p.lien
-          ? '<a class="btn btn-sm" style="width:auto;" href="' + html(p.lien) + '" target="_blank" rel="noopener">↗ Sokafy</a>' +
-            '<button type="button" class="btn btn-red btn-sm" id="monLienEsory" style="width:auto;">🗑️ Esory</button>'
+          ? '<a class="btn btn-sm" style="' + BOUTON_LIEN + '" href="' + html(p.lien) + '" target="_blank" rel="noopener">↗ Sokafy</a>' +
+            '<button type="button" class="btn btn-red btn-sm" id="monLienEsory" style="' + BOUTON_LIEN + '">🗑️ Esory</button>'
           : '') +
         '</div>' +
         '<p id="monLienStatut" style="font-size:0.78rem; color:var(--cyan); margin:0.4rem 0 0;"></p>' +
