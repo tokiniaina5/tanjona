@@ -173,6 +173,9 @@
       mapsInput.value = currentUser.maps || '';
       mapsInput.dispatchEvent(new Event('input'));
     }
+    // « Position trouvée » d'une visite précédente ne vaut plus.
+    const statut = document.getElementById('profileMapsStatus');
+    if(statut) statut.textContent = 'Collez le lien « Partager » de Google Maps, ou touchez « Ma position ».';
     renderMapsClients();
   }
 

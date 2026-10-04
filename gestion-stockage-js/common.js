@@ -4231,6 +4231,8 @@
       'section-photocopie', 'section-pdf',
       'section-live', 'section-appels', 'section-wallet', 'section-panier',
       'section-mpiasa', 'section-livreur', 'section-personne',
+      // Le lien Maps de la boutique et ceux des clients.
+      'section-toerana',
       // « Ny momba ahy », la page de l'employé entré par son lien : posée
       // sous l'Accueil, sa carte s'ouvrait derrière le fil.
       'section-moi',
