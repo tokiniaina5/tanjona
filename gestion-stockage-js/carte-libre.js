@@ -44,6 +44,19 @@
       document.head.appendChild(lien);
     });
 
+  // Quand le téléphone n'a rien d'autre à faire : sans en avoir l'air, on
+  // prépare ce dont la carte aura besoin, pour qu'elle s'ouvre d'un coup.
+  // Pas sur une connexion où l'on a demandé d'économiser les données.
+  function aLoisir(f) {
+    const c = navigator.connection;
+    if (c && c.saveData) return;
+    if (window.requestIdleCallback) requestIdleCallback(f, { timeout: 4000 });
+    else setTimeout(f, 1500);
+  }
+  window.addEventListener('load', function () {
+    aLoisir(function () { window.chargerCarteLibre(); });
+  });
+
   // Où se pose une carte qui n'a encore personne à montrer : Antananarivo.
   // Une carte vide vaut mieux qu'une carte absente — on sait où elle est, et
   // où les repères viendront.
@@ -154,6 +167,9 @@
       }
     });
     new Boutons().addTo(carte);
+    // Une carte est là : la 3D a des chances d'être demandée. On la prépare
+    // en arrière-plan, et le bouton l'ouvrira sans attendre.
+    aLoisir(chargerCarte3D);
     return fonds[actuel];
   };
 
@@ -256,6 +272,10 @@
           pitch: 60,
           bearing: -20,
           maxPitch: 80,
+          // Un écran de téléphone compte trois pixels pour un : en dessiner
+          // deux suffit à l'œil, et la carte s'anime deux fois plus vite.
+          pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
+          fadeDuration: 0,
           attributionControl: { compact: true },
           style: {
             version: 8,
@@ -263,7 +283,7 @@
               ciel: { type: 'raster', tiles: [CIEL], tileSize: 256, maxzoom: 18, attribution: MENTION_ESRI },
               routes: { type: 'raster', tiles: [ROUTES], tileSize: 256, maxzoom: 18 },
               lieux: { type: 'raster', tiles: [LIEUX], tileSize: 256, maxzoom: 18 },
-              relief: { type: 'raster-dem', tiles: [RELIEF], tileSize: 256, maxzoom: 15, encoding: 'terrarium',
+              relief: { type: 'raster-dem', tiles: [RELIEF], tileSize: 256, maxzoom: 12, encoding: 'terrarium',
                 attribution: 'Relief : Mapzen / AWS Terrain Tiles' },
               lignes: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
               points: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } }
