@@ -277,6 +277,7 @@
         '<div id="maCarte" style="height:260px; border-radius:10px; overflow:hidden; border:1px solid var(--line); margin:0 0 0.8rem;"></div>' +
         '<p id="maPosition" style="font-size:0.85rem; line-height:1.6; margin:0 0 0.7rem;">—</p>' +
         '<button type="button" class="btn btn-primary btn-sm" id="maPositionBtn" style="width:auto;">Manaiky — alefaso ny toerako</button>' +
+        '<p id="ecranAllume" style="display:none; font-size:0.8rem; line-height:1.5; margin:0.7rem 0 0; padding:0.55rem 0.7rem; border-radius:8px; border:1px solid var(--line); background:var(--panel-2);"></p>' +
         // Un lien de position donné à la main (Google Maps, WhatsApp…) : il
         // remplace le GPS quand le téléphone refuse, et le patron le voit.
         '<div style="margin-top:1rem; border-top:1px solid var(--line); padding-top:0.8rem;">' +
@@ -356,6 +357,7 @@
       if (suivi !== null) { b.disabled = true; b.textContent = 'Alefa…'; }
       b.addEventListener('click', commencerLeSuivi);
     }
+    direEcran();
     if (suivable) {
       dessinerMaCarte();
       if (dernierePosition) montrerMaPosition(dernierePosition);
@@ -508,6 +510,7 @@
   function arreterLeSuivi() {
     if (suivi !== null && navigator.geolocation) navigator.geolocation.clearWatch(suivi);
     suivi = null;
+    lacherEcran();
     if (maCarte) { maCarte.remove(); maCarte = null; monRepere = null; }
   }
 
@@ -540,7 +543,53 @@
         : 'Tsy hita ny toerana amin\'izao fotoana izao.';
     }, { enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 });
     ecouterLesDemandes();
+    garderEcranAllume();
   }
+
+  // ---------- L'écran allumé ----------
+  // Le navigateur coupe le GPS d'une page dès que l'écran s'éteint ou qu'une
+  // autre application passe devant : le livreur disparaît alors de la carte
+  // du patron. Tant qu'il est suivi, on empêche l'écran de s'éteindre tout
+  // seul (Wake Lock), et on lui dit de laisser la page ouverte. Le verrou
+  // tombe de lui-même quand la page passe derrière : on le reprend au retour.
+  let verrouEcran = null;
+
+  function garderEcranAllume() {
+    if (suivi === null || document.hidden || verrouEcran) { direEcran(); return; }
+    if (!('wakeLock' in navigator)) { direEcran(); return; }
+    navigator.wakeLock.request('screen').then(function (v) {
+      verrouEcran = v;
+      v.addEventListener('release', function () { verrouEcran = null; direEcran(); });
+      direEcran();
+    }, function () { direEcran(); });
+  }
+
+  function lacherEcran() {
+    if (verrouEcran) { verrouEcran.release().then(function () {}, function () {}); verrouEcran = null; }
+    direEcran();
+  }
+
+  function direEcran() {
+    const el = document.getElementById('ecranAllume');
+    if (!el) return;
+    if (suivi === null) { el.style.display = 'none'; return; }
+    el.style.display = 'block';
+    el.textContent = verrouEcran
+      ? '🔆 Tsy maty ho azy ny efijery mandritra ny fanarahana. Avelao hisokatra ity pejy ity : raha hidinao ny finday na manokatra application hafa ianao, dia tsy hita intsony ny toerana misy anao.'
+      : '⚠️ Avelao hisokatra ity pejy ity ary aza avela ho maty ny efijery : raha hidy ny finday na misokatra application hafa, dia tsy hita intsony ny toerana misy anao.';
+  }
+
+  // De retour sur la page : le verrou repris, et une position neuve envoyée
+  // tout de suite — pendant l'absence, rien n'est parti.
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden || suivi === null) return;
+    garderEcranAllume();
+    if (!navigator.geolocation || Date.now() - dernierEnvoi < 30000) return;
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      montrerMaPosition(pos);
+      envoyerPosition(pos);
+    }, function () {}, { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 });
+  });
 
   // ---------- Quand on le cherche ----------
   // Le patron ou le client pressent « Tadiavo ». La page du livreur ne peut
