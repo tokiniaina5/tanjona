@@ -122,7 +122,8 @@
           '<a class="btn btn-sm mc-google" target="_blank" rel="noopener" href="#" style="width:auto;">🌐 Google Maps</a>' +
           '<button type="button" class="btn btn-sm mc-site" style="width:auto;">🗺️ Dans le site</button>' +
         '</div>' +
-        '<p class="mc-statut" style="font-size:0.72rem; color:var(--muted); margin-top:0.35rem; min-height:0;"></p>';
+        '<div class="mc-itineraire" style="display:none;"></div>' +
+        '<p class="mc-statut"style="font-size:0.72rem; color:var(--muted); margin-top:0.35rem; min-height:0;"></p>';
       const input = ligne.querySelector('.mc-lien');
       const google = ligne.querySelector('.mc-google');
       const site = ligne.querySelector('.mc-site');
@@ -132,6 +133,8 @@
         const lien = lienMapsPropre(input.value);
         google.href = lien || '#';
         google.style.display = site.style.display = lien ? '' : 'none';
+        // Pour aller chez lui : bus, moto, vélo, avion.
+        dessinerItineraire(ligne.querySelector('.mc-itineraire'), lien);
       }
       montrer();
       input.addEventListener('input', montrer);

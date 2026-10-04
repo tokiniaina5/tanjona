@@ -3274,7 +3274,33 @@
       if(b) b.style.display = lien ? '' : 'none';
       const envoi = document.getElementById('profileMapsEnvoi');
       if(envoi) envoi.style.display = lien ? '' : 'none';
+      dessinerItineraire(document.getElementById('profileMapsItineraire'), lien);
     });
+  }
+
+  // Les quatre boutons d'itinéraire vers un lien Maps (le sien dans le
+  // profil, celui d'un client dans « Lien Maps des clients »). Rien quand le
+  // lien ne porte pas de position (lien court).
+  function dessinerItineraire(boite, lien){
+    if(!boite) return;
+    const pos = (lien && window.coordsDuLienMaps) ? window.coordsDuLienMaps(lien) : null;
+    if(!pos){ boite.innerHTML = ''; boite.style.display = 'none'; return; }
+    function peindre(){
+      boite.style.display = '';
+      boite.innerHTML = '<div style="font-size:0.74rem; color:var(--muted); margin:0.5rem 0 0.3rem;">🧭 Itinéraire</div>' +
+        '<div style="display:flex; gap:0.4rem; flex-wrap:wrap;">' +
+        liensItineraire(pos).map(function(l){
+          return '<a class="btn btn-sm" target="_blank" rel="noopener" style="width:auto;" href="' +
+            escapeHtml(l.url) + '">' + l.icone + ' ' + l.nom + '</a>';
+        }).join('') + '</div>';
+    }
+    peindre();
+    // La ville arrive après : le bouton « Avion » se met à jour. Attendue un
+    // instant, pour ne pas interroger OpenStreetMap à chaque lettre tapée.
+    clearTimeout(boite._attenteVille);
+    boite._attenteVille = setTimeout(function(){
+      chercherVille(pos).then(function(v){ if(v && boite.isConnected) peindre(); });
+    }, 600);
   }
 
   // ---- Envoyer son lien Maps à un client ----
@@ -3286,9 +3312,92 @@
   //    applications ne laissent pas écrire le message à notre place : il est
   //    copié, la conversation s'ouvre, il n'y a plus qu'à coller ;
   //  - rien → le partage du téléphone, qui laisse choisir.
-  function messageLienMaps(lien){
+  // ---- L'itinéraire : bus, moto, vélo, et l'avion quand c'est loin ----
+  // Google Maps calcule le trajet depuis là où se trouve celui qui ouvre le
+  // lien : pas besoin de connaître son point de départ. Il n'a pas de mode
+  // « moto » dans ses liens : la moto prend la route des voitures. L'avion,
+  // c'est Google Flights, vers la ville du point (relue chez OpenStreetMap).
+  const LOIN_KM = 200;
+  const villesConnues = {};
+
+  function distanceKm(a, b){
+    const r = Math.PI / 180;
+    const x = Math.sin((b.lat - a.lat) * r / 2), y = Math.sin((b.lng - a.lng) * r / 2);
+    const h = x * x + Math.cos(a.lat * r) * Math.cos(b.lat * r) * y * y;
+    return 12742 * Math.asin(Math.sqrt(h));
+  }
+
+  function cleVille(pos){ return pos.lat.toFixed(2) + ',' + pos.lng.toFixed(2); }
+
+  // La ville du point, une fois, à l'avance : au moment d'envoyer, on ne
+  // peut plus attendre (le navigateur bloquerait la fenêtre ouverte après).
+  function chercherVille(pos){
+    if(!pos) return Promise.resolve('');
+    const cle = cleVille(pos);
+    if(villesConnues[cle] !== undefined) return Promise.resolve(villesConnues[cle]);
+    return fetch('https://nominatim.openstreetmap.org/reverse?format=json&zoom=10&accept-language=fr&lat=' +
+      pos.lat + '&lon=' + pos.lng)
+      .then(function(r){ return r.ok ? r.json() : {}; })
+      .then(function(j){
+        const a = (j && j.address) || {};
+        const v = a.city || a.town || a.village || a.municipality || a.county || a.state || '';
+        villesConnues[cle] = v;
+        return v;
+      }, function(){ return ''; });
+  }
+
+  function liensItineraire(pos){
+    if(!pos) return [];
+    const dest = pos.lat + ',' + pos.lng;
+    function dir(mode){
+      return 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(dest) + '&travelmode=' + mode;
+    }
+    const ville = villesConnues[cleVille(pos)] || '';
+    return [
+      { cle: 'bus', icone: '🚌', nom: 'Bus', url: dir('transit') },
+      { cle: 'moto', icone: '🏍️', nom: 'Moto', url: dir('driving') },
+      { cle: 'velo', icone: '🚲', nom: 'Vélo', url: dir('bicycling') },
+      { cle: 'avion', icone: '✈️', nom: 'Avion', url: 'https://www.google.com/travel/flights?hl=fr&q=' +
+        encodeURIComponent('Vols vers ' + (ville || dest)) }
+    ];
+  }
+
+  // depuis : la position du client, quand on la connaît (« Lien Maps des
+  // clients »). Loin de plus de LOIN_KM, l'avion passe en premier ; tout
+  // près, il disparaît. Sans elle, l'avion reste, « si vous êtes loin ».
+  function texteItineraire(pos, depuis){
+    let liens = liensItineraire(pos);
+    if(!liens.length) return '';
+    let noteAvion = ' (si vous êtes loin)';
+    if(depuis){
+      const km = distanceKm(depuis, pos);
+      if(km < LOIN_KM){ liens = liens.filter(function(l){ return l.cle !== 'avion'; }); }
+      else {
+        liens = [liens[3]].concat(liens.slice(0, 3));
+        noteAvion = ' (' + Math.round(km) + ' km)';
+      }
+    }
+    return '\n\n🧭 Itinéraire :\n' + liens.map(function(l){
+      return l.icone + ' ' + l.nom + (l.cle === 'avion' ? noteAvion : '') + ' : ' + l.url;
+    }).join('\n');
+  }
+
+  // La position d'un client de « Gestion de compte » dont on a écrit le
+  // numéro, si son lien Maps la porte.
+  function positionDuClientNumero(dest){
+    const chiffres = String(dest || '').replace(/\D/g, '').slice(-9);
+    if(chiffres.length < 8 || typeof tousLesClientsMaps !== 'function' || !window.coordsDuLienMaps) return null;
+    const x = tousLesClientsMaps().find(function(x){
+      return x.c.maps && String(x.c.phone || '').replace(/\D/g, '').slice(-9) === chiffres;
+    });
+    return x ? window.coordsDuLienMaps(x.c.maps) : null;
+  }
+
+  function messageLienMaps(lien, dest){
     const nom = (currentUser && (currentUser.company || currentUser.name)) || '';
-    return '📍 ' + (nom ? nom + ' — ' : '') + 'voici où nous trouver : ' + lien;
+    const pos = window.coordsDuLienMaps ? window.coordsDuLienMaps(lien) : null;
+    return '📍 ' + (nom ? nom + ' — ' : '') + 'voici où nous trouver : ' + lien +
+      texteItineraire(pos, positionDuClientNumero(dest));
   }
 
   function copierTexte(texte){
@@ -3299,7 +3408,7 @@
   }
 
   function envoyerLienMaps(dest, lien, status){
-    const texte = messageLienMaps(lien);
+    const texte = messageLienMaps(lien, dest);
     const d = String(dest || '').trim();
     function dire(t){ if(status) status.textContent = t; }
     function ouvrir(url){ window.open(url, '_blank', 'noopener'); }
