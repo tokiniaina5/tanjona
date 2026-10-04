@@ -182,12 +182,6 @@
     envoyerMonStock();
   }
 
-  // Ouverte comme application installée, et non dans un onglet du navigateur.
-  function estInstallee() {
-    return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
-      window.navigator.standalone === true;
-  }
-
   // ---------- Le site à son nom ----------
   // Ouvert par son lien, le site porte le nom de la personne : l'onglet, la
   // fenêtre de l'application installée, le bandeau. Le manifeste aussi est
@@ -300,40 +294,6 @@
         '<p id="monLienStatut" style="font-size:0.78rem; color:var(--cyan); margin:0.4rem 0 0;"></p>' +
         '</div>' +
         '</div>';
-    }
-
-    // ---- Son tableau de bord et ses allées et venues ----
-    // Pour le livreur, sous sa carte : ils ne sont plus dans la fenêtre que
-    // le patron ouvre sur lui (equipe.js).
-    // Dans l'application installée seulement, pas dans le lien ouvert au
-    // navigateur.
-    if (p.role === 'livreur' && estInstallee()) {
-      sortie += '<div class="panel" style="margin-top:1rem;">' +
-        '<div class="panneau-titre">Tableau de bord</div>' +
-        (typeof window.htmlTableauStock === 'function'
-          ? window.htmlTableauStock(typeof items !== 'undefined' ? items : [],
-              typeof movements !== 'undefined' ? movements : [])
-          : '<p class="empty-hint">—</p>') +
-        '</div>';
-
-      sortie += '<div class="panel" style="margin-top:1rem;">' +
-        '<div class="panneau-titre">Ny fivezivezena</div>';
-      if (!pointages.length) {
-        sortie += '<p class="empty-hint">Mbola tsy nisy pointage.</p>';
-      } else {
-        pointages.slice().sort(function (a, b) { return new Date(b.arrivee) - new Date(a.arrivee); })
-          .forEach(function (l) {
-            const a = new Date(l.arrivee);
-            const f = l.depart ? new Date(l.depart) : null;
-            const hm = function (x) { return x.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); };
-            sortie += '<div style="border:1px solid var(--line); border-radius:8px; padding:0.6rem 0.9rem; margin-top:0.5rem; font-size:0.82rem; line-height:1.6;">' +
-              '<strong style="color:var(--text);">' + a.toLocaleDateString('fr-FR') + '</strong>' +
-              ' · ' + hm(a) + ' → ' + (f ? hm(f) : '<span style="color:var(--cyan);">mbola eo</span>') +
-              '<br><span style="color:var(--muted);">' +
-              heures(Math.max(0, (f ? f.getTime() : Date.now()) - a.getTime())) + '</span></div>';
-          });
-      }
-      sortie += '</div>';
     }
 
     // ---- Ses courses ----

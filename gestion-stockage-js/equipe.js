@@ -1506,12 +1506,6 @@
     const fond = document.getElementById('section-stock');
     if (fond) fond.classList.add('active');
     section.classList.add('active');
-    // Le tableau de bord et les allées et venues d'un livreur sont dans sa
-    // page à lui, sous sa carte : ils ne se répètent pas ici.
-    ['personneTableauPanel', 'personnePointagesPanel'].forEach(function (id) {
-      const el = document.getElementById(id);
-      if (el) el.style.display = p.role === 'livreur' ? 'none' : '';
-    });
     dessinerLienPersonne(p);
     dessinerTableauPersonne();
     chargerPersonne(p.id);
@@ -1603,8 +1597,8 @@
     boite.innerHTML = htmlTableauStock(ligne.articles, ligne.mouvements);
   }
 
-  // Le tableau d'un stock (articles + mouvements) en HTML : pour la fenêtre
-  // d'une personne, et pour la page du livreur lui-même (vue-mpiasa.js).
+  // Le tableau d'un stock (articles + mouvements) en HTML, pour la fenêtre
+  // d'une personne.
   function htmlTableauStock(articlesBruts, mouvementsBruts) {
     const articles = Array.isArray(articlesBruts) ? articlesBruts : [];
     const mouvements = (Array.isArray(mouvementsBruts) ? mouvementsBruts : [])
@@ -1694,7 +1688,6 @@
 
     return t;
   }
-  window.htmlTableauStock = htmlTableauStock;
 
   function chargerPersonne(id) {
     const client = sb();
