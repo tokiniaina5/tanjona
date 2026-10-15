@@ -888,6 +888,7 @@ document.addEventListener('DOMContentLoaded', function () {
     currentUser = null;
     $('appScreen').style.display = 'none';
     $('loginScreen').style.display = '';
+    dingana(1);
   }
 
   function dire(texte, erreur) {
@@ -897,6 +898,17 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   var auth = window.__sb && window.__sb.auth;
+
+  function dingana(n) {
+    var faharoa = n === 2;
+    $('fkDingana1').style.display = faharoa ? 'none' : '';
+    $('fkDingana2').style.display = faharoa ? '' : 'none';
+    $('fkLoginBtn').textContent = faharoa ? '🔓 Sokafy ny pejy' : 'Manaraka →';
+    $('fkDinganaAnarana').textContent = ($('fkLoginEmail').value.trim() + ' ' + $('fkLoginLast').value.trim()).trim();
+    dire('');
+    $(faharoa ? 'fkLoginPassword' : 'fkLoginEmail').focus();
+  }
+  $('fkDinganaHiverina').addEventListener('click', function () { dingana(1); });
 
   $('fkLoginForm').addEventListener('submit', function (e) {
     e.preventDefault();
@@ -908,6 +920,12 @@ document.addEventListener('DOMContentLoaded', function () {
     var voalohany = $('fkLoginEmail').value.trim();
     var farany = $('fkLoginLast').value.trim();
     var mdp = $('fkLoginPassword').value;
+    // Premier temps : le nom seul, puis le cadre du mot de passe.
+    if ($('fkDingana2').style.display === 'none') {
+      dingana(2);
+      return;
+    }
+    if (mdp.length < 6) { dire('Soraty ny mot de passe (6 litera farafahakeliny).', true); $('fkLoginPassword').focus(); return; }
     var bouton = $('fkLoginBtn');
     bouton.disabled = true;
     dire('Miditra…');
