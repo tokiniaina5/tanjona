@@ -150,34 +150,21 @@
     <div class="eyebrow" id="fkNomApp">Fokontany</div>
     <h1>Fidirana</h1>
     <p class="sub">Ny kaonty Ny asako ihany no ampiasaina eto : first name, last name ary mot de passe mitovy.</p>
-    <!-- Deux temps : le nom d'abord, puis le mot de passe dans le cadre
-         « Mila alalana », le même que la porte du Commun (fokontany-app.js). -->
     <form id="fkLoginForm">
-      <div id="fkDingana1">
-        <div class="field">
-          <label for="fkLoginEmail">First name</label>
-          <input id="fkLoginEmail" type="text" required placeholder="Prénom" autocomplete="given-name">
-        </div>
-        <div class="field">
-          <label for="fkLoginLast">Last name</label>
-          <input id="fkLoginLast" type="text" placeholder="Nom" autocomplete="family-name">
-        </div>
+      <div class="field">
+        <label for="fkLoginEmail">First name</label>
+        <input id="fkLoginEmail" type="text" required placeholder="Prénom" autocomplete="given-name">
       </div>
-      <div id="fkDingana2" class="panel" style="display:none; margin-bottom:0.9rem;">
-        <h3>🔐 Mila alalana ity pejy ity</h3>
-        <p style="font-size:0.78rem; color:var(--muted); line-height:1.6; margin-bottom:0.9rem;">
-          <strong style="color:var(--text);" id="fkDinganaAnarana" translate="no"></strong> — soraty ny
-          <strong style="color:var(--text);">mot de passe</strong>-nao hanokafana ny pejy. Raha mbola tsy nahazo
-          alalana ianao, angatahina aminao avy eo ny code nomen'ny tompon'ny site.
-        </p>
-        <div class="field">
-          <label for="fkLoginPassword">Mot de passe</label>
-          <input id="fkLoginPassword" type="password" minlength="6" placeholder="••••••" autocomplete="current-password">
-        </div>
-        <button type="button" class="btn btn-sm" id="fkDinganaHiverina" style="width:auto;">← Hanova ny anarana</button>
+      <div class="field">
+        <label for="fkLoginLast">Last name</label>
+        <input id="fkLoginLast" type="text" placeholder="Nom" autocomplete="family-name">
+      </div>
+      <div class="field">
+        <label for="fkLoginPassword">Mot de passe</label>
+        <input id="fkLoginPassword" type="password" required minlength="6" placeholder="••••••" autocomplete="current-password">
       </div>
       <p id="fkLoginStatus" style="font-size:0.75rem; color:var(--muted); margin:-0.4rem 0 0.8rem; min-height:1.1em;"></p>
-      <button type="submit" class="btn btn-primary" id="fkLoginBtn">Manaraka →</button>
+      <button type="submit" class="btn btn-primary" id="fkLoginBtn">Hiditra</button>
     </form>
     <!-- Créer un compte et retrouver un mot de passe, ici même, comme dans
          Ny asako (même base, mêmes comptes) : on entre ensuite directement
@@ -186,29 +173,43 @@
     <button type="button" class="btn btn-sm" id="fkAdinoBtn" style="width:100%; margin-top:0.5rem;">🔑 Adino ny mot de passe</button>
 
     <!-- Kaonty vaovao -->
+    <!-- Deux temps : qui l'on est d'abord, puis le mot de passe dans le cadre
+         « Mila alalana », le même que la porte du Commun (fokontany-app.js). -->
     <form id="fkVaovaoForm" style="display:none; margin-top:0.9rem; border-top:1px solid var(--line); padding-top:0.9rem;">
-      <div class="field">
-        <label for="fkVaovaoAnarana">First name</label>
-        <input id="fkVaovaoAnarana" type="text" required placeholder="Prénom" autocomplete="given-name">
+      <div id="fkDingana1">
+        <div class="field">
+          <label for="fkVaovaoAnarana">First name</label>
+          <input id="fkVaovaoAnarana" type="text" required placeholder="Prénom" autocomplete="given-name">
+        </div>
+        <div class="field">
+          <label for="fkVaovaoLast">Last name</label>
+          <input id="fkVaovaoLast" type="text" required placeholder="Nom" autocomplete="family-name">
+        </div>
+        <div class="field">
+          <label for="fkVaovaoEmail">Email (tsy voatery)</label>
+          <input id="fkVaovaoEmail" type="email" placeholder="vous@exemple.com" autocomplete="email">
+        </div>
+        <div class="field">
+          <label for="fkVaovaoFinday">Laharana finday</label>
+          <input id="fkVaovaoFinday" type="tel" placeholder="034 00 000 00" autocomplete="tel">
+        </div>
       </div>
-      <div class="field">
-        <label for="fkVaovaoLast">Last name</label>
-        <input id="fkVaovaoLast" type="text" required placeholder="Nom" autocomplete="family-name">
-      </div>
-      <div class="field">
-        <label for="fkVaovaoEmail">Email (tsy voatery)</label>
-        <input id="fkVaovaoEmail" type="email" placeholder="vous@exemple.com" autocomplete="email">
-      </div>
-      <div class="field">
-        <label for="fkVaovaoFinday">Laharana finday</label>
-        <input id="fkVaovaoFinday" type="tel" placeholder="034 00 000 00" autocomplete="tel">
-      </div>
-      <div class="field">
-        <label for="fkVaovaoMdp">Mot de passe</label>
-        <input id="fkVaovaoMdp" type="password" required minlength="6" placeholder="6 litera farafahakeliny" autocomplete="new-password">
+      <div id="fkDingana2" class="panel" style="display:none; margin-bottom:0.9rem;">
+        <h3>🔐 Mila alalana ity pejy ity</h3>
+        <p style="font-size:0.78rem; color:var(--muted); line-height:1.6; margin-bottom:0.9rem;">
+          <strong style="color:var(--text);" id="fkDinganaAnarana" translate="no"></strong> — mamoròna
+          <strong style="color:var(--text);">mot de passe</strong> hanokafana ny pejy. Io no ampiasainao
+          hiditra isaky ny miverina. Raha mbola tsy nahazo alalana ianao, angatahina aminao avy eo ny code
+          nomen'ny tompon'ny site.
+        </p>
+        <div class="field">
+          <label for="fkVaovaoMdp">Mot de passe</label>
+          <input id="fkVaovaoMdp" type="password" minlength="6" placeholder="6 litera farafahakeliny" autocomplete="new-password">
+        </div>
+        <button type="button" class="btn btn-sm" id="fkDinganaHiverina" style="width:auto;">← Hanova ny mombamomba</button>
       </div>
       <p id="fkVaovaoStatus" style="font-size:0.75rem; color:var(--amber); margin:-0.2rem 0 0.8rem; line-height:1.5; min-height:1.1em;"></p>
-      <button type="submit" class="btn btn-primary btn-sm" id="fkVaovaoValider" style="width:100%;">Hamorona ny kaonty sy hiditra</button>
+      <button type="submit" class="btn btn-primary btn-sm" id="fkVaovaoValider" style="width:100%;">Manaraka →</button>
     </form>
 
     <!-- Mot de passe oublié : un code par email, puis le nouveau mot de passe. -->

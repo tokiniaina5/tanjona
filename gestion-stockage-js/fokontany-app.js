@@ -887,7 +887,6 @@ document.addEventListener('DOMContentLoaded', function () {
     currentUser = null;
     $('appScreen').style.display = 'none';
     $('loginScreen').style.display = '';
-    dingana(1);
   }
 
   function dire(texte, erreur) {
@@ -897,17 +896,6 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   var auth = window.__sb && window.__sb.auth;
-
-  function dingana(n) {
-    var faharoa = n === 2;
-    $('fkDingana1').style.display = faharoa ? 'none' : '';
-    $('fkDingana2').style.display = faharoa ? '' : 'none';
-    $('fkLoginBtn').textContent = faharoa ? '🔓 Sokafy ny pejy' : 'Manaraka →';
-    $('fkDinganaAnarana').textContent = ($('fkLoginEmail').value.trim() + ' ' + $('fkLoginLast').value.trim()).trim();
-    dire('');
-    $(faharoa ? 'fkLoginPassword' : 'fkLoginEmail').focus();
-  }
-  $('fkDinganaHiverina').addEventListener('click', function () { dingana(1); });
 
   $('fkLoginForm').addEventListener('submit', function (e) {
     e.preventDefault();
@@ -919,12 +907,6 @@ document.addEventListener('DOMContentLoaded', function () {
     var voalohany = $('fkLoginEmail').value.trim();
     var farany = $('fkLoginLast').value.trim();
     var mdp = $('fkLoginPassword').value;
-    // Premier temps : le nom seul, puis le cadre du mot de passe.
-    if ($('fkDingana2').style.display === 'none') {
-      dingana(2);
-      return;
-    }
-    if (mdp.length < 6) { dire('Soraty ny mot de passe (6 litera farafahakeliny).', true); $('fkLoginPassword').focus(); return; }
     var bouton = $('fkLoginBtn');
     bouton.disabled = true;
     dire('Miditra…');
@@ -1018,8 +1000,22 @@ document.addEventListener('DOMContentLoaded', function () {
     $('fkVaovaoForm').style.display = misokatra ? '' : 'none';
     $('fkVaovaoForm').style.borderTop = misokatra ? 'none' : '';
     $('fkVaovaoBtn').textContent = misokatra ? '← Efa manana kaonty — hiditra' : '📝 Tsy manana kaonty — hamorona kaonty';
+    dingana(1);
     if (misokatra) $('fkVaovaoAnarana').focus();
   }
+
+  // Inscription en deux temps : qui l'on est, puis le mot de passe dans le
+  // cadre « Mila alalana ».
+  function dingana(n) {
+    var faharoa = n === 2;
+    $('fkDingana1').style.display = faharoa ? 'none' : '';
+    $('fkDingana2').style.display = faharoa ? '' : 'none';
+    $('fkVaovaoValider').textContent = faharoa ? '🔓 Hamorona ny kaonty sy hiditra' : 'Manaraka →';
+    $('fkDinganaAnarana').textContent = ($('fkVaovaoAnarana').value.trim() + ' ' + $('fkVaovaoLast').value.trim()).trim();
+    $('fkVaovaoStatus').textContent = '';
+    if (faharoa) $('fkVaovaoMdp').focus();
+  }
+  $('fkDinganaHiverina').addEventListener('click', function () { dingana(1); $('fkVaovaoAnarana').focus(); });
 
   function tsindry(id, idMiafina) {
     var box = $(id);
@@ -1051,7 +1047,9 @@ document.addEventListener('DOMContentLoaded', function () {
     var finday = $('fkVaovaoFinday').value.trim();
     var mdp = $('fkVaovaoMdp').value;
     if (!voalohany || !farany) { st.textContent = 'Soraty ny first name sy ny last name.'; return; }
-    if (mdp.length < 6) { st.textContent = 'Tokony ho 6 litera farafahakeliny ny mot de passe.'; return; }
+    // Premier temps : vers le cadre du mot de passe.
+    if ($('fkDingana2').style.display === 'none') { dingana(2); return; }
+    if (mdp.length < 6) { st.textContent = 'Tokony ho 6 litera farafahakeliny ny mot de passe.'; $('fkVaovaoMdp').focus(); return; }
     $('fkVaovaoValider').disabled = true;
     st.textContent = 'Mamorona ny kaonty…';
     // Avec un email : l'inscription d'avant, comme Ny asako (lien de
