@@ -1,12 +1,11 @@
-// Le code a été saisi : prévenir le propriétaire, et attendre son accord.
+// Le code a été saisi : s'il est juste, la page s'ouvre aussitôt.
 //
-// Le code ne suffit plus à entrer. Quand quelqu'un le saisit, cette fonction
-// (clé de service) marque sa ligne — l'heure, l'appareil — et prévient le
-// propriétaire par email. La page ne s'ouvrira que lorsqu'il aura confirmé,
-// depuis son onglet « Fangatahana ».
-//
-// Ainsi, un code lu par-dessus l'épaule ou reçu dans une boîte ouverte par un
-// autre n'ouvre rien tout seul : il faut encore que quelqu'un dise oui.
+// C'est ici (clé de service) que le code se compare : la personne ne peut
+// plus lire sa ligne (supabase-commun-code-miafina.sql), elle ne le connaît
+// donc que si le propriétaire le lui a donné. Juste, il confirme l'accès
+// (voamarina), accepte la demande, marque l'heure et l'appareil, puis
+// prévient le propriétaire — pour information : s'il ne reconnaît pas la
+// personne, il retire l'accès depuis son onglet « Fangatahana ».
 //
 // Déploiement : supabase functions deploy commun-fiditra
 // (AVEC vérification du jeton : on agit au nom de la personne connectée.)
@@ -111,27 +110,31 @@ Deno.serve(async (req: Request) => {
   // Déjà confirmée : rien à redemander, on ouvre.
   if (ligne.voamarina) return json({ ok: true, voamarina: true });
 
-  await admin.from("commun_alalana")
-    .update({ nampiasaina_at: new Date().toISOString(), appareil: appareil || null, updated_at: new Date().toISOString() })
+  const maintenant = new Date().toISOString();
+  const { error: erreurMaj } = await admin.from("commun_alalana")
+    .update({ voamarina: true, nampiasaina_at: maintenant, appareil: appareil || null, updated_at: maintenant })
     .eq("id", ligne.id);
+  if (erreurMaj) return json({ error: erreurMaj.message }, 502);
+  await admin.from("commun_fangatahana")
+    .update({ statut: "ekena", updated_at: maintenant })
+    .ilike("email", email);
 
   const texte = [
     "Bonjour,",
     "",
-    (ligne.anarana ? ligne.anarana + " (" + email + ")" : email) + " vient de saisir son code pour « Fokontany ».",
+    (ligne.anarana ? ligne.anarana + " (" + email + ")" : email) + " vient de saisir son code pour « Fokontany » :",
+    "la page lui est ouverte.",
     "",
     "Appareil : " + (appareil || "—"),
     "Heure : " + new Date().toLocaleString("fr-FR"),
     "",
-    "La page reste fermée tant que vous n'avez pas confirmé : ouvrez",
-    "« Fokontany » puis l'onglet « Fangatahana », et pressez « Hamafiso ».",
-    "",
-    "Si ce n'est pas la personne attendue, retirez son accès depuis ce même onglet.",
+    "Si ce n'est pas la personne attendue, retirez son accès depuis",
+    "« Fokontany », onglet « Fangatahana ».",
     "",
     Deno.env.get("OWNER_NAME") ?? "",
   ].join("\n");
 
-  const prevenu = await prevenir(ownerEmail, "Code saisi pour « Fokontany » — à confirmer", texte);
+  const prevenu = await prevenir(ownerEmail, "Code saisi pour « Fokontany » — page ouverte", texte);
 
-  return json({ ok: true, voamarina: false, prevenu: prevenu });
+  return json({ ok: true, voamarina: true, prevenu: prevenu });
 });

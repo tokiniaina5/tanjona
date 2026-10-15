@@ -114,7 +114,9 @@
     const client = sb();
     const email = emailSession || monEmail();
     if (!client || !email) return Promise.resolve(null);
-    return client.from('commun_alalana').select('code,active,voamarina,nampiasaina_at').ilike('email', email)
+    // Sa propre ligne, sans le code : seul le serveur le connaît
+    // (supabase-commun-code-miafina.sql, commun-fiditra).
+    return client.rpc('commun_alalana_ahy')
       .then(function (res) {
         if (res.error) { dire('porteMessage', expliquer(res), true); return null; }
         return (res.data || [])[0] || null;
@@ -137,8 +139,6 @@
     });
   }
   function suiteVerifier(ligne) {
-      const garde = codeGarde();
-      const codeMety = !!(ligne && ligne.active && garde && String(ligne.code).trim().toUpperCase() === garde);
       // Une fois l'accès confirmé, c'est le compte qui ouvre : la personne
       // peut se déconnecter, changer d'appareil, oublier son code — elle
       // rentre en se connectant. Le code n'aura servi qu'une fois, à se faire
@@ -147,16 +147,10 @@
       const ok = !!(ligne && ligne.active && ligne.voamarina);
       montrer(ok);
       if (!ok) {
-        if (codeMety) {
-          dire('porteMessage', 'Voaray ny code. Nampandrenesina ny tompon\'ny site : misokatra ny pejy rehefa nohamafisiny.');
-          $('porteJereo').style.display = '';
-          // Une seule fois par ouverture de page : sa boîte ne doit pas se
-          // remplir parce qu'on a rouvert l'onglet trois fois.
-          if (!signalEnvoye) { signalEnvoye = true; signaler(garde); }
-        } else if (ligne && ligne.active && !garde) {
+        if (ligne && ligne.active) {
           // Le code est tiré avec la demande (commun-angataka) : il ne reste
-          // qu'à attendre que le propriétaire valide.
-          dire('porteMessage', 'Nalefa ny fangatahanao miaraka amin\'ny code. Miandry ny fanamarinan\'ny tompon\'ny site : misokatra ny pejy rehefa voamarina.');
+          // qu'à le taper, ou que le propriétaire valide de son côté.
+          dire('porteMessage', 'Nalefa ny fangatahanao. Soraty eto ambany ny code nomen\'ny tompon\'ny site : misokatra avy hatrany ny pejy.');
           $('porteJereo').style.display = '';
         } else if (ligne && !ligne.active) {
           dire('porteMessage', 'Nesorina ny alalanao. Mangataha indray raha ilaina.', true);
@@ -166,17 +160,16 @@
       return ok;
   }
 
-  // Prévenir le propriétaire que le code vient d'être saisi. Le navigateur
-  // n'écrit pas lui-même dans la table des accès : c'est la fonction qui
-  // marque l'heure et envoie le message.
-  let signalEnvoye = false;
-  function signaler(code) {
+  // Le code tapé part au serveur, qui seul le connaît : juste, il confirme
+  // l'accès et prévient le propriétaire. Le navigateur n'écrit pas lui-même
+  // dans la table des accès.
+  function envoyerLeCode(code) {
     const client = sb();
-    if (!client || !client.functions || !client.functions.invoke) return Promise.resolve();
+    if (!client || !client.functions || !client.functions.invoke) return Promise.reject(new Error('functions'));
     let appareil = '';
     try { appareil = String(navigator.userAgent || '').slice(0, 160); } catch (e) {}
     return client.functions.invoke('commun-fiditra', { body: { code: code, appareil: appareil } })
-      .then(function () {}, function () {});
+      .then(function (res) { return (res && res.data) || {}; });
   }
 
   function montrerMonStatut() {
@@ -257,27 +250,27 @@
     const tape = $('porteCode').value.trim().toUpperCase();
     if (!tape) { dire('porteMessage', 'Soraty ny code nomen\'ny tompon\'ny site.', true); return; }
     dire('porteMessage', 'Fanamarinana…');
-    maLigne().then(function (ligne) {
-      if (!ligne || !ligne.active) {
-        dire('porteMessage', 'Mbola tsy nomena alalana ity kaonty ity.', true);
-        montrerMonStatut();
-        return;
-      }
-      if (String(ligne.code).trim().toUpperCase() !== tape) {
-        dire('porteMessage', 'Tsy mety ny code. Raha nangataka imbetsaka ianao dia mety niova ilay code : ' +
-          'angataho amin\'ny tompon\'ny site ny code farany hitany ao amin\'ny « Fangatahana ».', true);
-        return;
-      }
-      garderLeCode(tape);
-      $('porteCode').value = '';
-      // La suite est l'affaire de verifier() : il préviendra le propriétaire
-      // si la confirmation manque, et n'ouvrira que si elle est là.
-      verifier().then(function (ouverte) {
-        if (!ouverte) return;
-        dire('porteMessage', '');
-        // La vue ouverte doit se remplir : elle était cachée quand on l'a dressée.
-        if (typeof choisirOngletCommun === 'function') choisirOngletCommun('tableau');
+    identite().then(function (moi) {
+      if (!moi.ok) { dire('porteMessage', moi.pourquoi, true); return; }
+      return envoyerLeCode(tape).then(function (d) {
+        if (!d.ok) {
+          dire('porteMessage', 'Tsy mety ny code, na mbola tsy nangataka ity kaonty ity. Raha nangataka imbetsaka ianao dia mety niova ilay code : ' +
+            'angataho amin\'ny tompon\'ny site ny code farany hitany ao amin\'ny « Fangatahana ».', true);
+          montrerMonStatut();
+          return;
+        }
+        garderLeCode(tape);
+        $('porteCode').value = '';
+        // Le serveur vient de confirmer : verifier() relit et ouvre.
+        return verifier().then(function (ouverte) {
+          if (!ouverte) { dire('porteMessage', 'Voaray ny code fa tsy nisokatra ny pejy : tsindrio « 🔄 Jereo indray ».', true); return; }
+          dire('porteMessage', '');
+          // La vue ouverte doit se remplir : elle était cachée quand on l'a dressée.
+          if (typeof choisirOngletCommun === 'function') choisirOngletCommun('tableau');
+        });
       });
+    }).catch(function () {
+      dire('porteMessage', 'Tsy tratra ny serveur : jereo ny réseau.', true);
     });
   }
 
