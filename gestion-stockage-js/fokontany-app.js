@@ -535,6 +535,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // compte — c'est la création qui s'ouvre, son email déjà écrit.
     if (email) {
       $('fkLoginEmail').value = email;
+      $('fkVaovaoEmail').value = email;
       $('fkVaovaoForm').style.display = '';
       $('fkVaovaoAnarana').focus();
       $('fkLoginStatus').textContent = 'Mbola tsy manana kaonty ianao : forony eto ambany, dia hiditra.';
@@ -1000,6 +1001,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!auth) { st.textContent = 'Tsy tafiditra ny Supabase : jereo ny connexion internet.'; return; }
     // Sans email : la fonction fokontany-hisoratra crée le compte (déjà
     // confirmé), le trace dans client_signups et rend la session.
+    // L'email reste possible, facultatif (voir plus bas).
     var anarana = $('fkVaovaoAnarana').value.trim();
     var finday = $('fkVaovaoFinday').value.trim();
     var mdp = $('fkVaovaoMdp').value;
@@ -1007,6 +1009,34 @@ document.addEventListener('DOMContentLoaded', function () {
     if (mdp.length < 6) { st.textContent = 'Tokony ho 6 litera farafahakeliny ny mot de passe.'; return; }
     $('fkVaovaoValider').disabled = true;
     st.textContent = 'Mamorona ny kaonty…';
+    // Avec un email : l'inscription d'avant, comme Ny asako (lien de
+    // confirmation par mail, et « Adino ny mot de passe » possible ensuite).
+    var email = normEmail($('fkVaovaoEmail').value);
+    if (email) {
+      auth.signUp({ email: email, password: mdp, options: { data: { name: anarana, phone: finday } } }).then(function (res) {
+        $('fkVaovaoValider').disabled = false;
+        if (res && res.error) {
+          // L'email a peut-être déjà un compte : on tente d'entrer avec, comme Ny asako.
+          auth.signInWithPassword({ email: email, password: mdp }).then(function (r2) {
+            if (r2 && r2.error) { st.textContent = erreurAuth(res.error); return; }
+            ouvrir(r2.data.user);
+          }, function () { st.textContent = 'Tsy tratra ny serveur : jereo ny réseau.'; });
+          return;
+        }
+        // La même trace qu'une inscription dans Ny asako : le propriétaire la voit.
+        try {
+          window.__sb.from('client_signups').insert({ name: anarana, email: email, phone: finday }).then(function () {}, function () {});
+        } catch (err) {}
+        if (res.data && res.data.session) { ouvrir(res.data.user); return; }
+        st.textContent = 'Vita ny kaonty, fa mila hamafisina amin\'ny mailaka : sokafy ny mailaka nalefa tamin\'ny ' +
+          email + ', tsindrio ny rohy, dia midira eto amin\'ny anaranao.';
+        $('fkLoginEmail').value = anarana;
+      }, function () {
+        $('fkVaovaoValider').disabled = false;
+        st.textContent = 'Tsy tratra ny serveur : jereo ny réseau.';
+      });
+      return;
+    }
     window.__sb.functions.invoke('fokontany-hisoratra', { body: { anarana: anarana, finday: finday, mdp: mdp } }).then(function (r) {
       var d = (r && r.data) || {};
       if (!d.ok) {
