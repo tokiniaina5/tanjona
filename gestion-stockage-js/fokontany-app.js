@@ -536,9 +536,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (email) {
       $('fkLoginEmail').value = email;
       $('fkVaovaoEmail').value = email;
-      $('fkVaovaoForm').style.display = '';
-      $('fkVaovaoAnarana').focus();
-      $('fkLoginStatus').textContent = 'Mbola tsy manana kaonty ianao : forony eto ambany, dia hiditra.';
+      hamorona(true);
+      $('fkVaovaoStatus').textContent = 'Mbola tsy manana kaonty ianao : forony eto, dia hiditra.';
     }
     if (!nom || APP_COMMUN) return;
     // Un nom de fokontany ne se traduit pas : le navigateur rendait
@@ -1009,13 +1008,30 @@ document.addEventListener('DOMContentLoaded', function () {
     }).then(function () { bouton.disabled = false; });
   });
 
+  function hamorona(misokatra) {
+    var karatra = document.querySelector('#loginScreen .login-card');
+    karatra.querySelector('h1').textContent = misokatra ? 'Hamorona kaonty' : 'Fidirana';
+    karatra.querySelector('.sub').style.display = misokatra ? 'none' : '';
+    $('fkLoginForm').style.display = misokatra ? 'none' : '';
+    $('fkAdinoBtn').style.display = misokatra ? 'none' : '';
+    $('fkAdinoBox').style.display = 'none';
+    $('fkVaovaoForm').style.display = misokatra ? '' : 'none';
+    $('fkVaovaoForm').style.borderTop = misokatra ? 'none' : '';
+    $('fkVaovaoBtn').textContent = misokatra ? '← Efa manana kaonty — hiditra' : '📝 Tsy manana kaonty — hamorona kaonty';
+    if (misokatra) $('fkVaovaoAnarana').focus();
+  }
+
   function tsindry(id, idMiafina) {
     var box = $(id);
     var misokatra = box.style.display === 'none';
     box.style.display = misokatra ? '' : 'none';
     $(idMiafina).style.display = 'none';
   }
-  $('fkVaovaoBtn').addEventListener('click', function () { tsindry('fkVaovaoForm', 'fkAdinoBox'); });
+  // Créer un compte : la fidirana s'efface le temps de remplir le
+  // formulaire, et le même bouton y ramène.
+  $('fkVaovaoBtn').addEventListener('click', function () {
+    hamorona($('fkVaovaoForm').style.display === 'none');
+  });
   $('fkAdinoBtn').addEventListener('click', function () {
     tsindry('fkAdinoBox', 'fkVaovaoForm');
     var tafiditra = $('fkLoginEmail').value.trim();
