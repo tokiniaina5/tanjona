@@ -901,15 +901,27 @@ document.addEventListener('DOMContentLoaded', function () {
   $('fkLoginForm').addEventListener('submit', function (e) {
     e.preventDefault();
     if (!auth) { dire('Tsy tafiditra ny Supabase : jereo ny connexion internet.', true); return; }
-    var email = normEmail($('fkLoginEmail').value);
+    // Le nom, en principe (fonction fiditra-anarana, qui retrouve l'email et
+    // rend la session) ; un email tapé tel quel entre encore directement.
+    var anarana = $('fkLoginEmail').value.trim();
     var mdp = $('fkLoginPassword').value;
     var bouton = $('fkLoginBtn');
     bouton.disabled = true;
     dire('Miditra…');
-    auth.signInWithPassword({ email: email, password: mdp }).then(function (res) {
+    var fidirana = anarana.indexOf('@') >= 0
+      ? auth.signInWithPassword({ email: normEmail(anarana), password: mdp })
+      : window.__sb.functions.invoke('fiditra-anarana', { body: { anarana: anarana, mdp: mdp } }).then(function (r) {
+          var d = r && r.data;
+          if (r.error || !d || !d.ok) {
+            return { error: { message: d && d.antony === 'tsy_voamarina' ? 'email not confirmed' : 'invalid login credentials' } };
+          }
+          return auth.setSession({ access_token: d.access_token, refresh_token: d.refresh_token });
+        });
+    fidirana.then(function (res) {
       bouton.disabled = false;
       if (res.error || !res.data || !res.data.user) {
-        dire('Diso ny email na ny mot de passe.', true);
+        var brut = String((res.error && res.error.message) || '').toLowerCase();
+        dire(brut.indexOf('email not confirmed') >= 0 ? erreurAuth(res.error) : 'Diso ny anarana na ny mot de passe.', true);
         return;
       }
       dire('');
@@ -979,7 +991,8 @@ document.addEventListener('DOMContentLoaded', function () {
   $('fkVaovaoBtn').addEventListener('click', function () { tsindry('fkVaovaoForm', 'fkAdinoBox'); });
   $('fkAdinoBtn').addEventListener('click', function () {
     tsindry('fkAdinoBox', 'fkVaovaoForm');
-    if (!$('fkAdinoEmail').value) $('fkAdinoEmail').value = $('fkLoginEmail').value;
+    var tafiditra = $('fkLoginEmail').value.trim();
+    if (!$('fkAdinoEmail').value && tafiditra.indexOf('@') >= 0) $('fkAdinoEmail').value = tafiditra;
   });
 
   $('fkVaovaoForm').addEventListener('submit', function (e) {
@@ -1010,8 +1023,8 @@ document.addEventListener('DOMContentLoaded', function () {
       } catch (err) {}
       if (res.data && res.data.session) { ouvrir(res.data.user); return; }
       st.textContent = 'Vita ny kaonty, fa mila hamafisina amin\'ny mailaka : sokafy ny mailaka nalefa tamin\'ny ' +
-        email + ', tsindrio ny rohy, dia midira eto.';
-      $('fkLoginEmail').value = email;
+        email + ', tsindrio ny rohy, dia midira eto amin\'ny anaranao.';
+      $('fkLoginEmail').value = anarana;
     }, function () {
       $('fkVaovaoValider').disabled = false;
       st.textContent = 'Tsy tratra ny serveur : jereo ny réseau.';
