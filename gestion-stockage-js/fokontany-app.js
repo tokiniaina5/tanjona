@@ -537,7 +537,7 @@ document.addEventListener('DOMContentLoaded', function () {
       $('fkLoginEmail').value = email;
       $('fkVaovaoEmail').value = email;
       hamorona(true);
-      $('fkVaovaoStatus').textContent = 'Mbola tsy manana kaonty ianao : forony eto, dia hiditra.';
+      $('fkVaovaoStatus1').textContent = 'Mbola tsy manana kaonty ianao : forony eto, dia hiditra.';
     }
     if (!nom || APP_COMMUN) return;
     // Un nom de fokontany ne se traduit pas : le navigateur rendait
@@ -1004,18 +1004,48 @@ document.addEventListener('DOMContentLoaded', function () {
     if (misokatra) $('fkVaovaoAnarana').focus();
   }
 
-  // Inscription en deux temps : qui l'on est, puis le mot de passe dans le
-  // cadre « Mila alalana ».
+  // Inscription en deux temps : qui l'on est, puis la porte « Mila alalana »
+  // avec le mot de passe. Ses deux boutons créent le compte, puis passent la
+  // main à la porte de l'appli (commun-alalana.js) : la demande, ou le code.
   function dingana(n) {
     var faharoa = n === 2;
     $('fkDingana1').style.display = faharoa ? 'none' : '';
     $('fkDingana2').style.display = faharoa ? '' : 'none';
-    $('fkVaovaoValider').textContent = faharoa ? '🔓 Hamorona ny kaonty sy hiditra' : 'Manaraka →';
-    $('fkDinganaAnarana').textContent = ($('fkVaovaoAnarana').value.trim() + ' ' + $('fkVaovaoLast').value.trim()).trim();
-    $('fkVaovaoStatus').textContent = '';
+    $('fkVaovaoValider').style.display = faharoa ? 'none' : '';
+    $('fkVaovaoStatus1').style.display = faharoa ? 'none' : '';
+    $('fkVaovaoStatus1').textContent = '';
     if (faharoa) $('fkVaovaoMdp').focus();
   }
-  $('fkDinganaHiverina').addEventListener('click', function () { dingana(1); $('fkVaovaoAnarana').focus(); });
+  var hetsika = 'mangataka';
+  function miandry(eny) {
+    $('fkVaovaoMangataka').disabled = eny;
+    $('fkVaovaoSokafy').disabled = eny;
+  }
+  // Compte ouvert : la porte de l'appli reçoit la demande ou le code tapés ici.
+  function tafiditra(user) {
+    var hafatra = $('fkVaovaoHafatra').value.trim();
+    var code = $('fkVaovaoCode').value.trim();
+    ouvrir(user);
+    setTimeout(function () {
+      var vita = typeof window.renderPorteCommun === 'function' ? window.renderPorteCommun() : null;
+      Promise.resolve(vita).then(function (ouverte) {
+        if (ouverte || !$('porteMangataka')) return;
+        if (hetsika === 'sokafy') {
+          $('porteCode').value = code;
+          $('porteSokafy').click();
+        } else {
+          $('porteHafatra').value = hafatra;
+          $('porteMangataka').click();
+        }
+      });
+    }, 0);
+  }
+  $('fkVaovaoMangataka').addEventListener('click', function () { hetsika = 'mangataka'; });
+  $('fkVaovaoSokafy').addEventListener('click', function () {
+    if (!$('fkVaovaoCode').value.trim()) { $('fkVaovaoStatus').textContent = 'Soraty ny code nomen\'ny tompon\'ny site.'; return; }
+    hetsika = 'sokafy';
+    $('fkVaovaoForm').requestSubmit();
+  });
 
   function tsindry(id, idMiafina) {
     var box = $(id);
@@ -1030,13 +1060,13 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   $('fkAdinoBtn').addEventListener('click', function () {
     tsindry('fkAdinoBox', 'fkVaovaoForm');
-    var tafiditra = $('fkLoginEmail').value.trim();
-    if (!$('fkAdinoEmail').value && tafiditra.indexOf('@') >= 0) $('fkAdinoEmail').value = tafiditra;
+    var soratra = $('fkLoginEmail').value.trim();
+    if (!$('fkAdinoEmail').value && soratra.indexOf('@') >= 0) $('fkAdinoEmail').value = soratra;
   });
 
   $('fkVaovaoForm').addEventListener('submit', function (e) {
     e.preventDefault();
-    var st = $('fkVaovaoStatus');
+    var st = $($('fkDingana2').style.display === 'none' ? 'fkVaovaoStatus1' : 'fkVaovaoStatus');
     if (!auth) { st.textContent = 'Tsy tafiditra ny Supabase : jereo ny connexion internet.'; return; }
     // Sans email : la fonction fokontany-hisoratra crée le compte (déjà
     // confirmé), le trace dans client_signups et rend la session.
@@ -1050,19 +1080,19 @@ document.addEventListener('DOMContentLoaded', function () {
     // Premier temps : vers le cadre du mot de passe.
     if ($('fkDingana2').style.display === 'none') { dingana(2); return; }
     if (mdp.length < 6) { st.textContent = 'Tokony ho 6 litera farafahakeliny ny mot de passe.'; $('fkVaovaoMdp').focus(); return; }
-    $('fkVaovaoValider').disabled = true;
+    miandry(true);
     st.textContent = 'Mamorona ny kaonty…';
     // Avec un email : l'inscription d'avant, comme Ny asako (lien de
     // confirmation par mail, et « Adino ny mot de passe » possible ensuite).
     var email = normEmail($('fkVaovaoEmail').value);
     if (email) {
       auth.signUp({ email: email, password: mdp, options: { data: { name: anarana, first_name: voalohany, last_name: farany, phone: finday } } }).then(function (res) {
-        $('fkVaovaoValider').disabled = false;
+        miandry(false);
         if (res && res.error) {
           // L'email a peut-être déjà un compte : on tente d'entrer avec, comme Ny asako.
           auth.signInWithPassword({ email: email, password: mdp }).then(function (r2) {
             if (r2 && r2.error) { st.textContent = erreurAuth(res.error); return; }
-            ouvrir(r2.data.user);
+            tafiditra(r2.data.user);
           }, function () { st.textContent = 'Tsy tratra ny serveur : jereo ny réseau.'; });
           return;
         }
@@ -1070,12 +1100,12 @@ document.addEventListener('DOMContentLoaded', function () {
         try {
           window.__sb.from('client_signups').insert({ name: anarana, email: email, phone: finday }).then(function () {}, function () {});
         } catch (err) {}
-        if (res.data && res.data.session) { ouvrir(res.data.user); return; }
+        if (res.data && res.data.session) { tafiditra(res.data.user); return; }
         st.textContent = 'Vita ny kaonty, fa mila hamafisina amin\'ny mailaka : sokafy ny mailaka nalefa tamin\'ny ' +
           email + ', tsindrio ny rohy, dia midira eto amin\'ny anaranao.';
         $('fkLoginEmail').value = voalohany; $('fkLoginLast').value = farany;
       }, function () {
-        $('fkVaovaoValider').disabled = false;
+        miandry(false);
         st.textContent = 'Tsy tratra ny serveur : jereo ny réseau.';
       });
       return;
@@ -1083,7 +1113,7 @@ document.addEventListener('DOMContentLoaded', function () {
     window.__sb.functions.invoke('fokontany-hisoratra', { body: { anarana: anarana, finday: finday, mdp: mdp } }).then(function (r) {
       var d = (r && r.data) || {};
       if (!d.ok) {
-        $('fkVaovaoValider').disabled = false;
+        miandry(false);
         st.textContent = d.antony === 'efa_misy'
           ? 'Efa misy kaonty mitondra io anarana io : midira, na ampio fanampiny (anarana faharoa) ny anaranao.'
           : d.antony === 'anarana' ? 'Soraty ny anarana feno.'
@@ -1093,20 +1123,20 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       $('fkLoginEmail').value = voalohany; $('fkLoginLast').value = farany;
       if (!d.access_token) {
-        $('fkVaovaoValider').disabled = false;
+        miandry(false);
         st.textContent = 'Vita ny kaonty : midira eo ambony amin\'ny anaranao sy ny mot de passe.';
         return;
       }
       return auth.setSession({ access_token: d.access_token, refresh_token: d.refresh_token }).then(function (res) {
-        $('fkVaovaoValider').disabled = false;
+        miandry(false);
         if (res.error || !res.data || !res.data.user) {
           st.textContent = 'Vita ny kaonty : midira eo ambony amin\'ny anaranao sy ny mot de passe.';
           return;
         }
-        ouvrir(res.data.user);
+        tafiditra(res.data.user);
       });
     }, function () {
-      $('fkVaovaoValider').disabled = false;
+      miandry(false);
       st.textContent = 'Tsy tratra ny serveur : jereo ny réseau.';
     });
   });

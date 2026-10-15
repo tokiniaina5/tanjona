@@ -194,21 +194,35 @@
           <input id="fkVaovaoFinday" type="tel" placeholder="034 00 000 00" autocomplete="tel">
         </div>
       </div>
+      <!-- La porte du Commun (#communPorte), ici avec le mot de passe : le
+           compte naît au premier bouton, puis la porte de l'appli prend le
+           relais avec la même demande ou le même code (fokontany-app.js). -->
       <div id="fkDingana2" class="panel" style="display:none; margin-bottom:0.9rem;">
         <h3>🔐 Mila alalana ity pejy ity</h3>
         <p style="font-size:0.78rem; color:var(--muted); line-height:1.6; margin-bottom:0.9rem;">
-          <strong style="color:var(--text);" id="fkDinganaAnarana" translate="no"></strong> — mamoròna
-          <strong style="color:var(--text);">mot de passe</strong> hanokafana ny pejy. Io no ampiasainao
-          hiditra isaky ny miverina. Raha mbola tsy nahazo alalana ianao, angatahina aminao avy eo ny code
-          nomen'ny tompon'ny site.
+          Angataho amin'ny tompon'ny site ny fanokafana. Halefany amin'ny mailakao ny
+          <strong style="color:var(--text);">code</strong> sy ny rohy. Rehefa voasoratra ilay code
+          dia mahazo fampahafantarana izy, ary misokatra ny pejy rehefa nohamafisiny.
+          Indray mandeha ihany no ilana ny code : aorian'izay dia ny fidiranao amin'ny kaontinao
+          no manokatra azy, na eo amin'ny appareil hafa aza.
         </p>
         <div class="field">
           <label for="fkVaovaoMdp">Mot de passe</label>
           <input id="fkVaovaoMdp" type="password" minlength="6" placeholder="6 litera farafahakeliny" autocomplete="new-password">
         </div>
-        <button type="button" class="btn btn-sm" id="fkDinganaHiverina" style="width:auto;">← Hanova ny mombamomba</button>
+        <div class="field">
+          <label for="fkVaovaoHafatra">Hafatra (raha misy)</label>
+          <input type="text" id="fkVaovaoHafatra" placeholder="Ohatra : mpiara-miasa ao amin'ny fokontany" autocomplete="off">
+        </div>
+        <button type="submit" class="btn btn-sm" id="fkVaovaoMangataka" style="width:auto;">📩 Mangataka fanokafana</button>
+        <p id="fkVaovaoStatus" style="font-size:0.76rem; color:var(--muted); margin:0.7rem 0 0.9rem; line-height:1.5; min-height:1.1em;">Mbola tsy nangataka ianao.</p>
+        <div class="field">
+          <label for="fkVaovaoCode">Code nomen'ny tompon'ny site</label>
+          <input type="text" id="fkVaovaoCode" placeholder="Litera 8" autocomplete="off" style="font-family:var(--font-mono); letter-spacing:0.2em; text-transform:uppercase;">
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" id="fkVaovaoSokafy" style="width:auto;">🔓 Sokafy ny pejy</button>
       </div>
-      <p id="fkVaovaoStatus" style="font-size:0.75rem; color:var(--amber); margin:-0.2rem 0 0.8rem; line-height:1.5; min-height:1.1em;"></p>
+      <p id="fkVaovaoStatus1" style="font-size:0.75rem; color:var(--amber); margin:-0.2rem 0 0.8rem; line-height:1.5; min-height:1.1em;"></p>
       <button type="submit" class="btn btn-primary btn-sm" id="fkVaovaoValider" style="width:100%;">Manaraka →</button>
     </form>
 
