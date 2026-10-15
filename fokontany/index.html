@@ -149,11 +149,15 @@
   <div class="login-card">
     <div class="eyebrow" id="fkNomApp">Fokontany</div>
     <h1>Fidirana</h1>
-    <p class="sub">Ny kaonty Ny asako ihany no ampiasaina eto : anarana sy mot de passe mitovy.</p>
+    <p class="sub">Ny kaonty Ny asako ihany no ampiasaina eto : first name, last name ary mot de passe mitovy.</p>
     <form id="fkLoginForm">
       <div class="field">
-        <label for="fkLoginEmail">Anarana</label>
-        <input id="fkLoginEmail" type="text" required placeholder="Anarana feno" autocomplete="username">
+        <label for="fkLoginEmail">First name</label>
+        <input id="fkLoginEmail" type="text" required placeholder="Prénom" autocomplete="given-name">
+      </div>
+      <div class="field">
+        <label for="fkLoginLast">Last name</label>
+        <input id="fkLoginLast" type="text" placeholder="Nom" autocomplete="family-name">
       </div>
       <div class="field">
         <label for="fkLoginPassword">Mot de passe</label>
@@ -171,8 +175,12 @@
     <!-- Kaonty vaovao -->
     <form id="fkVaovaoForm" style="display:none; margin-top:0.9rem; border-top:1px solid var(--line); padding-top:0.9rem;">
       <div class="field">
-        <label for="fkVaovaoAnarana">Anarana feno</label>
-        <input id="fkVaovaoAnarana" type="text" required placeholder="Nom et prénoms" autocomplete="name">
+        <label for="fkVaovaoAnarana">First name</label>
+        <input id="fkVaovaoAnarana" type="text" required placeholder="Prénom" autocomplete="given-name">
+      </div>
+      <div class="field">
+        <label for="fkVaovaoLast">Last name</label>
+        <input id="fkVaovaoLast" type="text" required placeholder="Nom" autocomplete="family-name">
       </div>
       <div class="field">
         <label for="fkVaovaoEmail">Email (tsy voatery)</label>
