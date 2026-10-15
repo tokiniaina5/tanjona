@@ -1074,6 +1074,12 @@ document.addEventListener('DOMContentLoaded', function () {
     if (mdp.length < 6) { st.textContent = 'Tokony ho 6 litera farafahakeliny ny mot de passe.'; $('fkVaovaoMdp').focus(); return; }
     miandry(true);
     st.textContent = 'Mamorona ny kaonty…';
+    // Le serveur qui ne répond pas ne doit pas laisser le message figé.
+    setTimeout(function () {
+      if (st.textContent !== 'Mamorona ny kaonty…') return;
+      miandry(false);
+      st.textContent = 'Ela loatra ny valin\'ny serveur. Mety efa voaforona ny kaonty : andramo miditra amin\'ny « Efa manana kaonty » (last name sy mot de passe), na avereno.';
+    }, 30000);
     // Avec un email : l'inscription d'avant, comme Ny asako (lien de
     // confirmation par mail, et « Adino ny mot de passe » possible ensuite).
     var email = normEmail($('fkVaovaoEmail').value);
@@ -1130,6 +1136,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }, function () {
       miandry(false);
       st.textContent = 'Tsy tratra ny serveur : jereo ny réseau.';
+    }).catch(function (err) {
+      // Une erreur après la création restait muette : « Mamorona ny
+      // kaonty… » ne bougeait plus. Le compte existe peut-être déjà.
+      miandry(false);
+      st.textContent = 'Nisy olana : ' + ((err && err.message) || err) +
+        ' — andramo miditra amin\'ny « Efa manana kaonty » (last name sy mot de passe).';
     });
   });
 
