@@ -201,6 +201,20 @@
     });
     return key ? profiles[key] : null;
   }
+  // Même règle que emails_avy_farany (SQL) : le last name est le premier ou le
+  // dernier mot du nom (« Nom Prénoms » comme « Prénom Nom »), ou le nom entier.
+  function nameHasFarany(name, farany){
+    const n = String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    const f = String(farany || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    if(!n || !f) return false;
+    return n === f || n.indexOf(f + ' ') === 0 || n.slice(-(f.length + 1)) === ' ' + f;
+  }
+  // Hors ligne : les profils de cet appareil qui portent ce last name.
+  function findProfilesByFarany(farany){
+    const profiles = loadProfiles();
+    return Object.keys(profiles).map(function(k){ return profiles[k]; })
+      .filter(function(p){ return nameHasFarany(p.name, farany); });
+  }
   // Un compte est « rapide » dès qu'il possède un code d'accès enregistré.
   function hasQuickAccounts(){
     const profiles = loadProfiles();
@@ -646,6 +660,15 @@
   }
   function loadLastEmail(){
     try { return localStorage.getItem(STORAGE_LAST_EMAIL) || ''; } catch(e){ return ''; }
+  }
+  // Le « Bon retour » se fait au last name : c'est lui qu'on garde pour le
+  // retour, tel que la personne l'a tapé la dernière fois qu'elle est entrée.
+  const STORAGE_LAST_FARANY = 'stockmanager_last_farany';
+  function saveLastFarany(farany){
+    try { localStorage.setItem(STORAGE_LAST_FARANY, (farany || '').trim()); } catch(e){}
+  }
+  function loadLastFarany(){
+    try { return localStorage.getItem(STORAGE_LAST_FARANY) || ''; } catch(e){ return ''; }
   }
 
   const STORAGE_SESSION = 'stockmanager_session';
@@ -2407,14 +2430,14 @@
     if(loginTitle) loginTitle.textContent = quick ? 'Bon retour' : 'Connexion';
     if(loginSub){
       loginSub.textContent = quick
-        ? 'Entrez votre email et votre mot de passe : la connexion se valide automatiquement.'
+        ? 'Entrez votre last name et votre mot de passe.'
         : 'Première connexion : renseignez vos informations et choisissez un mot de passe pour créer votre compte.';
     }
     const status = document.getElementById('quickLoginStatus');
     if(status) status.textContent = '';
     if(quick){
       const emailField = document.getElementById('quickEmail');
-      const known = loadLastEmail();
+      const known = loadLastFarany();
       if(emailField && !emailField.value && known) emailField.value = known;
     }
     const forgotWrap = document.getElementById('forgotWrap');
@@ -2455,7 +2478,9 @@
       box.style.display = open ? 'none' : 'block';
       if(!open){
         const field = document.getElementById('resetEmail');
-        const known = document.getElementById('quickEmail').value.trim() || loadLastEmail();
+        // Le champ du « Bon retour » porte un last name, sauf si c'est un email.
+        const tape = document.getElementById('quickEmail').value.trim();
+        const known = (tape.indexOf('@') >= 0 ? tape : '') || loadLastEmail();
         if(field && !field.value && known) field.value = known;
         if(field) field.focus();
       }
@@ -2753,21 +2778,25 @@
 
   function tryQuickLogin(silent){
     const status = document.getElementById('quickLoginStatus');
-    const email = document.getElementById('quickEmail').value.trim();
+    const saisi = document.getElementById('quickEmail').value.trim();
     const code = document.getElementById('quickCode').value.trim();
-    if(!email || !code){
-      if(!silent && status) status.textContent = 'Email et code sont obligatoires.';
+    if(!saisi || !code){
+      if(!silent && status) status.textContent = 'Last name et code sont obligatoires.';
       return false;
     }
-    const profile = findProfileByEmail(email);
-    if(!profile || !profile.accessCode){
-      if(!silent && status) status.textContent = 'Aucun compte enregistré avec cet email sur cet appareil.';
+    const candidats = (saisi.indexOf('@') >= 0 ? [findProfileByEmail(saisi)] : findProfilesByFarany(saisi))
+      .filter(function(p){ return p && p.accessCode; });
+    if(!candidats.length){
+      if(!silent && status) status.textContent = 'Aucun compte enregistré avec ce last name sur cet appareil.';
       return false;
     }
-    if(String(profile.accessCode) !== code){
+    // Deux homonymes sur le même appareil : le code tranche.
+    const profile = candidats.find(function(p){ return String(p.accessCode) === code; });
+    if(!profile){
       if(!silent && status) status.textContent = 'Code incorrect.';
       return false;
     }
+    if(saisi.indexOf('@') < 0) saveLastFarany(saisi);
     if(status) status.textContent = '';
     loginFromProfile(profile);
     return true;
@@ -2843,7 +2872,9 @@
       if(open) return;
       // Ce que la personne vient de taper pour se connecter sert déjà : on ne
       // lui redemande pas son email deux fois de suite.
-      const quickEmail = document.getElementById('quickEmail').value.trim();
+      // Un last name n'est pas un email : on prend alors le dernier email connu.
+      const tape = document.getElementById('quickEmail').value.trim();
+      const quickEmail = tape.indexOf('@') >= 0 ? tape : loadLastEmail();
       const emailField = document.getElementById('forgotEmail');
       if(quickEmail && !emailField.value) emailField.value = quickEmail;
       const known = findProfileByEmail(emailField.value);
@@ -2967,20 +2998,41 @@
   let quickLoginBusy = false;
   let quickAutoTimer = null;
 
+  // Le last name seul passe par la fonction fiditra-anarana (comme dans le
+  // Fokontany) : elle retrouve les comptes de ce nom et garde celui que le mot
+  // de passe ouvre. Un email tapé tel quel entre encore directement.
+  function signInQuick(auth, saisi, password){
+    if(saisi.indexOf('@') >= 0) return auth.signInWithPassword({ email: saisi, password: password });
+    const sb = window.__sb;
+    if(!sb || !sb.functions) return Promise.reject(new Error('functions'));
+    return sb.functions.invoke('fiditra-anarana', { body: { farany: saisi, mdp: password } }).then(function(r){
+      const d = r && r.data;
+      if(r.error || !d || !d.ok){
+        return { error: { message: d && d.antony === 'tsy_voamarina' ? 'email not confirmed' : 'invalid login credentials' } };
+      }
+      return auth.setSession({ access_token: d.access_token, refresh_token: d.refresh_token });
+    });
+  }
+
   function submitQuickLogin(silent){
     const auth = sbAuth();
     if(!auth) return tryQuickLogin(silent);   // repli hors ligne
     if(quickLoginBusy) return false;
     const status = document.getElementById('quickLoginStatus');
-    const email = document.getElementById('quickEmail').value.trim();
+    const saisi = document.getElementById('quickEmail').value.trim();
+    const parEmail = saisi.indexOf('@') >= 0;
     const password = document.getElementById('quickCode').value;
-    if(!email || password.length < 6){
-      if(!silent && status) status.textContent = 'Email et mot de passe (6 caractères minimum) obligatoires.';
+    if(!saisi || password.length < 6){
+      if(!silent && status) status.textContent = 'Last name et mot de passe (6 caractères minimum) obligatoires.';
       return false;
     }
+    // Sans email, le propriétaire se reconnaît à son nom — et seulement sur
+    // son appareil habituel, seul endroit où le code de secours s'offre.
+    const email = parEmail ? saisi
+      : (nameHasFarany(OWNER_NAME, saisi) && isOwnerDevice() ? OWNER_EMAIL : '');
     quickLoginBusy = true;
     if(status) status.textContent = 'Connexion…';
-    auth.signInWithPassword({ email: email, password: password }).then(function(res){
+    signInQuick(auth, saisi, password).then(function(res){
       quickLoginBusy = false;
       if(res && res.error){
         // propriétaire sur son appareil habituel : pas de paiement, pas
@@ -2996,16 +3048,21 @@
           // — c'est peu, sur un téléphone où l'on tape lentement — et le compte
           // se fermait sur son propre titulaire, qui n'avait rien fait d'autre
           // que taper son mot de passe correctement.
-          if(!silent && typeof noteFailedAttempt === 'function') noteFailedAttempt(email);
+          // (Au last name seul, on ne sait pas quel compte était visé.)
+          if(!silent && email && typeof noteFailedAttempt === 'function') noteFailedAttempt(email);
           if(isOwnerEmail(email) && isOwnerDevice() && !loadRescue()){
             offerOwnerRescueCode();
             return;
           }
-          if(status) status.textContent = silent ? '' : authErrorText(res.error);
+          const brut = String((res.error && res.error.message) || '').toLowerCase();
+          const texte = (!parEmail && brut.indexOf('invalid login credentials') >= 0)
+            ? 'Last name ou mot de passe incorrect.' : authErrorText(res.error);
+          if(status) status.textContent = silent ? '' : texte;
         });
         return;
       }
       if(status) status.textContent = '';
+      if(!parEmail) saveLastFarany(saisi);
       openAppForAuthUser(res.data.user);
     }, function(){
       quickLoginBusy = false;
@@ -3025,6 +3082,9 @@
       if(quickAutoTimer) clearTimeout(quickAutoTimer);
       const auth = sbAuth();
       if(!auth){ tryQuickLogin(true); return; }
+      // Au last name, chaque essai fait tourner fiditra-anarana sur tous les
+      // homonymes : on attend le bouton plutôt que d'essayer à chaque pause.
+      if(document.getElementById('quickEmail').value.indexOf('@') < 0) return;
       quickAutoTimer = setTimeout(function(){ submitQuickLogin(true); }, 700);
     });
   }

@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="e9736976">
+<meta name="ny-asako-version" content="f0a63dd0">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -161,11 +161,13 @@
     <h1 id="loginTitle">Connexion</h1>
     <p class="sub" id="loginSub">Première connexion : renseignez vos informations et choisissez un mot de passe pour créer votre compte.</p>
 
-    <!-- Retour d'un compte déjà enregistré : email + code suffisent -->
+    <!-- Retour d'un compte déjà enregistré : le nom de famille et le mot de
+         passe suffisent, comme dans le Fokontany (fonction fiditra-anarana).
+         L'id reste quickEmail : un email tapé tel quel entre encore. -->
     <form id="quickLoginForm" style="display:none;">
       <div class="field">
-        <label for="quickEmail">Email</label>
-        <input id="quickEmail" type="email" required placeholder="vous@exemple.com" autocomplete="email">
+        <label for="quickEmail">Last name</label>
+        <input id="quickEmail" type="text" required placeholder="Nom" autocomplete="family-name">
       </div>
       <div class="field">
         <label for="quickCode">Mot de passe</label>
@@ -3248,7 +3250,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=bdedf042"></script>
+<script src="gestion-stockage-js/common.js?v=9324df3c"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=622d64e8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
