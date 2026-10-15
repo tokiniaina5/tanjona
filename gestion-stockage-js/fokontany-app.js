@@ -900,36 +900,28 @@ document.addEventListener('DOMContentLoaded', function () {
   $('fkLoginForm').addEventListener('submit', function (e) {
     e.preventDefault();
     if (!auth) { dire('Tsy tafiditra ny Supabase : jereo ny connexion internet.', true); return; }
-    // Le nom, en principe (fonction fiditra-anarana, qui retrouve l'email et
-    // rend la session) ; un email tapé tel quel entre encore directement.
-    // First name et last name : le compte porte « prénom nom », mais ceux
-    // d'avant ont souvent « nom prénoms » — on essaie les deux ordres.
-    var voalohany = $('fkLoginEmail').value.trim();
-    var farany = $('fkLoginLast').value.trim();
+    // Le nom de famille seul (fonction fiditra-anarana, qui retrouve les
+    // comptes de ce nom et garde celui que le mot de passe ouvre) ; un email
+    // tapé tel quel entre encore directement.
+    var farany = $('fkLoginEmail').value.trim();
     var mdp = $('fkLoginPassword').value;
     var bouton = $('fkLoginBtn');
     bouton.disabled = true;
     dire('Miditra…');
-    function amin(anarana) {
-      return window.__sb.functions.invoke('fiditra-anarana', { body: { anarana: anarana, mdp: mdp } }).then(function (r) {
-        var d = r && r.data;
-        if (r.error || !d || !d.ok) {
-          return { error: { message: d && d.antony === 'tsy_voamarina' ? 'email not confirmed' : 'invalid login credentials' } };
-        }
-        return auth.setSession({ access_token: d.access_token, refresh_token: d.refresh_token });
-      });
-    }
-    var fidirana = voalohany.indexOf('@') >= 0
-      ? auth.signInWithPassword({ email: normEmail(voalohany), password: mdp })
-      : amin((voalohany + ' ' + farany).trim()).then(function (res) {
-          var diso = res.error && String(res.error.message).indexOf('invalid') >= 0;
-          return diso && farany ? amin(farany + ' ' + voalohany) : res;
+    var fidirana = farany.indexOf('@') >= 0
+      ? auth.signInWithPassword({ email: normEmail(farany), password: mdp })
+      : window.__sb.functions.invoke('fiditra-anarana', { body: { farany: farany, mdp: mdp } }).then(function (r) {
+          var d = r && r.data;
+          if (r.error || !d || !d.ok) {
+            return { error: { message: d && d.antony === 'tsy_voamarina' ? 'email not confirmed' : 'invalid login credentials' } };
+          }
+          return auth.setSession({ access_token: d.access_token, refresh_token: d.refresh_token });
         });
     fidirana.then(function (res) {
       bouton.disabled = false;
       if (res.error || !res.data || !res.data.user) {
         var brut = String((res.error && res.error.message) || '').toLowerCase();
-        dire(brut.indexOf('email not confirmed') >= 0 ? erreurAuth(res.error) : 'Diso ny anarana na ny mot de passe.', true);
+        dire(brut.indexOf('email not confirmed') >= 0 ? erreurAuth(res.error) : 'Diso ny last name na ny mot de passe.', true);
         return;
       }
       dire('');
@@ -1102,15 +1094,15 @@ document.addEventListener('DOMContentLoaded', function () {
         } catch (err) {}
         if (res.data && res.data.session) { tafiditra(res.data.user); return; }
         st.textContent = 'Vita ny kaonty, fa mila hamafisina amin\'ny mailaka : sokafy ny mailaka nalefa tamin\'ny ' +
-          email + ', tsindrio ny rohy, dia midira eto amin\'ny anaranao.';
-        $('fkLoginEmail').value = voalohany; $('fkLoginLast').value = farany;
+          email + ', tsindrio ny rohy, dia midira eto amin\'ny last name-nao.';
+        $('fkLoginEmail').value = farany;
       }, function () {
         miandry(false);
         st.textContent = 'Tsy tratra ny serveur : jereo ny réseau.';
       });
       return;
     }
-    window.__sb.functions.invoke('fokontany-hisoratra', { body: { anarana: anarana, finday: finday, mdp: mdp } }).then(function (r) {
+    window.__sb.functions.invoke('fokontany-hisoratra', { body: { anarana: anarana, voalohany: voalohany, farany: farany, finday: finday, mdp: mdp } }).then(function (r) {
       var d = (r && r.data) || {};
       if (!d.ok) {
         miandry(false);
@@ -1121,16 +1113,16 @@ document.addEventListener('DOMContentLoaded', function () {
           : 'Tsy nety ny famoronana kaonty : andramo indray.';
         return;
       }
-      $('fkLoginEmail').value = voalohany; $('fkLoginLast').value = farany;
+      $('fkLoginEmail').value = farany;
       if (!d.access_token) {
         miandry(false);
-        st.textContent = 'Vita ny kaonty : midira eo ambony amin\'ny anaranao sy ny mot de passe.';
+        st.textContent = 'Vita ny kaonty : midira amin\'ny last name-nao sy ny mot de passe.';
         return;
       }
       return auth.setSession({ access_token: d.access_token, refresh_token: d.refresh_token }).then(function (res) {
         miandry(false);
         if (res.error || !res.data || !res.data.user) {
-          st.textContent = 'Vita ny kaonty : midira eo ambony amin\'ny anaranao sy ny mot de passe.';
+          st.textContent = 'Vita ny kaonty : midira amin\'ny last name-nao sy ny mot de passe.';
           return;
         }
         tafiditra(res.data.user);

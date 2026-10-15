@@ -39,11 +39,16 @@ Deno.serve(async (req: Request) => {
   }
 
   let anarana = "";
+  let voalohany = "";
+  let farany = "";
   let finday = "";
   let mdp = "";
   try {
     const corps = await req.json();
     anarana = String(corps?.anarana ?? "").trim().replace(/\s+/g, " ").slice(0, 120);
+    // Le nom de famille à part : on entre ensuite avec lui seul (fiditra-anarana).
+    voalohany = String(corps?.voalohany ?? "").trim().replace(/\s+/g, " ").slice(0, 60);
+    farany = String(corps?.farany ?? "").trim().replace(/\s+/g, " ").slice(0, 60);
     finday = String(corps?.finday ?? "").trim().slice(0, 40);
     mdp = String(corps?.mdp ?? "");
   } catch {
@@ -62,7 +67,10 @@ Deno.serve(async (req: Request) => {
     email,
     password: mdp,
     email_confirm: true,
-    user_metadata: { name: anarana, phone: finday, tsy_misy_email: true },
+    user_metadata: {
+      name: anarana, first_name: voalohany || null, last_name: farany || null,
+      phone: finday, tsy_misy_email: true,
+    },
   });
   if (e2) return json({ ok: false, error: e2.message }, 502);
 

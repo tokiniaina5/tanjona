@@ -26,3 +26,34 @@ $$;
 
 revoke all on function public.emails_avy_anarana(text) from public, anon, authenticated;
 grant execute on function public.emails_avy_anarana(text) to service_role;
+
+-- Fidirana amin'ny last name ihany : les emails dont le nom de famille est
+-- celui-là. last_name quand l'inscription l'a posé ; sinon le premier ou le
+-- dernier mot du nom (« Nom Prénoms » des anciens comptes, « Prénom Nom »
+-- des nouveaux). Le mot de passe tranche entre les homonymes.
+create or replace function public.emails_avy_farany(p_farany text)
+returns setof text
+language sql
+stable
+security definer
+set search_path = public, auth
+as $$
+  with n as (
+    select lower(regexp_replace(trim(coalesce(p_farany, '')), '\s+', ' ', 'g')) as v
+  )
+  select u.email::text
+  from auth.users u, n
+  where u.email is not null
+    and length(n.v) > 0
+    and (
+      lower(trim(coalesce(u.raw_user_meta_data->>'last_name', ''))) = n.v
+      or lower(regexp_replace(trim(coalesce(u.raw_user_meta_data->>'name', '')), '\s+', ' ', 'g')) = n.v
+      or lower(regexp_replace(trim(coalesce(u.raw_user_meta_data->>'name', '')), '\s+', ' ', 'g')) like n.v || ' %'
+      or lower(regexp_replace(trim(coalesce(u.raw_user_meta_data->>'name', '')), '\s+', ' ', 'g')) like '% ' || n.v
+    )
+  order by u.last_sign_in_at desc nulls last
+  limit 25;
+$$;
+
+revoke all on function public.emails_avy_farany(text) from public, anon, authenticated;
+grant execute on function public.emails_avy_farany(text) to service_role;

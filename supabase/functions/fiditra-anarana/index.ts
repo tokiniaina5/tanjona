@@ -35,19 +35,25 @@ Deno.serve(async (req: Request) => {
     return json({ error: "configuration incomplète" }, 500);
   }
 
+  // Le nom complet (anarana), ou le nom de famille seul (farany) : la page
+  // du Fokontany ne demande plus que celui-ci.
   let anarana = "";
+  let farany = "";
   let mdp = "";
   try {
     const corps = await req.json();
     anarana = String(corps?.anarana ?? "").trim().slice(0, 120);
+    farany = String(corps?.farany ?? "").trim().slice(0, 120);
     mdp = String(corps?.mdp ?? "");
   } catch {
     return json({ error: "corps de requête illisible" }, 400);
   }
-  if (!anarana || !mdp) return json({ ok: false });
+  if ((!anarana && !farany) || !mdp) return json({ ok: false });
 
   const admin = createClient(supabaseUrl, serviceKey);
-  const { data: emails, error } = await admin.rpc("emails_avy_anarana", { p_anarana: anarana });
+  const { data: emails, error } = farany
+    ? await admin.rpc("emails_avy_farany", { p_farany: farany })
+    : await admin.rpc("emails_avy_anarana", { p_anarana: anarana });
   if (error) return json({ error: error.message }, 502);
 
   // Un nom inconnu et un mot de passe faux répondent pareil : rien ne dit
