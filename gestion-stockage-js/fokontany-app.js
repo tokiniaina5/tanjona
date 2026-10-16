@@ -496,6 +496,20 @@ document.addEventListener('DOMContentLoaded', function () {
     // un papier. Le toucher ouvre l'onglet qui le montre, la ligne filtrée ;
     // dans le Commun, chez le fokontany d'où il vient.
     if (!APP_COMMUN) champ.placeholder = '🔍 Hikaroka ato amin\'ny site (pejy, anarana, fonenana, CIN…)';
+    // La loupe ouvre la barre ; vide, elle se referme en perdant la main.
+    var barre = $('fkBarreAvanana');
+    $('fkRechercheBtn').addEventListener('click', function () {
+      barre.classList.add('mikaroka');
+      $('fkRechercheBtn').setAttribute('aria-expanded', 'true');
+      champ.focus();
+    });
+    champ.addEventListener('blur', function () {
+      setTimeout(function () {
+        if (champ.value || document.activeElement === champ) return;
+        barre.classList.remove('mikaroka');
+        $('fkRechercheBtn').setAttribute('aria-expanded', 'false');
+      }, 200);
+    });
     var valiny = $('communRechercheValiny');
     var echap = function (t) { var d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; };
     var trouves = [];
@@ -541,6 +555,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // Une page, ou le fokontany seul : rien à filtrer ; sinon la ligne
       // trouvée reste seule.
       champ.value = it.pejy || it.onglet === 'tableau' ? '' : it.texte;
+      if (!champ.value) barre.classList.remove('mikaroka');
       if (APP_COMMUN && it.email) jereoFokontany(it.email, it.fokontany);
       choisirOngletCommun(it.onglet);
       setTimeout(filtrer, 0);

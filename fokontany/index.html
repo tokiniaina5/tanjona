@@ -157,7 +157,9 @@
   html.app-commun.commun-jerena #dash-commun [data-commun="fokontany"],
   html.app-commun.commun-jerena #ongletFangatahana{ display:none !important; }  /* Dans l'en-tête, à droite du nom, avant ⚙️ : elle prend la place libre. */
   #fkBarreAvanana{ flex:1 1 320px; justify-content:flex-end; min-width:0; }
-  #communRechercheBox{ display:flex; align-items:center; gap:0.6rem; flex:1 1 auto; min-width:0; max-width:560px; }
+  #communRechercheBox{ display:none; align-items:center; gap:0.6rem; flex:1 1 auto; min-width:0; max-width:560px; }
+  #fkBarreAvanana.mikaroka #communRechercheBox{ display:flex; }
+  #fkBarreAvanana.mikaroka #fkRechercheBtn{ display:none; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" crossorigin="anonymous"></script>
 <script src="/gestion-stockage-js/supabase-init.js?v=41d055dd"></script>
@@ -302,6 +304,8 @@
            membres, adidy, papiers ; dans le Commun, chez tous ses fokontany
            (fokontany-app.js). Dans l'en-tête qui reste en vue, et hors de
            .lecture-seule. -->
+      <!-- Une loupe d'abord : la toucher ouvre la barre (fokontany-app.js). -->
+      <button type="button" class="btn btn-sm" id="fkRechercheBtn" aria-label="Hikaroka" aria-expanded="false" style="width:auto;">🔍</button>
       <div id="communRechercheBox" style="position:relative;">
         <input type="search" id="communRecherche" placeholder="🔍 Hikaroka ato amin'ny Commun rehetra (fokontany, anarana, fonenana, CIN…)" autocomplete="off"
           style="flex:1; min-width:0; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:10px; padding:0.6rem 0.8rem; font:inherit;">
@@ -926,7 +930,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="/gestion-stockage-js/fokontany-app.js?v=269e81f3"></script>
+<script src="/gestion-stockage-js/fokontany-app.js?v=fa46f750"></script>
 <script src="/gestion-stockage-js/commun-alalana.js?v=37c5fb66"></script>
 <script src="/gestion-stockage-js/pdf.js?v=b7c1f056"></script>
 <script src="/gestion-stockage-js/taratasy.js?v=7688b0e0"></script>
