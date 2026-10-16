@@ -262,6 +262,41 @@ function chargerIndexCommun() {
   });
 }
 
+// Le même index pour un fokontany : ce qu'il a écrit lui-même.
+var indexFokontany = null;
+var indexFokontanyAt = 0;
+function chargerIndexFokontany() {
+  if (indexFokontany && Date.now() - indexFokontanyAt < 60000) return Promise.resolve(indexFokontany);
+  var sb = window.__sb;
+  var moi = currentUser && cleEmail(currentUser.email);
+  if (!sb || !moi) return Promise.resolve([]);
+  var lire = function (table, colonnes) {
+    return sb.from(table).select(colonnes).eq('owner_email', moi)
+      .then(function (res) { return (res && !res.error && res.data) || []; }, function () { return []; });
+  };
+  return Promise.all([
+    lire('fianakaviana', 'anarana,fonenana,laharana'),
+    lire('fianakaviana_mpikambana', 'anarana,laharana_cin,andraikitra'),
+    lire('adidy', 'anarana,fe_potoana'),
+    lire('taratasy', 'anarana,laharana,laharana_cin,karazana,fonenana')
+  ]).then(function (t) {
+    var items = [];
+    var ajouter = function (icone, texte, sous, onglet) {
+      if (texte) items.push({ icone: icone, texte: String(texte), sous: sous || '', onglet: onglet });
+    };
+    t[0].forEach(function (x) { ajouter('📖', x.anarana, [x.laharana, x.fonenana].filter(Boolean).join(' · '), 'fianakaviana'); });
+    t[1].forEach(function (x) { ajouter('👤', x.anarana, [x.andraikitra, x.laharana_cin].filter(Boolean).join(' · '), 'fianakaviana'); });
+    t[2].forEach(function (x) { ajouter('💰', x.anarana, x.fe_potoana === 'taona' ? 'isan-taona' : 'isam-bolana', 'adidy'); });
+    t[3].forEach(function (x) {
+      if (x.karazana === 'fifindramonina') return;
+      ajouter('📄', x.anarana, [x.laharana, x.laharana_cin, x.fonenana].filter(Boolean).join(' · '), 'taratasy');
+    });
+    indexFokontany = items;
+    indexFokontanyAt = Date.now();
+    return items;
+  });
+}
+
 function rendreLesFokontany() {
   var corps = document.getElementById('communFokontanyLisitra');
   if (!corps || !window.__sb || !(currentUser && isOwnerEmail(currentUser.email))) return;
@@ -416,9 +451,10 @@ document.addEventListener('DOMContentLoaded', function () {
       var el = $(id);
       if (el) el.classList.add('lecture-seule');
     });
+  }
 
-    // ---------- La recherche du Commun ----------
-    // Il ne touche à rien, mais il cherche : ce qui est tapé masque les lignes
+  // ---------- La recherche, dans le Commun comme dans le Fokontany ----------
+  // Dans l'en-tête, à la place de l'ancienne cloche. Ce qui est tapé masque les lignes
     // de l'onglet ouvert (tableaux, listes, cartes) qui ne le contiennent pas.
     // Les onglets se redessinent en arrivant du serveur : on refiltre alors.
     var champ = $('communRecherche');
@@ -455,9 +491,11 @@ document.addEventListener('DOMContentLoaded', function () {
       tab.addEventListener('click', function () { setTimeout(filtrer, 0); });
     });
 
-    // Et dans tout le Commun : sous la barre, ce qui correspond, où que ce
-    // soit — un fokontany, un livret, un membre, un adidy, un papier. Le
-    // toucher ouvre ce fokontany à l'onglet qui le montre, la ligne filtrée.
+    // Et dans tout le site : sous la barre, ce qui correspond, où que ce
+    // soit — une page (onglet), un fokontany, un livret, un membre, un adidy,
+    // un papier. Le toucher ouvre l'onglet qui le montre, la ligne filtrée ;
+    // dans le Commun, chez le fokontany d'où il vient.
+    if (!APP_COMMUN) champ.placeholder = '🔍 Hikaroka ato amin\'ny site (pejy, anarana, fonenana, CIN…)';
     var valiny = $('communRechercheValiny');
     var echap = function (t) { var d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; };
     var trouves = [];
@@ -469,10 +507,10 @@ document.addEventListener('DOMContentLoaded', function () {
       var mots = sansAccent(champ.value).split(/\s+/).filter(Boolean);
       if (!mots.length || sansAccent(champ.value).trim().length < 2) { fermerValiny(); return; }
       var ity = ++tour;
-      chargerIndexCommun().then(function (index) {
+      (APP_COMMUN ? chargerIndexCommun() : chargerIndexFokontany()).then(function (index) {
         if (ity !== tour) return;
-        trouves = (index || []).filter(function (it) {
-          var tout = sansAccent(it.texte + ' ' + it.sous + ' ' + it.fokontany);
+        trouves = pejyHita().concat(index || []).filter(function (it) {
+          var tout = sansAccent(it.texte + ' ' + it.sous + ' ' + (it.fokontany || ''));
           return mots.every(function (m) { return tout.indexOf(m) !== -1; });
         }).slice(0, 40);
         valiny.innerHTML = trouves.length
@@ -480,9 +518,9 @@ document.addEventListener('DOMContentLoaded', function () {
               return '<div role="option" data-valiny="' + n + '" style="padding:0.55rem 0.8rem; border-bottom:1px solid var(--line); cursor:pointer; font-size:0.82rem; line-height:1.4;">' +
                 it.icone + ' <strong>' + echap(it.texte) + '</strong>' +
                 (it.sous ? ' <span style="color:var(--muted);">· ' + echap(it.sous) + '</span>' : '') +
-                '<div style="font-size:0.72rem; color:var(--cyan);">🗂️ ' + echap(it.fokontany) + '</div></div>';
+                (APP_COMMUN && it.fokontany ? '<div style="font-size:0.72rem; color:var(--cyan);">🗂️ ' + echap(it.fokontany) + '</div>' : '') + '</div>';
             }).join('')
-          : '<p style="padding:0.7rem 0.8rem; margin:0; font-size:0.8rem; color:var(--muted);">Tsy misy hita ao amin\'ny Commun.</p>';
+          : '<p style="padding:0.7rem 0.8rem; margin:0; font-size:0.8rem; color:var(--muted);">Tsy misy hita ato amin\'ny site.</p>';
         valiny.style.display = 'block';
         $('communRechercheIsa').style.visibility = 'hidden';
       });
@@ -500,9 +538,10 @@ document.addEventListener('DOMContentLoaded', function () {
       var it = trouves[Number(el.dataset.valiny)];
       if (!it) return;
       fermerValiny();
-      // Le fokontany seul : rien à filtrer ; sinon la ligne trouvée reste seule.
-      champ.value = it.onglet === 'tableau' ? '' : it.texte;
-      jereoFokontany(it.email, it.fokontany);
+      // Une page, ou le fokontany seul : rien à filtrer ; sinon la ligne
+      // trouvée reste seule.
+      champ.value = it.pejy || it.onglet === 'tableau' ? '' : it.texte;
+      if (APP_COMMUN && it.email) jereoFokontany(it.email, it.fokontany);
       choisirOngletCommun(it.onglet);
       setTimeout(filtrer, 0);
     });
@@ -510,7 +549,18 @@ document.addEventListener('DOMContentLoaded', function () {
       if (valiny.style.display === 'none') return;
       if (e.target.closest && !e.target.closest('#communRechercheBox')) fermerValiny();
     });
-  }
+
+    // Les pages du site elles-mêmes : les onglets visibles, par leur nom.
+    function pejyHita() {
+      var lisitra = [];
+      document.querySelectorAll('#dash-commun [data-commun]').forEach(function (t) {
+        if (!t.offsetParent) return;
+        var soratra = t.textContent.trim();
+        var m = soratra.match(/^(\S+)\s+(.*)$/);
+        lisitra.push({ icone: m ? m[1] : '📄', texte: m ? m[2] : soratra, sous: 'pejy', onglet: t.dataset.commun, pejy: true });
+      });
+      return lisitra;
+    }
 
   // ---------- Le nom du fokontany ----------
   // Le lien donné à un fokontany porte son nom (« ?f=… », common.js) : sa
