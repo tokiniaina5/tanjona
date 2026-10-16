@@ -1009,9 +1009,11 @@ document.addEventListener('DOMContentLoaded', function () {
     var bouton = $('fkLoginBtn');
     bouton.disabled = true;
     dire('Miditra…');
-    var fidirana = soratra.indexOf('@') >= 0
-      ? auth.signInWithPassword({ email: normEmail(soratra), password: mdp })
-      : window.__sb.functions.invoke('fiditra-anarana', { body: finday ? { finday: soratra, mdp: mdp } : { farany: soratra, mdp: mdp } }).then(function (r) {
+    // L'email aussi passe par la fonction : le compte Fokontany à part (son
+    // mot de passe à lui) d'abord, le compte Ny asako de cet email ensuite.
+    var corps = soratra.indexOf('@') >= 0 ? { email: normEmail(soratra), mdp: mdp }
+      : finday ? { finday: soratra, mdp: mdp } : { farany: soratra, mdp: mdp };
+    var fidirana = window.__sb.functions.invoke('fiditra-anarana', { body: corps }).then(function (r) {
           var d = r && r.data;
           if (r.error || !d || !d.ok) {
             return { error: { message: d && d.antony === 'tsy_voamarina' ? 'email not confirmed' : 'invalid login credentials' } };
@@ -1164,35 +1166,11 @@ document.addEventListener('DOMContentLoaded', function () {
       miandry(false);
       st.textContent = 'Ela loatra ny valin\'ny serveur. Mety efa voaforona ny kaonty : andramo miditra amin\'ny « Efa manana kaonty » (email na finday, sy mot de passe), na avereno.';
     }, 30000);
-    // Avec un email : l'inscription d'avant, comme Ny asako (lien de
-    // confirmation par mail, et « Adino ny mot de passe » possible ensuite).
+    // Toujours un compte Fokontany à part, avec ce mot de passe-ci : l'email
+    // tapé (même celui d'un compte Ny asako) n'en est que l'adresse, gardée
+    // pour entrer et pour recevoir le code (fokontany-hisoratra).
     var email = normEmail($('fkVaovaoEmail').value);
-    if (email) {
-      auth.signUp({ email: email, password: mdp, options: { data: { name: anarana, first_name: voalohany, last_name: farany, phone: finday } } }).then(function (res) {
-        miandry(false);
-        if (res && res.error) {
-          // L'email a peut-être déjà un compte : on tente d'entrer avec, comme Ny asako.
-          auth.signInWithPassword({ email: email, password: mdp }).then(function (r2) {
-            if (r2 && r2.error) { st.textContent = erreurAuth(res.error); return; }
-            tafiditra(r2.data.user);
-          }, function () { st.textContent = 'Tsy tratra ny serveur : jereo ny réseau.'; });
-          return;
-        }
-        // La même trace qu'une inscription dans Ny asako : le propriétaire la voit.
-        try {
-          window.__sb.from('client_signups').insert({ name: anarana, email: email, phone: finday }).then(function () {}, function () {});
-        } catch (err) {}
-        if (res.data && res.data.session) { tafiditra(res.data.user); return; }
-        st.textContent = 'Vita ny kaonty, fa mila hamafisina amin\'ny mailaka : sokafy ny mailaka nalefa tamin\'ny ' +
-          email + ', tsindrio ny rohy, dia midira eto amin\'ny email-nao.';
-        $('fkLoginEmail').value = email;
-      }, function () {
-        miandry(false);
-        st.textContent = 'Tsy tratra ny serveur : jereo ny réseau.';
-      });
-      return;
-    }
-    window.__sb.functions.invoke('fokontany-hisoratra', { body: { anarana: anarana, voalohany: voalohany, farany: farany, finday: finday, mdp: mdp } }).then(function (r) {
+    window.__sb.functions.invoke('fokontany-hisoratra', { body: { anarana: anarana, voalohany: voalohany, farany: farany, finday: finday, email: email, mdp: mdp } }).then(function (r) {
       var d = (r && r.data) || {};
       if (!d.ok) {
         miandry(false);
@@ -1200,19 +1178,20 @@ document.addEventListener('DOMContentLoaded', function () {
           ? 'Efa misy kaonty mitondra io anarana io : midira, na ampio fanampiny (anarana faharoa) ny anaranao.'
           : d.antony === 'anarana' ? 'Soraty ny anarana feno.'
           : d.antony === 'mdp' ? 'Tokony ho 6 litera farafahakeliny ny mot de passe.'
+          : d.antony === 'mailaka' ? 'Diso ny email.'
           : 'Tsy nety ny famoronana kaonty : andramo indray.';
         return;
       }
-      $('fkLoginEmail').value = finday;
+      $('fkLoginEmail').value = email || finday;
       if (!d.access_token) {
         miandry(false);
-        st.textContent = 'Vita ny kaonty : midira amin\'ny laharana finday-nao sy ny mot de passe.';
+        st.textContent = 'Vita ny kaonty : midira amin\'ny email na finday-nao sy ny mot de passe.';
         return;
       }
       return auth.setSession({ access_token: d.access_token, refresh_token: d.refresh_token }).then(function (res) {
         miandry(false);
         if (res.error || !res.data || !res.data.user) {
-          st.textContent = 'Vita ny kaonty : midira amin\'ny laharana finday-nao sy ny mot de passe.';
+          st.textContent = 'Vita ny kaonty : midira amin\'ny email na finday-nao sy ny mot de passe.';
           return;
         }
         tafiditra(res.data.user);

@@ -42,9 +42,14 @@ Deno.serve(async (req: Request) => {
   let voalohany = "";
   let farany = "";
   let finday = "";
+  let mailaka = "";
   let mdp = "";
   try {
     const corps = await req.json();
+    // L'email tapé, facultatif : le compte reste à part (email interne), avec
+    // son propre mot de passe, même si cet email a déjà un compte Ny asako.
+    // On entre ensuite avec lui (fiditra-anarana), et le code y est envoyé.
+    mailaka = String(corps?.email ?? "").trim().toLowerCase().slice(0, 200);
     anarana = String(corps?.anarana ?? "").trim().replace(/\s+/g, " ").slice(0, 120);
     // Le nom de famille à part : on entre ensuite avec lui seul (fiditra-anarana).
     voalohany = String(corps?.voalohany ?? "").trim().replace(/\s+/g, " ").slice(0, 60);
@@ -56,11 +61,15 @@ Deno.serve(async (req: Request) => {
   }
   if (anarana.length < 2) return json({ ok: false, antony: "anarana" });
   if (mdp.length < 6) return json({ ok: false, antony: "mdp" });
+  if (mailaka && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mailaka)) return json({ ok: false, antony: "mailaka" });
 
   const admin = createClient(supabaseUrl, serviceKey);
-  const { data: efaMisy, error: e1 } = await admin.rpc("emails_avy_anarana", { p_anarana: anarana });
-  if (e1) return json({ error: e1.message }, 502);
-  if ((efaMisy ?? []).length > 0) return json({ ok: false, antony: "efa_misy" });
+  // Sans email ni téléphone, on n'entre que par le nom : il doit être libre.
+  if (!mailaka && finday.replace(/\D/g, "").length < 9) {
+    const { data: efaMisy, error: e1 } = await admin.rpc("emails_avy_anarana", { p_anarana: anarana });
+    if (e1) return json({ error: e1.message }, 502);
+    if ((efaMisy ?? []).length > 0) return json({ ok: false, antony: "efa_misy" });
+  }
 
   const email = "fk-" + crypto.randomUUID().replace(/-/g, "").slice(0, 16) + "@fokontany.invalid";
   const { error: e2 } = await admin.auth.admin.createUser({
@@ -69,13 +78,13 @@ Deno.serve(async (req: Request) => {
     email_confirm: true,
     user_metadata: {
       name: anarana, first_name: voalohany || null, last_name: farany || null,
-      phone: finday, tsy_misy_email: true,
+      phone: finday, tsy_misy_email: !mailaka, email_tena: mailaka || null,
     },
   });
   if (e2) return json({ ok: false, error: e2.message }, 502);
 
   // La même trace qu'une inscription dans Ny asako : le propriétaire la voit.
-  await admin.from("client_signups").insert({ name: anarana, email, phone: finday || null });
+  await admin.from("client_signups").insert({ name: anarana, email: mailaka || email, phone: finday || null });
 
   const client = createClient(supabaseUrl, anonKey, { auth: { persistSession: false } });
   const { data, error: e3 } = await client.auth.signInWithPassword({ email, password: mdp });

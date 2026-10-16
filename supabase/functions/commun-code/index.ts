@@ -207,9 +207,18 @@ Deno.serve(async (req: Request) => {
       " Ar sont entrés dans votre portefeuille." : null,
   ].filter((l) => l !== null).join("\n");
 
+  // Un compte Fokontany à part porte un email interne, qui ne reçoit rien :
+  // le message va à l'email tapé à l'inscription (email_tena).
+  let boite = cible;
+  if (/@fokontany\.invalid$/.test(cible)) {
+    const { data: tena } = await admin.rpc("mailaka_tena", { p_email: cible });
+    if (typeof tena === "string" && tena.indexOf("@") > 0) boite = tena;
+  }
   const envoi = pourLeProprietaire
     ? await envoyer(ownerEmail, "Demande d'accès à « Fokontany » — " + (anarana || cible), texteProprietaire)
-    : await envoyer(cible, "Votre accès à « Fokontany » — Ny asako", texte);
+    : boite === cible && /@fokontany\.invalid$/.test(cible)
+    ? { sent: false, error: "tsy misy email ity kaonty ity : omeo azy tanana ny code" }
+    : await envoyer(boite, "Votre accès à « Fokontany » — Ny asako", texte);
 
   // Le code revient au propriétaire : si le mail n'est pas parti, il peut le
   // dire lui-même plutôt que de laisser la personne dehors.

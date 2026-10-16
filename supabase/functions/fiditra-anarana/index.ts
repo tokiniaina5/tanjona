@@ -42,9 +42,11 @@ Deno.serve(async (req: Request) => {
   let anarana = "";
   let farany = "";
   let finday = "";
+  let mailaka = "";
   let mdp = "";
   try {
     const corps = await req.json();
+    mailaka = String(corps?.email ?? "").trim().toLowerCase().slice(0, 200);
     anarana = String(corps?.anarana ?? "").trim().slice(0, 120);
     farany = String(corps?.farany ?? "").trim().slice(0, 120);
     finday = String(corps?.finday ?? "").trim().slice(0, 40);
@@ -52,10 +54,17 @@ Deno.serve(async (req: Request) => {
   } catch {
     return json({ error: "corps de requête illisible" }, 400);
   }
-  if ((!anarana && !farany && !finday) || !mdp) return json({ ok: false });
+  if ((!anarana && !farany && !finday && !mailaka) || !mdp) return json({ ok: false });
 
   const admin = createClient(supabaseUrl, serviceKey);
-  const { data: emails, error } = finday
+  // Un email : d'abord les comptes Fokontany à part qui le portent (leur mot
+  // de passe à eux), puis le compte Ny asako de cet email lui-même.
+  const { data: emails, error } = mailaka
+    ? await admin.rpc("emails_avy_mailaka", { p_email: mailaka }).then((r) => ({
+        data: [...((r.data ?? []) as string[]), mailaka],
+        error: r.error,
+      }))
+    : finday
     ? await admin.rpc("emails_avy_finday", { p_finday: finday })
     : farany
     ? await admin.rpc("emails_avy_farany", { p_farany: farany })

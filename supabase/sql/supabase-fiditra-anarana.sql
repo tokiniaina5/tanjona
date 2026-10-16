@@ -83,3 +83,42 @@ $$;
 
 revoke all on function public.emails_avy_finday(text) from public, anon, authenticated;
 grant execute on function public.emails_avy_finday(text) to service_role;
+
+-- Kaonty Fokontany manokana : l'inscription au Fokontany crée son propre
+-- compte (email interne fk-…@fokontany.invalid), avec son mot de passe à
+-- lui, et garde l'email tapé dans raw_user_meta_data.email_tena. Ces deux
+-- fonctions passent de l'un à l'autre.
+create or replace function public.emails_avy_mailaka(p_email text)
+returns setof text
+language sql
+stable
+security definer
+set search_path = public, auth
+as $$
+  select u.email::text
+  from auth.users u
+  where u.email is not null
+    and length(trim(coalesce(p_email, ''))) > 0
+    and lower(trim(coalesce(u.raw_user_meta_data->>'email_tena', ''))) = lower(trim(p_email))
+  order by u.last_sign_in_at desc nulls last
+  limit 10;
+$$;
+
+revoke all on function public.emails_avy_mailaka(text) from public, anon, authenticated;
+grant execute on function public.emails_avy_mailaka(text) to service_role;
+
+create or replace function public.mailaka_tena(p_email text)
+returns text
+language sql
+stable
+security definer
+set search_path = public, auth
+as $$
+  select nullif(trim(u.raw_user_meta_data->>'email_tena'), '')
+  from auth.users u
+  where lower(u.email) = lower(trim(coalesce(p_email, '')))
+  limit 1;
+$$;
+
+revoke all on function public.mailaka_tena(text) from public, anon, authenticated;
+grant execute on function public.mailaka_tena(text) to service_role;
