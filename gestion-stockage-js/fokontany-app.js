@@ -568,17 +568,15 @@ document.addEventListener('DOMContentLoaded', function () {
   })();
 
   // ---------- La page d'accueil ----------
-  // Vue la première à chaque ouverture du site ; « Hiditra » la fait
-  // glisser et laisse la connexion ou l'appli derrière elle.
+  // Cachée tant qu'on n'est pas entré : ouvrir() la montre une fois la
+  // connexion faite, et « Hiditra » la fait glisser sur l'appli.
   (function () {
     var page = $('fkArahaba');
     if (!page) return;
-    var hiditra = $('fkArahabaHiditra');
-    hiditra.addEventListener('click', function () {
+    $('fkArahabaHiditra').addEventListener('click', function () {
       page.classList.add('miala');
       setTimeout(function () { page.style.display = 'none'; }, 400);
     });
-    hiditra.focus();
   })();
 
   // ---------- Sans réseau ----------
@@ -731,6 +729,13 @@ document.addEventListener('DOMContentLoaded', function () {
     $('fkEmail').textContent = currentUser.email;
     $('loginScreen').style.display = 'none';
     $('appScreen').style.display = 'block';
+    // La connexion d'abord, l'accueil ensuite : il s'ouvre sur l'appli.
+    var accueil = $('fkArahaba');
+    if (accueil) {
+      accueil.classList.remove('miala');
+      accueil.style.display = '';
+      $('fkArahabaHiditra').focus();
+    }
     var interdit = communInterdit();
     $('fkReserve').style.display = interdit ? '' : 'none';
     $('dash-commun').style.display = interdit ? 'none' : '';
