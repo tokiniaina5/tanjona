@@ -1288,8 +1288,23 @@ document.addEventListener('DOMContentLoaded', function () {
   // Une session déjà ouverte — ici ou dans Ny asako, même site, même
   // navigateur — rouvre l'application sans redemander le mot de passe.
   if (auth) {
-    auth.getSession().then(function (res) {
+    // L'application installée, ouverte pour la première fois : l'inscription
+    // d'abord, même si ce navigateur gardait déjà une session (celle de qui a
+    // installé). Le compte créé, le TONGASOA vient ensuite.
+    var installee = false;
+    try {
+      installee = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+    } catch (e) {}
+    var CLE_APP_VOALOHANY = 'stockmanager_fokontany_app_voalohany';
+    var voalohany = false;
+    // Le Fokontany seul : le Commun s'installe pour l'admin, qui entre.
+    if (installee && !APP_COMMUN) {
+      try { voalohany = !localStorage.getItem(CLE_APP_VOALOHANY); localStorage.setItem(CLE_APP_VOALOHANY, '1'); } catch (e) {}
+    }
+    (voalohany ? auth.signOut({ scope: 'local' }).then(function () { return { data: { session: null } }; }, function () { return { data: { session: null } }; })
+      : auth.getSession()).then(function (res) {
       var session = res && res.data && res.data.session;
+      if (voalohany && !retourRecuperation) { hamorona(true); return; }
       // Retour de récupération : le nouveau mot de passe d'abord.
       if (session && session.user && !retourRecuperation) { ouvrir(session.user); return; }
       // Sur un appareil où personne n'est encore entré — l'application qui
