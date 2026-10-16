@@ -1155,6 +1155,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Premier temps : vers le cadre du mot de passe.
     if ($('fkDingana2').style.display === 'none') { dingana(2); return; }
     if (mdp.length < 6) { st.textContent = 'Tokony ho 6 litera farafahakeliny ny mot de passe.'; $('fkVaovaoMdp').focus(); return; }
+    if (mdp !== $('fkVaovaoMdp2').value) { st.textContent = 'Tsy mitovy ny mot de passe sy ny fanamafisana azy.'; $('fkVaovaoMdp2').focus(); return; }
     miandry(true);
     st.textContent = 'Mamorona ny kaonty…';
     // Le serveur qui ne répond pas ne doit pas laisser le message figé.
