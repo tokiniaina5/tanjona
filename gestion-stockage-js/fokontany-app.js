@@ -790,6 +790,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function ouvrir(user) {
     currentUser = profilDe(user);
+    try { localStorage.setItem(CLE_EFA_NIDITRA, '1'); } catch (e) {}
     $('fkNom').textContent = currentUser.name;
     $('fkEmail').textContent = currentUser.email;
     $('loginScreen').style.display = 'none';
@@ -994,6 +995,8 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   var auth = window.__sb && window.__sb.auth;
+  // Posée à la première entrée : l'appareil connaît déjà un compte.
+  var CLE_EFA_NIDITRA = 'stockmanager_fokontany_efa_niditra';
 
   $('fkLoginForm').addEventListener('submit', function (e) {
     e.preventDefault();
@@ -1288,7 +1291,13 @@ document.addEventListener('DOMContentLoaded', function () {
     auth.getSession().then(function (res) {
       var session = res && res.data && res.data.session;
       // Retour de récupération : le nouveau mot de passe d'abord.
-      if (session && session.user && !retourRecuperation) ouvrir(session.user);
+      if (session && session.user && !retourRecuperation) { ouvrir(session.user); return; }
+      // Sur un appareil où personne n'est encore entré — l'application qui
+      // vient d'être installée —, l'inscription d'abord : le site s'ouvre
+      // une fois le compte créé. « Efa manana kaonty » ramène à la connexion.
+      var efaNiditra = false;
+      try { efaNiditra = !!localStorage.getItem(CLE_EFA_NIDITRA); } catch (e) {}
+      if (!efaNiditra && !retourRecuperation && $('fkVaovaoForm').style.display === 'none') hamorona(true);
     }, function () {});
     // Une déconnexion faite dans Ny asako, dans un autre onglet, vaut ici aussi.
     auth.onAuthStateChange(function (event) {
