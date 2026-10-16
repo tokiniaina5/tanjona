@@ -126,6 +126,13 @@
   function verifier() {
     // Le propriétaire n'a pas à se demander l'entrée à lui-même.
     if (jeSuisLeProprietaire()) { montrer(true); return Promise.resolve(true); }
+    // L'appli Fokontany s'ouvre à tout compte entré : l'inscription suffit,
+    // sans demande ni code. La porte reste au Commun, qui lit tous les
+    // fokontany, et dans Ny asako.
+    const html = document.documentElement.classList;
+    if (html.contains('fokontany') && !html.contains('app-commun') && monEmail()) {
+      montrer(true); return Promise.resolve(true);
+    }
 
     return identite().then(function (moi) {
       if (!moi.ok) {
