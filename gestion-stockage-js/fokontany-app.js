@@ -1097,9 +1097,9 @@ document.addEventListener('DOMContentLoaded', function () {
     if (misokatra) $('fkVaovaoAnarana').focus();
   }
 
-  // Inscription en deux temps : qui l'on est, puis la porte « Mila alalana »
-  // avec le mot de passe. Ses deux boutons créent le compte, puis passent la
-  // main à la porte de l'appli (commun-alalana.js) : la demande, ou le code.
+  // Inscription en deux temps : qui l'on est, puis le mot de passe seul. Le
+  // bouton crée le compte ; la porte de l'appli (commun-alalana.js) se
+  // charge ensuite de la demande ou du code.
   function dingana(n) {
     var faharoa = n === 2;
     $('fkDingana1').style.display = faharoa ? 'none' : '';
@@ -1109,36 +1109,14 @@ document.addEventListener('DOMContentLoaded', function () {
     $('fkVaovaoStatus1').textContent = '';
     if (faharoa) $('fkVaovaoMdp').focus();
   }
-  var hetsika = 'mangataka';
   function miandry(eny) {
     $('fkVaovaoMangataka').disabled = eny;
-    $('fkVaovaoSokafy').disabled = eny;
   }
-  // Compte ouvert : la porte de l'appli reçoit la demande ou le code tapés ici.
+  // Compte ouvert : l'appli s'ouvre, et sa porte (« Mila alalana ») demande
+  // ou reçoit le code elle-même.
   function tafiditra(user) {
-    var hafatra = $('fkVaovaoHafatra').value.trim();
-    var code = $('fkVaovaoCode').value.trim();
     ouvrir(user);
-    setTimeout(function () {
-      var vita = typeof window.renderPorteCommun === 'function' ? window.renderPorteCommun() : null;
-      Promise.resolve(vita).then(function (ouverte) {
-        if (ouverte || !$('porteMangataka')) return;
-        if (hetsika === 'sokafy') {
-          $('porteCode').value = code;
-          $('porteSokafy').click();
-        } else {
-          $('porteHafatra').value = hafatra;
-          $('porteMangataka').click();
-        }
-      });
-    }, 0);
   }
-  $('fkVaovaoMangataka').addEventListener('click', function () { hetsika = 'mangataka'; });
-  $('fkVaovaoSokafy').addEventListener('click', function () {
-    if (!$('fkVaovaoCode').value.trim()) { $('fkVaovaoStatus').textContent = 'Soraty ny code nomen\'ny tompon\'ny site.'; return; }
-    hetsika = 'sokafy';
-    $('fkVaovaoForm').requestSubmit();
-  });
 
   function tsindry(id, idMiafina) {
     var box = $(id);
