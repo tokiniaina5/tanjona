@@ -257,6 +257,13 @@
 </div>
 
 <div id="appScreen">
+  <!-- L'accueil, tout en haut, au-dessus de la barre : au nom du Commun ou du
+       fokontany (fokontany-app.js). Il défile ; la barre, elle, reste. -->
+  <div id="fkArahaba" translate="no" class="notranslate" style="padding:1.3rem 1.4rem; border-bottom:1px solid var(--line); border-left:4px solid var(--cyan); background:linear-gradient(135deg, color-mix(in srgb, var(--cyan) 18%, var(--panel)), var(--panel) 70%);">
+    <div style="font-family:var(--font-mono); font-size:0.72rem; letter-spacing:0.18em; color:var(--cyan);">👋 TONGASOA</div>
+    <div id="fkArahabaAnarana" style="font-size:1.6rem; font-weight:800; line-height:1.2; margin-top:0.35rem; color:var(--text);">Fokontany</div>
+    <div id="fkArahabaAmbany" style="font-size:0.9rem; color:var(--muted); margin-top:0.3rem; display:none;"></div>
+  </div>
   <header class="fk-barre">
     <!-- Le Commun ne touche à rien, mais il cherche : la barre filtre les
          lignes de l'onglet ouvert, et cherche aussi dans tout le Commun —
@@ -363,12 +370,6 @@
           </div>
 
           <div id="communContenu">
-          <!-- L'accueil, au nom du Commun ou du fokontany (fokontany-app.js). -->
-          <div id="fkArahaba" translate="no" class="notranslate" style="margin:0 0 1.2rem; padding:1.3rem 1.4rem; border:1px solid var(--line); border-left:4px solid var(--cyan); border-radius:14px; background:linear-gradient(135deg, color-mix(in srgb, var(--cyan) 18%, transparent), transparent 70%);">
-            <div style="font-family:var(--font-mono); font-size:0.72rem; letter-spacing:0.18em; color:var(--cyan);">👋 TONGASOA</div>
-            <div id="fkArahabaAnarana" style="font-size:1.6rem; font-weight:800; line-height:1.2; margin-top:0.35rem; color:var(--text);">Fokontany</div>
-            <div id="fkArahabaAmbany" style="font-size:0.9rem; color:var(--muted); margin-top:0.3rem; display:none;"></div>
-          </div>
           <!-- data-commun et non data-dash : ces onglets changent ce qu'on voit
                DANS la fenêtre. Un data-dash ferait basculer la page entière. -->
           <div class="dash-tabs">
