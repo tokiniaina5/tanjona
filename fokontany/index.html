@@ -307,20 +307,6 @@
     </div>
     <div class="brand" id="fkMarque">🗂️ <span>Fokontany</span></div>
     <div style="display:flex; align-items:center; gap:0.8rem;">
-      <!-- Les avis restent ici, dans le site : une bande qui passe s'oublie,
-           et le fokontany veut relire ce qu'on lui a dit (fokontany-app.js). -->
-      <div style="position:relative;">
-        <button type="button" class="btn btn-sm" id="fkNotifBtn" aria-label="Fampahafantarana" aria-expanded="false" style="width:auto;">
-          🔔 <span id="fkNotifBadge" style="display:none; background:#ff6b6b; color:#fff; font-size:0.62rem; font-weight:700; border-radius:999px; min-width:16px; height:16px; line-height:16px; text-align:center; padding:0 4px;">0</span>
-        </button>
-        <div id="fkNotifPanel" style="display:none; position:absolute; top:40px; right:0; width:300px; max-height:340px; overflow-y:auto; background:var(--panel); border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.35); z-index:60; text-align:left;">
-          <div style="display:flex; align-items:center; justify-content:space-between; padding:0.7rem 0.9rem; border-bottom:1px solid var(--line);">
-            <strong style="font-size:0.85rem;">Fampahafantarana</strong>
-            <button type="button" id="fkNotifFafao" style="background:none; border:none; color:var(--cyan); font-size:0.72rem; cursor:pointer;">Fafana</button>
-          </div>
-          <div id="fkNotifList"></div>
-        </div>
-      </div>
       <!-- Le réglage, juste après la cloche : le compte ouvert s'y lit
            (fokontany-app.js ouvre et referme le panneau). -->
       <div style="position:relative;">
@@ -402,7 +388,7 @@
           <div id="communContenu">
           <!-- data-commun et non data-dash : ces onglets changent ce qu'on voit
                DANS la fenêtre. Un data-dash ferait basculer la page entière. -->
-          <div class="dash-tabs">
+          <div class="dash-tabs" style="position:relative;">
             <div class="dash-tab active" data-commun="tableau">📊 Tableau de bord</div>
             <div class="dash-tab" data-commun="adidy">💰 Adidy</div>
             <div class="dash-tab" data-commun="historique">📜 Historique</div>
@@ -412,6 +398,20 @@
             <div class="dash-tab" data-commun="fokontany" id="ongletFokontany">🏘️ Fokontany</div>
             <!-- Le propriétaire seul : le style le montre, commun-alalana.js le décide. -->
             <div class="dash-tab" data-commun="fangatahana" id="ongletFangatahana" style="display:none;">🛡️ Fangatahana</div>
+            <!-- Les avis, avec les onglets : une bande qui passe s'oublie, et le
+                 fokontany veut relire ce qu'on lui a dit. Le panneau s'ouvre
+                 sous la rangée, sur toute sa largeur (fokontany-app.js). -->
+            <button type="button" class="dash-tab" id="fkNotifBtn" aria-label="Fampahafantarana" aria-expanded="false"
+              style="background:none; border-top:none; border-left:none; border-right:none; font:inherit; cursor:pointer;">
+              🔔 Fampahafantarana <span id="fkNotifBadge" style="display:none; background:#ff6b6b; color:#fff; font-size:0.62rem; font-weight:700; border-radius:999px; min-width:16px; height:16px; line-height:16px; text-align:center; padding:0 4px;">0</span>
+            </button>
+            <div id="fkNotifPanel" style="display:none; position:absolute; top:calc(100% + 6px); left:0; right:0; max-width:440px; margin-left:auto; max-height:340px; overflow-y:auto; background:var(--panel); border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.35); z-index:60; text-align:left;">
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:0.7rem 0.9rem; border-bottom:1px solid var(--line);">
+                <strong style="font-size:0.85rem;">Fampahafantarana</strong>
+                <button type="button" id="fkNotifFafao" style="background:none; border:none; color:var(--cyan); font-size:0.72rem; cursor:pointer;">Fafana</button>
+              </div>
+              <div id="fkNotifList"></div>
+            </div>
           </div>
           <!-- Le fokontany regardé seul (onglet « Fokontany ») : tout ce qui suit ne
                montre que le sien, à regarder sans rien changer (fokontany-app.js). -->
