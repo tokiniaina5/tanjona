@@ -172,6 +172,12 @@ function afficherNomCommun(nom) {
   var propre = String(nom || '').replace(/[<>&]/g, '').replace(/^commun\s+/i, '').trim();
   el.innerHTML = '🏛️ Commun' + (propre ? ' <span translate="no" class="notranslate">' + propre + '</span>' : '');
   if (propre) document.title = 'Commun ' + propre;
+  arahaba('Commun', propre);
+}
+// En haut de la page : l'accueil au nom du Commun ou du fokontany.
+function arahaba(karazana, nom) {
+  var el = document.getElementById('fkArahaba');
+  if (el) el.textContent = '👋 Tongasoa eto amin\'ny ' + karazana + (nom ? ' ' + nom : '');
 }
 function trouverNomCommun() {
   var garde = '';
@@ -546,6 +552,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var propre = nom.replace(/[<>&]/g, '');
     $('fkMarque').innerHTML = '🗂️ Fokontany <span translate="no" class="notranslate">' + propre + '</span>';
     $('fkNomApp').textContent = 'Fokontany ' + propre;
+    arahaba('Fokontany', propre);
     [$('fkMarque'), $('fkNomApp')].forEach(function (el) {
       el.setAttribute('translate', 'no');
       el.classList.add('notranslate');
