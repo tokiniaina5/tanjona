@@ -57,3 +57,29 @@ $$;
 
 revoke all on function public.emails_avy_farany(text) from public, anon, authenticated;
 grant execute on function public.emails_avy_farany(text) to service_role;
+
+-- Fidirana amin'ny laharana finday : les emails dont le téléphone posé à
+-- l'inscription (raw_user_meta_data.phone) finit par les mêmes 9 chiffres —
+-- « 034 12 345 67 » et « +261 34 12 345 67 » sont le même numéro. Le mot de
+-- passe tranche entre les comptes qui le partagent.
+create or replace function public.emails_avy_finday(p_finday text)
+returns setof text
+language sql
+stable
+security definer
+set search_path = public, auth
+as $$
+  with n as (
+    select right(regexp_replace(coalesce(p_finday, ''), '\D', '', 'g'), 9) as v
+  )
+  select u.email::text
+  from auth.users u, n
+  where u.email is not null
+    and length(n.v) = 9
+    and right(regexp_replace(coalesce(u.raw_user_meta_data->>'phone', ''), '\D', '', 'g'), 9) = n.v
+  order by u.last_sign_in_at desc nulls last
+  limit 25;
+$$;
+
+revoke all on function public.emails_avy_finday(text) from public, anon, authenticated;
+grant execute on function public.emails_avy_finday(text) to service_role;

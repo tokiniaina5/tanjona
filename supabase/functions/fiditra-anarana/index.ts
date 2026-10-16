@@ -37,21 +37,27 @@ Deno.serve(async (req: Request) => {
 
   // Le nom complet (anarana), ou le nom de famille seul (farany) : la page
   // du Fokontany ne demande plus que celui-ci.
+  // Ou le numéro de téléphone (finday) : c'est lui que la page demande
+  // désormais, à côté de l'email qu'elle envoie directement à Supabase.
   let anarana = "";
   let farany = "";
+  let finday = "";
   let mdp = "";
   try {
     const corps = await req.json();
     anarana = String(corps?.anarana ?? "").trim().slice(0, 120);
     farany = String(corps?.farany ?? "").trim().slice(0, 120);
+    finday = String(corps?.finday ?? "").trim().slice(0, 40);
     mdp = String(corps?.mdp ?? "");
   } catch {
     return json({ error: "corps de requête illisible" }, 400);
   }
-  if ((!anarana && !farany) || !mdp) return json({ ok: false });
+  if ((!anarana && !farany && !finday) || !mdp) return json({ ok: false });
 
   const admin = createClient(supabaseUrl, serviceKey);
-  const { data: emails, error } = farany
+  const { data: emails, error } = finday
+    ? await admin.rpc("emails_avy_finday", { p_finday: finday })
+    : farany
     ? await admin.rpc("emails_avy_farany", { p_farany: farany })
     : await admin.rpc("emails_avy_anarana", { p_anarana: anarana });
   if (error) return json({ error: error.message }, 502);
