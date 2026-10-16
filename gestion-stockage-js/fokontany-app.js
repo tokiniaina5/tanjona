@@ -567,6 +567,20 @@ document.addEventListener('DOMContentLoaded', function () {
     document.title = 'Fokontany ' + propre;
   })();
 
+  // ---------- La page d'accueil ----------
+  // Vue la première à chaque ouverture du site ; « Hiditra » la fait
+  // glisser et laisse la connexion ou l'appli derrière elle.
+  (function () {
+    var page = $('fkArahaba');
+    if (!page) return;
+    var hiditra = $('fkArahabaHiditra');
+    hiditra.addEventListener('click', function () {
+      page.classList.add('miala');
+      setTimeout(function () { page.style.display = 'none'; }, 400);
+    });
+    hiditra.focus();
+  })();
+
   // ---------- Sans réseau ----------
   // Comme dans Ny asako : la page s'ouvre, mais les listes restent vides sans
   // qu'on sache pourquoi. La bande le dit.

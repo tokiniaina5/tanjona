@@ -113,19 +113,25 @@
   /* L'accueil, comme la tête d'un site : fond sombre aux reflets cyan,
      cercles en filigrane, le nom au centre. Les mêmes couleurs de jour et de
      nuit : le texte blanc y reste lisible. */
-  #fkArahaba{ position:relative; overflow:hidden; text-align:center; color:#fff;
-    padding:2.6rem 16px 2.4rem;
+  #fkArahaba{ position:fixed; inset:0; z-index:9500; overflow:hidden; text-align:center; color:#fff;
+    display:flex; align-items:center; justify-content:center; padding:2rem 16px;
+    transition:opacity 0.35s ease;
     background:
       radial-gradient(circle at 12% 20%, rgba(79,216,224,0.35) 0, transparent 38%),
       radial-gradient(circle at 88% 85%, rgba(79,216,224,0.25) 0, transparent 40%),
       linear-gradient(135deg, #0b3d47 0%, #0e5f6b 50%, #0a2f38 100%); }
   #fkArahaba::before, #fkArahaba::after{ content:""; position:absolute; border-radius:50%;
     border:2px solid rgba(255,255,255,0.10); pointer-events:none; }
-  #fkArahaba::before{ width:260px; height:260px; left:-80px; bottom:-140px; }
-  #fkArahaba::after{ width:200px; height:200px; right:-60px; top:-90px; }
+  #fkArahaba::before{ width:420px; height:420px; left:-140px; bottom:-200px; }
+  #fkArahaba::after{ width:320px; height:320px; right:-100px; top:-120px; }
+  #fkArahaba.miala{ opacity:0; pointer-events:none; }
+  #fkArahabaHiditra{ margin-top:2rem; padding:0.8rem 2.2rem; border-radius:999px; border:none; cursor:pointer;
+    font:inherit; font-weight:700; font-size:1rem; color:#0a2f38; background:#4fd8e0;
+    box-shadow:0 8px 24px rgba(0,0,0,0.3); }
+  #fkArahabaHiditra:hover{ background:#8ff0f5; }
   .fk-arahaba-ao{ position:relative; max-width:900px; margin:0 auto; }
   .fk-arahaba-tongasoa{ font-family:var(--font-mono); font-size:0.78rem; letter-spacing:0.3em; color:#8ff0f5; }
-  #fkArahabaAnarana{ margin:0.5rem 0 0; font-size:clamp(1.7rem, 6vw, 2.8rem); font-weight:800; line-height:1.15;
+  #fkArahabaAnarana{ margin:0.7rem 0 0; font-size:clamp(2rem, 8vw, 3.6rem); font-weight:800; line-height:1.15;
     letter-spacing:0.02em; text-transform:uppercase; color:#fff; text-shadow:0 2px 14px rgba(0,0,0,0.35); }
   #fkArahabaAmbany{ display:inline-block; margin-top:0.8rem; padding:0.3rem 0.9rem; border-radius:999px;
     font-size:0.88rem; color:#e6fbfc; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.22); }
@@ -162,6 +168,18 @@
 <div class="bandeau-reseau" id="bandeauReseau" role="status" hidden>
   <span aria-hidden="true">📡</span>
   <span>Tsy misy connexion — mety ho tsy vaovao ny isa.</span>
+</div>
+
+<!-- L'accueil, une page à lui, vue la première en ouvrant le site : au nom du
+     Commun ou du fokontany. « Hiditra » la referme sur la connexion ou
+     l'appli (fokontany-app.js). -->
+<div id="fkArahaba" translate="no" class="notranslate" role="dialog" aria-label="Tongasoa">
+  <div class="fk-arahaba-ao">
+    <div class="fk-arahaba-tongasoa">👋 TONGASOA</div>
+    <h1 id="fkArahabaAnarana">Fokontany</h1>
+    <div id="fkArahabaAmbany" style="display:none;"></div>
+    <div><button type="button" id="fkArahabaHiditra">Hiditra →</button></div>
+  </div>
 </div>
 
 <div id="loginScreen">
@@ -276,15 +294,6 @@
 </div>
 
 <div id="appScreen">
-  <!-- L'accueil, tout en haut, au-dessus de la barre : au nom du Commun ou du
-       fokontany (fokontany-app.js). Il défile ; la barre, elle, reste. -->
-  <div id="fkArahaba" translate="no" class="notranslate">
-    <div class="fk-arahaba-ao">
-      <div class="fk-arahaba-tongasoa">👋 TONGASOA</div>
-      <h1 id="fkArahabaAnarana">Fokontany</h1>
-      <div id="fkArahabaAmbany" style="display:none;"></div>
-    </div>
-  </div>
   <header class="fk-barre">
     <!-- Le Commun ne touche à rien, mais il cherche : la barre filtre les
          lignes de l'onglet ouvert, et cherche aussi dans tout le Commun —
@@ -916,7 +925,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="/gestion-stockage-js/fokontany-app.js?v=cae66550"></script>
+<script src="/gestion-stockage-js/fokontany-app.js?v=9ba494ac"></script>
 <script src="/gestion-stockage-js/commun-alalana.js?v=37c5fb66"></script>
 <script src="/gestion-stockage-js/pdf.js?v=b7c1f056"></script>
 <script src="/gestion-stockage-js/taratasy.js?v=7688b0e0"></script>
