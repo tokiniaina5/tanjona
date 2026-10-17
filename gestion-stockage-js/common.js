@@ -2407,7 +2407,7 @@
     if(loginTitle) loginTitle.textContent = quick ? 'Bon retour' : 'Connexion';
     if(loginSub){
       loginSub.textContent = quick
-        ? 'Entrez votre email et votre mot de passe : la connexion se valide automatiquement.'
+        ? 'Entrez votre email ou votre numéro de téléphone et votre mot de passe : la connexion se valide automatiquement.'
         : 'Première connexion : renseignez vos informations et choisissez un mot de passe pour créer votre compte.';
     }
     const status = document.getElementById('quickLoginStatus');
@@ -2455,7 +2455,8 @@
       box.style.display = open ? 'none' : 'block';
       if(!open){
         const field = document.getElementById('resetEmail');
-        const known = document.getElementById('quickEmail').value.trim() || loadLastEmail();
+        const tape = document.getElementById('quickEmail').value.trim();
+        const known = (tape.indexOf('@') >= 0 ? tape : '') || loadLastEmail();
         if(field && !field.value && known) field.value = known;
         if(field) field.focus();
       }
@@ -2845,7 +2846,7 @@
       // lui redemande pas son email deux fois de suite.
       const quickEmail = document.getElementById('quickEmail').value.trim();
       const emailField = document.getElementById('forgotEmail');
-      if(quickEmail && !emailField.value) emailField.value = quickEmail;
+      if(quickEmail.indexOf('@') >= 0 && !emailField.value) emailField.value = quickEmail;
       const known = findProfileByEmail(emailField.value);
       const nameField = document.getElementById('forgotName');
       if(known && !nameField.value) nameField.value = known.name || '';
@@ -2975,14 +2976,37 @@
     const email = document.getElementById('quickEmail').value.trim();
     const password = document.getElementById('quickCode').value;
     if(!email || password.length < 6){
-      if(!silent && status) status.textContent = 'Email et mot de passe (6 caractères minimum) obligatoires.';
+      if(!silent && status) status.textContent = 'Email (ou téléphone) et mot de passe (6 caractères minimum) obligatoires.';
+      return false;
+    }
+    // Sans « @ », c'est un numéro de téléphone : la fonction fiditra-anarana
+    // retrouve les comptes Ny asako de ce numéro et garde celui que le mot de
+    // passe ouvre (« 034… » et « +261 34… » sont le même numéro).
+    const parFinday = email.indexOf('@') < 0;
+    if(parFinday && email.replace(/\D/g, '').length < 9){
+      if(!silent && status) status.textContent = 'Numéro de téléphone incomplet.';
       return false;
     }
     quickLoginBusy = true;
     if(status) status.textContent = 'Connexion…';
-    auth.signInWithPassword({ email: email, password: password }).then(function(res){
+    const connexion = !parFinday
+      ? auth.signInWithPassword({ email: email, password: password })
+      : window.__sb.functions.invoke('fiditra-anarana', {
+          body: { finday: email, mdp: password, ny_asako: true }
+        }).then(function(r){
+          const d = r && r.data;
+          if(r.error || !d || !d.ok){
+            return { error: { message: d && d.antony === 'tsy_voamarina' ? 'Email not confirmed' : 'Invalid login credentials' } };
+          }
+          return auth.setSession({ access_token: d.access_token, refresh_token: d.refresh_token });
+        });
+    connexion.then(function(res){
       quickLoginBusy = false;
       if(res && res.error){
+        if(parFinday){
+          if(status) status.textContent = silent ? '' : authErrorText(res.error);
+          return;
+        }
         // propriétaire sur son appareil habituel : pas de paiement, pas
         // d'attente — un code de secours s'affiche et rouvre l'accès.
         tryOwnerRescueCode(email, password).then(function(entered){

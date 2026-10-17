@@ -44,8 +44,12 @@ Deno.serve(async (req: Request) => {
   let finday = "";
   let mailaka = "";
   let mdp = "";
+  // Ny asako (« Bon retour ») passe aussi par ici pour le numéro : il n'y
+  // entre qu'avec un compte Ny asako, jamais avec un compte Fokontany à part.
+  let nyAsako = false;
   try {
     const corps = await req.json();
+    nyAsako = corps?.ny_asako === true;
     mailaka = String(corps?.email ?? "").trim().toLowerCase().slice(0, 200);
     anarana = String(corps?.anarana ?? "").trim().slice(0, 120);
     farany = String(corps?.farany ?? "").trim().slice(0, 120);
@@ -74,6 +78,7 @@ Deno.serve(async (req: Request) => {
   // Un nom inconnu et un mot de passe faux répondent pareil : rien ne dit
   // au curieux si le nom existe.
   for (const email of (emails ?? []) as string[]) {
+    if (nyAsako && email.endsWith("@fokontany.invalid")) continue;
     const client = createClient(supabaseUrl, anonKey, { auth: { persistSession: false } });
     const { data, error: e } = await client.auth.signInWithPassword({ email, password: mdp });
     if (!e && data?.session) {
