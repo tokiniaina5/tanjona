@@ -34,11 +34,33 @@
     var u = (typeof currentUser !== 'undefined') ? currentUser : null;
     return (u && u.email) ? String(u.email).trim().toLowerCase() : '';
   }
-  function dire(texte, erreur) {
+  function dire(texte, erreur, montrer) {
     var st = $('fkDisqueStatus');
-    if (!st) return;
-    st.textContent = texte || '';
-    st.style.color = erreur ? 'var(--red)' : 'var(--muted)';
+    if (st) {
+      st.textContent = texte || '';
+      st.style.color = erreur ? 'var(--red)' : 'var(--muted)';
+    }
+    if (montrer && texte) bulle(texte, erreur);
+  }
+  // Le panneau ⚙️ est fermé quand on enregistre : la nouvelle s'affiche en bas
+  // de l'écran, quelques secondes.
+  var bulleTimer = null;
+  function bulle(texte, erreur) {
+    var b = $('fkDisqueBulle');
+    if (!b) {
+      b = document.createElement('div');
+      b.id = 'fkDisqueBulle';
+      b.setAttribute('role', 'status');
+      b.style.cssText = 'position:fixed; left:50%; bottom:20px; transform:translateX(-50%); z-index:9999; ' +
+        'max-width:calc(100vw - 32px); padding:0.6rem 0.9rem; border-radius:10px; font-size:0.8rem; ' +
+        'background:var(--panel); color:var(--text); border:1px solid var(--line); box-shadow:0 8px 24px rgba(0,0,0,0.35);';
+      document.body.appendChild(b);
+    }
+    b.textContent = '💽 ' + texte;
+    b.style.borderColor = erreur ? 'var(--red)' : 'var(--line)';
+    b.style.display = '';
+    clearTimeout(bulleTimer);
+    bulleTimer = setTimeout(function () { b.style.display = 'none'; }, 4000);
   }
 
   // ---------- Le dossier, gardé d'une visite à l'autre ----------
@@ -147,15 +169,15 @@
       var versDossier = !!dossier;
       (versDossier ? permis(false) : Promise.resolve(true)).then(function (ok) {
         if (!ok) {
-          dire('Tsy voasoratra tao amin\'ny disque : tsindrio « 💾 Tehirizo daholo » hamela azy indray.', true);
+          dire('Tsy voasoratra tao amin\'ny disque : tsindrio « 💾 Tehirizo daholo » ao amin\'ny ⚙️ hamela azy indray.', true, true);
           return;
         }
         return sauver(table, versDossier).then(function (n) {
-          dire('✓ ' + ANARANA[table] + ' voasoratra tao amin\'ny disque (' + n + ') — ' +
-            new Date().toLocaleTimeString('fr-FR'));
+          dire('✓ ' + ANARANA[table] + ' voasoratra tao amin\'ny ' +
+            (versDossier ? 'dossier « ' + dossier.name + ' »' : 'Téléchargements') + ' (' + n + ')', false, true);
         });
       }).catch(function (e) {
-        dire('Tsy voasoratra tao amin\'ny disque : ' + ((e && e.message) || e), true);
+        dire('Tsy voasoratra tao amin\'ny disque : ' + ((e && e.message) || e), true, true);
       });
     }, 900);
   }
@@ -234,7 +256,8 @@
       return TABLES.reduce(function (p, t) {
         return p.then(function () { return sauver(t, versDossier).then(function (n) { total += n; }); });
       }, Promise.resolve()).then(function () {
-        dire('✓ Voasoratra daholo (' + total + ' andalana) — ' + new Date().toLocaleTimeString('fr-FR'));
+        dire('✓ Voasoratra daholo tao amin\'ny ' +
+          (versDossier ? 'dossier « ' + dossier.name + ' »' : 'Téléchargements') + ' (' + total + ' andalana)', false, true);
       });
     }).catch(function (e) {
       dire('Tsy voasoratra : ' + ((e && e.message) || e), true);
@@ -253,16 +276,36 @@
     try { localStorage.setItem(CLE_TELECHARGER, this.checked ? '1' : '0'); } catch (e) {}
   });
 
-  // Après un rechargement, le navigateur ne rend l'accès qu'à un geste : le
-  // premier « Tehirizo » (ou tout bouton principal) le redemande.
+  // Les boutons qui enregistrent : livre de famille, ses membres, adidy,
+  // taratasy. Ils écrivent aussi dans le dossier.
+  var BOUTONS = ['famTehirizo', 'famAmpio', 'adidyAjouter', 'tarVokatra'];
+  var refuse = false;   // dossier refusé une fois : on ne le redemande plus de la visite
   document.addEventListener('click', function (e) {
-    if (!dossier || permisDemande) return;
     var b = e.target.closest && e.target.closest('button');
-    if (!b || !(b.classList.contains('btn-primary') || b.textContent.indexOf('💾') >= 0)) return;
-    // Pendant le clic même : hors d'un geste, la demande est refusée. Déjà
-    // accordée, elle répond oui sans rien montrer.
-    permisDemande = true;
-    dossier.requestPermission({ mode: 'readwrite' }).catch(function () {});
+    if (!b || BOUTONS.indexOf(b.id) < 0) return;
+    // Pendant le clic même : hors d'un geste, le navigateur refuse.
+    if (dossier) {
+      // Après un rechargement, l'accès se redemande ; déjà accordé, il
+      // répond oui sans rien montrer.
+      if (permisDemande) return;
+      permisDemande = true;
+      dossier.requestPermission({ mode: 'readwrite' }).catch(function () {});
+      return;
+    }
+    if (!aFichiers || refuse || !monEmail()) return;
+    // Pas encore de dossier : le premier « Tehirizo » le fait choisir. Le
+    // registre entier s'y écrit dès qu'il est choisi, cet enregistrement compris.
+    window.showDirectoryPicker({ id: 'fokontany', mode: 'readwrite' }).then(function (h) {
+      dossier = h;
+      return garder(h);
+    }).then(function () {
+      afficher();
+      // Laisser l'enregistrement en cours arriver dans la base d'abord.
+      setTimeout(toutSauver, 1500);
+    }).catch(function () {
+      refuse = true;
+      bulle('Tsy nisy dossier voafidy : ao amin\'ny ⚙️ › 💽 Disque no hisafidianana azy.', false);
+    });
   }, true);
 
   if (aFichiers) {
