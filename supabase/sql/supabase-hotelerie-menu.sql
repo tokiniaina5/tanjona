@@ -17,6 +17,11 @@ create table if not exists public.hotelerie_menu (
   updated_at timestamptz not null default now()
 );
 
+-- Les id des plats effacés : deux appareils fondent leurs copies du menu
+-- (hotelerie.js, « fondre »), et un plat effacé sur l'un ne doit pas revenir
+-- par l'autre.
+alter table public.hotelerie_menu add column if not exists voafafa jsonb not null default '[]'::jsonb;
+
 alter table public.hotelerie_menu enable row level security;
 
 drop policy if exists "menu lecture" on public.hotelerie_menu;

@@ -16,7 +16,7 @@
 (function () {
   const SUFFIXE = (typeof SUFFIXE_MPIASA !== 'undefined') ? SUFFIXE_MPIASA : '';
   const CLE = 'stockmanager_hotelerie_sakafo' + SUFFIXE;
-  const CLE_MAJ = CLE + '_maj';
+  const CLE_FAFANA = CLE + '_fafana';
   const CHAMP = 'background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:0.5rem 0.6rem; font:inherit;';
   const SOKAJY = [
     ['maraina', '🌅 Sakafo maraina'],
@@ -33,15 +33,26 @@
     } catch (e) { return []; }
   }
   function ecrire(liste) {
-    try {
-      localStorage.setItem(CLE, JSON.stringify(liste));
-      localStorage.setItem(CLE_MAJ, String(Date.now()));
-    } catch (e) {
+    try { localStorage.setItem(CLE, JSON.stringify(liste)); }
+    catch (e) {
       alert('Tsy voatahiry : feno ny toerana ao amin\'ity navigateur ity.');
       return false;
     }
-    envoyer(liste);
+    synchroniser();
     return true;
+  }
+  // Les plats effacés d'ici : on s'en souvient, pour qu'une autre copie du
+  // menu (un autre appareil) ne les fasse pas revenir.
+  function fafanaLire() {
+    try {
+      const v = JSON.parse(localStorage.getItem(CLE_FAFANA));
+      return Array.isArray(v) ? v : [];
+    } catch (e) { return []; }
+  }
+  function fafanaAjouter(id) {
+    const l = fafanaLire();
+    if (l.indexOf(id) < 0) l.push(id);
+    try { localStorage.setItem(CLE_FAFANA, JSON.stringify(l)); } catch (e) { }
   }
 
   // ---------- En ligne ----------
@@ -61,45 +72,75 @@
     const p = document.getElementById('sakafoEnLigne');
     if (p) p.textContent = t;
   }
-  function envoyer(liste) {
-    idDuCompte().then(function (uid) {
+
+  // Deux copies du menu — celle d'ici et celle en ligne — se FONDENT, plat
+  // par plat, au lieu que la dernière écrite efface l'autre. C'est ainsi
+  // qu'un plat ajouté sur le téléphone a disparu quand l'ordinateur, qui ne
+  // le connaissait pas, a réécrit tout le menu. Pour un même plat, le plus
+  // récemment changé (maj) l'emporte ; un plat effacé quelque part (voafafa)
+  // ne revient plus.
+  function fondre(a, b, fafana) {
+    const parId = {};
+    a.concat(b).forEach(function (p) {
+      if (!p || !p.id || fafana.indexOf(p.id) >= 0) return;
+      const deja = parId[p.id];
+      if (!deja || (Number(p.maj) || 0) > (Number(deja.maj) || 0)) parId[p.id] = p;
+    });
+    return Object.keys(parId).map(function (k) { return parId[k]; });
+  }
+  function memes(a, b) {
+    const t = function (l) {
+      return JSON.stringify(l.slice().sort(function (x, y) { return String(x.id || x).localeCompare(String(y.id || y)); }));
+    };
+    return t(a) === t(b);
+  }
+  let enCoursSync = null;
+  let resynchroniser = false;
+  function synchroniser() {
+    // Un changement pendant un envoi : on refait un tour après, sans croiser.
+    if (enCoursSync) { resynchroniser = true; return enCoursSync; }
+    enCoursSync = idDuCompte().then(function (uid) {
       if (!uid) return;
       direEnLigne('⏳ Alefa any amin\'ny rohy...');
-      sb().from('hotelerie_menu')
-        .upsert({ user_id: uid, plats: liste, updated_at: new Date().toISOString() })
+      return sb().from('hotelerie_menu').select('plats,voafafa').eq('user_id', uid).maybeSingle()
         .then(function (res) {
-          direEnLigne(res && res.error
-            ? '⚠️ Tsy tonga tany amin\'ny rohy : ' + res.error.message
-            : '✅ Efa miova ho azy ny rohy.');
-        }, function () { direEnLigne('⚠️ Tsy tonga tany amin\'ny rohy (tsy misy connexion ?).'); });
-    });
-  }
-  // À l'ouverture : la copie en ligne l'emporte si elle est plus récente (un
-  // autre appareil l'a changée) ; sinon c'est celle d'ici qui monte, pour
-  // qu'un menu fait avant la mise en ligne n'attende pas le prochain changement.
-  let dejaTire = false;
-  function tirer() {
-    idDuCompte().then(function (uid) {
-      if (!uid || dejaTire) return;
-      dejaTire = true;
-      sb().from('hotelerie_menu').select('plats,updated_at').eq('user_id', uid).maybeSingle()
-        .then(function (res) {
-          if (!res || res.error) return;
-          const ici = Number(localStorage.getItem(CLE_MAJ) || 0);
-          const la = res.data ? Date.parse(res.data.updated_at) : 0;
-          if (res.data && la > ici && Array.isArray(res.data.plats)) {
-            try {
-              localStorage.setItem(CLE, JSON.stringify(res.data.plats));
-              localStorage.setItem(CLE_MAJ, String(la));
-            } catch (e) { }
-            rendre();
-          // Pas encore de ligne en ligne : le menu d'ici monte, même fait
-          // avant que la date du dernier changement ne soit notée (ici = 0).
-          } else if (lire().length && (!res.data || ici > la)) {
-            envoyer(lire());
+          if (res.error) throw new Error(res.error.message);
+          const ici = lire();
+          const enLigne = res.data && Array.isArray(res.data.plats) ? res.data.plats : [];
+          const fafanaLa = res.data && Array.isArray(res.data.voafafa) ? res.data.voafafa : [];
+          const fafana = fafanaLire().concat(fafanaLa.filter(function (x) { return fafanaLire().indexOf(x) < 0; }));
+          const fondu = fondre(ici, enLigne, fafana);
+          try {
+            localStorage.setItem(CLE, JSON.stringify(fondu));
+            localStorage.setItem(CLE_FAFANA, JSON.stringify(fafana));
+          } catch (e) { }
+          if (!memes(fondu, ici)) redessinerSiLibre();
+          if (res.data && memes(fondu, enLigne) && memes(fafana, fafanaLa)) {
+            direEnLigne('✅ Efa miova ho azy ny rohy.');
+            return;
           }
-        }, function () { });
+          return sb().from('hotelerie_menu')
+            .upsert({ user_id: uid, plats: fondu, voafafa: fafana, updated_at: new Date().toISOString() })
+            .then(function (r) {
+              if (r.error) throw new Error(r.error.message);
+              direEnLigne('✅ Efa miova ho azy ny rohy.');
+            });
+        });
+    }).catch(function (e) {
+      direEnLigne('⚠️ Tsy tonga tany amin\'ny rohy' + (e && e.message ? ' : ' + e.message : ' (tsy misy connexion ?).'));
+    }).then(function () {
+      enCoursSync = null;
+      if (resynchroniser) { resynchroniser = false; synchroniser(); }
     });
+    return enCoursSync;
+  }
+  // Un menu venu d'ailleurs se redessine — sauf si l'on est en train
+  // d'écrire un plat : on ne lui vole pas sa saisie, il verra au prochain tour.
+  function redessinerSiLibre() {
+    const nom = document.getElementById('sakafoAnarana');
+    const prix = document.getElementById('sakafoVidiny');
+    if (onglet === 'menu' && (enCours || (nom && nom.value) || (prix && prix.value))) return;
+    if (onglet === 'menu') rendre();
   }
   function html(v) {
     return String(v ?? '')
@@ -255,8 +296,17 @@
       if (!(n >= 1 && n <= 500)) { alert('Isa 1 ka hatramin\'ny 500.'); return; }
       idDuCompte().then(function (uid) {
         if (!uid) { alert('Midira ao amin\'ny kaontinao aloha.'); return; }
-        return sb().from('hotelerie_menu')
-          .upsert({ user_id: uid, plats: lire(), latabatra: n, updated_at: new Date().toISOString() })
+        // Le menu d'abord fondu avec celui en ligne : la ligne existe alors,
+        // et l'on n'y change que le nombre de latabatra, sans réécrire les plats.
+        return synchroniser().then(function () {
+          return sb().from('hotelerie_menu').update({ latabatra: n }).eq('user_id', uid).select('user_id');
+        }).then(function (res) {
+          if (!res.error && (!res.data || !res.data.length)) {
+            return sb().from('hotelerie_menu')
+              .upsert({ user_id: uid, plats: lire(), voafafa: fafanaLire(), latabatra: n, updated_at: new Date().toISOString() });
+          }
+          return res;
+        })
           .then(function (res) {
             if (res.error) { alert('Tsy voatahiry : ' + res.error.message); return; }
             nbLatabatra = n;
@@ -417,6 +467,7 @@
       if (!rehetra && !tables.length) { alert('Safidio ny latabatra hahitana azy, na « Table rehetra ».'); return; }
       const liste = lire();
       const i = enCours ? liste.findIndex(function (p) { return p.id === enCours; }) : -1;
+      donnees.maj = Date.now();
       if (i >= 0) Object.assign(liste[i], donnees);
       else liste.push(Object.assign({ id: nouvelId(), misy: true }, donnees));
       const cible = liste[i >= 0 ? i : liste.length - 1];
@@ -431,7 +482,7 @@
     z.querySelector('#sakafoRohy').addEventListener('click', function (e) {
       if (!platsVisibles(lire()).length) { alert('Mbola tsy misy sakafo misy ao amin\'ny menu.'); return; }
       const bouton = e.target;
-      // Le compte est d'ordinaire déjà connu (tirer, à l'ouverture) : le lien
+      // Le compte est d'ordinaire déjà connu (synchroniser, à l'ouverture) : le lien
       // se copie alors dans le geste même, ce que certains téléphones exigent.
       function montrer(uid) {
         const rohy = uid
@@ -449,7 +500,7 @@
       if (compte) montrer(compte); else idDuCompte().then(montrer);
       // Le lien ne vaut que si la ligne existe : on remonte le menu au moment
       // même où on le donne.
-      envoyer(lire());
+      synchroniser();
     });
     const atsahatra = z.querySelector('#sakafoAtsahatra');
     if (atsahatra) atsahatra.addEventListener('click', function () { enCours = null; rendre(); });
@@ -466,10 +517,12 @@
         z.scrollIntoView({ behavior: 'smooth', block: 'start' });
       } else if (b.dataset.action === 'misy') {
         liste[i].misy = !liste[i].misy;
+        liste[i].maj = Date.now();
         if (ecrire(liste)) rendre();
       } else if (b.dataset.action === 'esory') {
         if (!confirm('Esorina ve « ' + liste[i].anarana + ' » ?')) return;
         if (enCours === liste[i].id) enCours = null;
+        fafanaAjouter(liste[i].id);
         liste.splice(i, 1);
         if (ecrire(liste)) rendre();
       }
@@ -571,16 +624,18 @@
 
   function demarrer() {
     rendre();
-    tirer();
+    synchroniser();
     chargerCommandes();
-    setInterval(function () { if (!document.hidden && compte) chargerCommandes(); }, 15000);
+    // Le menu aussi : ce qu'un autre appareil vient d'y mettre arrive ici.
+    setInterval(function () { if (!document.hidden && compte) { chargerCommandes(); synchroniser(); } }, 15000);
+    document.addEventListener('visibilitychange', function () { if (!document.hidden && compte) synchroniser(); });
     // La session arrive parfois après le chargement : on retente à l'entrée.
     const c = sb();
     if (c && c.auth) {
       try {
         c.auth.onAuthStateChange(function (event) {
-          if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') { tirer(); chargerCommandes(); }
-          if (event === 'SIGNED_OUT') { compte = null; dejaTire = false; }
+          if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') { synchroniser(); chargerCommandes(); }
+          if (event === 'SIGNED_OUT') { compte = null; }
         });
       } catch (e) { }
     }
