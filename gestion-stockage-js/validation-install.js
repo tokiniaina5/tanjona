@@ -124,16 +124,11 @@
           '</p>' +
           // La demande est une lettre, sur papier blanc : ce qu'on écrit là
           // part tel quel au propriétaire. Tout y est obligatoire — un
-          // fokontany se reconnaît à son nom, son email et la fonction de
-          // celui qui demande.
+          // fokontany se reconnaît à son nom, son commun et son email.
           '<div data-taratasy style="background:#ffffff; color:#12181d; border-radius:12px; padding:1rem 1.1rem; margin-bottom:0.9rem;">' +
             '<p style="margin:0 0 0.9rem; font-size:0.86rem; line-height:1.6; color:#12181d;">' +
               'Ireto tompoko ny mombamomba ahy, ary ekeo ny fangatahako ilay <strong>code</strong> :</p>' +
             '<div class="form-grid">' +
-              '<div class="field"><label for="pvAnarana" style="color:#3d4b53;">Anarana *</label>' +
-                '<input type="text" id="pvAnarana" data-f-anarana placeholder="RAKOTO" autocomplete="off" style="background:#f3f6f8; color:#12181d; border-color:#c9d4da;"></div>' +
-              '<div class="field"><label for="pvFanampiny" style="color:#3d4b53;">Fanampin\'anarana (prénom) *</label>' +
-                '<input type="text" id="pvFanampiny" data-f-prenom placeholder="Jean" autocomplete="off" style="background:#f3f6f8; color:#12181d; border-color:#c9d4da;"></div>' +
               '<div class="field"' + (pourCommun ? ' style="display:none;"' : '') + '><label for="pvFokontany" style="color:#3d4b53;">Anaran\'ny fokontany *</label>' +
                 '<input type="text" id="pvFokontany" data-f-fokontany list="pvFokontanyListe" placeholder="Ambohimanarina" autocomplete="off" style="background:#f3f6f8; color:#12181d; border-color:#c9d4da;">' +
                 '<datalist id="pvFokontanyListe" data-liste-fokontany></datalist></div>' +
@@ -143,8 +138,6 @@
                 '<span data-commun-auto style="display:none; font-size:0.72rem; color:#2a7f62; margin-top:0.25rem;">Feno ho azy : avy amin\'ny listra.</span></div>' +
               '<div class="field"><label for="pvMail" style="color:#3d4b53;">Email hanokafana ny site *</label>' +
                 '<input type="email" id="pvMail" data-f-email placeholder="' + ANY + '@exemple.com" autocomplete="off" style="background:#f3f6f8; color:#12181d; border-color:#c9d4da;"></div>' +
-              '<div class="field"><label for="pvAsa" style="color:#3d4b53;">Asa eo anivon\'ny ' + ANY + ' *</label>' +
-                '<input type="text" id="pvAsa" data-f-asa placeholder="Ohatra : sekretera" autocomplete="off" style="background:#f3f6f8; color:#12181d; border-color:#c9d4da;"></div>' +
             '</div>' +
           '</div>' +
           '<button type="button" class="btn btn-sm" data-mangataka style="width:auto;">📩 Mangataka fanokafana</button>' +
@@ -355,33 +348,27 @@
     let emailDemande = '';
     page.querySelector('[data-mangataka]').addEventListener('click', function(){
       const lire = function(sel){ return String(page.querySelector(sel).value || '').trim(); };
-      const anarana = lire('[data-f-anarana]');
-      const prenom = lire('[data-f-prenom]');
       const fokontany = lire('[data-f-fokontany]');
       const commun = lire('[data-f-commun]');
       const email = lire('[data-f-email]').toLowerCase();
-      const asa = lire('[data-f-asa]');
-      if(!anarana || !prenom || (!fokontany && !pourCommun) || !commun || !email || !asa){
+      if((!fokontany && !pourCommun) || !commun || !email){
         dire('Fenoy daholo ireo saha rehetra ao amin\'ny taratasy.', true); return;
       }
       if(email.indexOf('@') < 0){ dire('Tsy mety ny email hanokafana ny site.', true); return; }
       if(!sb || !sb.functions || !sb.functions.invoke){ dire('Tsy tafiditra ny serveur : havaozy ny pejy.', true); return; }
       // Le nom du commun voyage avec celui du fokontany : c'est de lui que le
       // fokontany relève, et l'Administratif Commun le retrouve ainsi.
-      const nomComplet = anarana + ' ' + prenom + (pourCommun
-        ? ' — Commun ' + commun
-        : ' — Fokontany ' + fokontany + ' / Commun ' + commun) + ' (' + asa + ')';
+      const nomComplet = pourCommun
+        ? 'Commun ' + commun
+        : 'Fokontany ' + fokontany + ' / Commun ' + commun;
       dire('Mandefa ny fangatahana…');
       // La lettre part chez l'admin, et chez lui seul : c'est lui qui donnera
       // le code au fokontany. La fonction pose l'accès comme d'habitude.
       const lettre = [
         'Ireto tompoko ny mombamomba ahy, ary ekeo ny fangatahako ilay code :',
-        'Anarana : ' + anarana,
-        'Fanampin\'anarana : ' + prenom,
         pourCommun ? null : 'Fokontany : ' + fokontany,
         'Commun : ' + commun,
-        'Email hanokafana ny site : ' + email,
-        'Asa eo anivon\'ny ' + ANY + ' : ' + asa
+        'Email hanokafana ny site : ' + email
       ].filter(Boolean).join('\n');
       // Seul l'admin tire le code, et la fonction le reconnaît à la session
       // Supabase, pas au compte affiché. Une session perdue (jeton expiré)
