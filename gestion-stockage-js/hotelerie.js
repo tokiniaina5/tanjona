@@ -115,6 +115,181 @@
 
   let recherche = '';
   let enCours = null; // l'id du plat qu'on modifie, ou null pour un nouveau
+  let onglet = 'menu'; // 'menu' ou 'commandes'
+
+  // ---------- Les commandes des clients ----------
+  // Elles arrivent de menu-sakafo.html (hotelerie_commande,
+  // supabase/sql/supabase-hotelerie-commande.sql) : on les relit toutes les
+  // 15 s, et l'onglet porte le nombre de celles qui ne sont pas encore servies.
+  let commandes = [];
+  let nbVaovao = 0;
+  let voirVita = false;
+  let nbLatabatra = 10;
+  let etatCommandes = 'Miandry...';
+  function chargerCommandes() {
+    return idDuCompte().then(function (uid) {
+      if (!uid) { etatCommandes = 'Midira ao amin\'ny kaontinao mba hahitana ny commande.'; return; }
+      return Promise.all([
+        sb().from('hotelerie_commande').select('id,latabatra,plats,fanamarihana,vita,created_at')
+          .eq('hotel_id', uid).order('created_at', { ascending: false }).limit(300),
+        sb().from('hotelerie_menu').select('latabatra').eq('user_id', uid).maybeSingle()
+      ]).then(function (r) {
+        if (r[0].error) { etatCommandes = '⚠️ ' + r[0].error.message; return; }
+        commandes = r[0].data || [];
+        if (r[1].data && r[1].data.latabatra) nbLatabatra = r[1].data.latabatra;
+        etatCommandes = '';
+        const avant = nbVaovao;
+        nbVaovao = commandes.filter(function (c) { return !c.vita; }).length;
+        if (nbVaovao > avant && avant >= 0 && document.hidden === false && onglet !== 'commandes' && dejaCharge) {
+          // Une commande neuve pendant qu'on regarde le menu : l'onglet le dit.
+          const b = document.querySelector('.hotelerie [data-onglet="commandes"]');
+          if (b) b.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.12)' }, { transform: 'scale(1)' }], { duration: 500, iterations: 2 });
+        }
+        dejaCharge = true;
+      });
+    }).then(function () {
+      if (onglet === 'commandes') dessinerCommandes();
+      majBadge();
+    }, function () { etatCommandes = '⚠️ Tsy azo ny commande (connexion ?).'; if (onglet === 'commandes') dessinerCommandes(); });
+  }
+  let dejaCharge = false;
+  function majBadge() {
+    const b = document.querySelector('.hotelerie [data-onglet="commandes"]');
+    if (!b) return;
+    b.innerHTML = '🛎️ Commandes' + (nbVaovao
+      ? ' <span style="background:#ff6b6b; color:#fff; font-size:0.7rem; font-weight:700; border-radius:999px; padding:0 6px; margin-left:4px;">' + nbVaovao + '</span>'
+      : '');
+  }
+  function brancherOnglets(z) {
+    z.querySelectorAll('[data-onglet]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        if (onglet === b.dataset.onglet) return;
+        onglet = b.dataset.onglet;
+        rendre();
+        if (onglet === 'commandes') chargerCommandes();
+      });
+    });
+  }
+  function heure(iso) {
+    return new Date(iso).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  }
+  function totalDe(c) {
+    return (c.plats || []).reduce(function (s, p) { return s + (Number(p.isa) || 0) * (Number(p.vidiny) || 0); }, 0);
+  }
+  function rohyLatabatra(uid, n) {
+    return location.origin + '/menu-sakafo.html?id=' + uid + '&latabatra=' + n;
+  }
+  function dessinerCommandes() {
+    const zone = document.getElementById('commandesZone');
+    if (!zone) return;
+    const visibles = commandes.filter(function (c) { return voirVita || !c.vita; });
+    const parTable = {};
+    visibles.forEach(function (c) { (parTable[c.latabatra] = parTable[c.latabatra] || []).push(c); });
+    const tables = Object.keys(parTable).map(Number).sort(function (a, b) { return a - b; });
+
+    let options = '';
+    for (let i = 1; i <= nbLatabatra; i++) options += '<option value="' + i + '">Table ' + i + '</option>';
+
+    zone.innerHTML =
+      '<div class="panel">' +
+        '<div style="display:flex; gap:0.6rem; flex-wrap:wrap; align-items:flex-end;">' +
+          '<div class="field" style="margin-bottom:0; flex:0 1 150px;"><label for="latabatraIsa">Isan\'ny latabatra</label>' +
+            '<input id="latabatraIsa" type="number" min="1" max="500" value="' + nbLatabatra + '"></div>' +
+          '<button type="button" class="btn btn-sm" id="latabatraTehirizo" style="width:auto;">💾 Tehirizo</button>' +
+          '<div class="field" style="margin-bottom:0; flex:0 1 150px;"><label for="latabatraRohy">Rohy isaky ny latabatra</label>' +
+            '<select id="latabatraRohy">' + options + '</select></div>' +
+          '<button type="button" class="btn btn-sm" id="latabatraAdikao" style="width:auto;">🔗 Adikao</button>' +
+        '</div>' +
+        '<p style="font-size:0.75rem; color:var(--muted); margin:0.5rem 0 0;">Ny rohy isaky ny latabatra dia efa misafidy ny latabatra ho an\'ny mpanjifa (azo atao QR eo ambony latabatra).</p>' +
+      '</div>' +
+      '<div class="panel" style="margin-top:1rem;">' +
+        '<div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center; justify-content:space-between;">' +
+          '<strong style="font-size:0.9rem;">' + nbVaovao + ' commande mbola tsy vita</strong>' +
+          '<div style="display:flex; gap:0.4rem; flex-wrap:wrap;">' +
+            '<button type="button" class="btn btn-sm" id="commandesVita" style="width:auto;">' + (voirVita ? '🙈 Afeno ny vita' : '👁️ Asehoy ny vita') + '</button>' +
+            '<button type="button" class="btn btn-sm" id="commandesHavaozina" style="width:auto;">🔄 Havaozina</button>' +
+          '</div>' +
+        '</div>' +
+        (etatCommandes ? '<p class="empty-hint" style="margin:0.8rem 0 0;">' + html(etatCommandes) + '</p>' : '') +
+        (!etatCommandes && !tables.length ? '<p class="empty-hint" style="margin:0.8rem 0 0;">Tsy misy commande ' + (voirVita ? '' : 'miandry ') + 'izao.</p>' : '') +
+        tables.map(function (t) {
+          const liste = parTable[t];
+          const reste = liste.filter(function (c) { return !c.vita; }).reduce(function (s, c) { return s + totalDe(c); }, 0);
+          return '<div style="margin-top:1rem; border:1px solid var(--cyan); border-radius:10px; padding:0.7rem 0.8rem;">' +
+            '<div style="display:flex; justify-content:space-between; gap:0.5rem; flex-wrap:wrap; align-items:center;">' +
+              '<h4 style="margin:0; font-size:1rem;">🍽️ Table ' + t + '</h4>' +
+              (reste ? '<strong style="color:var(--cyan); font-size:0.88rem;">' + ariary(reste) + '</strong>' : '') +
+            '</div>' +
+            liste.map(function (c) {
+              return '<div style="margin-top:0.6rem; padding:0.6rem 0.7rem; border-radius:8px; border:1px solid var(--line);' + (c.vita ? ' opacity:0.55;' : '') + '">' +
+                '<div style="display:flex; justify-content:space-between; gap:0.5rem; font-size:0.75rem; color:var(--muted);">' +
+                  '<span>🕒 ' + heure(c.created_at) + '</span>' +
+                  '<span>' + (c.vita ? '✅ Vita' : '⏳ Miandry') + '</span>' +
+                '</div>' +
+                (c.plats || []).map(function (p) {
+                  return '<div style="display:flex; justify-content:space-between; gap:0.5rem; font-size:0.86rem; margin-top:0.25rem;">' +
+                    '<span><strong>' + (Number(p.isa) || 0) + ' ×</strong> ' + html(p.anarana) + '</span>' +
+                    '<span style="white-space:nowrap;">' + ariary((Number(p.isa) || 0) * (Number(p.vidiny) || 0)) + '</span></div>';
+                }).join('') +
+                (c.fanamarihana ? '<p style="font-size:0.8rem; margin:0.35rem 0 0; color:var(--muted);">📝 ' + html(c.fanamarihana) + '</p>' : '') +
+                '<div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-top:0.5rem;">' +
+                  '<strong style="font-size:0.88rem;">Total : ' + ariary(totalDe(c)) + '</strong>' +
+                  '<div style="display:flex; gap:0.35rem; flex-wrap:wrap;">' +
+                    '<button type="button" class="btn btn-sm" data-commande="vita" data-id="' + c.id + '" style="width:auto;">' + (c.vita ? '↩️ Tsy vita' : '✅ Vita') + '</button>' +
+                    '<button type="button" class="btn btn-sm btn-red" data-commande="esory" data-id="' + c.id + '" style="width:auto;">Esorina</button>' +
+                  '</div>' +
+                '</div>' +
+              '</div>';
+            }).join('') +
+          '</div>';
+        }).join('') +
+      '</div>';
+
+    zone.querySelector('#commandesVita').addEventListener('click', function () { voirVita = !voirVita; dessinerCommandes(); });
+    zone.querySelector('#commandesHavaozina').addEventListener('click', function () { chargerCommandes(); });
+    zone.querySelector('#latabatraTehirizo').addEventListener('click', function () {
+      const n = Math.round(Number(zone.querySelector('#latabatraIsa').value));
+      if (!(n >= 1 && n <= 500)) { alert('Isa 1 ka hatramin\'ny 500.'); return; }
+      idDuCompte().then(function (uid) {
+        if (!uid) { alert('Midira ao amin\'ny kaontinao aloha.'); return; }
+        return sb().from('hotelerie_menu')
+          .upsert({ user_id: uid, plats: lire(), latabatra: n, updated_at: new Date().toISOString() })
+          .then(function (res) {
+            if (res.error) { alert('Tsy voatahiry : ' + res.error.message); return; }
+            nbLatabatra = n;
+            dessinerCommandes();
+          });
+      });
+    });
+    zone.querySelector('#latabatraAdikao').addEventListener('click', function (e) {
+      const n = zone.querySelector('#latabatraRohy').value;
+      const bouton = e.target;
+      function donner(uid) {
+        if (!uid) { alert('Midira ao amin\'ny kaontinao aloha.'); return; }
+        copier(rohyLatabatra(uid, n), bouton, '🔗 Adikao');
+      }
+      if (compte) donner(compte); else idDuCompte().then(donner);
+    });
+    // La zone reste d'un dessin à l'autre (seul son contenu change) : un seul
+    // écouteur pour les boutons des commandes.
+    if (zone.dataset.branche) return;
+    zone.dataset.branche = '1';
+    zone.addEventListener('click', function (e) {
+      const b = e.target.closest('button[data-commande]');
+      if (!b) return;
+      const c = commandes.find(function (x) { return x.id === b.dataset.id; });
+      if (!c) return;
+      if (b.dataset.commande === 'esory' && !confirm('Esorina ve ity commande ity (Table ' + c.latabatra + ') ?')) return;
+      b.disabled = true;
+      const req = b.dataset.commande === 'vita'
+        ? sb().from('hotelerie_commande').update({ vita: !c.vita }).eq('id', c.id)
+        : sb().from('hotelerie_commande').delete().eq('id', c.id);
+      req.then(function (res) {
+        if (res.error) { alert(res.error.message); b.disabled = false; return; }
+        chargerCommandes();
+      });
+    });
+  }
 
   function rendre() {
     const z = document.querySelector('.hotelerie');
@@ -123,12 +298,23 @@
     const plat = enCours ? plats.find(function (p) { return p.id === enCours; }) : null;
     if (enCours && !plat) enCours = null;
 
-    z.innerHTML =
+    const tete =
       '<div class="section-head"><div><h2>🏨 Hasina Hôtellerie</h2>' +
-        '<p>Ny menu sakafo an\'ny hotely. Ao amin\'ity navigateur ity ihany no voatahiry izy.</p></div></div>' +
-      '<div class="dash-tabs" style="margin-bottom:1rem;">' +
-        '<button type="button" class="dash-tab active" style="width:auto;">🍽️ Menu sakafo</button>' +
-      '</div>' +
+        '<p>Ny menu sakafo an\'ny hotely sy ny commande an\'ny mpanjifa isaky ny latabatra.</p></div></div>' +
+      '<div class="dash-tabs" style="margin-bottom:1rem; display:flex; gap:0.4rem; flex-wrap:wrap;">' +
+        '<button type="button" class="dash-tab' + (onglet === 'menu' ? ' active' : '') + '" data-onglet="menu" style="width:auto;">🍽️ Menu sakafo</button>' +
+        '<button type="button" class="dash-tab' + (onglet === 'commandes' ? ' active' : '') + '" data-onglet="commandes" style="width:auto;">🛎️ Commandes' +
+          (nbVaovao ? ' <span style="background:#ff6b6b; color:#fff; font-size:0.7rem; font-weight:700; border-radius:999px; padding:0 6px; margin-left:4px;">' + nbVaovao + '</span>' : '') +
+        '</button>' +
+      '</div>';
+    if (onglet === 'commandes') {
+      z.innerHTML = tete + '<div id="commandesZone"></div>';
+      brancherOnglets(z);
+      dessinerCommandes();
+      return;
+    }
+
+    z.innerHTML = tete +
       '<div class="panel">' +
         '<h4 style="margin:0 0 0.8rem;">' + (plat ? '✏️ Ovay ny sakafo' : '＋ Sakafo vaovao') + '</h4>' +
         '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:0.6rem;">' +
@@ -166,6 +352,7 @@
       '</div>';
 
     dessinerListe(z, plats);
+    brancherOnglets(z);
 
     z.querySelector('#sakafoRecherche').addEventListener('input', function (e) {
       recherche = e.target.value;
@@ -336,12 +523,14 @@
   function demarrer() {
     rendre();
     tirer();
+    chargerCommandes();
+    setInterval(function () { if (!document.hidden && compte) chargerCommandes(); }, 15000);
     // La session arrive parfois après le chargement : on retente à l'entrée.
     const c = sb();
     if (c && c.auth) {
       try {
         c.auth.onAuthStateChange(function (event) {
-          if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') tirer();
+          if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') { tirer(); chargerCommandes(); }
           if (event === 'SIGNED_OUT') { compte = null; dejaTire = false; }
         });
       } catch (e) { }
