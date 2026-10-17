@@ -5,6 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>Menu sakafo</title>
+<!-- Installable : le manifeste n'a pas de start_url, l'application s'ouvre
+     donc à l'adresse même où on l'a installée — « ?id=<hôtel>&latabatra=… »
+     compris, ce que la page retient aussi (localStorage) au cas où. -->
+<link rel="manifest" href="/menu-sakafo.webmanifest">
+<meta name="theme-color" content="#0f171b">
+<link rel="icon" href="/icone-192.png">
+<link rel="apple-touch-icon" href="/icone-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Menu sakafo">
 <!-- Le menu de Hasina Hôtellerie, que le lien désigne : la page de
      l'hôtel (gestion-stockage-js/hotelerie.js) l'écrit dans la table
      hotelerie_menu, que « ?id=<compte> » lit ; un ancien lien « #m=… » porte
@@ -39,12 +49,19 @@
   .commande .alefa:disabled{ opacity:0.5; cursor:default; }
   .total{ font-weight:700; color:var(--accent); }
   .voaray{ color:var(--accent); font-weight:600; margin:0.5rem 0 0; }
+  .installer{ display:none; align-items:center; justify-content:space-between; gap:0.6rem; flex-wrap:wrap; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:0.6rem 0.8rem; margin:0 0 1rem; }
+  .installer p{ margin:0; font-size:0.85rem; color:var(--muted); flex:1 1 200px; }
+  .installer button{ margin:0; }
 </style>
 </head>
 <body>
 <main>
   <h1>🏨 Hasina Hôtellerie</h1>
   <p class="sous">🍽️ Menu sakafo</p>
+  <div class="installer" id="installer">
+    <p id="installerTexte">Apetraho eo amin'ny écran ny menu, hisokatra avy hatrany.</p>
+    <button type="button" id="installerBouton">📲 Installer</button>
+  </div>
   <div id="menu"></div>
 </main>
 <script>
@@ -71,15 +88,27 @@
   const CLE_SB = 'sb_publishable_7YAttwKbsmxJUxn9IwR86g_9_h4ZThk';
   const ORDRE = Object.keys(SOKAJY);
   const params = new URLSearchParams(location.search);
-  const id = params.get('id');
-  const enLigne = !!(id && /^[0-9a-f-]{36}$/i.test(id));
+  // L'hôtel du lien, retenu : l'application installée qui s'ouvrirait sans
+  // lui (un écran d'accueil qui a perdu l'adresse) retrouve quand même le sien.
+  function retenuLire(k) { try { return localStorage.getItem('menu_sakafo_' + k); } catch (e) { return null; } }
+  function retenuEcrire(k, v) { try { localStorage.setItem('menu_sakafo_' + k, v); } catch (e) { } }
+  const ID_VALIDE = /^[0-9a-f-]{36}$/i;
+  let id = params.get('id');
+  if (id && ID_VALIDE.test(id)) {
+    retenuEcrire('id', id);
+    if (params.get('latabatra')) retenuEcrire('latabatra', params.get('latabatra'));
+  } else if (!/[#&]m=/.test(location.hash)) {
+    id = retenuLire('id');
+  }
+  const enLigne = !!(id && ID_VALIDE.test(id));
 
   // La commande en cours : nom du plat → nombre. Elle survit au
   // rafraîchissement du menu (toutes les 30 s), tant que le plat existe.
   const panier = {};
   let prixDuMenu = {};
   let nbLatabatra = 10;
-  let latabatraChoisie = Number(params.get('latabatra')) || Number(memoLire('latabatra')) || 0;
+  let latabatraChoisie = Number(params.get('latabatra')) || Number(memoLire('latabatra')) ||
+    Number(params.get('id') ? 0 : retenuLire('latabatra')) || 0;
 
   function depuisLeLien() {
     try {
@@ -266,14 +295,57 @@
       { headers: { apikey: CLE_SB, Authorization: 'Bearer ' + CLE_SB }, cache: 'no-store' })
       .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
       .then(function (rangs) {
-        if (rangs[0] && rangs[0].latabatra) nbLatabatra = rangs[0].latabatra;
-        if (latabatraChoisie > nbLatabatra) latabatraChoisie = 0;
-        afficher(depuisLaBase(rangs[0] && rangs[0].plats));
+        retenuEcrire('dernier_' + id, JSON.stringify(rangs[0] || null));
+        recevoir(rangs[0]);
       })
       .catch(function () {
-        if (empreinte === null) boite.replaceChildren(el('p', 'Tsy azo ny menu : jereo ny connexion, dia avereno.', 'vide'));
+        if (empreinte !== null) return;
+        // Hors réseau : la dernière version reçue, plutôt qu'une page vide.
+        let garde = null;
+        try { garde = JSON.parse(retenuLire('dernier_' + id)); } catch (e) { }
+        if (garde) recevoir(garde);
+        else boite.replaceChildren(el('p', 'Tsy azo ny menu : jereo ny connexion, dia avereno.', 'vide'));
       });
   }
+  function recevoir(rang) {
+    if (rang && rang.latabatra) nbLatabatra = rang.latabatra;
+    if (latabatraChoisie > nbLatabatra) latabatraChoisie = 0;
+    afficher(depuisLaBase(rang && rang.plats));
+  }
+
+  // ---------- L'installation ----------
+  // Android / ordinateur : le navigateur propose l'installation, on la garde
+  // pour le bouton. iPhone : rien à proposer, on dit où toucher.
+  (function () {
+    const boiteInst = document.getElementById('installer');
+    const bouton = document.getElementById('installerBouton');
+    const texte = document.getElementById('installerTexte');
+    const installee = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+    if (installee) return;
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/menu-sakafo-sw.js', { scope: '/menu-sakafo.html' }).catch(function () { });
+    }
+    let invite = null;
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      invite = e;
+      bouton.style.display = '';
+      boiteInst.style.display = 'flex';
+    });
+    bouton.addEventListener('click', function () {
+      if (!invite) return;
+      invite.prompt();
+      invite.userChoice.then(function () { invite = null; boiteInst.style.display = 'none'; });
+    });
+    window.addEventListener('appinstalled', function () { boiteInst.style.display = 'none'; });
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    if (ios) {
+      texte.textContent = "Mba hametrahana ny menu eo amin'ny écran : tsindrio ny ⎙ (Partager) eo ambany, dia « Sur l'écran d'accueil ».";
+      bouton.style.display = 'none';
+      boiteInst.style.display = 'flex';
+    }
+  })();
 
   if (enLigne) {
     charger();

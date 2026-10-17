@@ -1,0 +1,18 @@
+{
+  "id": "/menu-sakafo.html",
+  "name": "Hasina Hôtellerie — Menu sakafo",
+  "short_name": "Menu sakafo",
+  "description": "Ny menu sakafo an'i Hasina Hôtellerie, sy ny commande isaky ny latabatra.",
+  "lang": "mg",
+  "dir": "ltr",
+  "scope": "/menu-sakafo.html",
+  "display": "standalone",
+  "background_color": "#0f171b",
+  "theme_color": "#0f171b",
+  "categories": ["food"],
+  "icons": [
+    { "src": "/icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icone-512-masquable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
