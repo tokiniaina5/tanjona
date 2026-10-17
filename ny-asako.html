@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="25dc01cf">
+<meta name="ny-asako-version" content="28a14949">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -638,6 +638,8 @@
         <button type="button" class="nav-action" id="menuTableauBord">📊 Tableau de bord</button>
         <button type="button" class="nav-action" id="menuCommun">🗂️ Fokontany</button>
         <button type="button" class="nav-action" id="menuCommunAdmin">🏛️ Commun</button>
+        <!-- L'hôtel : son menu sakafo (hotelerie.js). -->
+        <div class="nav-item" data-section="hotelerie">🏨 Hasina Hôtellerie</div>
         <!-- Installer les deux applications : le propriétaire seul, et d'ici
              seulement — leurs pages ne s'installent pour personne d'autre. -->
         <button type="button" class="nav-action" id="menuInstallFokontany">📲 Télécharger Fokontany</button>
@@ -3231,6 +3233,8 @@
       <!-- ---- FITAOVANA : Word, Excel, Notes, Calculatrice, Calendrier, Horaire ----
            Des pages vides : fitaovana.js les remplit. Rien n'y quitte ce
            navigateur. -->
+      <!-- Hasina Hôtellerie : vide, hotelerie.js la remplit. -->
+      <section class="section" id="section-hotelerie"><div class="hotelerie"></div></section>
       <section class="section" id="section-notes"><div class="fitaovana" data-outil="notes"></div></section>
       <!-- Le panier : parametres.js le remplit. -->
       <section class="section" id="section-panier"><div class="panier-page"></div></section>
@@ -3273,6 +3277,7 @@
 <script src="gestion-stockage-js/equipe.js?v=307dc2cd"></script>
 <script src="gestion-stockage-js/vue-mpiasa.js?v=1e6cfbec"></script>
 <script src="gestion-stockage-js/vue-suivi.js?v=77f7b0f5"></script>
+<script src="gestion-stockage-js/hotelerie.js?v=8530cfd9"></script>
 <script src="gestion-stockage-js/fitaovana.js?v=bf90a8a5"></script>
 <script src="gestion-stockage-js/photocopie.js?v=be4f35a5"></script>
 <script src="gestion-stockage-js/pdf.js?v=b7c1f056"></script>
