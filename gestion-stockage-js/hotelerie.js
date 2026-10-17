@@ -115,6 +115,9 @@
             localStorage.setItem(CLE_FAFANA, JSON.stringify(fafana));
           } catch (e) { }
           if (!memes(fondu, ici)) redessinerSiLibre();
+          // Rien ici, rien en ligne : pas de ligne vide pour chaque compte
+          // qui ouvre simplement l'application.
+          if (!res.data && !fondu.length && !fafana.length) { direEnLigne(''); return; }
           if (res.data && memes(fondu, enLigne) && memes(fafana, fafanaLa)) {
             direEnLigne('✅ Efa miova ho azy ny rohy.');
             return;
@@ -167,16 +170,22 @@
   let voirVita = false;
   let nbLatabatra = 10;
   let etatCommandes = 'Miandry...';
-  function chargerCommandes() {
+  // Redessiner toutes les 15 s volerait la saisie (le champ de la note, la
+  // commande en cours) : on ne redessine que si quelque chose a changé.
+  let signature = '';
+  function chargerCommandes(force) {
+    let change = !!force;
     return idDuCompte().then(function (uid) {
-      if (!uid) { etatCommandes = 'Midira ao amin\'ny kaontinao mba hahitana ny commande.'; return; }
+      if (!uid) { change = true; etatCommandes = 'Midira ao amin\'ny kaontinao mba hahitana ny commande.'; return; }
       return Promise.all([
         sb().from('hotelerie_commande').select('id,latabatra,plats,fanamarihana,vita,created_at')
           .eq('hotel_id', uid).order('created_at', { ascending: false }).limit(300),
         sb().from('hotelerie_menu').select('latabatra').eq('user_id', uid).maybeSingle()
       ]).then(function (r) {
-        if (r[0].error) { etatCommandes = '⚠️ ' + r[0].error.message; return; }
+        if (r[0].error) { change = true; etatCommandes = '⚠️ ' + r[0].error.message; return; }
         commandes = r[0].data || [];
+        const sig = JSON.stringify(commandes) + '|' + ((r[1].data && r[1].data.latabatra) || '');
+        if (sig !== signature) { signature = sig; change = true; }
         if (r[1].data && r[1].data.latabatra && r[1].data.latabatra !== nbLatabatra) {
           nbLatabatra = r[1].data.latabatra;
           majChampLatabatra();
@@ -192,7 +201,7 @@
         dejaCharge = true;
       });
     }).then(function () {
-      if (onglet === 'commandes') dessinerCommandes();
+      if (onglet === 'commandes' && change) dessinerCommandes();
       majBadge();
     }, function () { etatCommandes = '⚠️ Tsy azo ny commande (connexion ?).'; if (onglet === 'commandes') dessinerCommandes(); });
   }
@@ -223,13 +232,109 @@
   function rohyLatabatra(uid, n) {
     return location.origin + '/menu-sakafo.html?id=' + uid + '&latabatra=' + n;
   }
+  // ---------- Les latabatra, et le menu de chacune ----------
+  // Toutes les latabatra en boutons ; celle qu'on ouvre montre son menu
+  // (les plats « misy » qui la concernent), et l'on y prend la commande à la
+  // place du client — un serveur, un client sans téléphone.
+  let tableOuverte = 0;
+  const panierTable = {};   // id du plat → nombre, pour la table ouverte
+  let noteTable = '';
+  function platsDeLaTable(n) {
+    return lire().filter(function (p) {
+      return p.misy && (!Array.isArray(p.tables) || !p.tables.length || p.tables.indexOf(n) >= 0);
+    }).sort(function (a, b) {
+      const o = SOKAJY.map(function (s) { return s[0]; });
+      return (o.indexOf(a.sokajy) - o.indexOf(b.sokajy)) || a.anarana.localeCompare(b.anarana, 'fr');
+    });
+  }
+  function blocLatabatra(enAttente) {
+    let boutons = '';
+    for (let n = 1; n <= nbLatabatra; n++) {
+      const actif = n === tableOuverte;
+      boutons += '<button type="button" class="btn btn-sm" data-ouvrir="' + n + '" style="width:auto; position:relative;' +
+        (actif ? ' border-color:var(--cyan); color:var(--cyan); background:rgba(79,216,224,0.12);' : '') + '">🍽️ Table ' + n +
+        (enAttente[n] ? ' <span style="background:#ff6b6b; color:#fff; font-size:0.68rem; font-weight:700; border-radius:999px; padding:0 5px; margin-left:3px;">' + enAttente[n] + '</span>' : '') +
+        '</button>';
+    }
+    let corps = '';
+    if (tableOuverte) {
+      const plats = platsDeLaTable(tableOuverte);
+      Object.keys(panierTable).forEach(function (k) {
+        if (!plats.some(function (p) { return p.id === k; })) delete panierTable[k];
+      });
+      let courant = null;
+      const total = plats.reduce(function (s, p) { return s + (panierTable[p.id] || 0) * (Number(p.vidiny) || 0); }, 0);
+      const isa = Object.keys(panierTable).reduce(function (s, k) { return s + panierTable[k]; }, 0);
+      corps = '<div style="margin-top:0.9rem; border-top:1px solid var(--line); padding-top:0.8rem;">' +
+        '<h4 style="margin:0 0 0.4rem;">📋 Menu — Table ' + tableOuverte + '</h4>' +
+        (plats.length ? plats.map(function (p) {
+          let titre = '';
+          if (p.sokajy !== courant) { courant = p.sokajy; titre = '<p style="margin:0.6rem 0 0.3rem; font-size:0.82rem; font-weight:700;">' + html(nomSokajy(courant)) + '</p>'; }
+          const n = panierTable[p.id] || 0;
+          return titre + '<div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap; padding:0.45rem 0.6rem; margin-bottom:0.35rem; border:1px solid ' + (n ? 'var(--cyan)' : 'var(--line)') + '; border-radius:8px;">' +
+            '<div style="flex:1 1 140px; min-width:0;"><strong style="font-size:0.86rem;">' + html(p.anarana) + '</strong>' +
+              (p.famaritana ? '<span style="display:block; font-size:0.74rem; color:var(--muted);">' + html(p.famaritana) + '</span>' : '') + '</div>' +
+            '<span style="font-size:0.84rem; color:var(--cyan); font-weight:700; white-space:nowrap;">' + ariary(p.vidiny) + '</span>' +
+            '<div style="display:flex; align-items:center; gap:0.3rem;">' +
+              '<button type="button" class="btn btn-sm" data-panier="-1" data-id="' + p.id + '" style="width:auto; padding:0.1rem 0.6rem;">−</button>' +
+              '<strong style="min-width:1.4rem; text-align:center;">' + n + '</strong>' +
+              '<button type="button" class="btn btn-sm" data-panier="1" data-id="' + p.id + '" style="width:auto; padding:0.1rem 0.6rem;">+</button>' +
+            '</div>' +
+          '</div>';
+        }).join('') : '<p class="empty-hint" style="margin:0;">Tsy misy sakafo « misy » ho an\'ity latabatra ity.</p>') +
+        (plats.length
+          ? '<input id="tableNote" type="text" maxlength="300" placeholder="Fanamarihana (raha misy)" value="' + html(noteTable) + '" style="width:100%; box-sizing:border-box; margin-top:0.5rem; ' + CHAMP + '">' +
+            '<div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-top:0.6rem;">' +
+              '<strong style="font-size:0.9rem;">' + (isa ? isa + ' zavatra · ' + ariary(total) : 'Tsindrio ny « + »') + '</strong>' +
+              '<button type="button" class="btn btn-sm btn-primary" id="tableAjouter" style="width:auto;"' + (isa ? '' : ' disabled') + '>➕ Ampio ny commande</button>' +
+            '</div>'
+          : '') +
+      '</div>';
+    }
+    return '<div class="panel" style="margin-top:1rem;">' +
+      '<div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap;">' +
+        '<h4 style="margin:0;">🍽️ Latabatra</h4>' +
+        (tableOuverte ? '<button type="button" class="btn btn-sm" data-ouvrir="0" style="width:auto;">✕ Hidio ny Table ' + tableOuverte + '</button>' : '') +
+      '</div>' +
+      '<div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.6rem;">' + boutons + '</div>' +
+      corps +
+    '</div>';
+  }
+  function ajouterCommandeTable(bouton) {
+    const plats = platsDeLaTable(tableOuverte);
+    const lignes = plats.filter(function (p) { return panierTable[p.id]; })
+      .map(function (p) { return { anarana: p.anarana, vidiny: Number(p.vidiny) || 0, isa: panierTable[p.id] }; });
+    if (!lignes.length) return;
+    bouton.disabled = true;
+    bouton.textContent = '⏳ Alefa...';
+    idDuCompte().then(function (uid) {
+      if (!uid) throw new Error('Midira ao amin\'ny kaontinao aloha.');
+      return sb().from('hotelerie_commande').insert({
+        hotel_id: uid, latabatra: tableOuverte, plats: lignes, fanamarihana: noteTable.trim() || null
+      });
+    }).then(function (res) {
+      if (res && res.error) throw new Error(res.error.message);
+      Object.keys(panierTable).forEach(function (k) { delete panierTable[k]; });
+      noteTable = '';
+      chargerCommandes(true);
+    }).catch(function (e) {
+      alert('Tsy lasa ny commande : ' + (e && e.message ? e.message : 'jereo ny connexion.'));
+      dessinerCommandes();
+    });
+  }
+
   function dessinerCommandes() {
     const zone = document.getElementById('commandesZone');
     if (!zone) return;
     const visibles = commandes.filter(function (c) { return voirVita || !c.vita; });
     const parTable = {};
     visibles.forEach(function (c) { (parTable[c.latabatra] = parTable[c.latabatra] || []).push(c); });
-    const tables = Object.keys(parTable).map(Number).sort(function (a, b) { return a - b; });
+    let tables = Object.keys(parTable).map(Number).sort(function (a, b) { return a - b; });
+    // Une table ouverte : on ne montre que ses commandes, sous son menu.
+    if (tableOuverte > nbLatabatra) tableOuverte = 0;
+    if (tableOuverte) tables = tables.filter(function (t) { return t === tableOuverte; });
+    const enAttente = {};
+    commandes.forEach(function (c) { if (!c.vita) enAttente[c.latabatra] = (enAttente[c.latabatra] || 0) + 1; });
 
     let options = '';
     for (let i = 1; i <= nbLatabatra; i++) options += '<option value="' + i + '">Table ' + i + '</option>';
@@ -246,9 +351,12 @@
         '</div>' +
         '<p style="font-size:0.75rem; color:var(--muted); margin:0.5rem 0 0;">Ny rohy isaky ny latabatra dia efa misafidy ny latabatra ho an\'ny mpanjifa (azo atao QR eo ambony latabatra).</p>' +
       '</div>' +
+      blocLatabatra(enAttente) +
       '<div class="panel" style="margin-top:1rem;">' +
         '<div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center; justify-content:space-between;">' +
-          '<strong style="font-size:0.9rem;">' + nbVaovao + ' commande mbola tsy vita</strong>' +
+          '<strong style="font-size:0.9rem;">' + (tableOuverte
+            ? 'Table ' + tableOuverte + ' : ' + (enAttente[tableOuverte] || 0) + ' commande mbola tsy vita'
+            : nbVaovao + ' commande mbola tsy vita') + '</strong>' +
           '<div style="display:flex; gap:0.4rem; flex-wrap:wrap;">' +
             '<button type="button" class="btn btn-sm" id="commandesVita" style="width:auto;">' + (voirVita ? '🙈 Afeno ny vita' : '👁️ Asehoy ny vita') + '</button>' +
             '<button type="button" class="btn btn-sm" id="commandesHavaozina" style="width:auto;">🔄 Havaozina</button>' +
@@ -290,7 +398,7 @@
       '</div>';
 
     zone.querySelector('#commandesVita').addEventListener('click', function () { voirVita = !voirVita; dessinerCommandes(); });
-    zone.querySelector('#commandesHavaozina').addEventListener('click', function () { chargerCommandes(); });
+    zone.querySelector('#commandesHavaozina').addEventListener('click', function () { chargerCommandes(true); });
     zone.querySelector('#latabatraTehirizo').addEventListener('click', function () {
       const n = Math.round(Number(zone.querySelector('#latabatraIsa').value));
       if (!(n >= 1 && n <= 500)) { alert('Isa 1 ka hatramin\'ny 500.'); return; }
@@ -327,7 +435,28 @@
     // écouteur pour les boutons des commandes.
     if (zone.dataset.branche) return;
     zone.dataset.branche = '1';
+    zone.addEventListener('input', function (e) {
+      if (e.target.id === 'tableNote') noteTable = e.target.value;
+    });
     zone.addEventListener('click', function (e) {
+      const ouvrir = e.target.closest('button[data-ouvrir]');
+      if (ouvrir) {
+        const n = Number(ouvrir.dataset.ouvrir);
+        tableOuverte = n === tableOuverte ? 0 : n;
+        Object.keys(panierTable).forEach(function (k) { delete panierTable[k]; });
+        noteTable = '';
+        dessinerCommandes();
+        return;
+      }
+      const pan = e.target.closest('button[data-panier]');
+      if (pan) {
+        const v = Math.max(0, Math.min(50, (panierTable[pan.dataset.id] || 0) + Number(pan.dataset.panier)));
+        if (v) panierTable[pan.dataset.id] = v; else delete panierTable[pan.dataset.id];
+        dessinerCommandes();
+        return;
+      }
+      const ajout = e.target.closest('#tableAjouter');
+      if (ajout) { ajouterCommandeTable(ajout); return; }
       const b = e.target.closest('button[data-commande]');
       if (!b) return;
       const c = commandes.find(function (x) { return x.id === b.dataset.id; });
