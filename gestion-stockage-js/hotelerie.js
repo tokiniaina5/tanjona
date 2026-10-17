@@ -136,7 +136,10 @@
       ]).then(function (r) {
         if (r[0].error) { etatCommandes = '⚠️ ' + r[0].error.message; return; }
         commandes = r[0].data || [];
-        if (r[1].data && r[1].data.latabatra) nbLatabatra = r[1].data.latabatra;
+        if (r[1].data && r[1].data.latabatra && r[1].data.latabatra !== nbLatabatra) {
+          nbLatabatra = r[1].data.latabatra;
+          majChampLatabatra();
+        }
         etatCommandes = '';
         const avant = nbVaovao;
         nbVaovao = commandes.filter(function (c) { return !c.vita; }).length;
@@ -291,6 +294,41 @@
     });
   }
 
+  // Le menu par latabatra : un plat sans « tables » se voit partout ; sinon
+  // seulement aux latabatra qu'il nomme (menu-sakafo.html filtre de même).
+  function champLatabatra(plat) {
+    const choisies = plat && Array.isArray(plat.tables) ? plat.tables : null;
+    let cases = '';
+    for (let n = 1; n <= nbLatabatra; n++) {
+      cases += '<label style="display:inline-flex; align-items:center; gap:0.25rem; font-size:0.8rem; padding:0.2rem 0.5rem; border:1px solid var(--line); border-radius:6px; cursor:pointer;">' +
+        '<input type="checkbox" value="' + n + '"' + (choisies && choisies.indexOf(n) >= 0 ? ' checked' : '') + '> Table ' + n + '</label>';
+    }
+    return '<div class="field" style="margin:0.6rem 0 0;"><label>Latabatra mahita azy</label>' +
+      '<label style="display:inline-flex; align-items:center; gap:0.35rem; font-size:0.85rem; cursor:pointer; text-transform:none; letter-spacing:0;">' +
+        '<input type="checkbox" id="sakafoRehetra"' + (choisies ? '' : ' checked') + '> Table rehetra</label>' +
+      '<div id="sakafoTables" style="display:' + (choisies ? 'flex' : 'none') + '; gap:0.35rem; flex-wrap:wrap; margin-top:0.4rem;">' + cases + '</div>' +
+    '</div>';
+  }
+  // Le nombre de latabatra arrive du serveur après le premier dessin : on
+  // refait seulement ce champ, sans toucher à ce qu'on est en train d'écrire.
+  function majChampLatabatra() {
+    const boite = document.getElementById('sakafoTables');
+    if (!boite) return;
+    const rehetra = document.getElementById('sakafoRehetra').checked;
+    const cochees = [].slice.call(boite.querySelectorAll('input:checked')).map(function (c) { return Number(c.value); });
+    const tmp = document.createElement('div');
+    tmp.innerHTML = champLatabatra(rehetra ? null : { tables: cochees });
+    boite.parentNode.replaceWith(tmp.firstChild);
+    document.getElementById('sakafoRehetra').addEventListener('change', function (e) {
+      document.getElementById('sakafoTables').style.display = e.target.checked ? 'none' : 'flex';
+    });
+  }
+  function nomsTables(p) {
+    return Array.isArray(p.tables) && p.tables.length
+      ? p.tables.slice().sort(function (a, b) { return a - b; }).map(function (n) { return 'Table ' + n; }).join(', ')
+      : '';
+  }
+
   function rendre() {
     const z = document.querySelector('.hotelerie');
     if (!z) return;
@@ -329,6 +367,7 @@
         '</div>' +
         '<div class="field" style="margin:0.6rem 0 0;"><label for="sakafoFamaritana">Famaritana (raha misy)</label>' +
           '<input id="sakafoFamaritana" type="text" placeholder="Ex: hena kisoa, anamamy, vary" value="' + html(plat ? plat.famaritana : '') + '"></div>' +
+        champLatabatra(plat) +
         '<div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.8rem;">' +
           '<button type="button" class="btn btn-sm btn-primary" id="sakafoTehirizo" style="width:auto;">💾 Tehirizo</button>' +
           (plat ? '<button type="button" class="btn btn-sm" id="sakafoAtsahatra" style="width:auto;">Ajanony</button>' : '') +
@@ -353,6 +392,9 @@
 
     dessinerListe(z, plats);
     brancherOnglets(z);
+    z.querySelector('#sakafoRehetra').addEventListener('change', function (e) {
+      z.querySelector('#sakafoTables').style.display = e.target.checked ? 'none' : 'flex';
+    });
 
     z.querySelector('#sakafoRecherche').addEventListener('input', function (e) {
       recherche = e.target.value;
@@ -369,10 +411,16 @@
         vidiny: vidiny,
         famaritana: z.querySelector('#sakafoFamaritana').value.trim()
       };
+      const rehetra = z.querySelector('#sakafoRehetra').checked;
+      const tables = [].slice.call(z.querySelectorAll('#sakafoTables input:checked'))
+        .map(function (c) { return Number(c.value); });
+      if (!rehetra && !tables.length) { alert('Safidio ny latabatra hahitana azy, na « Table rehetra ».'); return; }
       const liste = lire();
       const i = enCours ? liste.findIndex(function (p) { return p.id === enCours; }) : -1;
       if (i >= 0) Object.assign(liste[i], donnees);
       else liste.push(Object.assign({ id: nouvelId(), misy: true }, donnees));
+      const cible = liste[i >= 0 ? i : liste.length - 1];
+      if (rehetra) delete cible.tables; else cible.tables = tables;
       if (ecrire(liste)) { enCours = null; rendre(); }
     });
     z.querySelector('#sakafoAdikao').addEventListener('click', function (e) {
@@ -507,6 +555,7 @@
             '<div style="flex:1 1 180px; min-width:0;">' +
               '<strong style="font-size:0.88rem;">' + html(p.anarana) + '</strong>' +
               (p.misy ? '' : ' <span style="font-size:0.7rem; color:#ff6b6b;">· Lany</span>') +
+              (nomsTables(p) ? '<span style="display:block; font-size:0.72rem; color:var(--cyan); margin-top:0.2rem;">🍽️ ' + html(nomsTables(p)) + ' ihany</span>' : '') +
               (p.famaritana ? '<span style="display:block; font-size:0.78rem; color:var(--muted); margin-top:0.2rem;">' + html(p.famaritana) + '</span>' : '') +
             '</div>' +
             '<strong style="font-size:0.88rem; color:var(--cyan); white-space:nowrap;">' + ariary(p.vidiny) + '</strong>' +

@@ -128,12 +128,23 @@
         const d = ORDRE.indexOf(a.sokajy) - ORDRE.indexOf(b.sokajy);
         return d || String(a.anarana).localeCompare(String(b.anarana), 'fr');
       })
-      .map(function (p) { return [p.anarana, p.sokajy, p.vidiny, p.famaritana || '']; });
+      .map(function (p) { return [p.anarana, p.sokajy, p.vidiny, p.famaritana || '', Array.isArray(p.tables) ? p.tables : null]; });
+  }
+  // Un plat qui nomme ses latabatra ne se voit qu'à elles ; tant que le client
+  // n'a pas choisi la sienne, il ne voit que ce qui est servi partout.
+  function pourLaTable(plats) {
+    return plats.filter(function (p) {
+      const t = p[4];
+      return !t || (latabatraChoisie && t.indexOf(latabatraChoisie) >= 0);
+    });
   }
 
   let empreinte = null;
-  function afficher(plats) {
-    const e = JSON.stringify(plats) + '|' + nbLatabatra;
+  let dernierRecu = [];
+  function afficher(tous) {
+    dernierRecu = tous;
+    const plats = pourLaTable(tous);
+    const e = JSON.stringify(plats) + '|' + nbLatabatra + '|' + latabatraChoisie;
     if (e === empreinte) return;
     empreinte = e;
     // Ce que le client a déjà écrit ne doit pas s'effacer au rafraîchissement.
@@ -141,7 +152,11 @@
     const note = noteAvant ? noteAvant.value : '';
     boite.innerHTML = '';
     if (!plats.length) {
-      boite.appendChild(el('p', "Tsy misy menu ato amin'ity rohy ity.", 'vide'));
+      boite.appendChild(el('p', tous.length
+        ? "Tsy misy sakafo ho an'ity latabatra ity. Safidio ny latabatra misy anao."
+        : "Tsy misy menu ato amin'ity rohy ity.", 'vide'));
+      // Le choix de la table reste là : c'est par lui que le menu revient.
+      if (enLigne && tous.length) { boite.appendChild(boiteCommande()); majCommande(); }
       return;
     }
     prixDuMenu = {};
@@ -229,6 +244,8 @@
     choix.addEventListener('change', function () {
       latabatraChoisie = Number(choix.value) || 0;
       memoEcrire('latabatra', String(latabatraChoisie || ''));
+      // Le menu change avec la table : on le redessine.
+      afficher(dernierRecu);
       majCommande();
     });
     z.appendChild(choix);
