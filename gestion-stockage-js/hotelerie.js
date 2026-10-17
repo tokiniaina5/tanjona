@@ -2,15 +2,21 @@
 //
 // Une page du menu, et dedans le menu sakafo : les plats rangés par sokajy
 // (maraina, atoandro, hariva, zava-pisotro, tsindrin-tsakafo), chacun avec son
-// prix et une marque « misy / lany ». Comme les fitaovana, tout reste dans ce
-// navigateur (localStorage) ; la clé porte SUFFIXE_MPIASA (common.js) pour
-// qu'un employé ouvert chez le patron ne touche pas au menu du patron.
+// prix et une marque « misy / lany ». Le menu se garde dans ce navigateur
+// (localStorage), et, pour le compte connecté, dans la table hotelerie_menu
+// (supabase/sql/supabase-hotelerie-menu.sql) à chaque changement : le lien
+// partagé (menu-sakafo.html?id=<compte>) la lit, et montre donc toujours le
+// menu du moment, sans qu'on ait à renvoyer un lien neuf.
+//
+// La clé porte SUFFIXE_MPIASA (common.js) : un employé ouvert chez le patron
+// ne touche pas au menu du patron — ni ici, ni en ligne.
 //
 // La page est vide dans ny-asako.html : ce fichier la remplit.
 
 (function () {
   const SUFFIXE = (typeof SUFFIXE_MPIASA !== 'undefined') ? SUFFIXE_MPIASA : '';
   const CLE = 'stockmanager_hotelerie_sakafo' + SUFFIXE;
+  const CLE_MAJ = CLE + '_maj';
   const CHAMP = 'background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:0.5rem 0.6rem; font:inherit;';
   const SOKAJY = [
     ['maraina', '🌅 Sakafo maraina'],
@@ -27,11 +33,71 @@
     } catch (e) { return []; }
   }
   function ecrire(liste) {
-    try { localStorage.setItem(CLE, JSON.stringify(liste)); return true; }
-    catch (e) {
+    try {
+      localStorage.setItem(CLE, JSON.stringify(liste));
+      localStorage.setItem(CLE_MAJ, String(Date.now()));
+    } catch (e) {
       alert('Tsy voatahiry : feno ny toerana ao amin\'ity navigateur ity.');
       return false;
     }
+    envoyer(liste);
+    return true;
+  }
+
+  // ---------- En ligne ----------
+  let compte = null;   // l'id du compte connecté, une fois connu
+  let etatEnLigne = ''; // ce que dit la page sous les boutons du lien
+  function sb() { return SUFFIXE ? null : window.__sb; }
+  function idDuCompte() {
+    const c = sb();
+    if (!c || !c.auth) return Promise.resolve(null);
+    return c.auth.getSession().then(function (r) {
+      compte = r && r.data && r.data.session ? r.data.session.user.id : null;
+      return compte;
+    }, function () { return null; });
+  }
+  function direEnLigne(t) {
+    etatEnLigne = t;
+    const p = document.getElementById('sakafoEnLigne');
+    if (p) p.textContent = t;
+  }
+  function envoyer(liste) {
+    idDuCompte().then(function (uid) {
+      if (!uid) return;
+      direEnLigne('⏳ Alefa any amin\'ny rohy...');
+      sb().from('hotelerie_menu')
+        .upsert({ user_id: uid, plats: liste, updated_at: new Date().toISOString() })
+        .then(function (res) {
+          direEnLigne(res && res.error
+            ? '⚠️ Tsy tonga tany amin\'ny rohy : ' + res.error.message
+            : '✅ Efa miova ho azy ny rohy.');
+        }, function () { direEnLigne('⚠️ Tsy tonga tany amin\'ny rohy (tsy misy connexion ?).'); });
+    });
+  }
+  // À l'ouverture : la copie en ligne l'emporte si elle est plus récente (un
+  // autre appareil l'a changée) ; sinon c'est celle d'ici qui monte, pour
+  // qu'un menu fait avant la mise en ligne n'attende pas le prochain changement.
+  let dejaTire = false;
+  function tirer() {
+    idDuCompte().then(function (uid) {
+      if (!uid || dejaTire) return;
+      dejaTire = true;
+      sb().from('hotelerie_menu').select('plats,updated_at').eq('user_id', uid).maybeSingle()
+        .then(function (res) {
+          if (!res || res.error) return;
+          const ici = Number(localStorage.getItem(CLE_MAJ) || 0);
+          const la = res.data ? Date.parse(res.data.updated_at) : 0;
+          if (res.data && la > ici && Array.isArray(res.data.plats)) {
+            try {
+              localStorage.setItem(CLE, JSON.stringify(res.data.plats));
+              localStorage.setItem(CLE_MAJ, String(la));
+            } catch (e) { }
+            rendre();
+          } else if (lire().length && ici > la) {
+            envoyer(lire());
+          }
+        }, function () { });
+    });
   }
   function html(v) {
     return String(v ?? '')
@@ -93,6 +159,7 @@
           '<input id="sakafoRohyInput" type="text" readonly style="width:100%; box-sizing:border-box; ' + CHAMP + '">' +
           '<p id="sakafoRohyNote" style="font-size:0.75rem; color:var(--muted); margin:0.3rem 0 0;"></p>' +
         '</div>' +
+        '<p id="sakafoEnLigne" style="font-size:0.75rem; color:var(--muted); margin:0.4rem 0 0;">' + html(etatEnLigne) + '</p>' +
         '<div id="sakafoListe" style="margin-top:0.8rem;"></div>' +
       '</div>';
 
@@ -125,16 +192,24 @@
       copier(texte, e.target, '📋 Adikao ny menu');
     });
     z.querySelector('#sakafoRohy').addEventListener('click', function (e) {
-      const rohy = rohyDuMenu(lire());
-      if (!rohy) { alert('Mbola tsy misy sakafo misy ao amin\'ny menu.'); return; }
-      const boaty = z.querySelector('#sakafoRohyBoaty');
-      const champ = z.querySelector('#sakafoRohyInput');
-      boaty.style.display = '';
-      champ.value = rohy;
-      champ.select();
-      z.querySelector('#sakafoRohyNote').textContent =
-        'Alefaso amin\'ny Messenger, WhatsApp... Ny menu ao anatin\'ny rohy no hitan\'ny mpanjifa : raha ovainao ny menu dia mamoròna rohy vaovao.';
-      copier(rohy, e.target, '🔗 Rohy ny menu');
+      if (!platsVisibles(lire()).length) { alert('Mbola tsy misy sakafo misy ao amin\'ny menu.'); return; }
+      const bouton = e.target;
+      // Le compte est d'ordinaire déjà connu (tirer, à l'ouverture) : le lien
+      // se copie alors dans le geste même, ce que certains téléphones exigent.
+      function montrer(uid) {
+        const rohy = uid
+          ? location.origin + '/menu-sakafo.html?id=' + uid
+          : rohyDuMenu(lire());
+        const champ = z.querySelector('#sakafoRohyInput');
+        z.querySelector('#sakafoRohyBoaty').style.display = '';
+        champ.value = rohy;
+        champ.select();
+        z.querySelector('#sakafoRohyNote').textContent = uid
+          ? 'Alefaso amin\'ny Messenger, WhatsApp... Indray mandeha ihany : miova ho azy ny menu ao aminy isaky ny manova ianao.'
+          : 'Tsy tafiditra ianao : ny menu ankehitriny ihany no ao anatin\'ity rohy ity. Midira mba hiova ho azy ny rohy.';
+        copier(rohy, bouton, '🔗 Rohy ny menu');
+      }
+      if (compte) montrer(compte); else idDuCompte().then(montrer);
     });
     const atsahatra = z.querySelector('#sakafoAtsahatra');
     if (atsahatra) atsahatra.addEventListener('click', function () { enCours = null; rendre(); });
@@ -253,6 +328,20 @@
     }).join('');
   }
 
-  document.addEventListener('DOMContentLoaded', rendre);
-  if (document.readyState !== 'loading') rendre();
+  function demarrer() {
+    rendre();
+    tirer();
+    // La session arrive parfois après le chargement : on retente à l'entrée.
+    const c = sb();
+    if (c && c.auth) {
+      try {
+        c.auth.onAuthStateChange(function (event) {
+          if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') tirer();
+          if (event === 'SIGNED_OUT') { compte = null; dejaTire = false; }
+        });
+      } catch (e) { }
+    }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', demarrer);
+  else demarrer();
 })();

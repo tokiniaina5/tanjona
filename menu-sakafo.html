@@ -5,9 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>Menu sakafo</title>
-<!-- Le menu de Hasina Hôtellerie, tel que le lien l'apporte : la page de
-     l'hôtel (gestion-stockage-js/hotelerie.js) le code après le « # ». Rien
-     n'est lu ailleurs, rien n'est gardé. -->
+<!-- Le menu de Hasina Hôtellerie, que le lien désigne : la page de
+     l'hôtel (gestion-stockage-js/hotelerie.js) l'écrit dans la table
+     hotelerie_menu, que « ?id=<compte> » lit ; un ancien lien « #m=… » porte
+     encore le menu en lui-même. Rien n'est gardé ici. -->
 <style>
   :root{ --bg:#f6f8f9; --card:#fff; --text:#1d2a30; --muted:#64757d; --line:#dbe3e6; --accent:#0f8a92; }
   @media (prefers-color-scheme: dark){
@@ -48,53 +49,99 @@
     return e;
   }
 
-  let plats = [];
-  try {
-    const code = (location.hash.match(/[#&]m=([^&]+)/) || [])[1];
-    const bin = atob(code.replace(/-/g, '+').replace(/_/g, '/'));
-    const octets = Uint8Array.from(bin, function (c) { return c.charCodeAt(0); });
-    plats = JSON.parse(new TextDecoder().decode(octets));
-  } catch (e) { plats = []; }
+  // Deux sortes de liens. « ?id=<compte> » : le menu se lit en ligne, et
+  // suit chaque changement de l'hôtel. « #m=… » : l'ancien lien, qui porte
+  // en lui le menu du jour où il a été fait.
+  const URL_SB = 'https://ezpsapvthujkhttbfhlr.supabase.co';
+  const CLE_SB = 'sb_publishable_7YAttwKbsmxJUxn9IwR86g_9_h4ZThk';
+  const ORDRE = Object.keys(SOKAJY);
+  const id = new URLSearchParams(location.search).get('id');
 
-  if (!Array.isArray(plats) || !plats.length) {
-    boite.appendChild(el('p', 'Tsy misy menu ato amin\'ity rohy ity.', 'vide'));
-    return;
+  function depuisLeLien() {
+    try {
+      const code = (location.hash.match(/[#&]m=([^&]+)/) || [])[1];
+      const bin = atob(code.replace(/-/g, '+').replace(/_/g, '/'));
+      const octets = Uint8Array.from(bin, function (c) { return c.charCodeAt(0); });
+      const l = JSON.parse(new TextDecoder().decode(octets));
+      return Array.isArray(l) ? l : [];
+    } catch (e) { return []; }
+  }
+  // La ligne en ligne garde tous les plats, « lany » compris : on ne montre
+  // que ceux qui sont là, dans l'ordre des sokajy.
+  function depuisLaBase(plats) {
+    return (Array.isArray(plats) ? plats : [])
+      .filter(function (p) { return p && p.misy; })
+      .sort(function (a, b) {
+        const d = ORDRE.indexOf(a.sokajy) - ORDRE.indexOf(b.sokajy);
+        return d || String(a.anarana).localeCompare(String(b.anarana), 'fr');
+      })
+      .map(function (p) { return [p.anarana, p.sokajy, p.vidiny, p.famaritana || '']; });
   }
 
-  const lignes = ['🏨 Hasina Hôtellerie — 🍽️ Menu sakafo'];
-  let courant = null;
-  plats.forEach(function (p) {
-    const anarana = String(p[0] || ''), sokajy = String(p[1] || ''), famaritana = String(p[3] || '');
-    if (sokajy !== courant) {
-      courant = sokajy;
-      boite.appendChild(el('h2', SOKAJY[sokajy] || sokajy));
-      lignes.push('', SOKAJY[sokajy] || sokajy);
+  let empreinte = null;
+  function afficher(plats) {
+    const e = JSON.stringify(plats);
+    if (e === empreinte) return;
+    empreinte = e;
+    boite.innerHTML = '';
+    if (!plats.length) {
+      boite.appendChild(el('p', "Tsy misy menu ato amin'ity rohy ity.", 'vide'));
+      return;
     }
-    const ligne = el('div', null, 'plat');
-    const gauche = el('div');
-    gauche.appendChild(el('strong', anarana));
-    if (famaritana) gauche.appendChild(el('small', famaritana));
-    ligne.appendChild(gauche);
-    ligne.appendChild(el('span', ariary(p[2]), 'prix'));
-    boite.appendChild(ligne);
-    lignes.push('• ' + anarana + ' : ' + ariary(p[2]) + (famaritana ? ' (' + famaritana + ')' : ''));
-  });
+    const lignes = ['🏨 Hasina Hôtellerie — 🍽️ Menu sakafo'];
+    let courant = null;
+    plats.forEach(function (p) {
+      const anarana = String(p[0] || ''), sokajy = String(p[1] || ''), famaritana = String(p[3] || '');
+      if (sokajy !== courant) {
+        courant = sokajy;
+        boite.appendChild(el('h2', SOKAJY[sokajy] || sokajy));
+        lignes.push('', SOKAJY[sokajy] || sokajy);
+      }
+      const ligne = el('div', null, 'plat');
+      const gauche = el('div');
+      gauche.appendChild(el('strong', anarana));
+      if (famaritana) gauche.appendChild(el('small', famaritana));
+      ligne.appendChild(gauche);
+      ligne.appendChild(el('span', ariary(p[2]), 'prix'));
+      boite.appendChild(ligne);
+      lignes.push('• ' + anarana + ' : ' + ariary(p[2]) + (famaritana ? ' (' + famaritana + ')' : ''));
+    });
 
-  // Pour recoller le menu ailleurs, tel quel, en texte.
-  const bouton = el('button', '📋 Adikao ny menu');
-  bouton.type = 'button';
-  bouton.addEventListener('click', function () {
-    const texte = lignes.join('\n');
-    function fait() { bouton.textContent = '✅ Voadika'; setTimeout(function () { bouton.textContent = '📋 Adikao ny menu'; }, 1800); }
-    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(texte).then(fait, fait);
-    else {
-      const t = document.createElement('textarea');
-      t.value = texte; document.body.appendChild(t); t.select();
-      try { document.execCommand('copy'); } catch (e) { }
-      t.remove(); fait();
-    }
-  });
-  boite.appendChild(bouton);
+    // Pour recoller le menu ailleurs, tel quel, en texte.
+    const bouton = el('button', '📋 Adikao ny menu');
+    bouton.type = 'button';
+    bouton.addEventListener('click', function () {
+      const texte = lignes.join('\n');
+      function fait() { bouton.textContent = '✅ Voadika'; setTimeout(function () { bouton.textContent = '📋 Adikao ny menu'; }, 1800); }
+      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(texte).then(fait, fait);
+      else {
+        const t = document.createElement('textarea');
+        t.value = texte; document.body.appendChild(t); t.select();
+        try { document.execCommand('copy'); } catch (e) { }
+        t.remove(); fait();
+      }
+    });
+    boite.appendChild(bouton);
+  }
+
+  function charger() {
+    fetch(URL_SB + '/rest/v1/hotelerie_menu?select=plats&user_id=eq.' + encodeURIComponent(id),
+      { headers: { apikey: CLE_SB, Authorization: 'Bearer ' + CLE_SB }, cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+      .then(function (rangs) { afficher(depuisLaBase(rangs[0] && rangs[0].plats)); })
+      .catch(function () {
+        if (empreinte === null) boite.replaceChildren(el('p', 'Tsy azo ny menu : jereo ny connexion, dia avereno.', 'vide'));
+      });
+  }
+
+  if (id && /^[0-9a-f-]{36}$/i.test(id)) {
+    charger();
+    // Le client garde la page ouverte : elle suit les changements d'elle-même.
+    setInterval(function () { if (!document.hidden) charger(); }, 30000);
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) charger(); });
+  } else {
+    afficher(depuisLeLien());
+  }
 })();
 </script>
 </body>
