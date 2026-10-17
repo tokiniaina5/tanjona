@@ -1094,7 +1094,10 @@ document.addEventListener('DOMContentLoaded', function () {
     karatra.querySelector('.sub').style.display = misokatra ? 'none' : '';
     $('fkLoginForm').style.display = misokatra ? 'none' : '';
     $('fkAdinoBtn').style.display = misokatra ? 'none' : '';
+    $('fkAdinoBtn').textContent = '🔑 Adino ny mot de passe';
+    $('fkVaovaoBtn').style.display = '';
     $('fkAdinoBox').style.display = 'none';
+    $('fkAdinoBox').style.borderTop = '';
     $('fkVaovaoForm').style.display = misokatra ? '' : 'none';
     $('fkVaovaoForm').style.borderTop = misokatra ? 'none' : '';
     $('fkVaovaoBtn').textContent = misokatra ? '← Efa manana kaonty — hiditra' : '📝 Tsy manana kaonty — hamorona kaonty';
@@ -1123,21 +1126,30 @@ document.addEventListener('DOMContentLoaded', function () {
     ouvrir(user);
   }
 
-  function tsindry(id, idMiafina) {
-    var box = $(id);
-    var misokatra = box.style.display === 'none';
-    box.style.display = misokatra ? '' : 'none';
-    $(idMiafina).style.display = 'none';
-  }
   // Créer un compte : la fidirana s'efface le temps de remplir le
   // formulaire, et le même bouton y ramène.
   $('fkVaovaoBtn').addEventListener('click', function () {
     hamorona($('fkVaovaoForm').style.display === 'none');
   });
+  // Mot de passe oublié : comme pour le compte, la fidirana s'efface et le
+  // même bouton y ramène.
+  function adino(misokatra) {
+    var karatra = document.querySelector('#loginScreen .login-card');
+    karatra.querySelector('h1').textContent = misokatra ? 'Adino ny mot de passe' : 'Fidirana';
+    karatra.querySelector('.sub').style.display = misokatra ? 'none' : '';
+    $('fkLoginForm').style.display = misokatra ? 'none' : '';
+    $('fkVaovaoBtn').style.display = misokatra ? 'none' : '';
+    $('fkVaovaoForm').style.display = 'none';
+    $('fkAdinoBox').style.display = misokatra ? '' : 'none';
+    $('fkAdinoBox').style.borderTop = misokatra ? 'none' : '';
+    $('fkAdinoBtn').style.display = '';
+    $('fkAdinoBtn').textContent = misokatra ? '← Hiverina hiditra' : '🔑 Adino ny mot de passe';
+    if (misokatra) $('fkAdinoEmail').focus();
+  }
   $('fkAdinoBtn').addEventListener('click', function () {
-    tsindry('fkAdinoBox', 'fkVaovaoForm');
     var soratra = $('fkLoginEmail').value.trim();
     if (!$('fkAdinoEmail').value && soratra.indexOf('@') >= 0) $('fkAdinoEmail').value = soratra;
+    adino($('fkAdinoBox').style.display === 'none');
   });
 
   $('fkVaovaoForm').addEventListener('submit', function (e) {
