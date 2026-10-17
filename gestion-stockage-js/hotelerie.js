@@ -93,7 +93,9 @@
               localStorage.setItem(CLE_MAJ, String(la));
             } catch (e) { }
             rendre();
-          } else if (lire().length && ici > la) {
+          // Pas encore de ligne en ligne : le menu d'ici monte, même fait
+          // avant que la date du dernier changement ne soit notée (ici = 0).
+          } else if (lire().length && (!res.data || ici > la)) {
             envoyer(lire());
           }
         }, function () { });
@@ -210,6 +212,9 @@
         copier(rohy, bouton, '🔗 Rohy ny menu');
       }
       if (compte) montrer(compte); else idDuCompte().then(montrer);
+      // Le lien ne vaut que si la ligne existe : on remonte le menu au moment
+      // même où on le donne.
+      envoyer(lire());
     });
     const atsahatra = z.querySelector('#sakafoAtsahatra');
     if (atsahatra) atsahatra.addEventListener('click', function () { enCours = null; rendre(); });
