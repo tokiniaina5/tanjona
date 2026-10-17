@@ -136,6 +136,8 @@
                 '<input type="text" id="pvCommun" data-f-commun list="pvCommunListe" placeholder="Antananarivo" autocomplete="off" style="background:#f3f6f8; color:#12181d; border-color:#c9d4da;">' +
                 '<datalist id="pvCommunListe" data-liste-commun></datalist>' +
                 '<span data-commun-auto style="display:none; font-size:0.72rem; color:#2a7f62; margin-top:0.25rem;">Feno ho azy : avy amin\'ny listra.</span></div>' +
+              '<div class="field"><label for="pvFaritra" style="color:#3d4b53;">Anaran\'ny faritra *</label>' +
+                '<input type="text" id="pvFaritra" data-f-faritra placeholder="Analamanga" autocomplete="off" style="background:#f3f6f8; color:#12181d; border-color:#c9d4da;"></div>' +
               '<div class="field"><label for="pvMail" style="color:#3d4b53;">Email hanokafana ny site *</label>' +
                 '<input type="email" id="pvMail" data-f-email placeholder="' + ANY + '@exemple.com" autocomplete="off" style="background:#f3f6f8; color:#12181d; border-color:#c9d4da;"></div>' +
             '</div>' +
@@ -350,17 +352,20 @@
       const lire = function(sel){ return String(page.querySelector(sel).value || '').trim(); };
       const fokontany = lire('[data-f-fokontany]');
       const commun = lire('[data-f-commun]');
+      const faritra = lire('[data-f-faritra]');
       const email = lire('[data-f-email]').toLowerCase();
-      if((!fokontany && !pourCommun) || !commun || !email){
+      if((!fokontany && !pourCommun) || !commun || !faritra || !email){
         dire('Fenoy daholo ireo saha rehetra ao amin\'ny taratasy.', true); return;
       }
       if(email.indexOf('@') < 0){ dire('Tsy mety ny email hanokafana ny site.', true); return; }
       if(!sb || !sb.functions || !sb.functions.invoke){ dire('Tsy tafiditra ny serveur : havaozy ny pejy.', true); return; }
       // Le nom du commun voyage avec celui du fokontany : c'est de lui que le
       // fokontany relève, et l'Administratif Commun le retrouve ainsi.
-      const nomComplet = pourCommun
+      // La faritra vient en dernier : « Commun X » et « Fokontany X » se lisent
+      // jusqu'au « / » (fokontany-app.js, et nomDuFokontany plus haut).
+      const nomComplet = (pourCommun
         ? 'Commun ' + commun
-        : 'Fokontany ' + fokontany + ' / Commun ' + commun;
+        : 'Fokontany ' + fokontany + ' / Commun ' + commun) + ' / Faritra ' + faritra;
       dire('Mandefa ny fangatahana…');
       // La lettre part chez l'admin, et chez lui seul : c'est lui qui donnera
       // le code au fokontany. La fonction pose l'accès comme d'habitude.
@@ -368,6 +373,7 @@
         'Ireto tompoko ny mombamomba ahy, ary ekeo ny fangatahako ilay code :',
         pourCommun ? null : 'Fokontany : ' + fokontany,
         'Commun : ' + commun,
+        'Faritra : ' + faritra,
         'Email hanokafana ny site : ' + email
       ].filter(Boolean).join('\n');
       // Seul l'admin tire le code, et la fonction le reconnaît à la session
