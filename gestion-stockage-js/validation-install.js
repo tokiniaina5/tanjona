@@ -140,7 +140,7 @@
                 '<input type="email" id="pvMail" data-f-email placeholder="' + ANY + '@exemple.com" autocomplete="off" style="background:#f3f6f8; color:#12181d; border-color:#c9d4da;"></div>' +
             '</div>' +
           '</div>' +
-          '<button type="button" class="btn btn-sm" data-mangataka style="width:auto;">📩 Mangataka fanokafana</button>' +
+          '<button type="button" class="btn btn-sm" data-mangataka style="width:auto;">📂 Open page</button>' +
           '<p data-mangataka-statut style="font-size:0.76rem; color:var(--muted); margin:0.7rem 0 0.9rem; min-height:1.1em;"></p>' +
           '<div class="field">' +
             '<label for="pvCode">Code nomen\'ny tompon\'ny site</label>' +
@@ -325,7 +325,7 @@
       })[0] || null;
     }
 
-    // « 📩 Mangataka fanokafana » : le même chemin que la porte
+    // « 📂 Open page » : le même chemin que la porte
     // (commun-alalana.js) — la fonction commun-angataka pose la demande, tire
     // le code et prévient par email ; à défaut, la demande s'écrit dans la table.
     const statutDemande = page.querySelector('[data-mangataka-statut]');
