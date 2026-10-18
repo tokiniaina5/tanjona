@@ -51,7 +51,14 @@
   .sous{ color:var(--muted); margin:0.2rem 0 1.4rem; }
   h2{ font-size:1rem; margin:1.4rem 0 0.6rem; }
   .plat{ display:flex; gap:0.8rem; justify-content:space-between; align-items:flex-start; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:0.7rem 0.9rem; margin-bottom:0.5rem; }
-  .plat .sary{ width:64px; height:64px; object-fit:cover; border-radius:8px; flex:0 0 auto; border:1px solid var(--line); }
+  .plat .sary{ width:64px; height:64px; object-fit:cover; border-radius:8px; flex:0 0 auto; border:1px solid var(--line); display:block; }
+  .sary-cadre{ position:relative; margin:0; padding:0; border:0; background:none; border-radius:8px; flex:0 0 auto; cursor:zoom-in; }
+  .sary-plus{ position:absolute; right:4px; bottom:4px; background:rgba(0,0,0,0.7); color:#fff; font-size:0.72rem; font-weight:700; border-radius:999px; padding:0 6px; }
+  .galerie{ position:fixed; inset:0; z-index:50; background:rgba(0,0,0,0.88); display:flex; flex-direction:column; padding:16px; }
+  .galerie-haut{ display:flex; justify-content:space-between; align-items:center; gap:0.6rem; color:#fff; margin-bottom:12px; }
+  .galerie-fermer{ margin:0; color:#fff; border-color:#fff; padding:0.3rem 0.8rem; }
+  .galerie-bande{ flex:1; display:flex; gap:12px; overflow-x:auto; scroll-snap-type:x mandatory; align-items:center; }
+  .galerie-bande img{ flex:0 0 100%; max-height:100%; width:100%; object-fit:contain; scroll-snap-align:center; border-radius:10px; }
   .plat small{ display:block; color:var(--muted); }
   .prix{ font-weight:700; color:var(--accent); white-space:nowrap; }
   button{ font:inherit; cursor:pointer; border:1px solid var(--accent); color:var(--accent); background:transparent; border-radius:8px; padding:0.5rem 0.9rem; margin-top:1.4rem; }
@@ -191,10 +198,15 @@
         const d = ORDRE.indexOf(a.sokajy) - ORDRE.indexOf(b.sokajy);
         return d || String(a.anarana).localeCompare(String(b.anarana), 'fr');
       })
-      .map(function (p) { return [p.anarana, p.sokajy, p.vidiny, p.famaritana || '', Array.isArray(p.tables) ? p.tables : null, saryValide(p.sary)]; });
+      .map(function (p) { return [p.anarana, p.sokajy, p.vidiny, p.famaritana || '', Array.isArray(p.tables) ? p.tables : null, saryValide(p.sary), sarysValides(p)]; });
   }
   // La photo d'un plat : une adresse du bucket de l'hôtel, ou une petite
   // image posée dans le plat même. Rien d'autre ne s'affiche.
+  // Toutes les photos du plat (p.sarys), ou la seule qu'il avait (p.sary).
+  function sarysValides(p) {
+    const l = Array.isArray(p.sarys) ? p.sarys : (p.sary ? [p.sary] : []);
+    return l.map(saryValide).filter(Boolean).slice(0, 6);
+  }
   function saryValide(v) {
     v = String(v || '');
     return (v.indexOf(URL_SB + '/storage/v1/object/public/hotelerie-sary/') === 0 || /^data:image\/(jpeg|png|webp);base64,/.test(v)) ? v : '';
@@ -242,10 +254,18 @@
         lignes.push('', SOKAJY[sokajy] || sokajy);
       }
       const ligne = el('div', null, 'plat');
-      if (p[5]) {
+      const photos = p[6] && p[6].length ? p[6] : (p[5] ? [p[5]] : []);
+      if (photos.length) {
+        // La première photo ; les autres s'ouvrent d'un appui, en grand.
+        const cadre = el('button', null, 'sary-cadre');
+        cadre.type = 'button';
+        cadre.setAttribute('aria-label', 'Jereo ny sarin\'i ' + anarana);
         const img = el('img', null, 'sary');
-        img.src = p[5]; img.alt = ''; img.loading = 'lazy';
-        ligne.appendChild(img);
+        img.src = photos[0]; img.alt = ''; img.loading = 'lazy';
+        cadre.appendChild(img);
+        if (photos.length > 1) cadre.appendChild(el('span', '+' + (photos.length - 1), 'sary-plus'));
+        cadre.addEventListener('click', function () { ouvrirGalerie(photos, anarana); });
+        ligne.appendChild(cadre);
       }
       const gauche = el('div');
       gauche.style.flex = '1 1 auto';
@@ -279,6 +299,34 @@
       document.getElementById('fanamarihana').value = note;
       majCommande();
     }
+  }
+
+  // ---------- Les photos en grand ----------
+  function ouvrirGalerie(photos, titre) {
+    const fond = el('div', null, 'galerie');
+    fond.setAttribute('role', 'dialog');
+    fond.setAttribute('aria-label', titre);
+    const haut = el('div', null, 'galerie-haut');
+    haut.appendChild(el('strong', titre));
+    const fermer = el('button', '✕', 'galerie-fermer');
+    fermer.type = 'button';
+    fermer.setAttribute('aria-label', 'Hidio');
+    haut.appendChild(fermer);
+    fond.appendChild(haut);
+    const bande = el('div', null, 'galerie-bande');
+    photos.forEach(function (src) {
+      const i = el('img');
+      i.src = src; i.alt = '';
+      bande.appendChild(i);
+    });
+    fond.appendChild(bande);
+    function partir() { fond.remove(); document.removeEventListener('keydown', touche); }
+    function touche(e) { if (e.key === 'Escape') partir(); }
+    fermer.addEventListener('click', partir);
+    fond.addEventListener('click', function (e) { if (e.target === fond) partir(); });
+    document.addEventListener('keydown', touche);
+    document.body.appendChild(fond);
+    fermer.focus();
   }
 
   // ---------- La commande ----------

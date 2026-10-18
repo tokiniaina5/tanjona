@@ -932,15 +932,18 @@
       } else if (b.dataset.action === 'sary') {
         choisirSary(b, liste[i].id);
       } else if (b.dataset.action === 'tsysary') {
-        if (!confirm('Esorina ve ny sarin\'i « ' + liste[i].anarana + ' » ?')) return;
-        effacerSary(liste[i].sary);
-        delete liste[i].sary;
+        if (!confirm('Esorina ve ity sarin\'i « ' + liste[i].anarana + ' » ity ?')) return;
+        const l = saryDe(liste[i]);
+        const n = Number(b.dataset.n) || 0;
+        effacerSary(l[n]);
+        l.splice(n, 1);
+        poserSarys(liste[i], l);
         liste[i].maj = Date.now();
         if (ecrire(liste)) rendre();
       } else if (b.dataset.action === 'esory') {
         if (!confirm('Esorina ve « ' + liste[i].anarana + ' » ?')) return;
         if (enCours === liste[i].id) enCours = null;
-        effacerSary(liste[i].sary);
+        saryDe(liste[i]).forEach(effacerSary);
         fafanaAjouter(liste[i].id);
         liste.splice(i, 1);
         if (ecrire(liste)) rendre();
@@ -951,6 +954,17 @@
   // Le bouton « 🖼️ Sary » : on ouvre le dossier de l'appareil, on envoie la
   // photo choisie, et le plat la garde. La liste se relit après l'envoi : un
   // autre appareil a pu la changer pendant ce temps.
+  // Les photos d'un plat : p.sarys, la liste ; p.sary, la première, gardée
+  // pour les pages qui ne connaissent qu'une photo.
+  const SARY_MAX = 6;
+  function saryDe(p) {
+    if (Array.isArray(p.sarys)) return p.sarys.filter(Boolean);
+    return p.sary ? [p.sary] : [];
+  }
+  function poserSarys(p, l) {
+    l = l.filter(Boolean).slice(0, SARY_MAX);
+    if (l.length) { p.sarys = l; p.sary = l[0]; } else { delete p.sarys; delete p.sary; }
+  }
   // Un bouton d'action d'un plat, en icône.
   function icone(action, id, signe, nom, classe) {
     return '<button type="button" class="btn btn-sm' + (classe || '') + '" data-action="' + action + '" data-id="' + id + '"' +
@@ -960,18 +974,24 @@
     const champ = document.createElement('input');
     champ.type = 'file';
     champ.accept = 'image/*';
+    champ.multiple = true;
     champ.addEventListener('change', function () {
-      const f = champ.files && champ.files[0];
-      if (!f) return;
+      const deja = (lire().find(function (x) { return x.id === id; }) || {});
+      const place = SARY_MAX - saryDe(deja).length;
+      const fichiers = [].slice.call(champ.files || []).slice(0, Math.max(0, place));
+      if (!fichiers.length) { if (place <= 0) alert('Sary ' + SARY_MAX + ' farafahabetsany isaky ny sakafo.'); return; }
       const texte = bouton.textContent;
       bouton.disabled = true;
       bouton.textContent = '⏳';
-      envoyerSary(id, f).then(function (adresse) {
+      // Un à un : l'ordre choisi est gardé, et le réseau n'est pas noyé.
+      const adresses = [];
+      fichiers.reduce(function (suite, f) {
+        return suite.then(function () { return envoyerSary(id, f).then(function (a) { adresses.push(a); }); });
+      }, Promise.resolve()).then(function () {
         const liste = lire();
         const p = liste.find(function (x) { return x.id === id; });
-        if (!p) { effacerSary(adresse); return; }
-        if (p.sary && p.sary !== adresse) effacerSary(p.sary);
-        p.sary = adresse;
+        if (!p) { adresses.forEach(effacerSary); return; }
+        poserSarys(p, saryDe(p).concat(adresses));
         p.maj = Date.now();
         if (ecrire(liste)) rendre();
       }).catch(function (e) {
@@ -1059,7 +1079,13 @@
         groupe.map(function (p) {
           return '<div style="display:flex; gap:0.6rem; align-items:flex-start; flex-wrap:wrap; margin-bottom:0.5rem; padding:0.6rem 0.8rem; border-radius:8px; border:1px solid var(--line);' +
               (p.misy ? '' : ' opacity:0.55;') + '">' +
-            (p.sary ? '<img src="' + html(p.sary) + '" alt="" loading="lazy" style="width:56px; height:56px; object-fit:cover; border-radius:8px; border:1px solid var(--line); flex:0 0 auto;">' : '') +
+            (saryDe(p).length ? '<div style="display:flex; gap:0.35rem; flex-wrap:wrap; flex-basis:100%;">' + saryDe(p).map(function (src, n) {
+              return '<span style="position:relative; display:inline-block;">' +
+                '<img src="' + html(src) + '" alt="" loading="lazy" style="width:56px; height:56px; object-fit:cover; border-radius:8px; border:1px solid var(--line); display:block;">' +
+                '<button type="button" data-action="tsysary" data-id="' + p.id + '" data-n="' + n + '" title="Esory ity sary ity" aria-label="Esory ity sary ity"' +
+                  ' style="position:absolute; top:-6px; right:-6px; width:20px; height:20px; padding:0; border-radius:50%; border:1px solid var(--line); background:var(--panel, #fff); color:var(--text); font-size:0.7rem; line-height:1; cursor:pointer;">✕</button>' +
+              '</span>';
+            }).join('') + '</div>' : '') +
             '<div style="flex:1 1 180px; min-width:0;">' +
               '<strong style="font-size:0.88rem;">' + html(p.anarana) + '</strong>' +
               (p.misy ? '' : ' <span style="font-size:0.7rem; color:#ff6b6b;">· Lany</span>') +
@@ -1072,8 +1098,7 @@
               // les lecteurs d'écran.
               icone('misy', p.id, p.misy ? '✅' : '⛔', p.misy ? 'Misy (tsindrio : lany)' : 'Lany (tsindrio : misy)') +
               icone('ovay', p.id, '✏️', 'Ovay') +
-              icone('sary', p.id, '🖼️', p.sary ? 'Ovay sary' : 'Sary') +
-              (p.sary ? icone('tsysary', p.id, '✕', 'Esory ny sary') : '') +
+              (saryDe(p).length < SARY_MAX ? icone('sary', p.id, '🖼️', saryDe(p).length ? 'Ampio sary' : 'Sary') : '') +
               icone('esory', p.id, '🗑️', 'Esorina', ' btn-red') +
             '</div>' +
           '</div>';
