@@ -596,9 +596,8 @@
           '<div class="field" style="margin-bottom:0; flex:0 1 150px;"><label for="latabatraRohy">Rohy isaky ny latabatra</label>' +
             '<select id="latabatraRohy">' + options + '</select></div>' +
           '<button type="button" class="btn btn-sm" id="latabatraAdikao" style="width:auto;">🔗 Adikao</button>' +
-          '<button type="button" class="btn btn-sm" id="latabatraQRRehetra" style="width:auto;">🖨️ QR rehetra</button>' +
         '</div>' +
-        '<p style="font-size:0.75rem; color:var(--muted); margin:0.5rem 0 0;">Ny rohy isaky ny latabatra dia efa misafidy ny latabatra ho an\'ny mpanjifa (🔳 QR eo amin\'ny latabatra tsirairay, na 🖨️ QR rehetra : printy, dia apetraho eo ambony latabatra). Sokafy amin\'ny téléphone na tablette eo amin\'ilay latabatra, dia « 📲 Installer » : lasa appli « T1 », « T2 »… manokana izy.</p>' +
+        '<p style="font-size:0.75rem; color:var(--muted); margin:0.5rem 0 0;">Ny rohy isaky ny latabatra dia efa misafidy ny latabatra ho an\'ny mpanjifa (🔳 QR eo amin\'ny latabatra tsirairay : printy, dia apetraho eo ambony latabatra). Sokafy amin\'ny téléphone na tablette eo amin\'ilay latabatra, dia « 📲 Installer » : lasa appli « T1 », « T2 »… manokana izy.</p>' +
       '</div>' +
       blocVola() +
       blocLatabatra(enAttente) +
@@ -704,11 +703,6 @@
         copier(rohyLatabatra(uid, n), bouton, '🔗 Adikao');
       }
       if (compte) donner(compte); else idDuCompte().then(donner);
-    });
-    zone.querySelector('#latabatraQRRehetra').addEventListener('click', function () {
-      const l = [];
-      for (let i = 1; i <= nbLatabatra; i++) l.push(i);
-      qrPour(l);
     });
     // La zone reste d'un dessin à l'autre (seul son contenu change) : un seul
     // écouteur pour les boutons des commandes.
