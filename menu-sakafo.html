@@ -18,7 +18,7 @@
 <!-- Le lien d'une latabatra (« ?id=…&latabatra=3 ») fait de la page
      l'application de cette table : un manifeste à elle (servi par
      netlify/edge-functions/menu-manifeste.js), son nom partout. Installée,
-     « Table 3 » se pose à côté de « Table 4 » au lieu de la remplacer. -->
+     « T3 » se pose à côté de « T4 » au lieu de la remplacer. -->
 <script>
 (function () {
   const p = new URLSearchParams(location.search);
@@ -26,8 +26,8 @@
   if (!/^[0-9a-f-]{36}$/i.test(id) || !Number.isInteger(n) || n < 1 || n > 500) return;
   document.querySelector('link[rel="manifest"]').href =
     '/menu-sakafo.webmanifest?id=' + encodeURIComponent(id) + '&latabatra=' + n;
-  document.querySelector('meta[name="apple-mobile-web-app-title"]').content = 'Table ' + n;
-  document.title = 'Table ' + n + ' · Menu sakafo';
+  document.querySelector('meta[name="apple-mobile-web-app-title"]').content = 'T' + n;
+  document.title = 'T' + n + ' · Menu sakafo';
 })();
 </script>
 <!-- Le menu de Ny asako Hôtellerie, que le lien désigne : la page de
@@ -131,9 +131,9 @@
   const tableFixe = enLigne && params.get('id') && Number.isInteger(Number(params.get('latabatra'))) &&
     Number(params.get('latabatra')) > 0 ? Number(params.get('latabatra')) : 0;
   if (tableFixe) {
-    document.querySelector('.sous').textContent = '🍽️ Menu sakafo · Table ' + tableFixe;
+    document.querySelector('.sous').textContent = '🍽️ Menu sakafo · T' + tableFixe;
     document.getElementById('installerTexte').textContent =
-      "Apetraho eo amin'ny écran ny menu an'ny Table " + tableFixe + ', hisokatra avy hatrany.';
+      "Apetraho eo amin'ny écran ny menu an'ny T" + tableFixe + ', hisokatra avy hatrany.';
   }
 
   function depuisLeLien() {
@@ -271,7 +271,7 @@
     // L'application d'une table l'écrit, sans menu déroulant — sauf si
     // l'hôtel a depuis réduit son nombre de latabatra : on redonne le choix.
     if (tableFixe && latabatraChoisie === tableFixe) {
-      z.appendChild(el('h3', '🛎️ Commande · Table ' + tableFixe));
+      z.appendChild(el('h3', '🛎️ Commande · T' + tableFixe));
     } else {
       z.appendChild(el('h3', '🛎️ Commande'));
       z.appendChild(choixLatabatra());
@@ -296,7 +296,7 @@
     const vide = el('option', '— Safidio ny latabatra —'); vide.value = '';
     choix.appendChild(vide);
     for (let i = 1; i <= nbLatabatra; i++) {
-      const o = el('option', 'Table ' + i); o.value = String(i);
+      const o = el('option', 'T' + i); o.value = String(i);
       if (i === latabatraChoisie) o.selected = true;
       choix.appendChild(o);
     }
@@ -345,7 +345,7 @@
       document.getElementById('fanamarihana').value = '';
       const voaray = document.getElementById('voaray');
       voaray.style.display = '';
-      voaray.textContent = '✅ Voaray ny commande (Table ' + latabatraChoisie + '). Misaotra !';
+      voaray.textContent = '✅ Voaray ny commande (T' + latabatraChoisie + '). Misaotra !';
       setTimeout(function () { voaray.style.display = 'none'; }, 8000);
       majCommande();
     }).catch(function () {

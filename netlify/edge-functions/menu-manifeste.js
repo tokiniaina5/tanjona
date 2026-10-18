@@ -20,9 +20,9 @@ export default async (requete, contexte) => {
   const adresse = '/menu-sakafo.html?id=' + id.toLowerCase() + '&latabatra=' + n;
   const manifeste = {
     id: adresse,
-    name: 'Table ' + n + ' — Ny asako Hôtellerie',
-    short_name: 'Table ' + n,
-    description: "Ny menu sakafo an'ny Ny asako Hôtellerie sy ny commande ho an'ny Table " + n + '.',
+    name: 'T' + n + ' — Ny asako Hôtellerie',
+    short_name: 'T' + n,
+    description: "Ny menu sakafo an'ny Ny asako Hôtellerie sy ny commande ho an'ny T" + n + '.',
     lang: 'mg',
     dir: 'ltr',
     start_url: adresse,

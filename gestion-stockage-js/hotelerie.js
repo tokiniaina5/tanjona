@@ -388,7 +388,7 @@
     for (let n = 1; n <= nbLatabatra; n++) {
       const actif = n === tableOuverte;
       boutons += '<button type="button" class="btn btn-sm" data-ouvrir="' + n + '" style="width:auto; position:relative;' +
-        (actif ? ' border-color:var(--cyan); color:var(--cyan); background:rgba(79,216,224,0.12);' : '') + '">🍽️ Table ' + n +
+        (actif ? ' border-color:var(--cyan); color:var(--cyan); background:rgba(79,216,224,0.12);' : '') + '">🍽️ T' + n +
         (enAttente[n] ? ' <span style="background:#ff6b6b; color:#fff; font-size:0.68rem; font-weight:700; border-radius:999px; padding:0 5px; margin-left:3px;">' + enAttente[n] + '</span>' : '') +
         '</button>';
     }
@@ -402,7 +402,7 @@
       const total = plats.reduce(function (s, p) { return s + (panierTable[p.id] || 0) * (Number(p.vidiny) || 0); }, 0);
       const isa = Object.keys(panierTable).reduce(function (s, k) { return s + panierTable[k]; }, 0);
       corps = '<div style="margin-top:0.9rem; border-top:1px solid var(--line); padding-top:0.8rem;">' +
-        '<h4 style="margin:0 0 0.4rem;">📋 Menu — Table ' + tableOuverte + '</h4>' +
+        '<h4 style="margin:0 0 0.4rem;">📋 Menu — T' + tableOuverte + '</h4>' +
         (plats.length ? plats.map(function (p) {
           let titre = '';
           if (p.sokajy !== courant) { courant = p.sokajy; titre = '<p style="margin:0.6rem 0 0.3rem; font-size:0.82rem; font-weight:700;">' + html(nomSokajy(courant)) + '</p>'; }
@@ -430,7 +430,7 @@
     return '<div class="panel" style="margin-top:1rem;">' +
       '<div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap;">' +
         '<h4 style="margin:0;">🍽️ Latabatra</h4>' +
-        (tableOuverte ? '<button type="button" class="btn btn-sm" data-ouvrir="0" style="width:auto;">✕ Hidio ny Table ' + tableOuverte + '</button>' : '') +
+        (tableOuverte ? '<button type="button" class="btn btn-sm" data-ouvrir="0" style="width:auto;">✕ Hidio ny T' + tableOuverte + '</button>' : '') +
       '</div>' +
       '<div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.6rem;">' + boutons + '</div>' +
       corps +
@@ -473,7 +473,7 @@
     commandes.forEach(function (c) { if (!c.vita) enAttente[c.latabatra] = (enAttente[c.latabatra] || 0) + 1; });
 
     let options = '';
-    for (let i = 1; i <= nbLatabatra; i++) options += '<option value="' + i + '">Table ' + i + '</option>';
+    for (let i = 1; i <= nbLatabatra; i++) options += '<option value="' + i + '">T' + i + '</option>';
 
     zone.innerHTML =
       '<div class="panel">' +
@@ -485,13 +485,13 @@
             '<select id="latabatraRohy">' + options + '</select></div>' +
           '<button type="button" class="btn btn-sm" id="latabatraAdikao" style="width:auto;">🔗 Adikao</button>' +
         '</div>' +
-        '<p style="font-size:0.75rem; color:var(--muted); margin:0.5rem 0 0;">Ny rohy isaky ny latabatra dia efa misafidy ny latabatra ho an\'ny mpanjifa (azo atao QR eo ambony latabatra). Sokafy amin\'ny téléphone na tablette eo amin\'ilay latabatra, dia « 📲 Installer » : lasa appli « Table N » manokana izy.</p>' +
+        '<p style="font-size:0.75rem; color:var(--muted); margin:0.5rem 0 0;">Ny rohy isaky ny latabatra dia efa misafidy ny latabatra ho an\'ny mpanjifa (azo atao QR eo ambony latabatra). Sokafy amin\'ny téléphone na tablette eo amin\'ilay latabatra, dia « 📲 Installer » : lasa appli « T1 », « T2 »… manokana izy.</p>' +
       '</div>' +
       blocLatabatra(enAttente) +
       '<div class="panel" style="margin-top:1rem;">' +
         '<div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center; justify-content:space-between;">' +
           '<strong style="font-size:0.9rem;">' + (tableOuverte
-            ? 'Table ' + tableOuverte + ' : ' + (enAttente[tableOuverte] || 0) + ' commande mbola tsy vita'
+            ? 'T' + tableOuverte + ' : ' + (enAttente[tableOuverte] || 0) + ' commande mbola tsy vita'
             : nbVaovao + ' commande mbola tsy vita') + '</strong>' +
           '<div style="display:flex; gap:0.4rem; flex-wrap:wrap;">' +
             '<button type="button" class="btn btn-sm" id="commandesVita" style="width:auto;">' + (voirVita ? '🙈 Afeno ny vita' : '👁️ Asehoy ny vita') + '</button>' +
@@ -505,7 +505,7 @@
           const reste = liste.filter(function (c) { return !c.vita; }).reduce(function (s, c) { return s + totalDe(c); }, 0);
           return '<div style="margin-top:1rem; border:1px solid var(--cyan); border-radius:10px; padding:0.7rem 0.8rem;">' +
             '<div style="display:flex; justify-content:space-between; gap:0.5rem; flex-wrap:wrap; align-items:center;">' +
-              '<h4 style="margin:0; font-size:1rem;">🍽️ Table ' + t + '</h4>' +
+              '<h4 style="margin:0; font-size:1rem;">🍽️ T' + t + '</h4>' +
               (reste ? '<strong style="color:var(--cyan); font-size:0.88rem;">' + ariary(reste) + '</strong>' : '') +
             '</div>' +
             liste.map(function (c) {
@@ -597,7 +597,7 @@
       if (!b) return;
       const c = commandes.find(function (x) { return x.id === b.dataset.id; });
       if (!c) return;
-      if (b.dataset.commande === 'esory' && !confirm('Esorina ve ity commande ity (Table ' + c.latabatra + ') ?')) return;
+      if (b.dataset.commande === 'esory' && !confirm('Esorina ve ity commande ity (T' + c.latabatra + ') ?')) return;
       b.disabled = true;
       const req = b.dataset.commande === 'vita'
         ? sb().from('hotelerie_commande').update({ vita: !c.vita }).eq('id', c.id)
@@ -616,7 +616,7 @@
     let cases = '';
     for (let n = 1; n <= nbLatabatra; n++) {
       cases += '<label style="display:inline-flex; align-items:center; gap:0.25rem; font-size:0.8rem; padding:0.2rem 0.5rem; border:1px solid var(--line); border-radius:6px; cursor:pointer;">' +
-        '<input type="checkbox" value="' + n + '"' + (choisies && choisies.indexOf(n) >= 0 ? ' checked' : '') + '> Table ' + n + '</label>';
+        '<input type="checkbox" value="' + n + '"' + (choisies && choisies.indexOf(n) >= 0 ? ' checked' : '') + '> T' + n + '</label>';
     }
     return '<div class="field" style="margin:0.6rem 0 0;"><label>Latabatra mahita azy</label>' +
       '<label style="display:inline-flex; align-items:center; gap:0.35rem; font-size:0.85rem; cursor:pointer; text-transform:none; letter-spacing:0;">' +
@@ -640,7 +640,7 @@
   }
   function nomsTables(p) {
     return Array.isArray(p.tables) && p.tables.length
-      ? p.tables.slice().sort(function (a, b) { return a - b; }).map(function (n) { return 'Table ' + n; }).join(', ')
+      ? p.tables.slice().sort(function (a, b) { return a - b; }).map(function (n) { return 'T' + n; }).join(', ')
       : '';
   }
 
