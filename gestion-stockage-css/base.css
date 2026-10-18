@@ -272,6 +272,10 @@
   }
   .nav-item:hover{ color: var(--text); background: var(--panel-2); }
   .nav-item.active{ color: var(--cyan); background: rgba(79,216,224,0.08); border-color: rgba(79,216,224,0.3); }
+  /* L'hôtel ouvre une page (.nav-item), mais il est rangé parmi les actions
+     du menu : il en prend la taille et l'alignement, pour ne pas paraître
+     plus petit et décalé entre Commun et Télécharger. */
+  #navList .nav-item[data-section="hotelerie"]{ font-size: inherit; padding: 0.6rem 0.8rem; }
 
   /* Les achats internationaux sont une action, pas une section : ils
      n'ouvrent aucune page et ne portent donc pas la classe .nav-item, a
