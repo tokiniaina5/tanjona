@@ -831,11 +831,11 @@
     let cases = '';
     for (let n = 1; n <= nbLatabatra; n++) {
       cases += '<label style="display:inline-flex; align-items:center; gap:0.25rem; font-size:0.8rem; padding:0.2rem 0.5rem; border:1px solid var(--line); border-radius:6px; cursor:pointer;">' +
-        '<input type="checkbox" value="' + n + '"' + (choisies && choisies.indexOf(n) >= 0 ? ' checked' : '') + '> T' + n + '</label>';
+        '<input type="checkbox" value="' + n + '" style="width:auto; margin:0; padding:0; flex:0 0 auto;"' + (choisies && choisies.indexOf(n) >= 0 ? ' checked' : '') + '> T' + n + '</label>';
     }
     return '<div class="field" style="margin:0.6rem 0 0;"><label>Latabatra mahita azy</label>' +
-      '<label style="display:inline-flex; align-items:center; gap:0.35rem; font-size:0.85rem; cursor:pointer; text-transform:none; letter-spacing:0;">' +
-        '<input type="checkbox" id="sakafoRehetra"' + (choisies ? '' : ' checked') + '> Table rehetra</label>' +
+      '<label style="display:inline-flex; align-items:center; gap:0.4rem; font-size:0.85rem; cursor:pointer; text-transform:none; letter-spacing:0; white-space:nowrap; margin:0;">' +
+        '<input type="checkbox" id="sakafoRehetra" style="width:auto; margin:0; padding:0; flex:0 0 auto;"' + (choisies ? '' : ' checked') + '> Table rehetra</label>' +
       '<div id="sakafoTables" style="display:' + (choisies ? 'flex' : 'none') + '; gap:0.35rem; flex-wrap:wrap; margin-top:0.4rem;">' + cases + '</div>' +
     '</div>';
   }
