@@ -80,6 +80,15 @@
   .recu-num{ display:block; margin-top:0.4rem; font-size:0.75rem; }
   .recu-fafa{ margin:0.5rem 0 0; padding:0.3rem 0.8rem; font-size:0.82rem; border-color:#e05a5a; color:#e05a5a; }
   .voaray{ color:var(--accent); font-weight:600; margin:0.5rem 0 0; }
+  .sous-rangee{ display:flex; align-items:center; justify-content:space-between; gap:0.6rem; margin:0.2rem 0 1.4rem; }
+  .sous-rangee .sous{ margin:0; }
+  .qr-bouton{ margin:0; padding:0.3rem 0.8rem; font-size:0.85rem; }
+  .qr-boite{ background:#fff; color:#111; border-radius:12px; padding:14px; text-align:center; margin:-0.6rem 0 1.2rem; }
+  .qr-image{ position:relative; width:min(240px, 70vw); margin:0 auto; }
+  .qr-image svg{ width:100%; height:auto; display:block; }
+  .qr-image img{ position:absolute; left:50%; top:50%; width:22%; height:22%; transform:translate(-50%,-50%); object-fit:cover; background:#fff; border:3px solid #fff; border-radius:8px; }
+  .qr-nom{ font-size:1.6rem; font-weight:800; margin:0.3rem 0 0; }
+  .qr-boite .vide{ color:#555; font-size:0.85rem; margin:0.3rem 0 0; }
   .installer{ display:none; align-items:center; justify-content:space-between; gap:0.6rem; flex-wrap:wrap; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:0.6rem 0.8rem; margin:0 0 1rem; }
   .installer p{ margin:0; font-size:0.85rem; color:var(--muted); flex:1 1 200px; }
   .installer button{ margin:0; }
@@ -88,7 +97,15 @@
 <body>
 <main>
   <h1 id="tete"><span id="teteLogo"><img src="/icone-192.png" alt=""></span> <span id="teteNom" translate="no" class="notranslate">Ny asako Hôtellerie</span></h1>
-  <p class="sous">🍽️ Menu sakafo</p>
+  <div class="sous-rangee">
+    <p class="sous">🍽️ Menu sakafo</p>
+    <button type="button" id="qrBouton" class="qr-bouton" hidden>🔳 QR</button>
+  </div>
+  <div class="qr-boite" id="qrBoite" hidden>
+    <div class="qr-image" id="qrImage"></div>
+    <p class="qr-nom" id="qrNom"></p>
+    <p class="vide">Avelao hi-scan ity QR ity ny namanao eo amin'ny latabatra : hisokatra aminy koa ny menu sy ny commande.</p>
+  </div>
   <div class="installer" id="installer">
     <p id="installerTexte">Apetraho eo amin'ny écran ny menu, hisokatra avy hatrany.</p>
     <button type="button" id="installerBouton">📲 Installer</button>
@@ -147,6 +164,7 @@
     Number(params.get('latabatra')) > 0 ? Number(params.get('latabatra')) : 0;
   if (tableFixe) {
     document.querySelector('.sous').textContent = '🍽️ Menu sakafo · T' + tableFixe;
+    brancherQR();
     document.getElementById('installerTexte').textContent =
       "Apetraho eo amin'ny écran ny menu an'ny T" + tableFixe + ', hisokatra avy hatrany.';
   }
@@ -573,6 +591,49 @@
         else boite.replaceChildren(el('p', 'Tsy azo ny menu : jereo ny connexion, dia avereno.', 'vide'));
       });
   }
+  // ---------- Le QR de la table ----------
+  // Le client montre le QR de SA table à ceux qui sont assis avec lui : ils
+  // ouvrent le même menu, sur la même table. qrcode-generator (cdnjs) n'est
+  // chargé qu'au premier appui.
+  function brancherQR() {
+    const bouton = document.getElementById('qrBouton');
+    const boite = document.getElementById('qrBoite');
+    bouton.hidden = false;
+    bouton.addEventListener('click', function () {
+      if (!boite.hidden) { boite.hidden = true; bouton.textContent = '🔳 QR'; return; }
+      bouton.disabled = true;
+      chargerQR().then(function () {
+        const adresse = location.origin + '/menu-sakafo.html?id=' + encodeURIComponent(id) + '&latabatra=' + tableFixe;
+        const qr = window.qrcode(0, 'H');
+        qr.addData(adresse);
+        qr.make();
+        const zone = document.getElementById('qrImage');
+        zone.innerHTML = qr.createSvgTag({ cellSize: 6, margin: 2, scalable: true });
+        const logo = document.querySelector('#teteLogo img');
+        if (logo) { const i = document.createElement('img'); i.src = logo.src; i.alt = ''; zone.appendChild(i); }
+        document.getElementById('qrNom').textContent = 'T' + tableFixe;
+        boite.hidden = false;
+        bouton.textContent = '✕ QR';
+      }, function () {
+        alert('Tsy azo ny QR : jereo ny connexion, dia avereno.');
+      }).then(function () { bouton.disabled = false; });
+    });
+  }
+  let promesseQR = null;
+  function chargerQR() {
+    if (typeof window.qrcode === 'function') return Promise.resolve();
+    if (promesseQR) return promesseQR;
+    promesseQR = new Promise(function (ok, ko) {
+      const sc = document.createElement('script');
+      sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
+      sc.crossOrigin = 'anonymous';
+      sc.onload = function () { ok(); };
+      sc.onerror = function () { promesseQR = null; sc.remove(); ko(new Error('qrcode')); };
+      document.head.appendChild(sc);
+    });
+    return promesseQR;
+  }
+
   // La tête que l'hôtel a choisie : son nom, son logo. Rien de choisi,
   // le logo de Ny asako et « Ny asako Hôtellerie ».
   let nomHotel = 'Ny asako Hôtellerie';
