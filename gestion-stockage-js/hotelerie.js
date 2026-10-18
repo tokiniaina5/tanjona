@@ -60,6 +60,7 @@
   // plat, la copie la plus récemment changée l'emporte d'un appareil à l'autre.
   const CLE_TETE = CLE + '_tete';
   const NOM_DEFAUT = 'Hasina Hôtellerie';
+  const LOGO_DEFAUT = '/icone-192.png'; // le logo de Ny asako
   function teteLire() {
     try {
       const v = JSON.parse(localStorage.getItem(CLE_TETE));
@@ -301,7 +302,7 @@
     brancherTete(z);
   }
   // La tête : « ✏️ Ovay » change le nom, le logo (ou « 🖼️ Sary ») ouvre le
-  // dossier pour une image, « ✕ Sary » rend le 🏨.
+  // dossier pour une image, « ✕ Sary » rend le logo de Ny asako.
   function brancherTete(z) {
     function sur(id, f) { const b = z.querySelector('#' + id); if (b) b.addEventListener('click', f); }
     sur('hotelAnaranaOvay', function () {
@@ -350,7 +351,7 @@
     sur('hotelLogo', changerLogo);
     sur('hotelLogoOvay', changerLogo);
     sur('hotelLogoEsory', function () {
-      if (!confirm('Esorina ve ny sary, hiverina amin\'ny 🏨 ?')) return;
+      if (!confirm('Esorina ve ny sary, hiverina amin\'ny logo Ny asako ?')) return;
       const t = teteLire();
       effacerSary(t.sary);
       delete t.sary;
@@ -651,9 +652,8 @@
     if (enCours && !plat) enCours = null;
 
     const t = teteLire();
-    const logo = t.sary
-      ? '<img src="' + html(t.sary) + '" alt="" style="width:2.2rem; height:2.2rem; object-fit:cover; border-radius:8px; vertical-align:middle; border:1px solid var(--line);">'
-      : '🏨';
+    // Sans sary choisi : le logo de Ny asako.
+    const logo = '<img src="' + html(t.sary || LOGO_DEFAUT) + '" alt="" style="width:2.2rem; height:2.2rem; object-fit:cover; border-radius:8px; vertical-align:middle; border:1px solid var(--line);">';
     const tete =
       '<div class="section-head"><div style="min-width:0; flex:1 1 auto;">' +
         (ovayAnarana
