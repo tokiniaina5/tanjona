@@ -402,7 +402,10 @@
       const total = plats.reduce(function (s, p) { return s + (panierTable[p.id] || 0) * (Number(p.vidiny) || 0); }, 0);
       const isa = Object.keys(panierTable).reduce(function (s, k) { return s + panierTable[k]; }, 0);
       corps = '<div style="margin-top:0.9rem; border-top:1px solid var(--line); padding-top:0.8rem;">' +
-        '<h4 style="margin:0 0 0.4rem;">📋 Menu — T' + tableOuverte + '</h4>' +
+        '<div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap; margin:0 0 0.4rem;">' +
+          '<h4 style="margin:0;">📋 Menu — T' + tableOuverte + '</h4>' +
+          '<button type="button" class="btn btn-sm" data-qr="' + tableOuverte + '" style="width:auto;">🔳 QR T' + tableOuverte + '</button>' +
+        '</div>' +
         (plats.length ? plats.map(function (p) {
           let titre = '';
           if (p.sokajy !== courant) { courant = p.sokajy; titre = '<p style="margin:0.6rem 0 0.3rem; font-size:0.82rem; font-weight:700;">' + html(nomSokajy(courant)) + '</p>'; }
@@ -595,6 +598,20 @@
     setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
   }
 
+  // Le QR d'une table, ou de toutes : une page à imprimer et à poser sur
+  // chaque latabatra. La fenêtre s'ouvre tout de suite (dans le clic, sinon
+  // le navigateur la bloque) et se remplit quand le QR est prêt.
+  function qrPour(tables) {
+    const w = window.open('', '_blank');
+    if (!w) { alert("Tsy nisokatra ny QR : avelao hisokatra ny fenêtre (pop-up) amin'ity site ity."); return; }
+    idDuCompte().then(function (uid) {
+      if (!uid) { w.close(); alert('Midira ao amin\'ny kaontinao aloha.'); return; }
+      return chargerQR().then(function () { ouvrirQR(w, uid, tables); });
+    }).catch(function () {
+      w.close();
+      alert('Tsy azo ny QR : jereo ny connexion, dia avereno.');
+    });
+  }
   function dessinerCommandes() {
     const zone = document.getElementById('commandesZone');
     if (!zone) return;
@@ -620,10 +637,9 @@
           '<div class="field" style="margin-bottom:0; flex:0 1 150px;"><label for="latabatraRohy">Rohy isaky ny latabatra</label>' +
             '<select id="latabatraRohy">' + options + '</select></div>' +
           '<button type="button" class="btn btn-sm" id="latabatraAdikao" style="width:auto;">🔗 Adikao</button>' +
-          '<button type="button" class="btn btn-sm" id="latabatraQR" style="width:auto;">🔳 QR</button>' +
           '<button type="button" class="btn btn-sm" id="latabatraQRRehetra" style="width:auto;">🖨️ QR rehetra</button>' +
         '</div>' +
-        '<p style="font-size:0.75rem; color:var(--muted); margin:0.5rem 0 0;">Ny rohy isaky ny latabatra dia efa misafidy ny latabatra ho an\'ny mpanjifa (🔳 QR : printy, dia apetraho eo ambony latabatra tsirairay). Sokafy amin\'ny téléphone na tablette eo amin\'ilay latabatra, dia « 📲 Installer » : lasa appli « T1 », « T2 »… manokana izy.</p>' +
+        '<p style="font-size:0.75rem; color:var(--muted); margin:0.5rem 0 0;">Ny rohy isaky ny latabatra dia efa misafidy ny latabatra ho an\'ny mpanjifa (🔳 QR eo amin\'ny latabatra tsirairay, na 🖨️ QR rehetra : printy, dia apetraho eo ambony latabatra). Sokafy amin\'ny téléphone na tablette eo amin\'ilay latabatra, dia « 📲 Installer » : lasa appli « T1 », « T2 »… manokana izy.</p>' +
       '</div>' +
       blocVola() +
       blocLatabatra(enAttente) +
@@ -646,6 +662,7 @@
           return '<div style="margin-top:1rem; border:1px solid var(--cyan); border-radius:10px; padding:0.7rem 0.8rem;">' +
             '<div style="display:flex; justify-content:space-between; gap:0.5rem; flex-wrap:wrap; align-items:center;">' +
               '<h4 style="margin:0; font-size:1rem;">🍽️ T' + t + '</h4>' +
+              '<button type="button" class="btn btn-sm" data-qr="' + t + '" style="width:auto;">🔳 QR</button>' +
               (reste ? '<strong style="color:var(--cyan); font-size:0.88rem;">' + ariary(reste) + '</strong>' : '') +
               (tsyVoaloa ? '<span style="font-size:0.78rem; color:#ffb020;">💳 Tsy voaloa : ' + ariary(tsyVoaloa) + '</span>' : '') +
             '</div>' +
@@ -729,23 +746,6 @@
       }
       if (compte) donner(compte); else idDuCompte().then(donner);
     });
-    // Le QR d'une table, ou de toutes : une page à imprimer et à poser sur
-    // chaque latabatra. La fenêtre s'ouvre tout de suite (dans le clic, sinon
-    // le navigateur la bloque) et se remplit quand le QR est prêt.
-    function qrPour(tables) {
-      const w = window.open('', '_blank');
-      if (!w) { alert("Tsy nisokatra ny QR : avelao hisokatra ny fenêtre (pop-up) amin'ity site ity."); return; }
-      idDuCompte().then(function (uid) {
-        if (!uid) { w.close(); alert('Midira ao amin\'ny kaontinao aloha.'); return; }
-        return chargerQR().then(function () { ouvrirQR(w, uid, tables); });
-      }).catch(function () {
-        w.close();
-        alert('Tsy azo ny QR : jereo ny connexion, dia avereno.');
-      });
-    }
-    zone.querySelector('#latabatraQR').addEventListener('click', function () {
-      qrPour([Number(zone.querySelector('#latabatraRohy').value)]);
-    });
     zone.querySelector('#latabatraQRRehetra').addEventListener('click', function () {
       const l = [];
       for (let i = 1; i <= nbLatabatra; i++) l.push(i);
@@ -775,6 +775,8 @@
         dessinerCommandes();
         return;
       }
+      const qr = e.target.closest('button[data-qr]');
+      if (qr) { qrPour([Number(qr.dataset.qr)]); return; }
       const ajout = e.target.closest('#tableAjouter');
       if (ajout) { ajouterCommandeTable(ajout); return; }
       const b = e.target.closest('button[data-commande]');
