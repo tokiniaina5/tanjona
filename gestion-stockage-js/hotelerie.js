@@ -255,7 +255,7 @@
     return idDuCompte().then(function (uid) {
       if (!uid) { change = true; etatCommandes = 'Midira ao amin\'ny kaontinao mba hahitana ny commande.'; return; }
       return Promise.all([
-        sb().from('hotelerie_commande').select('id,latabatra,plats,fanamarihana,vita,created_at')
+        sb().from('hotelerie_commande').select('id,latabatra,plats,fanamarihana,vita,created_at,fandoavana,fandoavana_ref,voaloa')
           .eq('hotel_id', uid).order('created_at', { ascending: false }).limit(300),
         sb().from('hotelerie_menu').select('latabatra').eq('user_id', uid).maybeSingle()
       ]).then(function (r) {
@@ -459,6 +459,42 @@
     });
   }
 
+  // ---------- Le paiement ----------
+  // Le client paie à table : vola an-tanana, ou par mobile money vers les
+  // numéros de l'hôtel, qu'on écrit ici. Ils voyagent dans la tête du menu
+  // (hotelerie_menu.tete.vola), que la page du client lit déjà.
+  const FOMBA = [
+    ['mvola', 'MVola'],
+    ['orange', 'Orange Money'],
+    ['airtel', 'Airtel Money']
+  ];
+  const NOM_FOMBA = { vola: '💵 Vola an-tanana', mvola: '📱 MVola', orange: '📱 Orange Money', airtel: '📱 Airtel Money' };
+  function volaLire() {
+    const v = teteLire().vola;
+    return v && typeof v === 'object' ? v : {};
+  }
+  function blocVola() {
+    const v = volaLire();
+    // Ce qu'on est en train d'écrire survit au redessin (une commande qui arrive).
+    const ecrit = function (k) {
+      const c = document.getElementById('vola_' + k);
+      return c ? c.value : (v[k] || '');
+    };
+    return '<div class="panel" style="margin-top:1rem;">' +
+      '<h4 style="margin:0 0 0.3rem;">💳 Fandoavana eo amin\'ny latabatra</h4>' +
+      '<p style="font-size:0.75rem; color:var(--muted); margin:0 0 0.6rem;">Ny laharana mobile money handefasan\'ny mpanjifa ny vola. Hita ao amin\'ny menu an\'ny latabatra (afaka misafidy « Vola an-tanana » foana koa izy).</p>' +
+      '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:0.6rem;">' +
+        FOMBA.map(function (f) {
+          return '<div class="field" style="margin-bottom:0;"><label for="vola_' + f[0] + '">' + f[1] + '</label>' +
+            '<input id="vola_' + f[0] + '" type="tel" inputmode="tel" maxlength="20" placeholder="Ex: 034 00 000 00" value="' + html(ecrit(f[0])) + '"></div>';
+        }).join('') +
+        '<div class="field" style="margin-bottom:0;"><label for="vola_tompony">Anaran\'ny tompon\'ny laharana</label>' +
+          '<input id="vola_tompony" type="text" maxlength="60" placeholder="Ex: Rakoto Jean" value="' + html(ecrit('tompony')) + '"></div>' +
+      '</div>' +
+      '<button type="button" class="btn btn-sm" id="volaTehirizo" style="width:auto; margin-top:0.6rem;">💾 Tehirizo</button>' +
+    '</div>';
+  }
+
   function dessinerCommandes() {
     const zone = document.getElementById('commandesZone');
     if (!zone) return;
@@ -487,6 +523,7 @@
         '</div>' +
         '<p style="font-size:0.75rem; color:var(--muted); margin:0.5rem 0 0;">Ny rohy isaky ny latabatra dia efa misafidy ny latabatra ho an\'ny mpanjifa (azo atao QR eo ambony latabatra). Sokafy amin\'ny téléphone na tablette eo amin\'ilay latabatra, dia « 📲 Installer » : lasa appli « T1 », « T2 »… manokana izy.</p>' +
       '</div>' +
+      blocVola() +
       blocLatabatra(enAttente) +
       '<div class="panel" style="margin-top:1rem;">' +
         '<div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center; justify-content:space-between;">' +
@@ -503,10 +540,12 @@
         tables.map(function (t) {
           const liste = parTable[t];
           const reste = liste.filter(function (c) { return !c.vita; }).reduce(function (s, c) { return s + totalDe(c); }, 0);
+          const tsyVoaloa = liste.filter(function (c) { return !c.voaloa; }).reduce(function (s, c) { return s + totalDe(c); }, 0);
           return '<div style="margin-top:1rem; border:1px solid var(--cyan); border-radius:10px; padding:0.7rem 0.8rem;">' +
             '<div style="display:flex; justify-content:space-between; gap:0.5rem; flex-wrap:wrap; align-items:center;">' +
               '<h4 style="margin:0; font-size:1rem;">🍽️ T' + t + '</h4>' +
               (reste ? '<strong style="color:var(--cyan); font-size:0.88rem;">' + ariary(reste) + '</strong>' : '') +
+              (tsyVoaloa ? '<span style="font-size:0.78rem; color:#ffb020;">💳 Tsy voaloa : ' + ariary(tsyVoaloa) + '</span>' : '') +
             '</div>' +
             liste.map(function (c) {
               return '<div style="margin-top:0.6rem; padding:0.6rem 0.7rem; border-radius:8px; border:1px solid var(--line);' + (c.vita ? ' opacity:0.55;' : '') + '">' +
@@ -520,9 +559,13 @@
                     '<span style="white-space:nowrap;">' + ariary((Number(p.isa) || 0) * (Number(p.vidiny) || 0)) + '</span></div>';
                 }).join('') +
                 (c.fanamarihana ? '<p style="font-size:0.8rem; margin:0.35rem 0 0; color:var(--muted);">📝 ' + html(c.fanamarihana) + '</p>' : '') +
+                '<p style="font-size:0.8rem; margin:0.35rem 0 0;">' + html(NOM_FOMBA[c.fandoavana] || '💳 Tsy voalaza ny fandoavana') +
+                  (c.fandoavana_ref ? ' · Réf : <strong>' + html(c.fandoavana_ref) + '</strong>' : '') +
+                  ' · ' + (c.voaloa ? '<span style="color:#3ecf8e; font-weight:700;">💰 Voaloa</span>' : '<span style="color:#ffb020;">⏳ Tsy mbola voaloa</span>') + '</p>' +
                 '<div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-top:0.5rem;">' +
                   '<strong style="font-size:0.88rem;">Total : ' + ariary(totalDe(c)) + '</strong>' +
                   '<div style="display:flex; gap:0.35rem; flex-wrap:wrap;">' +
+                    '<button type="button" class="btn btn-sm" data-commande="voaloa" data-id="' + c.id + '" style="width:auto;">' + (c.voaloa ? '↩️ Tsy voaloa' : '💰 Voaloa') + '</button>' +
                     '<button type="button" class="btn btn-sm" data-commande="vita" data-id="' + c.id + '" style="width:auto;">' + (c.vita ? '↩️ Tsy vita' : '✅ Vita') + '</button>' +
                     '<button type="button" class="btn btn-sm btn-red" data-commande="esory" data-id="' + c.id + '" style="width:auto;">Esorina</button>' +
                   '</div>' +
@@ -534,6 +577,22 @@
       '</div>';
 
     zone.querySelector('#commandesVita').addEventListener('click', function () { voirVita = !voirVita; dessinerCommandes(); });
+    zone.querySelector('#volaTehirizo').addEventListener('click', function (e) {
+      const vola = {};
+      let mauvais = '';
+      FOMBA.concat([['tompony']]).forEach(function (f) {
+        const v = (zone.querySelector('#vola_' + f[0]).value || '').trim();
+        if (f[0] !== 'tompony' && v && !/^\+?[0-9 ]{6,20}$/.test(v)) mauvais = f[1];
+        if (v) vola[f[0]] = v.slice(0, 60);
+      });
+      if (mauvais) { alert('Diso ny laharana ' + mauvais + ' : isa sy espace ihany.'); return; }
+      const t = teteLire();
+      t.vola = vola;
+      teteEcrire(t);
+      const b = e.target;
+      b.textContent = '✅ Voatahiry';
+      setTimeout(function () { b.textContent = '💾 Tehirizo'; }, 1600);
+    });
     zone.querySelector('#commandesHavaozina').addEventListener('click', function () { chargerCommandes(true); });
     zone.querySelector('#latabatraTehirizo').addEventListener('click', function () {
       const n = Math.round(Number(zone.querySelector('#latabatraIsa').value));
@@ -601,7 +660,9 @@
       b.disabled = true;
       const req = b.dataset.commande === 'vita'
         ? sb().from('hotelerie_commande').update({ vita: !c.vita }).eq('id', c.id)
-        : sb().from('hotelerie_commande').delete().eq('id', c.id);
+        : b.dataset.commande === 'voaloa'
+          ? sb().from('hotelerie_commande').update({ voaloa: !c.voaloa }).eq('id', c.id)
+          : sb().from('hotelerie_commande').delete().eq('id', c.id);
       req.then(function (res) {
         if (res.error) { alert(res.error.message); b.disabled = false; return; }
         chargerCommandes();

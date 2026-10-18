@@ -25,6 +25,15 @@ create table if not exists public.hotelerie_commande (
   vita boolean not null default false,
   created_at timestamptz not null default now()
 );
+-- Le paiement : le client dit comment il paie (vola an-tanana, MVola,
+-- Orange Money, Airtel Money vers le numéro de l'hôtel) et, s'il a déjà
+-- envoyé, la référence de l'envoi. C'est l'hôtel qui coche « voaloa » : le
+-- client ne peut pas se déclarer payé (la règle d'ajout l'exige faux).
+alter table public.hotelerie_commande add column if not exists fandoavana text
+  check (fandoavana in ('vola', 'mvola', 'orange', 'airtel'));
+alter table public.hotelerie_commande add column if not exists fandoavana_ref text
+  check (char_length(fandoavana_ref) <= 60);
+alter table public.hotelerie_commande add column if not exists voaloa boolean not null default false;
 create index if not exists hotelerie_commande_hotel on public.hotelerie_commande (hotel_id, created_at desc);
 
 alter table public.hotelerie_commande enable row level security;
@@ -37,6 +46,7 @@ create policy "commande ajout" on public.hotelerie_commande for insert to anon, 
   -- hotelerie_menu, et sans préfixe la sous-requête la prendrait chez elle.
   with check (
     hotelerie_commande.vita = false
+    and hotelerie_commande.voaloa = false
     and exists (select 1 from public.hotelerie_menu m
                 where m.user_id = hotelerie_commande.hotel_id
                   and hotelerie_commande.latabatra <= m.latabatra)
