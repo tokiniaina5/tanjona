@@ -333,7 +333,7 @@
       f.addEventListener('change', function () {
         const fichier = f.files && f.files[0];
         if (!fichier) return;
-        if (bouton) { bouton.disabled = true; bouton.textContent = '⏳ Alefa...'; }
+        if (bouton) { bouton.disabled = true; bouton.textContent = '⏳'; }
         envoyerSary('logo', fichier).then(function (adresse) {
           const t = teteLire();
           if (t.sary && t.sary !== adresse) effacerSary(t.sary);
@@ -665,9 +665,9 @@
           : '<h2 style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">' +
               '<button type="button" id="hotelLogo" title="Ovay ny sary" aria-label="Ovay ny sary" style="background:none; border:0; padding:0; cursor:pointer; font:inherit; line-height:1;">' + logo + '</button>' +
               '<span>' + html(nomHotel()) + '</span>' +
-              '<button type="button" class="btn btn-sm" id="hotelAnaranaOvay" style="width:auto; font-size:0.75rem;">✏️ Ovay</button>' +
-              '<button type="button" class="btn btn-sm" id="hotelLogoOvay" style="width:auto; font-size:0.75rem;">🖼️ Sary</button>' +
-              (t.sary ? '<button type="button" class="btn btn-sm" id="hotelLogoEsory" title="Esory ny sary" style="width:auto; font-size:0.75rem;">✕ Sary</button>' : '') +
+              '<button type="button" class="btn btn-sm" id="hotelAnaranaOvay" title="Ovay ny anarana" aria-label="Ovay ny anarana" style="width:auto; padding:0.2rem 0.45rem; font-size:0.95rem; line-height:1;">✏️</button>' +
+              '<button type="button" class="btn btn-sm" id="hotelLogoOvay" title="Ovay ny sary" aria-label="Ovay ny sary" style="width:auto; padding:0.2rem 0.45rem; font-size:0.95rem; line-height:1;">🖼️</button>' +
+              (t.sary ? '<button type="button" class="btn btn-sm" id="hotelLogoEsory" title="Esory ny sary" aria-label="Esory ny sary" style="width:auto; padding:0.2rem 0.45rem; font-size:0.95rem; line-height:1;">✕</button>' : '') +
             '</h2>') +
         '<p>Ny menu sakafo an\'ny hotely sy ny commande an\'ny mpanjifa isaky ny latabatra.</p></div></div>' +
       '<div class="dash-tabs" style="margin-bottom:1rem; display:flex; gap:0.4rem; flex-wrap:wrap;">' +
