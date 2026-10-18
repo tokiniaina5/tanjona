@@ -81,3 +81,28 @@ as $$
 $$;
 revoke all on function public.hotelerie_commande_sata(uuid[]) from public;
 grant execute on function public.hotelerie_commande_sata(uuid[]) to anon, authenticated;
+
+-- ---------- Le paiement, à part de la commande ----------
+-- Le client commande d'abord, et paie quand il veut (souvent à la fin) : il
+-- dit alors, pour SES commandes pas encore cochées « voaloa », comment il a
+-- payé et la réf de son envoi. Il ne touche à rien d'autre — ni plats, ni
+-- table, ni « voaloa », que l'hôtel seul coche.
+create or replace function public.hotelerie_commande_handoa(ids uuid[], fomba text, ref text)
+returns integer
+language plpgsql volatile security definer set search_path = public
+as $$
+declare n integer;
+begin
+  if fomba is null or fomba not in ('vola', 'mvola', 'orange', 'airtel') then
+    raise exception 'fomba tsy fantatra';
+  end if;
+  update public.hotelerie_commande c
+     set fandoavana = fomba,
+         fandoavana_ref = case when fomba = 'vola' then null else nullif(left(trim(coalesce(ref, '')), 60), '') end
+   where c.id = any (ids[1:30]) and c.voaloa = false;
+  get diagnostics n = row_count;
+  return n;
+end;
+$$;
+revoke all on function public.hotelerie_commande_handoa(uuid[], text, text) from public;
+grant execute on function public.hotelerie_commande_handoa(uuid[], text, text) to anon, authenticated;

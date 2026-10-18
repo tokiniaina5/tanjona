@@ -64,8 +64,7 @@
   .commande select, .commande input{ width:100%; font:inherit; color:var(--text); background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:0.5rem 0.6rem; margin-bottom:0.5rem; }
   .commande .alefa{ width:100%; margin-top:0.2rem; background:var(--accent); color:var(--bg); font-weight:700; }
   .commande .alefa:disabled{ opacity:0.5; cursor:default; }
-  .fandoavana{ margin:0 0 0.5rem; }
-  .fandoavana .titre{ margin:0 0 0.35rem; font-weight:700; font-size:0.9rem; }
+  .handoa{ position:static; margin-top:0.4rem; }
   .fombas{ display:flex; gap:0.35rem; flex-wrap:wrap; }
   .fombas .fomba{ margin:0; padding:0.35rem 0.7rem; font-size:0.85rem; color:var(--text); border-color:var(--line); }
   .fombas .fomba.choisi{ border-color:var(--accent); color:var(--accent); font-weight:700; background:rgba(15,138,146,0.1); }
@@ -282,44 +281,92 @@
     return Object.keys(panier).map(function (k) { return { anarana: k, vidiny: prixDuMenu[k] || 0, isa: panier[k] }; });
   }
   // ---------- Le paiement ----------
-  // Vola an-tanana, ou mobile money vers les numéros que l'hôtel a écrits
-  // (tete.vola). Le client peut donner la réf de son envoi ; c'est l'hôtel qui
-  // dit « voaloa ».
+  // À part de la commande : le client commande d'abord, et paie quand il veut
+  // (souvent à la fin), pour tout ce qui reste sur ses reçus. Vola an-tanana,
+  // ou mobile money vers les numéros que l'hôtel a écrits (tete.vola) ; il
+  // peut donner la réf de son envoi. C'est l'hôtel qui dit « voaloa ».
   const NOM_FOMBA = { vola: '💵 Vola an-tanana', mvola: 'MVola', orange: 'Orange Money', airtel: 'Airtel Money' };
   let vola = {};
   let fandoavana = 'vola';
   let refFandoavana = '';
-  function choixFandoavana() {
-    const z = el('div', null, 'fandoavana');
-    z.appendChild(el('p', '💳 Fandoavana', 'titre'));
+  // Les noms des opérateurs ne se traduisent pas : un traducteur faisait de
+  // « MVola » un « Money ».
+  function sansTraduction(e) { e.setAttribute('translate', 'no'); e.classList.add('notranslate'); return e; }
+  function blocHandoa(attente) {
+    const z = el('div', null, 'commande handoa');
+    const total = attente.reduce(function (s, r) { return s + (Number(r.total) || 0); }, 0);
+    z.appendChild(el('h3', '💳 Handoa'));
+    const somme = el('p', null, 'vide');
+    somme.style.margin = '0 0 0.5rem';
+    somme.appendChild(document.createTextNode(attente.length + ' commande tsy mbola voaloa · '));
+    somme.appendChild(el('span', ariary(total), 'total'));
+    z.appendChild(somme);
     const fombas = ['vola'].concat(['mvola', 'orange', 'airtel'].filter(function (k) { return vola[k]; }));
     if (fombas.indexOf(fandoavana) < 0) fandoavana = 'vola';
     const rangee = el('div', null, 'fombas');
     fombas.forEach(function (k) {
-      const b = el('button', k === 'vola' ? NOM_FOMBA.vola : '📱 ' + NOM_FOMBA[k], 'fomba' + (k === fandoavana ? ' choisi' : ''));
+      const b = sansTraduction(el('button', k === 'vola' ? NOM_FOMBA.vola : '📱 ' + NOM_FOMBA[k], 'fomba' + (k === fandoavana ? ' choisi' : '')));
       b.type = 'button';
       b.setAttribute('aria-pressed', k === fandoavana ? 'true' : 'false');
-      b.addEventListener('click', function () {
-        fandoavana = k;
-        z.replaceWith(choixFandoavana());
-        majCommande();
-      });
+      b.addEventListener('click', function () { fandoavana = k; dessinerRecus(); });
       rangee.appendChild(b);
     });
     z.appendChild(rangee);
-    if (fandoavana !== 'vola') {
+    if (fandoavana === 'vola') {
+      z.appendChild(el('p', "Aloavy amin'ny mpandroso sakafo ny vola, dia tsindrio eto ambany.", 'vide'));
+    } else {
       const info = el('p', null, 'vide');
-      info.id = 'fandoavanaInfo';
-      info.style.margin = '0.4rem 0';
+      info.style.margin = '0.5rem 0';
+      info.appendChild(document.createTextNode('Alefaso ny '));
+      info.appendChild(el('span', ariary(total), 'total'));
+      info.appendChild(document.createTextNode(" amin'ny "));
+      info.appendChild(sansTraduction(el('span', NOM_FOMBA[fandoavana])));
+      info.appendChild(document.createTextNode(' : '));
+      info.appendChild(sansTraduction(el('strong', vola[fandoavana])));
+      if (vola.tompony) info.appendChild(document.createTextNode(' (' + vola.tompony + ')'));
       z.appendChild(info);
       const ref = document.createElement('input');
       ref.type = 'text'; ref.id = 'fandoavanaRef'; ref.maxLength = 60;
-      ref.placeholder = 'Réf / laharan\'ny fandefasana (raha efa nalefa)';
+      ref.placeholder = "Réf / laharan'ny fandefasana";
       ref.value = refFandoavana;
       ref.addEventListener('input', function () { refFandoavana = ref.value; });
       z.appendChild(ref);
     }
+    const b = el('button', fandoavana === 'vola' ? '✅ Efa nandoa vola an-tanana' : '✅ Efa nalefa', 'alefa');
+    b.type = 'button';
+    b.addEventListener('click', function () { declarerPaiement(attente, b); });
+    z.appendChild(b);
     return z;
+  }
+  // Le client dit comment il a payé ; l'hôtel le voit à côté de chaque
+  // commande, et coche « voaloa » quand l'argent est là.
+  function declarerPaiement(attente, b) {
+    const fomba = fandoavana;
+    const ref = fomba === 'vola' ? '' : refFandoavana.trim().slice(0, 60);
+    b.disabled = true;
+    b.textContent = '⏳ Alefa...';
+    fetch(URL_SB + '/rest/v1/rpc/hotelerie_commande_handoa', {
+      method: 'POST',
+      headers: { apikey: CLE_SB, Authorization: 'Bearer ' + CLE_SB, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: attente.map(function (r) { return r.id; }), fomba: fomba, ref: ref })
+    }).then(function (r) {
+      if (!r.ok) throw new Error(String(r.status));
+      const ids = attente.map(function (r) { return r.id; });
+      const l = recusLire();
+      l.forEach(function (r) {
+        if (ids.indexOf(r.id) < 0 || r.voaloa) return;
+        r.fandoavana = fomba;
+        r.ref = ref;
+        r.laharana = fomba === 'vola' ? '' : (vola[fomba] || '');
+        r.tompony = vola.tompony || '';
+      });
+      refFandoavana = '';
+      recusEcrire(l);
+    }).catch(function () {
+      b.disabled = false;
+      b.textContent = '✅ Avereno';
+      alert('Tsy lasa : jereo ny connexion, dia avereno.');
+    });
   }
   function boiteCommande() {
     const z = el('div', null, 'commande');
@@ -335,7 +382,6 @@
     note.type = 'text'; note.id = 'fanamarihana'; note.maxLength = 300;
     note.placeholder = 'Fanamarihana (raha misy) : tsy misy sakay...';
     z.appendChild(note);
-    z.appendChild(choixFandoavana());
     const resume = el('p', '', 'vide'); resume.id = 'resume'; resume.style.margin = '0 0 0.4rem';
     z.appendChild(resume);
     const alefa = el('button', '✅ Alefa ny commande', 'alefa'); alefa.type = 'button'; alefa.id = 'alefa';
@@ -378,15 +424,6 @@
       resume.appendChild(document.createTextNode(isa + ' zavatra · '));
       resume.appendChild(el('span', ariary(total), 'total'));
     }
-    const info = document.getElementById('fandoavanaInfo');
-    if (info && vola[fandoavana]) {
-      info.replaceChildren();
-      info.appendChild(document.createTextNode('Alefaso ' + (total ? 'ny ' : '')));
-      if (total) info.appendChild(el('span', ariary(total), 'total'));
-      info.appendChild(document.createTextNode(' amin\'ny ' + NOM_FOMBA[fandoavana] + ' : '));
-      info.appendChild(el('strong', vola[fandoavana]));
-      if (vola.tompony) info.appendChild(document.createTextNode(' (' + vola.tompony + ')'));
-    }
     alefa.disabled = !isa || !latabatraChoisie;
     alefa.textContent = (isa && !latabatraChoisie) ? 'Safidio aloha ny latabatra' : '✅ Alefa ny commande';
   }
@@ -408,9 +445,7 @@
       headers: { apikey: CLE_SB, Authorization: 'Bearer ' + CLE_SB, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
       body: JSON.stringify({
         id: idCommande, hotel_id: id, latabatra: latabatraChoisie, plats: l,
-        fanamarihana: (document.getElementById('fanamarihana').value || '').trim() || null,
-        fandoavana: fandoavana,
-        fandoavana_ref: fandoavana !== 'vola' && refFandoavana.trim() ? refFandoavana.trim().slice(0, 60) : null
+        fanamarihana: (document.getElementById('fanamarihana').value || '').trim() || null
       })
     }).then(function (r) {
       if (!r.ok) throw new Error(String(r.status));
@@ -422,16 +457,12 @@
       // quand l'hôtel l'aura coché.
       recuAjouter({
         id: idCommande, latabatra: latabatraChoisie, plats: l, total: totalAlefa, at: Date.now(),
-        fandoavana: fandoavana, ref: fandoavana !== 'vola' ? refFandoavana.trim().slice(0, 60) : '',
-        laharana: fandoavana !== 'vola' ? (vola[fandoavana] || '') : '', tompony: vola.tompony || '',
+        fandoavana: '', ref: '', laharana: '', tompony: '',
         fanamarihana: note, voaloa: false
       });
       const voaray = document.getElementById('voaray');
       voaray.style.display = '';
-      voaray.textContent = '✅ Voaray ny commande (T' + latabatraChoisie + '). Jereo ny reçu eo ambany.';
-      refFandoavana = '';
-      const champRef = document.getElementById('fandoavanaRef');
-      if (champRef) champRef.value = '';
+      voaray.textContent = '✅ Voaray ny commande (T' + latabatraChoisie + '). Jereo ny reçu eo ambany ; afaka mandoa rehefa vita ianao.';
       clearTimeout(voaray._t);
       voaray._t = setTimeout(function () { voaray.style.display = 'none'; }, 10000);
       majCommande();
@@ -477,22 +508,23 @@
       tot.appendChild(el('span', 'Total'));
       tot.appendChild(el('span', ariary(r.total)));
       c.appendChild(tot);
-      c.appendChild(el('p', (r.fandoavana === 'vola' ? NOM_FOMBA.vola : '📱 ' + (NOM_FOMBA[r.fandoavana] || '')) +
-        (r.ref ? ' · Réf : ' + r.ref : ''), 'recu-fomba'));
+      if (r.fandoavana) {
+        c.appendChild(sansTraduction(el('p', (r.fandoavana === 'vola' ? NOM_FOMBA.vola : '📱 ' + (NOM_FOMBA[r.fandoavana] || '')) +
+          (r.ref ? ' · Réf : ' + r.ref : ''), 'recu-fomba')));
+      }
       if (r.voaloa) {
         c.appendChild(el('p', '💰 Voaloa — misaotra !', 'recu-ok'));
+      } else if (r.fandoavana) {
+        c.appendChild(el('p', "⏳ Miandry ny fanamarinan'ny hotely", 'recu-attente'));
       } else {
-        c.appendChild(el('p', '⏳ Tsy mbola voamarin\'ny hotely', 'recu-attente'));
-        if (r.fandoavana !== 'vola' && r.laharana) {
-          c.appendChild(el('p', 'Alefaso ny ' + ariary(r.total) + ' amin\'ny ' + NOM_FOMBA[r.fandoavana] + ' : ' + r.laharana +
-            (r.tompony ? ' (' + r.tompony + ')' : '') + (r.ref ? '' : ', dia lazao ny réf amin\'ny mpandroso sakafo.'), 'vide'));
-        } else if (r.fandoavana === 'vola') {
-          c.appendChild(el('p', 'Aloavy amin\'ny mpandroso sakafo ny vola.', 'vide'));
-        }
+        c.appendChild(el('p', '💳 Tsy mbola voaloa', 'recu-attente'));
       }
       c.appendChild(el('small', 'N° ' + String(r.id).slice(0, 8).toUpperCase(), 'recu-num'));
       z.appendChild(c);
     });
+    // Ce qui reste à payer (et que le client n'a pas encore dit avoir payé).
+    const attente = l.filter(function (r) { return !r.voaloa && !r.fandoavana; });
+    if (attente.length) z.appendChild(blocHandoa(attente));
   }
   // L'hôtel coche « voaloa » : on le demande pour les reçus qui attendent.
   function recusSata() {
@@ -547,9 +579,8 @@
       if (/^\+?[0-9 ]{6,20}$/.test(n)) vola[k] = n;
     });
     if (v.tompony) vola.tompony = String(v.tompony).trim().slice(0, 60);
-    // Les numéros ont changé : le choix se redessine (le menu, lui, ne
-    // changerait peut-être pas).
-    if (JSON.stringify(vola) !== avant) empreinte = null;
+    // Les numéros ont changé : le bloc « Handoa » se redessine.
+    if (JSON.stringify(vola) !== avant) dessinerRecus();
     document.getElementById('teteNom').textContent = nomHotel;
     const logo = document.getElementById('teteLogo');
     // Sans sary choisi : le logo de Ny asako.
