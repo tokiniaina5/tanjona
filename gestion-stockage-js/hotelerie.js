@@ -73,6 +73,14 @@
     synchroniser();
   }
   function nomHotel() { return (teteLire().anarana || '').trim() || NOM_DEFAUT; }
+  // L'entrée du menu (et ses copies dans la rangée ou sur le fond) porte le
+  // logo de Ny asako, que celui de l'hôtel remplace dès qu'il en a un.
+  function majLogoMenu() {
+    const src = teteLire().sary || LOGO_DEFAUT;
+    document.querySelectorAll('img.nav-logo-hotel').forEach(function (i) {
+      if (i.getAttribute('src') !== src) i.setAttribute('src', src);
+    });
+  }
 
   // ---------- En ligne ----------
   let compte = null;   // l'id du compte connecté, une fois connu
@@ -188,6 +196,7 @@
             localStorage.setItem(CLE_FAFANA, JSON.stringify(fafana));
             localStorage.setItem(CLE_TETE, JSON.stringify(tete));
           } catch (e) { }
+          if (teteChange) majLogoMenu();
           if (!memes(fondu, ici) || teteChange) redessinerSiLibre();
           // Rien ici, rien en ligne : pas de ligne vide pour chaque compte
           // qui ouvre simplement l'application.
@@ -851,6 +860,7 @@
   }
 
   function rendre() {
+    majLogoMenu();
     const z = document.querySelector('.hotelerie');
     if (!z) return;
     const plats = lire();
@@ -1154,6 +1164,9 @@
   function demarrer() {
     rendre();
     synchroniser();
+    // Une icône posée plus tard (rangée, fond) est une copie de l'entrée :
+    // on la remet au logo du moment de temps en temps.
+    setInterval(majLogoMenu, 3000);
     chargerCommandes();
     // Le menu aussi : ce qu'un autre appareil vient d'y mettre arrive ici.
     setInterval(function () { if (!document.hidden && compte) { chargerCommandes(); synchroniser(); } }, 15000);
