@@ -72,6 +72,20 @@
   .commande .alefa{ width:100%; margin-top:0.2rem; background:var(--accent); color:var(--bg); font-weight:700; }
   .commande .alefa:disabled{ opacity:0.5; cursor:default; }
   .handoa{ position:static; margin-top:0.4rem; }
+  /* Le même tracé que le déblocage de Ny asako : le prix en tête, le
+     paiement principal en plein, « na », puis l'autre moyen en contour. */
+  .handoa-intro{ font-size:0.85rem; color:var(--muted); line-height:1.5; margin:0 0 0.8rem; }
+  .handoa-boite{ border:1px solid var(--line); border-radius:8px; padding:0.8rem 0.9rem; background:var(--bg); }
+  .handoa-cout{ display:flex; justify-content:space-between; align-items:baseline; gap:0.8rem; }
+  .handoa-cout span{ font-size:0.85rem; color:var(--muted); }
+  .handoa-cout strong{ font-family:ui-monospace, "Cascadia Mono", Consolas, monospace; font-size:1.15rem; color:var(--accent); white-space:nowrap; }
+  .handoa .alefa, .handoa .handoa-mobile{ font-family:ui-monospace, "Cascadia Mono", Consolas, monospace; font-size:0.88rem; }
+  .handoa-na{ display:flex; align-items:center; gap:0.6rem; margin:0.9rem 0 0.7rem; font-size:0.8rem; color:var(--muted); }
+  .handoa-na span{ flex:1; border-top:1px solid var(--line); }
+  .handoa-label{ display:block; font-family:ui-monospace, "Cascadia Mono", Consolas, monospace; font-size:0.72rem; letter-spacing:0.06em; text-transform:uppercase; color:var(--muted); margin:0 0 0.4rem; }
+  .handoa-mobile{ width:100%; margin-top:0.2rem; color:var(--text); border:2px solid var(--text); font-weight:600; }
+  .handoa-mobile:disabled{ opacity:0.5; cursor:default; }
+  .handoa-note{ font-size:0.78rem; color:var(--muted); line-height:1.5; margin:0.5rem 0 0; }
   .fombas{ display:flex; gap:0.35rem; flex-wrap:wrap; }
   .fombas .fomba{ margin:0; padding:0.35rem 0.7rem; font-size:0.85rem; color:var(--text); border-color:var(--line); }
   .fombas .fomba.choisi{ border-color:var(--accent); color:var(--accent); font-weight:700; background:rgba(15,138,146,0.1); }
@@ -367,25 +381,40 @@
     const z = el('div', null, 'commande handoa');
     const total = attente.reduce(function (s, r) { return s + (Number(r.total) || 0); }, 0);
     z.appendChild(el('h3', '💳 Handoa'));
-    const somme = el('p', null, 'vide');
-    somme.style.margin = '0 0 0.5rem';
-    somme.appendChild(document.createTextNode(attente.length + ' commande tsy mbola voaloa · '));
-    somme.appendChild(el('span', ariary(total), 'total'));
-    z.appendChild(somme);
-    const fombas = ['vola'].concat(['mvola', 'orange', 'airtel'].filter(function (k) { return vola[k]; }));
-    if (fombas.indexOf(fandoavana) < 0) fandoavana = 'vola';
-    const rangee = el('div', null, 'fombas');
-    fombas.forEach(function (k) {
-      const b = sansTraduction(el('button', k === 'vola' ? NOM_FOMBA.vola : '📱 ' + NOM_FOMBA[k], 'fomba' + (k === fandoavana ? ' choisi' : '')));
-      b.type = 'button';
-      b.setAttribute('aria-pressed', k === fandoavana ? 'true' : 'false');
-      b.addEventListener('click', function () { fandoavana = k; dessinerRecus(); });
-      rangee.appendChild(b);
-    });
-    z.appendChild(rangee);
-    if (fandoavana === 'vola') {
-      z.appendChild(el('p', "Aloavy amin'ny mpandroso sakafo ny vola, dia tsindrio eto ambany.", 'vide'));
-    } else {
+    z.appendChild(el('p', attente.length + ' commande tsy mbola voaloa. Ny fandoavana dia ' +
+      'vola an-tanana amin\'ny mpandroso sakafo, na mobile money mankany amin\'ny hotely — ' +
+      'ny hotely no manamarina fa voaray ny vola.', 'handoa-intro'));
+    const boite = el('div', null, 'handoa-boite');
+    const cout = el('div', null, 'handoa-cout');
+    cout.appendChild(el('span', 'Vola aloa'));
+    cout.appendChild(el('strong', ariary(total)));
+    boite.appendChild(cout);
+    // Le paiement principal, en plein : vola an-tanana.
+    const bVola = el('button', '💵 Handoa vola an-tanana', 'alefa');
+    bVola.type = 'button';
+    bVola.style.marginTop = '0.8rem';
+    bVola.addEventListener('click', function () { declarerPaiement(attente, bVola, 'vola'); });
+    boite.appendChild(bVola);
+
+    // Ou par mobile money, quand l'hôtel a écrit des numéros.
+    const mobiles = ['mvola', 'orange', 'airtel'].filter(function (k) { return vola[k]; });
+    if (mobiles.length) {
+      if (mobiles.indexOf(fandoavana) < 0) fandoavana = mobiles[0];
+      const na = el('div', null, 'handoa-na');
+      na.appendChild(el('span'));
+      na.appendChild(document.createTextNode('na'));
+      na.appendChild(el('span'));
+      boite.appendChild(na);
+      boite.appendChild(el('span', 'Mobile money', 'handoa-label'));
+      const rangee = el('div', null, 'fombas');
+      mobiles.forEach(function (k) {
+        const b = sansTraduction(el('button', '📱 ' + NOM_FOMBA[k], 'fomba' + (k === fandoavana ? ' choisi' : '')));
+        b.type = 'button';
+        b.setAttribute('aria-pressed', k === fandoavana ? 'true' : 'false');
+        b.addEventListener('click', function () { fandoavana = k; dessinerRecus(); });
+        rangee.appendChild(b);
+      });
+      boite.appendChild(rangee);
       const info = el('p', null, 'vide');
       info.style.margin = '0.5rem 0';
       info.appendChild(document.createTextNode('Alefaso ny '));
@@ -395,19 +424,22 @@
       info.appendChild(document.createTextNode(' : '));
       info.appendChild(sansTraduction(el('strong', vola[fandoavana])));
       if (vola.tompony) info.appendChild(document.createTextNode(' (' + vola.tompony + ')'));
-      z.appendChild(info);
-      z.appendChild(outilsVola(fandoavana, total));
+      boite.appendChild(info);
+      boite.appendChild(outilsVola(fandoavana, total));
       const ref = document.createElement('input');
       ref.type = 'text'; ref.id = 'fandoavanaRef'; ref.maxLength = 60;
       ref.placeholder = "Réf / laharan'ny fandefasana";
       ref.value = refFandoavana;
       ref.addEventListener('input', function () { refFandoavana = ref.value; });
-      z.appendChild(ref);
+      boite.appendChild(ref);
+      const bMobile = sansTraduction(el('button', '📱 Efa nalefa tamin\'ny ' + NOM_FOMBA[fandoavana], 'handoa-mobile'));
+      bMobile.type = 'button';
+      bMobile.addEventListener('click', function () { declarerPaiement(attente, bMobile, fandoavana); });
+      boite.appendChild(bMobile);
+      boite.appendChild(el('p', "Ianao no mandefa ny vola amin'ny téléphone-nao ; tsy misy laharana tsiambaratelo atao eto.", 'handoa-note'));
     }
-    const b = el('button', fandoavana === 'vola' ? '✅ Efa nandoa vola an-tanana' : '✅ Efa nalefa', 'alefa');
-    b.type = 'button';
-    b.addEventListener('click', function () { declarerPaiement(attente, b); });
-    z.appendChild(b);
+    z.appendChild(boite);
+    z.appendChild(el('p', "Ny reçu-nao dia lasa « 💰 Voaloa » rehefa nohamarinin'ny hotely.", 'handoa-note'));
     return z;
   }
   // Pour envoyer : le menu de l'opérateur s'ouvre d'un appui (son code USSD),
@@ -471,8 +503,7 @@
   }
   // Le client dit comment il a payé ; l'hôtel le voit à côté de chaque
   // commande, et coche « voaloa » quand l'argent est là.
-  function declarerPaiement(attente, b) {
-    const fomba = fandoavana;
+  function declarerPaiement(attente, b, fomba) {
     const ref = fomba === 'vola' ? '' : refFandoavana.trim().slice(0, 60);
     b.disabled = true;
     b.textContent = '⏳ Alefa...';
