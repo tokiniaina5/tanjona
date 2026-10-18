@@ -70,6 +70,15 @@
   .fombas .fomba{ margin:0; padding:0.35rem 0.7rem; font-size:0.85rem; color:var(--text); border-color:var(--line); }
   .fombas .fomba.choisi{ border-color:var(--accent); color:var(--accent); font-weight:700; background:rgba(15,138,146,0.1); }
   .total{ font-weight:700; color:var(--accent); }
+  .recu{ background:var(--card); border:1px dashed var(--muted); border-radius:12px; padding:0.8rem 0.9rem; margin-bottom:0.7rem; }
+  .recu-tete{ display:flex; justify-content:space-between; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.4rem; }
+  .recu-tete small, .recu-num{ color:var(--muted); }
+  .recu-ligne{ display:flex; justify-content:space-between; gap:0.6rem; font-size:0.9rem; padding:0.15rem 0; border-bottom:1px solid var(--line); }
+  .recu-total{ font-weight:700; border-bottom:0; padding-top:0.35rem; }
+  .recu p{ margin:0.35rem 0 0; font-size:0.88rem; }
+  .recu-ok{ color:#2fbf71; font-weight:700; }
+  .recu-attente{ color:#e0a020; font-weight:600; }
+  .recu-num{ display:block; margin-top:0.4rem; font-size:0.75rem; }
   .voaray{ color:var(--accent); font-weight:600; margin:0.5rem 0 0; }
   .installer{ display:none; align-items:center; justify-content:space-between; gap:0.6rem; flex-wrap:wrap; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:0.6rem 0.8rem; margin:0 0 1rem; }
   .installer p{ margin:0; font-size:0.85rem; color:var(--muted); flex:1 1 200px; }
@@ -85,6 +94,7 @@
     <button type="button" id="installerBouton">📲 Installer</button>
   </div>
   <div id="menu"></div>
+  <div id="recus"></div>
 </main>
 <script>
 (function () {
@@ -387,11 +397,17 @@
     alefa.disabled = true;
     alefa.textContent = '⏳ Alefa...';
     const totalAlefa = l.reduce(function (s, x) { return s + x.isa * x.vidiny; }, 0);
+    // L'identifiant tiré ici : c'est par lui que le reçu demandera son état.
+    const idCommande = (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+      : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        const r = Math.random() * 16 | 0;
+        return (c === 'x' ? r : (r & 3 | 8)).toString(16);
+      });
     fetch(URL_SB + '/rest/v1/hotelerie_commande', {
       method: 'POST',
       headers: { apikey: CLE_SB, Authorization: 'Bearer ' + CLE_SB, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
       body: JSON.stringify({
-        hotel_id: id, latabatra: latabatraChoisie, plats: l,
+        id: idCommande, hotel_id: id, latabatra: latabatraChoisie, plats: l,
         fanamarihana: (document.getElementById('fanamarihana').value || '').trim() || null,
         fandoavana: fandoavana,
         fandoavana_ref: fandoavana !== 'vola' && refFandoavana.trim() ? refFandoavana.trim().slice(0, 60) : null
@@ -400,27 +416,105 @@
       if (!r.ok) throw new Error(String(r.status));
       Object.keys(panier).forEach(function (k) { delete panier[k]; });
       document.querySelectorAll('.isa span').forEach(function (s) { s.textContent = '0'; });
+      const note = (document.getElementById('fanamarihana').value || '').trim();
       document.getElementById('fanamarihana').value = '';
-      const sansRef = fandoavana !== 'vola' && !refFandoavana.trim();
+      // Le reçu du client : gardé sur son appareil, il dira « 💰 Voaloa »
+      // quand l'hôtel l'aura coché.
+      recuAjouter({
+        id: idCommande, latabatra: latabatraChoisie, plats: l, total: totalAlefa, at: Date.now(),
+        fandoavana: fandoavana, ref: fandoavana !== 'vola' ? refFandoavana.trim().slice(0, 60) : '',
+        laharana: fandoavana !== 'vola' ? (vola[fandoavana] || '') : '', tompony: vola.tompony || '',
+        fanamarihana: note, voaloa: false
+      });
       const voaray = document.getElementById('voaray');
       voaray.style.display = '';
-      voaray.textContent = '✅ Voaray ny commande (T' + latabatraChoisie + '). ' + (sansRef
-        ? 'Alefaso ny ' + ariary(totalAlefa) + ' amin\'ny ' + NOM_FOMBA[fandoavana] + ' ' + vola[fandoavana] +
-          (vola.tompony ? ' (' + vola.tompony + ')' : '') + ', dia lazao ny réf amin\'ny mpandroso sakafo.'
-        : fandoavana === 'vola' ? 'Aloavy amin\'ny mpandroso sakafo ny vola. Misaotra !' : 'Hamarinin\'ny hotely ny fandoavana. Misaotra !');
+      voaray.textContent = '✅ Voaray ny commande (T' + latabatraChoisie + '). Jereo ny reçu eo ambany.';
       refFandoavana = '';
       const champRef = document.getElementById('fandoavanaRef');
       if (champRef) champRef.value = '';
       clearTimeout(voaray._t);
-      voaray._t = setTimeout(function () { voaray.style.display = 'none'; }, sansRef ? 60000 : 10000);
+      voaray._t = setTimeout(function () { voaray.style.display = 'none'; }, 10000);
       majCommande();
+      const premier = document.querySelector('#recus .recu');
+      if (premier) premier.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }).catch(function () {
       alert('Tsy lasa ny commande : jereo ny connexion, dia avereno.');
       majCommande();
     });
   }
 
+  // ---------- Les reçus ----------
+  // Ceux de cet appareil, pour cet hôtel : les dix derniers, d'un jour au plus.
+  // Le numéro mobile money y est recopié tel qu'il était à la commande.
+  const CLE_RECU = 'recus_' + (id || '');
+  function recusLire() {
+    let l = [];
+    try { l = JSON.parse(retenuLire(CLE_RECU)) || []; } catch (e) { }
+    const hier = Date.now() - 24 * 3600 * 1000;
+    return (Array.isArray(l) ? l : []).filter(function (r) { return r && r.id && r.at > hier; });
+  }
+  function recusEcrire(l) { retenuEcrire(CLE_RECU, JSON.stringify(l.slice(0, 10))); dessinerRecus(); }
+  function recuAjouter(r) { recusEcrire([r].concat(recusLire())); }
+  function dessinerRecus() {
+    const z = document.getElementById('recus');
+    const l = recusLire();
+    z.replaceChildren();
+    if (!l.length) return;
+    z.appendChild(el('h2', '🧾 Ny reçu-nao'));
+    l.forEach(function (r) {
+      const c = el('div', null, 'recu');
+      const tete = el('div', null, 'recu-tete');
+      tete.appendChild(el('strong', nomHotel + ' · T' + r.latabatra));
+      tete.appendChild(el('small', new Date(r.at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })));
+      c.appendChild(tete);
+      (r.plats || []).forEach(function (p) {
+        const ligne = el('div', null, 'recu-ligne');
+        ligne.appendChild(el('span', (Number(p.isa) || 0) + ' × ' + p.anarana));
+        ligne.appendChild(el('span', ariary((Number(p.isa) || 0) * (Number(p.vidiny) || 0))));
+        c.appendChild(ligne);
+      });
+      const tot = el('div', null, 'recu-ligne recu-total');
+      tot.appendChild(el('span', 'Total'));
+      tot.appendChild(el('span', ariary(r.total)));
+      c.appendChild(tot);
+      c.appendChild(el('p', (r.fandoavana === 'vola' ? NOM_FOMBA.vola : '📱 ' + (NOM_FOMBA[r.fandoavana] || '')) +
+        (r.ref ? ' · Réf : ' + r.ref : ''), 'recu-fomba'));
+      if (r.voaloa) {
+        c.appendChild(el('p', '💰 Voaloa — misaotra !', 'recu-ok'));
+      } else {
+        c.appendChild(el('p', '⏳ Tsy mbola voamarin\'ny hotely', 'recu-attente'));
+        if (r.fandoavana !== 'vola' && r.laharana) {
+          c.appendChild(el('p', 'Alefaso ny ' + ariary(r.total) + ' amin\'ny ' + NOM_FOMBA[r.fandoavana] + ' : ' + r.laharana +
+            (r.tompony ? ' (' + r.tompony + ')' : '') + (r.ref ? '' : ', dia lazao ny réf amin\'ny mpandroso sakafo.'), 'vide'));
+        } else if (r.fandoavana === 'vola') {
+          c.appendChild(el('p', 'Aloavy amin\'ny mpandroso sakafo ny vola.', 'vide'));
+        }
+      }
+      c.appendChild(el('small', 'N° ' + String(r.id).slice(0, 8).toUpperCase(), 'recu-num'));
+      z.appendChild(c);
+    });
+  }
+  // L'hôtel coche « voaloa » : on le demande pour les reçus qui attendent.
+  function recusSata() {
+    const l = recusLire();
+    const ids = l.filter(function (r) { return !r.voaloa; }).map(function (r) { return r.id; });
+    if (!ids.length) return;
+    fetch(URL_SB + '/rest/v1/rpc/hotelerie_commande_sata', {
+      method: 'POST',
+      headers: { apikey: CLE_SB, Authorization: 'Bearer ' + CLE_SB, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: ids }), cache: 'no-store'
+    }).then(function (r) { return r.ok ? r.json() : []; }).then(function (rangs) {
+      let change = false;
+      (rangs || []).forEach(function (s) {
+        const r = l.find(function (x) { return x.id === s.id; });
+        if (r && s.voaloa && !r.voaloa) { r.voaloa = true; change = true; }
+      });
+      if (change) recusEcrire(l);
+    }).catch(function () { });
+  }
+
   function charger() {
+    recusSata();
     fetch(URL_SB + '/rest/v1/hotelerie_menu?select=plats,latabatra,tete&user_id=eq.' + encodeURIComponent(id),
       { headers: { apikey: CLE_SB, Authorization: 'Bearer ' + CLE_SB }, cache: 'no-store' })
       .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
@@ -442,7 +536,9 @@
   let nomHotel = 'Ny asako Hôtellerie';
   function poserTete(t) {
     t = t && typeof t === 'object' ? t : {};
+    const nomAvant = nomHotel;
     nomHotel = String(t.anarana || '').trim().slice(0, 60) || 'Ny asako Hôtellerie';
+    if (nomHotel !== nomAvant) dessinerRecus();
     const v = t.vola && typeof t.vola === 'object' ? t.vola : {};
     const avant = JSON.stringify(vola);
     vola = {};
@@ -507,6 +603,7 @@
   })();
 
   if (enLigne) {
+    dessinerRecus();
     charger();
     // Le client garde la page ouverte : elle suit les changements d'elle-même.
     setInterval(function () { if (!document.hidden) charger(); }, 30000);

@@ -66,3 +66,18 @@ grant select, update, delete on public.hotelerie_commande to authenticated;
 
 -- ---------- Vérification ----------
 select count(*) as regles from pg_policies where tablename = 'hotelerie_commande';
+
+-- ---------- Le reçu du client ----------
+-- Le client ne lit pas la table (la lecture est à l'hôtel seul). Pour que son
+-- reçu dise « 💰 Voaloa » une fois que l'hôtel l'a coché, il demande l'état de
+-- SES commandes, par leur identifiant — qu'il a tiré lui-même à l'envoi et
+-- que personne d'autre ne connaît. Rien d'autre ne sort : ni plats, ni table.
+create or replace function public.hotelerie_commande_sata(ids uuid[])
+returns table (id uuid, vita boolean, voaloa boolean)
+language sql stable security definer set search_path = public
+as $$
+  select c.id, c.vita, c.voaloa from public.hotelerie_commande c
+  where c.id = any (ids[1:30]);
+$$;
+revoke all on function public.hotelerie_commande_sata(uuid[]) from public;
+grant execute on function public.hotelerie_commande_sata(uuid[]) to anon, authenticated;

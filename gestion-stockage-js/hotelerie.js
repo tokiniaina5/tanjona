@@ -473,8 +473,18 @@
     const v = teteLire().vola;
     return v && typeof v === 'object' ? v : {};
   }
+  // Les numéros se règlent une fois : rangés derrière « ⚙️ », ils laissent la
+  // place aux commandes et à leurs reçus.
+  let voirVola = false;
   function blocVola() {
     const v = volaLire();
+    if (!voirVola) {
+      const mis = FOMBA.filter(function (f) { return v[f[0]]; }).map(function (f) { return f[1]; });
+      return '<div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap; margin-top:0.8rem; font-size:0.78rem; color:var(--muted);">' +
+        '<button type="button" class="btn btn-sm" id="volaToggle" style="width:auto;" title="Laharana fandoavana">⚙️ Fandoavana</button>' +
+        '<span>' + (mis.length ? '💳 ' + html(mis.join(', ')) + ' · 💵 Vola an-tanana' : '💵 Vola an-tanana ihany (tsy misy laharana mobile money)') + '</span>' +
+      '</div>';
+    }
     // Ce qu'on est en train d'écrire survit au redessin (une commande qui arrive).
     const ecrit = function (k) {
       const c = document.getElementById('vola_' + k);
@@ -491,8 +501,48 @@
         '<div class="field" style="margin-bottom:0;"><label for="vola_tompony">Anaran\'ny tompon\'ny laharana</label>' +
           '<input id="vola_tompony" type="text" maxlength="60" placeholder="Ex: Rakoto Jean" value="' + html(ecrit('tompony')) + '"></div>' +
       '</div>' +
-      '<button type="button" class="btn btn-sm" id="volaTehirizo" style="width:auto; margin-top:0.6rem;">💾 Tehirizo</button>' +
+      '<div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.6rem;">' +
+        '<button type="button" class="btn btn-sm" id="volaTehirizo" style="width:auto;">💾 Tehirizo</button>' +
+        '<button type="button" class="btn btn-sm" id="volaToggle" style="width:auto;">Hidio</button>' +
+      '</div>' +
     '</div>';
+  }
+
+  // Le reçu d'une commande, dans une page à part qu'on imprime (ou qu'on
+  // enregistre en PDF) : l'hôtel, la table, l'heure, les plats, le total, le
+  // paiement et son état.
+  function ouvrirRecu(c) {
+    const t = teteLire();
+    const logo = new URL(t.sary || LOGO_DEFAUT, location.href).href;
+    const lignes = (c.plats || []).map(function (p) {
+      return '<tr><td>' + (Number(p.isa) || 0) + ' × ' + html(p.anarana) + '</td><td class="d">' +
+        ariary((Number(p.isa) || 0) * (Number(p.vidiny) || 0)) + '</td></tr>';
+    }).join('');
+    const page = '<!doctype html><html lang="mg"><head><meta charset="utf-8">' +
+      '<meta name="viewport" content="width=device-width, initial-scale=1">' +
+      '<title>Reçu T' + c.latabatra + '</title><style>' +
+      'body{font:15px/1.45 system-ui,sans-serif;color:#111;background:#fff;margin:0;padding:16px;}' +
+      '.r{max-width:360px;margin:0 auto;border:1px dashed #999;padding:16px;}' +
+      '.h{display:flex;align-items:center;gap:10px;}.h img{width:44px;height:44px;object-fit:cover;border-radius:8px;}' +
+      'h1{font-size:1.1rem;margin:0;}small{color:#555;}table{width:100%;border-collapse:collapse;margin:12px 0;}' +
+      'td{padding:4px 0;border-bottom:1px solid #eee;vertical-align:top;}.d{text-align:right;white-space:nowrap;}' +
+      '.t{font-weight:700;font-size:1.05rem;}.ok{color:#0a7d4f;font-weight:700;}.no{color:#b26a00;font-weight:700;}' +
+      'button{margin:14px auto 0;display:block;font:inherit;padding:8px 16px;cursor:pointer;}' +
+      '@media print{button{display:none;}.r{border:0;}}' +
+      '</style></head><body><div class="r">' +
+      '<div class="h"><img src="' + html(logo) + '" alt=""><div><h1>' + html(nomHotel()) + '</h1>' +
+        '<small>🧾 Reçu · T' + c.latabatra + ' · ' + html(heure(c.created_at)) + '</small></div></div>' +
+      '<table>' + lignes + '<tr><td class="t">Total</td><td class="d t">' + ariary(totalDe(c)) + '</td></tr></table>' +
+      '<div>' + html(NOM_FOMBA[c.fandoavana] || '💳 Tsy voalaza ny fandoavana') +
+        (c.fandoavana_ref ? '<br>Réf : <strong>' + html(c.fandoavana_ref) + '</strong>' : '') + '</div>' +
+      '<p class="' + (c.voaloa ? 'ok">💰 Voaloa' : 'no">⏳ Tsy mbola voaloa') + '</p>' +
+      (c.fanamarihana ? '<p><small>📝 ' + html(c.fanamarihana) + '</small></p>' : '') +
+      '<p><small>N° ' + html(String(c.id).slice(0, 8).toUpperCase()) + ' · Misaotra !</small></p>' +
+      '</div><button type="button" onclick="print()">🖨️ Printy</button></body></html>';
+    const url = URL.createObjectURL(new Blob([page], { type: 'text/html' }));
+    const w = window.open(url, '_blank');
+    if (!w) alert("Tsy nisokatra ny reçu : avelao hisokatra ny fenêtre (pop-up) amin'ity site ity.");
+    setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
   }
 
   function dessinerCommandes() {
@@ -565,6 +615,7 @@
                 '<div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-top:0.5rem;">' +
                   '<strong style="font-size:0.88rem;">Total : ' + ariary(totalDe(c)) + '</strong>' +
                   '<div style="display:flex; gap:0.35rem; flex-wrap:wrap;">' +
+                    '<button type="button" class="btn btn-sm" data-commande="recu" data-id="' + c.id + '" style="width:auto;" title="Reçu">🧾 Reçu</button>' +
                     '<button type="button" class="btn btn-sm" data-commande="voaloa" data-id="' + c.id + '" style="width:auto;">' + (c.voaloa ? '↩️ Tsy voaloa' : '💰 Voaloa') + '</button>' +
                     '<button type="button" class="btn btn-sm" data-commande="vita" data-id="' + c.id + '" style="width:auto;">' + (c.vita ? '↩️ Tsy vita' : '✅ Vita') + '</button>' +
                     '<button type="button" class="btn btn-sm btn-red" data-commande="esory" data-id="' + c.id + '" style="width:auto;">Esorina</button>' +
@@ -577,7 +628,8 @@
       '</div>';
 
     zone.querySelector('#commandesVita').addEventListener('click', function () { voirVita = !voirVita; dessinerCommandes(); });
-    zone.querySelector('#volaTehirizo').addEventListener('click', function (e) {
+    zone.querySelector('#volaToggle').addEventListener('click', function () { voirVola = !voirVola; dessinerCommandes(); });
+    if (zone.querySelector('#volaTehirizo')) zone.querySelector('#volaTehirizo').addEventListener('click', function (e) {
       const vola = {};
       let mauvais = '';
       FOMBA.concat([['tompony']]).forEach(function (f) {
@@ -589,9 +641,8 @@
       const t = teteLire();
       t.vola = vola;
       teteEcrire(t);
-      const b = e.target;
-      b.textContent = '✅ Voatahiry';
-      setTimeout(function () { b.textContent = '💾 Tehirizo'; }, 1600);
+      voirVola = false;
+      dessinerCommandes();
     });
     zone.querySelector('#commandesHavaozina').addEventListener('click', function () { chargerCommandes(true); });
     zone.querySelector('#latabatraTehirizo').addEventListener('click', function () {
@@ -656,6 +707,7 @@
       if (!b) return;
       const c = commandes.find(function (x) { return x.id === b.dataset.id; });
       if (!c) return;
+      if (b.dataset.commande === 'recu') { ouvrirRecu(c); return; }
       if (b.dataset.commande === 'esory' && !confirm('Esorina ve ity commande ity (T' + c.latabatra + ') ?')) return;
       b.disabled = true;
       const req = b.dataset.commande === 'vita'
