@@ -398,12 +398,15 @@
           ' — ' + ariary(total) + ' — ' + nomHotel + ' T' + (tableFixe || latabatraChoisie || '');
         // En UTF-8 : sans cela « — » et les accents sortent en charabia.
         if (window.qrcode.stringToBytesFuncs) window.qrcode.stringToBytes = window.qrcode.stringToBytesFuncs['UTF-8'];
-        const qr = window.qrcode(0, 'M');
+        // « H » : le logo au milieu en cache une part, il se lit quand même.
+        const qr = window.qrcode(0, 'H');
         qr.addData(texte, 'Byte');
         qr.make();
         boite.replaceChildren();
         const img = el('div', null, 'qr-image');
         img.innerHTML = qr.createSvgTag({ cellSize: 6, margin: 2, scalable: true });
+        const logo = document.querySelector('#teteLogo img');
+        if (logo) { const i = document.createElement('img'); i.src = logo.src; i.alt = ''; img.appendChild(i); }
         boite.appendChild(img);
         boite.appendChild(sansTraduction(el('p', NOM_FOMBA[fomba] + ' · ' + vola[fomba], 'qr-nom qr-nom-petit')));
         boite.appendChild(el('p', ariary(total) + (vola.tompony ? ' · ' + vola.tompony : ''), 'vide'));
