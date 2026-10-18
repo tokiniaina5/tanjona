@@ -46,7 +46,8 @@
   *{ box-sizing:border-box; }
   body{ margin:0; background:var(--bg); color:var(--text); font:16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
   main{ max-width:640px; margin:0 auto; padding:24px 16px 48px; }
-  h1{ font-size:1.5rem; margin:0; }
+  h1{ font-size:1.5rem; margin:0; display:flex; align-items:center; gap:0.5rem; }
+  h1 img{ width:2.6rem; height:2.6rem; object-fit:cover; border-radius:10px; border:1px solid var(--line); }
   .sous{ color:var(--muted); margin:0.2rem 0 1.4rem; }
   h2{ font-size:1rem; margin:1.4rem 0 0.6rem; }
   .plat{ display:flex; gap:0.8rem; justify-content:space-between; align-items:flex-start; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:0.7rem 0.9rem; margin-bottom:0.5rem; }
@@ -72,7 +73,7 @@
 </head>
 <body>
 <main>
-  <h1>🏨 Hasina Hôtellerie</h1>
+  <h1 id="tete"><span id="teteLogo">🏨</span> <span id="teteNom">Hasina Hôtellerie</span></h1>
   <p class="sous">🍽️ Menu sakafo</p>
   <div class="installer" id="installer">
     <p id="installerTexte">Apetraho eo amin'ny écran ny menu, hisokatra avy hatrany.</p>
@@ -194,7 +195,7 @@
     plats.forEach(function (p) { prixDuMenu[String(p[0] || '')] = Number(p[2]) || 0; });
     Object.keys(panier).forEach(function (k) { if (!(k in prixDuMenu)) delete panier[k]; });
 
-    const lignes = ['🏨 Hasina Hôtellerie — 🍽️ Menu sakafo'];
+    const lignes = ['🏨 ' + nomHotel + ' — 🍽️ Menu sakafo'];
     let courant = null;
     plats.forEach(function (p) {
       const anarana = String(p[0] || ''), sokajy = String(p[1] || ''), famaritana = String(p[3] || '');
@@ -354,7 +355,7 @@
   }
 
   function charger() {
-    fetch(URL_SB + '/rest/v1/hotelerie_menu?select=plats,latabatra&user_id=eq.' + encodeURIComponent(id),
+    fetch(URL_SB + '/rest/v1/hotelerie_menu?select=plats,latabatra,tete&user_id=eq.' + encodeURIComponent(id),
       { headers: { apikey: CLE_SB, Authorization: 'Bearer ' + CLE_SB }, cache: 'no-store' })
       .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
       .then(function (rangs) {
@@ -370,7 +371,26 @@
         else boite.replaceChildren(el('p', 'Tsy azo ny menu : jereo ny connexion, dia avereno.', 'vide'));
       });
   }
+  // La tête que l'hôtel a choisie : son nom, son logo. Rien de choisi,
+  // « 🏨 Hasina Hôtellerie ».
+  let nomHotel = 'Hasina Hôtellerie';
+  function poserTete(t) {
+    t = t && typeof t === 'object' ? t : {};
+    nomHotel = String(t.anarana || '').trim().slice(0, 60) || 'Hasina Hôtellerie';
+    document.getElementById('teteNom').textContent = nomHotel;
+    const logo = document.getElementById('teteLogo');
+    const sary = saryValide(t.sary);
+    const deja = logo.querySelector('img');
+    if (sary) {
+      if (!deja || deja.getAttribute('src') !== sary) {
+        const img = document.createElement('img');
+        img.src = sary; img.alt = '';
+        logo.replaceChildren(img);
+      }
+    } else if (deja || logo.textContent !== '🏨') logo.textContent = '🏨';
+  }
   function recevoir(rang) {
+    poserTete(rang && rang.tete);
     if (rang && rang.latabatra) nbLatabatra = rang.latabatra;
     if (latabatraChoisie > nbLatabatra) latabatraChoisie = 0;
     afficher(depuisLaBase(rang && rang.plats));

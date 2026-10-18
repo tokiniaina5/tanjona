@@ -55,6 +55,24 @@
     try { localStorage.setItem(CLE_FAFANA, JSON.stringify(l)); } catch (e) { }
   }
 
+  // La tête du menu : le nom de l'hôtel et son logo, que le propriétaire
+  // change ici (« ✏️ Ovay », « 🖼️ Sary »). { anarana, sary, maj } : comme un
+  // plat, la copie la plus récemment changée l'emporte d'un appareil à l'autre.
+  const CLE_TETE = CLE + '_tete';
+  const NOM_DEFAUT = 'Hasina Hôtellerie';
+  function teteLire() {
+    try {
+      const v = JSON.parse(localStorage.getItem(CLE_TETE));
+      return v && typeof v === 'object' ? v : {};
+    } catch (e) { return {}; }
+  }
+  function teteEcrire(t) {
+    t.maj = Date.now();
+    try { localStorage.setItem(CLE_TETE, JSON.stringify(t)); } catch (e) { }
+    synchroniser();
+  }
+  function nomHotel() { return (teteLire().anarana || '').trim() || NOM_DEFAUT; }
+
   // ---------- En ligne ----------
   let compte = null;   // l'id du compte connecté, une fois connu
   let etatEnLigne = ''; // ce que dit la page sous les boutons du lien
@@ -152,7 +170,7 @@
     enCoursSync = idDuCompte().then(function (uid) {
       if (!uid) return;
       direEnLigne('⏳ Alefa any amin\'ny rohy...');
-      return sb().from('hotelerie_menu').select('plats,voafafa').eq('user_id', uid).maybeSingle()
+      return sb().from('hotelerie_menu').select('plats,voafafa,tete').eq('user_id', uid).maybeSingle()
         .then(function (res) {
           if (res.error) throw new Error(res.error.message);
           const ici = lire();
@@ -160,20 +178,26 @@
           const fafanaLa = res.data && Array.isArray(res.data.voafafa) ? res.data.voafafa : [];
           const fafana = fafanaLire().concat(fafanaLa.filter(function (x) { return fafanaLire().indexOf(x) < 0; }));
           const fondu = fondre(ici, enLigne, fafana);
+          const teteIci = teteLire();
+          const teteLa = res.data && res.data.tete && typeof res.data.tete === 'object' ? res.data.tete : {};
+          const tete = (Number(teteLa.maj) || 0) > (Number(teteIci.maj) || 0) ? teteLa : teteIci;
+          const teteChange = JSON.stringify(tete) !== JSON.stringify(teteIci);
           try {
             localStorage.setItem(CLE, JSON.stringify(fondu));
             localStorage.setItem(CLE_FAFANA, JSON.stringify(fafana));
+            localStorage.setItem(CLE_TETE, JSON.stringify(tete));
           } catch (e) { }
-          if (!memes(fondu, ici)) redessinerSiLibre();
+          if (!memes(fondu, ici) || teteChange) redessinerSiLibre();
           // Rien ici, rien en ligne : pas de ligne vide pour chaque compte
           // qui ouvre simplement l'application.
-          if (!res.data && !fondu.length && !fafana.length) { direEnLigne(''); return; }
-          if (res.data && memes(fondu, enLigne) && memes(fafana, fafanaLa)) {
+          if (!res.data && !fondu.length && !fafana.length && !tete.maj) { direEnLigne(''); return; }
+          if (res.data && memes(fondu, enLigne) && memes(fafana, fafanaLa) &&
+              JSON.stringify(tete) === JSON.stringify(teteLa)) {
             direEnLigne('✅ Efa miova ho azy ny rohy.');
             return;
           }
           return sb().from('hotelerie_menu')
-            .upsert({ user_id: uid, plats: fondu, voafafa: fafana, updated_at: new Date().toISOString() })
+            .upsert({ user_id: uid, plats: fondu, voafafa: fafana, tete: tete.maj ? tete : null, updated_at: new Date().toISOString() })
             .then(function (r) {
               if (r.error) throw new Error(r.error.message);
               direEnLigne('✅ Efa miova ho azy ny rohy.');
@@ -192,6 +216,7 @@
   function redessinerSiLibre() {
     const nom = document.getElementById('sakafoAnarana');
     const prix = document.getElementById('sakafoVidiny');
+    if (ovayAnarana) return;
     if (onglet === 'menu' && (enCours || (nom && nom.value) || (prix && prix.value))) return;
     if (onglet === 'menu') rendre();
   }
@@ -209,6 +234,7 @@
 
   let recherche = '';
   let enCours = null; // l'id du plat qu'on modifie, ou null pour un nouveau
+  let ovayAnarana = false; // le nom de l'hôtel est en train d'être changé
   let onglet = 'menu'; // 'menu' ou 'commandes'
 
   // ---------- Les commandes des clients ----------
@@ -271,6 +297,65 @@
         rendre();
         if (onglet === 'commandes') chargerCommandes();
       });
+    });
+    brancherTete(z);
+  }
+  // La tête : « ✏️ Ovay » change le nom, le logo (ou « 🖼️ Sary ») ouvre le
+  // dossier pour une image, « ✕ Sary » rend le 🏨.
+  function brancherTete(z) {
+    function sur(id, f) { const b = z.querySelector('#' + id); if (b) b.addEventListener('click', f); }
+    sur('hotelAnaranaOvay', function () {
+      ovayAnarana = true;
+      rendre();
+      const c = z.querySelector('#hotelAnarana');
+      if (c) { c.focus(); c.select(); }
+    });
+    sur('hotelAnaranaAtsahatra', function () { ovayAnarana = false; rendre(); });
+    function tehirizo() {
+      const v = (z.querySelector('#hotelAnarana').value || '').trim().slice(0, 60);
+      const t = teteLire();
+      t.anarana = v && v !== NOM_DEFAUT ? v : '';
+      ovayAnarana = false;
+      teteEcrire(t);
+      rendre();
+    }
+    sur('hotelAnaranaTehirizo', tehirizo);
+    const champ = z.querySelector('#hotelAnarana');
+    if (champ) champ.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') tehirizo();
+      else if (e.key === 'Escape') { ovayAnarana = false; rendre(); }
+    });
+    function changerLogo() {
+      const bouton = z.querySelector('#hotelLogoOvay');
+      const f = document.createElement('input');
+      f.type = 'file';
+      f.accept = 'image/*';
+      f.addEventListener('change', function () {
+        const fichier = f.files && f.files[0];
+        if (!fichier) return;
+        if (bouton) { bouton.disabled = true; bouton.textContent = '⏳ Alefa...'; }
+        envoyerSary('logo', fichier).then(function (adresse) {
+          const t = teteLire();
+          if (t.sary && t.sary !== adresse) effacerSary(t.sary);
+          t.sary = adresse;
+          teteEcrire(t);
+          rendre();
+        }).catch(function (e) {
+          rendre();
+          alert('Tsy tafiditra ny sary' + (e && e.message ? ' : ' + e.message : '.'));
+        });
+      });
+      f.click();
+    }
+    sur('hotelLogo', changerLogo);
+    sur('hotelLogoOvay', changerLogo);
+    sur('hotelLogoEsory', function () {
+      if (!confirm('Esorina ve ny sary, hiverina amin\'ny 🏨 ?')) return;
+      const t = teteLire();
+      effacerSary(t.sary);
+      delete t.sary;
+      teteEcrire(t);
+      rendre();
     });
   }
   function heure(iso) {
@@ -565,8 +650,25 @@
     const plat = enCours ? plats.find(function (p) { return p.id === enCours; }) : null;
     if (enCours && !plat) enCours = null;
 
+    const t = teteLire();
+    const logo = t.sary
+      ? '<img src="' + html(t.sary) + '" alt="" style="width:2.2rem; height:2.2rem; object-fit:cover; border-radius:8px; vertical-align:middle; border:1px solid var(--line);">'
+      : '🏨';
     const tete =
-      '<div class="section-head"><div><h2>🏨 Hasina Hôtellerie</h2>' +
+      '<div class="section-head"><div style="min-width:0; flex:1 1 auto;">' +
+        (ovayAnarana
+          ? '<div style="display:flex; gap:0.4rem; flex-wrap:wrap; align-items:center; margin-bottom:0.4rem;">' +
+              '<input id="hotelAnarana" type="text" maxlength="60" value="' + html(nomHotel()) + '" aria-label="Anaran\'ny hotely" style="flex:1 1 200px; ' + CHAMP + '">' +
+              '<button type="button" class="btn btn-sm btn-primary" id="hotelAnaranaTehirizo" style="width:auto;">💾 Tehirizo</button>' +
+              '<button type="button" class="btn btn-sm" id="hotelAnaranaAtsahatra" style="width:auto;">Atsahatra</button>' +
+            '</div>'
+          : '<h2 style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">' +
+              '<button type="button" id="hotelLogo" title="Ovay ny sary" aria-label="Ovay ny sary" style="background:none; border:0; padding:0; cursor:pointer; font:inherit; line-height:1;">' + logo + '</button>' +
+              '<span>' + html(nomHotel()) + '</span>' +
+              '<button type="button" class="btn btn-sm" id="hotelAnaranaOvay" style="width:auto; font-size:0.75rem;">✏️ Ovay</button>' +
+              '<button type="button" class="btn btn-sm" id="hotelLogoOvay" style="width:auto; font-size:0.75rem;">🖼️ Sary</button>' +
+              (t.sary ? '<button type="button" class="btn btn-sm" id="hotelLogoEsory" title="Esory ny sary" style="width:auto; font-size:0.75rem;">✕ Sary</button>' : '') +
+            '</h2>') +
         '<p>Ny menu sakafo an\'ny hotely sy ny commande an\'ny mpanjifa isaky ny latabatra.</p></div></div>' +
       '<div class="dash-tabs" style="margin-bottom:1rem; display:flex; gap:0.4rem; flex-wrap:wrap;">' +
         '<button type="button" class="dash-tab' + (onglet === 'menu' ? ' active' : '') + '" data-onglet="menu" style="width:auto;">🍽️ Menu sakafo</button>' +
@@ -759,7 +861,7 @@
   function texteDuMenu(plats) {
     const visibles = platsVisibles(plats);
     if (!visibles.length) return '';
-    const lignes = ['🏨 Hasina Hôtellerie — 🍽️ Menu sakafo'];
+    const lignes = ['🏨 ' + nomHotel() + ' — 🍽️ Menu sakafo'];
     let courant = null;
     visibles.forEach(function (p) {
       if (p.sokajy !== courant) { courant = p.sokajy; lignes.push('', nomSokajy(courant)); }
