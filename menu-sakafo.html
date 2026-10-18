@@ -15,6 +15,21 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Menu sakafo">
+<!-- Le lien d'une latabatra (« ?id=…&latabatra=3 ») fait de la page
+     l'application de cette table : un manifeste à elle (servi par
+     netlify/edge-functions/menu-manifeste.js), son nom partout. Installée,
+     « Table 3 » se pose à côté de « Table 4 » au lieu de la remplacer. -->
+<script>
+(function () {
+  const p = new URLSearchParams(location.search);
+  const id = p.get('id') || '', n = Number(p.get('latabatra'));
+  if (!/^[0-9a-f-]{36}$/i.test(id) || !Number.isInteger(n) || n < 1 || n > 500) return;
+  document.querySelector('link[rel="manifest"]').href =
+    '/menu-sakafo.webmanifest?id=' + encodeURIComponent(id) + '&latabatra=' + n;
+  document.querySelector('meta[name="apple-mobile-web-app-title"]').content = 'Table ' + n;
+  document.title = 'Table ' + n + ' · Menu sakafo';
+})();
+</script>
 <!-- Le menu de Hasina Hôtellerie, que le lien désigne : la page de
      l'hôtel (gestion-stockage-js/hotelerie.js) l'écrit dans la table
      hotelerie_menu, que « ?id=<compte> » lit ; un ancien lien « #m=… » porte
@@ -109,6 +124,15 @@
   let nbLatabatra = 10;
   let latabatraChoisie = Number(params.get('latabatra')) || Number(memoLire('latabatra')) ||
     Number(params.get('id') ? 0 : retenuLire('latabatra')) || 0;
+  // Le lien d'une latabatra (son application) : la table est celle-là, on ne
+  // la choisit plus.
+  const tableFixe = enLigne && params.get('id') && Number.isInteger(Number(params.get('latabatra'))) &&
+    Number(params.get('latabatra')) > 0 ? Number(params.get('latabatra')) : 0;
+  if (tableFixe) {
+    document.querySelector('.sous').textContent = '🍽️ Menu sakafo · Table ' + tableFixe;
+    document.getElementById('installerTexte').textContent =
+      "Apetraho eo amin'ny écran ny menu an'ny Table " + tableFixe + ', hisokatra avy hatrany.';
+  }
 
   function depuisLeLien() {
     try {
@@ -153,7 +177,7 @@
     boite.innerHTML = '';
     if (!plats.length) {
       boite.appendChild(el('p', tous.length
-        ? "Tsy misy sakafo ho an'ity latabatra ity. Safidio ny latabatra misy anao."
+        ? "Tsy misy sakafo ho an'ity latabatra ity." + (tableFixe ? '' : ' Safidio ny latabatra misy anao.')
         : "Tsy misy menu ato amin'ity rohy ity.", 'vide'));
       // Le choix de la table reste là : c'est par lui que le menu revient.
       if (enLigne && tous.length) { boite.appendChild(boiteCommande()); majCommande(); }
@@ -230,7 +254,28 @@
   }
   function boiteCommande() {
     const z = el('div', null, 'commande');
-    z.appendChild(el('h3', '🛎️ Commande'));
+    // L'application d'une table l'écrit, sans menu déroulant — sauf si
+    // l'hôtel a depuis réduit son nombre de latabatra : on redonne le choix.
+    if (tableFixe && latabatraChoisie === tableFixe) {
+      z.appendChild(el('h3', '🛎️ Commande · Table ' + tableFixe));
+    } else {
+      z.appendChild(el('h3', '🛎️ Commande'));
+      z.appendChild(choixLatabatra());
+    }
+    const note = document.createElement('input');
+    note.type = 'text'; note.id = 'fanamarihana'; note.maxLength = 300;
+    note.placeholder = 'Fanamarihana (raha misy) : tsy misy sakay...';
+    z.appendChild(note);
+    const resume = el('p', '', 'vide'); resume.id = 'resume'; resume.style.margin = '0 0 0.4rem';
+    z.appendChild(resume);
+    const alefa = el('button', '✅ Alefa ny commande', 'alefa'); alefa.type = 'button'; alefa.id = 'alefa';
+    alefa.addEventListener('click', envoyerCommande);
+    z.appendChild(alefa);
+    const voaray = el('p', '', 'voaray'); voaray.id = 'voaray'; voaray.style.display = 'none';
+    z.appendChild(voaray);
+    return z;
+  }
+  function choixLatabatra() {
     const choix = document.createElement('select');
     choix.id = 'latabatra';
     choix.setAttribute('aria-label', 'Latabatra');
@@ -248,19 +293,7 @@
       afficher(dernierRecu);
       majCommande();
     });
-    z.appendChild(choix);
-    const note = document.createElement('input');
-    note.type = 'text'; note.id = 'fanamarihana'; note.maxLength = 300;
-    note.placeholder = 'Fanamarihana (raha misy) : tsy misy sakay...';
-    z.appendChild(note);
-    const resume = el('p', '', 'vide'); resume.id = 'resume'; resume.style.margin = '0 0 0.4rem';
-    z.appendChild(resume);
-    const alefa = el('button', '✅ Alefa ny commande', 'alefa'); alefa.type = 'button'; alefa.id = 'alefa';
-    alefa.addEventListener('click', envoyerCommande);
-    z.appendChild(alefa);
-    const voaray = el('p', '', 'voaray'); voaray.id = 'voaray'; voaray.style.display = 'none';
-    z.appendChild(voaray);
-    return z;
+    return choix;
   }
   function majCommande() {
     const resume = document.getElementById('resume');

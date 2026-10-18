@@ -349,7 +349,7 @@
             '<select id="latabatraRohy">' + options + '</select></div>' +
           '<button type="button" class="btn btn-sm" id="latabatraAdikao" style="width:auto;">🔗 Adikao</button>' +
         '</div>' +
-        '<p style="font-size:0.75rem; color:var(--muted); margin:0.5rem 0 0;">Ny rohy isaky ny latabatra dia efa misafidy ny latabatra ho an\'ny mpanjifa (azo atao QR eo ambony latabatra).</p>' +
+        '<p style="font-size:0.75rem; color:var(--muted); margin:0.5rem 0 0;">Ny rohy isaky ny latabatra dia efa misafidy ny latabatra ho an\'ny mpanjifa (azo atao QR eo ambony latabatra). Sokafy amin\'ny téléphone na tablette eo amin\'ilay latabatra, dia « 📲 Installer » : lasa appli « Table N » manokana izy.</p>' +
       '</div>' +
       blocLatabatra(enAttente) +
       '<div class="panel" style="margin-top:1rem;">' +
