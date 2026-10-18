@@ -565,11 +565,13 @@
     const t = teteLire();
     const logo = new URL(t.sary || LOGO_DEFAUT, location.href).href;
     const cartes = tables.map(function (n) {
-      const qr = window.qrcode(0, 'M');
+      // Correction « H » : le logo posé au milieu en cache une part, le QR
+      // se lit quand même.
+      const qr = window.qrcode(0, 'H');
       qr.addData(rohyLatabatra(uid, n));
       qr.make();
       return '<div class="c"><div class="h"><img src="' + html(logo) + '" alt=""><strong>' + html(nomHotel()) + '</strong></div>' +
-        '<div class="q">' + qr.createSvgTag({ cellSize: 6, margin: 2, scalable: true }) + '</div>' +
+        '<div class="q">' + qr.createSvgTag({ cellSize: 6, margin: 2, scalable: true }) + '<img class="l" src="' + html(logo) + '" alt=""></div>' +
         '<div class="n">T' + n + '</div>' +
         '<small>📱 Scannez : menu sakafo &amp; commande</small></div>';
     }).join('');
@@ -580,7 +582,9 @@
       '.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px;}' +
       '.c{border:1px dashed #999;border-radius:12px;padding:14px;text-align:center;break-inside:avoid;page-break-inside:avoid;}' +
       '.h{display:flex;align-items:center;justify-content:center;gap:8px;}.h img{width:32px;height:32px;object-fit:cover;border-radius:6px;}' +
-      '.q svg{width:100%;max-width:220px;height:auto;display:block;margin:10px auto;}' +
+      '.q{position:relative;width:100%;max-width:220px;margin:10px auto;}' +
+      '.q svg{width:100%;height:auto;display:block;}' +
+      '.q .l{position:absolute;left:50%;top:50%;width:22%;height:22%;transform:translate(-50%,-50%);object-fit:cover;background:#fff;border:3px solid #fff;border-radius:8px;box-shadow:0 0 0 1px #ddd;}' +
       '.n{font-size:2rem;font-weight:800;}small{color:#555;}' +
       'button{margin:16px auto 0;display:block;font:inherit;padding:8px 16px;cursor:pointer;}' +
       '@media print{button{display:none;}body{padding:0;}}' +
