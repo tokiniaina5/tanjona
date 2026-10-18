@@ -377,21 +377,10 @@
   function rohyLatabatra(uid, n) {
     return location.origin + '/menu-sakafo.html?id=' + uid + '&latabatra=' + n;
   }
-  // ---------- Les latabatra, et le menu de chacune ----------
-  // Toutes les latabatra en boutons ; celle qu'on ouvre montre son menu
-  // (les plats « misy » qui la concernent), et l'on y prend la commande à la
-  // place du client — un serveur, un client sans téléphone.
+  // ---------- Les latabatra ----------
+  // Toutes les latabatra en boutons ; celle qu'on ouvre ne montre plus que
+  // ses commandes, et donne son QR.
   let tableOuverte = 0;
-  const panierTable = {};   // id du plat → nombre, pour la table ouverte
-  let noteTable = '';
-  function platsDeLaTable(n) {
-    return lire().filter(function (p) {
-      return p.misy && (!Array.isArray(p.tables) || !p.tables.length || p.tables.indexOf(n) >= 0);
-    }).sort(function (a, b) {
-      const o = SOKAJY.map(function (s) { return s[0]; });
-      return (o.indexOf(a.sokajy) - o.indexOf(b.sokajy)) || a.anarana.localeCompare(b.anarana, 'fr');
-    });
-  }
   function blocLatabatra(enAttente) {
     let boutons = '';
     for (let n = 1; n <= nbLatabatra; n++) {
@@ -401,74 +390,18 @@
         (enAttente[n] ? ' <span style="background:#ff6b6b; color:#fff; font-size:0.68rem; font-weight:700; border-radius:999px; padding:0 5px; margin-left:3px;">' + enAttente[n] + '</span>' : '') +
         '</button>';
     }
-    let corps = '';
-    if (tableOuverte) {
-      const plats = platsDeLaTable(tableOuverte);
-      Object.keys(panierTable).forEach(function (k) {
-        if (!plats.some(function (p) { return p.id === k; })) delete panierTable[k];
-      });
-      let courant = null;
-      const total = plats.reduce(function (s, p) { return s + (panierTable[p.id] || 0) * (Number(p.vidiny) || 0); }, 0);
-      const isa = Object.keys(panierTable).reduce(function (s, k) { return s + panierTable[k]; }, 0);
-      corps = '<div style="margin-top:0.9rem; border-top:1px solid var(--line); padding-top:0.8rem;">' +
-        '<div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap; margin:0 0 0.4rem;">' +
-          '<h4 style="margin:0;">📋 Menu — T' + tableOuverte + '</h4>' +
-          '<button type="button" class="btn btn-sm" data-qr="' + tableOuverte + '" style="width:auto;">🔳 QR T' + tableOuverte + '</button>' +
-        '</div>' +
-        (plats.length ? plats.map(function (p) {
-          let titre = '';
-          if (p.sokajy !== courant) { courant = p.sokajy; titre = '<p style="margin:0.6rem 0 0.3rem; font-size:0.82rem; font-weight:700;">' + html(nomSokajy(courant)) + '</p>'; }
-          const n = panierTable[p.id] || 0;
-          return titre + '<div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap; padding:0.45rem 0.6rem; margin-bottom:0.35rem; border:1px solid ' + (n ? 'var(--cyan)' : 'var(--line)') + '; border-radius:8px;">' +
-            '<div style="flex:1 1 140px; min-width:0;"><strong style="font-size:0.86rem;">' + html(p.anarana) + '</strong>' +
-              (p.famaritana ? '<span style="display:block; font-size:0.74rem; color:var(--muted);">' + html(p.famaritana) + '</span>' : '') + '</div>' +
-            '<span style="font-size:0.84rem; color:var(--cyan); font-weight:700; white-space:nowrap;">' + ariary(p.vidiny) + '</span>' +
-            '<div style="display:flex; align-items:center; gap:0.3rem;">' +
-              '<button type="button" class="btn btn-sm" data-panier="-1" data-id="' + p.id + '" style="width:auto; padding:0.1rem 0.6rem;">−</button>' +
-              '<strong style="min-width:1.4rem; text-align:center;">' + n + '</strong>' +
-              '<button type="button" class="btn btn-sm" data-panier="1" data-id="' + p.id + '" style="width:auto; padding:0.1rem 0.6rem;">+</button>' +
-            '</div>' +
-          '</div>';
-        }).join('') : '<p class="empty-hint" style="margin:0;">Tsy misy sakafo « misy » ho an\'ity latabatra ity.</p>') +
-        (plats.length
-          ? '<input id="tableNote" type="text" maxlength="300" placeholder="Fanamarihana (raha misy)" value="' + html(noteTable) + '" style="width:100%; box-sizing:border-box; margin-top:0.5rem; ' + CHAMP + '">' +
-            '<div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-top:0.6rem;">' +
-              '<strong style="font-size:0.9rem;">' + (isa ? isa + ' zavatra · ' + ariary(total) : 'Tsindrio ny « + »') + '</strong>' +
-              '<button type="button" class="btn btn-sm btn-primary" id="tableAjouter" style="width:auto;"' + (isa ? '' : ' disabled') + '>➕ Ampio ny commande</button>' +
-            '</div>'
-          : '') +
-      '</div>';
-    }
     return '<div class="panel" style="margin-top:1rem;">' +
       '<div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap;">' +
         '<h4 style="margin:0;">🍽️ Latabatra</h4>' +
-        (tableOuverte ? '<button type="button" class="btn btn-sm" data-ouvrir="0" style="width:auto;">✕ Hidio ny T' + tableOuverte + '</button>' : '') +
+        (tableOuverte
+          ? '<div style="display:flex; gap:0.4rem; flex-wrap:wrap;">' +
+              '<button type="button" class="btn btn-sm" data-qr="' + tableOuverte + '" style="width:auto;">🔳 QR T' + tableOuverte + '</button>' +
+              '<button type="button" class="btn btn-sm" data-ouvrir="0" style="width:auto;">✕ Hidio ny T' + tableOuverte + '</button>' +
+            '</div>'
+          : '') +
       '</div>' +
       '<div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.6rem;">' + boutons + '</div>' +
-      corps +
     '</div>';
-  }
-  function ajouterCommandeTable(bouton) {
-    const plats = platsDeLaTable(tableOuverte);
-    const lignes = plats.filter(function (p) { return panierTable[p.id]; })
-      .map(function (p) { return { anarana: p.anarana, vidiny: Number(p.vidiny) || 0, isa: panierTable[p.id] }; });
-    if (!lignes.length) return;
-    bouton.disabled = true;
-    bouton.textContent = '⏳ Alefa...';
-    idDuCompte().then(function (uid) {
-      if (!uid) throw new Error('Midira ao amin\'ny kaontinao aloha.');
-      return sb().from('hotelerie_commande').insert({
-        hotel_id: uid, latabatra: tableOuverte, plats: lignes, fanamarihana: noteTable.trim() || null
-      });
-    }).then(function (res) {
-      if (res && res.error) throw new Error(res.error.message);
-      Object.keys(panierTable).forEach(function (k) { delete panierTable[k]; });
-      noteTable = '';
-      chargerCommandes(true);
-    }).catch(function (e) {
-      alert('Tsy lasa ny commande : ' + (e && e.message ? e.message : 'jereo ny connexion.'));
-      dessinerCommandes();
-    });
   }
 
   // ---------- Le paiement ----------
@@ -781,30 +714,16 @@
     // écouteur pour les boutons des commandes.
     if (zone.dataset.branche) return;
     zone.dataset.branche = '1';
-    zone.addEventListener('input', function (e) {
-      if (e.target.id === 'tableNote') noteTable = e.target.value;
-    });
     zone.addEventListener('click', function (e) {
       const ouvrir = e.target.closest('button[data-ouvrir]');
       if (ouvrir) {
         const n = Number(ouvrir.dataset.ouvrir);
         tableOuverte = n === tableOuverte ? 0 : n;
-        Object.keys(panierTable).forEach(function (k) { delete panierTable[k]; });
-        noteTable = '';
-        dessinerCommandes();
-        return;
-      }
-      const pan = e.target.closest('button[data-panier]');
-      if (pan) {
-        const v = Math.max(0, Math.min(50, (panierTable[pan.dataset.id] || 0) + Number(pan.dataset.panier)));
-        if (v) panierTable[pan.dataset.id] = v; else delete panierTable[pan.dataset.id];
         dessinerCommandes();
         return;
       }
       const qr = e.target.closest('button[data-qr]');
       if (qr) { qrPour([Number(qr.dataset.qr)]); return; }
-      const ajout = e.target.closest('#tableAjouter');
-      if (ajout) { ajouterCommandeTable(ajout); return; }
       const b = e.target.closest('button[data-commande]');
       if (!b) return;
       const c = commandes.find(function (x) { return x.id === b.dataset.id; });
