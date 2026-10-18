@@ -1,5 +1,5 @@
 -- ============================================================
--- Les sary du menu sakafo (Hasina Hôtellerie)
+-- Les sary du menu sakafo (Ny asako Hôtellerie)
 --
 -- À COLLER DANS : Supabase > SQL Editor > New query > Run.
 -- À passer APRÈS "supabase-hotelerie-menu.sql".

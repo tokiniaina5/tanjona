@@ -1,4 +1,4 @@
-// Hasina Hôtellerie : le menu sakafo de l'hôtel.
+// Ny asako Hôtellerie : le menu sakafo de l'hôtel.
 //
 // Une page du menu, et dedans le menu sakafo : les plats rangés par sokajy
 // (maraina, atoandro, hariva, zava-pisotro, tsindrin-tsakafo), chacun avec son
@@ -59,7 +59,7 @@
   // change ici (« ✏️ Ovay », « 🖼️ Sary »). { anarana, sary, maj } : comme un
   // plat, la copie la plus récemment changée l'emporte d'un appareil à l'autre.
   const CLE_TETE = CLE + '_tete';
-  const NOM_DEFAUT = 'Hasina Hôtellerie';
+  const NOM_DEFAUT = 'Ny asako Hôtellerie';
   const LOGO_DEFAUT = '/icone-192.png'; // le logo de Ny asako
   function teteLire() {
     try {

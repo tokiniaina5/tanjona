@@ -1,5 +1,5 @@
 -- ============================================================
--- Hasina Hôtellerie : le menu sakafo, en ligne
+-- Ny asako Hôtellerie : le menu sakafo, en ligne
 --
 -- À COLLER DANS : Supabase > SQL Editor > New query > Run. Tel quel :
 -- il n'y a RIEN à remplacer. Se relance sans risque.
@@ -43,6 +43,6 @@ select count(*) as regles from pg_policies where tablename = 'hotelerie_menu';
 -- ---------- La tête du menu ----------
 -- Le nom de l'hôtel et son logo, que le propriétaire change (« ✏️ Ovay »,
 -- « 🖼️ Sary ») : { anarana, sary, maj }. Vide, le menu garde
--- « 🏨 Hasina Hôtellerie ». Le logo vit dans le bucket hotelerie-sary
+-- « 🏨 Ny asako Hôtellerie ». Le logo vit dans le bucket hotelerie-sary
 -- (supabase-hotelerie-sary.sql), comme les photos des plats.
 alter table public.hotelerie_menu add column if not exists tete jsonb;

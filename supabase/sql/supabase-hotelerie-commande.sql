@@ -1,5 +1,5 @@
 -- ============================================================
--- Hasina Hôtellerie : les commandes des clients, par latabatra
+-- Ny asako Hôtellerie : les commandes des clients, par latabatra
 --
 -- À COLLER DANS : Supabase > SQL Editor > New query > Run. Tel quel :
 -- il n'y a RIEN à remplacer. Se relance sans risque. Suppose
