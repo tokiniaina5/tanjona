@@ -413,7 +413,11 @@
     ['orange', 'Orange Money'],
     ['airtel', 'Airtel Money']
   ];
-  const NOM_FOMBA = { vola: '💵 Vola an-tanana', mvola: '📱 MVola', orange: '📱 Orange Money', airtel: '📱 Airtel Money' };
+  const NOM_FOMBA = { vola: '💵 Vola an-tanana', mvola: '📱 MVola', orange: '📱 Orange Money', airtel: '📱 Airtel Money', visa: '💳 Visa' };
+  // La carte : pas de numéro, mais le lien de paiement que l'hôtel a chez son
+  // prestataire (Papi, Stripe, PayPal, sa banque…). Le client l'ouvre et paie ;
+  // l'argent va droit à l'hôtel, qui coche « voaloa » comme pour le reste.
+  const LIEN_VALIDE = /^https:\/\/[^\s"'<>]{4,300}$/i;
   function volaLire() {
     const v = teteLire().vola;
     return v && typeof v === 'object' ? v : {};
@@ -424,7 +428,8 @@
   function blocVola() {
     const v = volaLire();
     if (!voirVola) {
-      const mis = FOMBA.filter(function (f) { return v[f[0]]; }).map(function (f) { return f[1]; });
+      const mis = FOMBA.filter(function (f) { return v[f[0]]; }).map(function (f) { return f[1]; })
+        .concat(v.visa ? ['Visa'] : []);
       return '<div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap; margin-top:0.8rem; font-size:0.78rem; color:var(--muted);">' +
         '<button type="button" class="btn btn-sm" id="volaToggle" style="width:auto;" title="Laharana fandoavana">⚙️ Fandoavana</button>' +
         '<span>' + (mis.length ? '💳 ' + html(mis.join(', ')) + ' · 💵 Vola an-tanana' : '💵 Vola an-tanana ihany (tsy misy laharana mobile money)') + '</span>' +
@@ -446,6 +451,9 @@
         '<div class="field" style="margin-bottom:0;"><label for="vola_tompony">Anaran\'ny tompon\'ny laharana</label>' +
           '<input id="vola_tompony" type="text" maxlength="60" placeholder="Ex: Rakoto Jean" value="' + html(ecrit('tompony')) + '"></div>' +
       '</div>' +
+      '<div class="field" style="margin:0.6rem 0 0;"><label for="vola_visa">💳 Visa — rohy fandoavana carte</label>' +
+        '<input id="vola_visa" type="url" inputmode="url" maxlength="300" placeholder="https://… (Papi, Stripe, PayPal, banky…)" value="' + html(ecrit('visa')) + '"></div>' +
+      '<p style="font-size:0.72rem; color:var(--muted); margin:0.3rem 0 0;">Ny rohy omen\'ny mpanome fandoavana carte anao. Ny mpanjifa manindry « 💳 Visa » dia io no misokatra.</p>' +
       '<div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.6rem;">' +
         '<button type="button" class="btn btn-sm" id="volaTehirizo" style="width:auto;">💾 Tehirizo</button>' +
         '<button type="button" class="btn btn-sm" id="volaToggle" style="width:auto;">Hidio</button>' +
@@ -512,7 +520,8 @@
     // Le paiement sur la carte : les numéros mobile money de l'hôtel, en
     // clair et dans un second QR (le même pour toutes les tables).
     const v = volaLire();
-    const lignesVola = FOMBA.filter(function (f) { return v[f[0]]; }).map(function (f) { return f[1] + ' : ' + v[f[0]]; });
+    const lignesVola = FOMBA.filter(function (f) { return v[f[0]]; }).map(function (f) { return f[1] + ' : ' + v[f[0]]; })
+      .concat(v.visa ? ['Visa : ' + v.visa] : []);
     let blocVolaCarte = '';
     if (lignesVola.length) {
       if (window.qrcode.stringToBytesFuncs) window.qrcode.stringToBytes = window.qrcode.stringToBytesFuncs['UTF-8'];
@@ -665,6 +674,9 @@
         if (v) vola[f[0]] = v.slice(0, 60);
       });
       if (mauvais) { alert('Diso ny laharana ' + mauvais + ' : isa sy espace ihany.'); return; }
+      const visa = (zone.querySelector('#vola_visa').value || '').trim();
+      if (visa && !LIEN_VALIDE.test(visa)) { alert('Diso ny rohy Visa : tsy maintsy manomboka amin\'ny https://'); return; }
+      if (visa) vola.visa = visa;
       const t = teteLire();
       t.vola = vola;
       teteEcrire(t);

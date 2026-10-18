@@ -30,7 +30,7 @@ create table if not exists public.hotelerie_commande (
 -- envoyé, la référence de l'envoi. C'est l'hôtel qui coche « voaloa » : le
 -- client ne peut pas se déclarer payé (la règle d'ajout l'exige faux).
 alter table public.hotelerie_commande add column if not exists fandoavana text
-  check (fandoavana in ('vola', 'mvola', 'orange', 'airtel'));
+  check (fandoavana in ('vola', 'mvola', 'orange', 'airtel', 'visa'));
 alter table public.hotelerie_commande add column if not exists fandoavana_ref text
   check (char_length(fandoavana_ref) <= 60);
 alter table public.hotelerie_commande add column if not exists voaloa boolean not null default false;
@@ -93,7 +93,7 @@ language plpgsql volatile security definer set search_path = public
 as $$
 declare n integer;
 begin
-  if fomba is null or fomba not in ('vola', 'mvola', 'orange', 'airtel') then
+  if fomba is null or fomba not in ('vola', 'mvola', 'orange', 'airtel', 'visa') then
     raise exception 'fomba tsy fantatra';
   end if;
   update public.hotelerie_commande c
@@ -106,3 +106,11 @@ end;
 $$;
 revoke all on function public.hotelerie_commande_handoa(uuid[], text, text) from public;
 grant execute on function public.hotelerie_commande_handoa(uuid[], text, text) to anon, authenticated;
+
+-- ---------- La carte (Visa) ----------
+-- « visa » : le client paie par le lien de paiement par carte que l'hôtel a
+-- donné (tete.vola.visa). Une base déjà installée garde l'ancienne règle :
+-- on la remplace.
+alter table public.hotelerie_commande drop constraint if exists hotelerie_commande_fandoavana_check;
+alter table public.hotelerie_commande add constraint hotelerie_commande_fandoavana_check
+  check (fandoavana in ('vola', 'mvola', 'orange', 'airtel', 'visa'));

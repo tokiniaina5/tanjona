@@ -109,6 +109,8 @@
   .qr-image svg{ width:100%; height:auto; display:block; }
   .qr-image img{ position:absolute; left:50%; top:50%; width:22%; height:22%; transform:translate(-50%,-50%); object-fit:cover; background:#fff; border:3px solid #fff; border-radius:8px; }
   .outils-vola{ margin:0 0 0.5rem; }
+  .lien-visa{ display:block; text-align:center; margin:0.4rem 0 0.5rem; padding:0.6rem 0.8rem; font-size:0.95rem; }
+  #fandoavanaRefVisa{ width:100%; font:inherit; color:var(--text); background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:0.5rem 0.6rem; margin-bottom:0.5rem; }
   .lien-vola{ display:inline-block; padding:0.35rem 0.7rem; font-size:0.85rem; border:1px solid var(--accent); color:var(--accent); border-radius:8px; text-decoration:none; font-weight:700; }
   .qr-vola{ margin:0.5rem 0 0; }
   .qr-nom-petit{ font-size:1.05rem; }
@@ -370,10 +372,11 @@
   // (souvent à la fin), pour tout ce qui reste sur ses reçus. Vola an-tanana,
   // ou mobile money vers les numéros que l'hôtel a écrits (tete.vola) ; il
   // peut donner la réf de son envoi. C'est l'hôtel qui dit « voaloa ».
-  const NOM_FOMBA = { vola: '💵 Vola an-tanana', mvola: 'MVola', orange: 'Orange Money', airtel: 'Airtel Money' };
+  const NOM_FOMBA = { vola: '💵 Vola an-tanana', mvola: 'MVola', orange: 'Orange Money', airtel: 'Airtel Money', visa: 'Visa' };
   let vola = {};
   let fandoavana = 'vola';
   let refFandoavana = '';
+  let refVisa = '';
   // Les noms des opérateurs ne se traduisent pas : un traducteur faisait de
   // « MVola » un « Money ».
   function sansTraduction(e) { e.setAttribute('translate', 'no'); e.classList.add('notranslate'); return e; }
@@ -382,7 +385,7 @@
     const total = attente.reduce(function (s, r) { return s + (Number(r.total) || 0); }, 0);
     z.appendChild(el('h3', '💳 Handoa'));
     z.appendChild(el('p', attente.length + ' commande tsy mbola voaloa. Ny fandoavana dia ' +
-      'vola an-tanana amin\'ny mpandroso sakafo, na mobile money mankany amin\'ny hotely — ' +
+      'vola an-tanana amin\'ny mpandroso sakafo, na mobile money' + (vola.visa ? ', na carte Visa' : '') + ' mankany amin\'ny hotely — ' +
       'ny hotely no manamarina fa voaray ny vola.', 'handoa-intro'));
     const boite = el('div', null, 'handoa-boite');
     const cout = el('div', null, 'handoa-cout');
@@ -437,6 +440,33 @@
       bMobile.addEventListener('click', function () { declarerPaiement(attente, bMobile, fandoavana); });
       boite.appendChild(bMobile);
       boite.appendChild(el('p', "Ianao no mandefa ny vola amin'ny téléphone-nao ; tsy misy laharana tsiambaratelo atao eto.", 'handoa-note'));
+    }
+
+    // Ou par carte (Visa), quand l'hôtel a donné son lien de paiement : la
+    // carte se tape chez son prestataire, jamais ici.
+    if (vola.visa) {
+      const na = el('div', null, 'handoa-na');
+      na.appendChild(el('span'));
+      na.appendChild(document.createTextNode('na'));
+      na.appendChild(el('span'));
+      boite.appendChild(na);
+      boite.appendChild(sansTraduction(el('span', 'Carte Visa', 'handoa-label')));
+      const lien = sansTraduction(el('a', '💳 Handoa ' + ariary(total) + ' amin\'ny carte Visa', 'lien-vola lien-visa'));
+      lien.href = vola.visa;
+      lien.target = '_blank';
+      lien.rel = 'noopener noreferrer';
+      boite.appendChild(lien);
+      const refV = document.createElement('input');
+      refV.type = 'text'; refV.id = 'fandoavanaRefVisa'; refV.maxLength = 60;
+      refV.placeholder = "Réf / laharan'ny fandoavana carte";
+      refV.value = refVisa;
+      refV.addEventListener('input', function () { refVisa = refV.value; });
+      boite.appendChild(refV);
+      const bVisa = sansTraduction(el('button', '💳 Efa nandoa tamin\'ny carte', 'handoa-mobile'));
+      bVisa.type = 'button';
+      bVisa.addEventListener('click', function () { declarerPaiement(attente, bVisa, 'visa'); });
+      boite.appendChild(bVisa);
+      boite.appendChild(el('p', "Misokatra ny pejy fandoavana an'ny hotely ; ao no anoratanao ny carte-nao, tsy eto.", 'handoa-note'));
     }
     z.appendChild(boite);
     z.appendChild(el('p', "Ny reçu-nao dia lasa « 💰 Voaloa » rehefa nohamarinin'ny hotely.", 'handoa-note'));
@@ -504,7 +534,7 @@
   // Le client dit comment il a payé ; l'hôtel le voit à côté de chaque
   // commande, et coche « voaloa » quand l'argent est là.
   function declarerPaiement(attente, b, fomba) {
-    const ref = fomba === 'vola' ? '' : refFandoavana.trim().slice(0, 60);
+    const ref = fomba === 'vola' ? '' : (fomba === 'visa' ? refVisa : refFandoavana).trim().slice(0, 60);
     b.disabled = true;
     b.textContent = '⏳ Alefa...';
     fetch(URL_SB + '/rest/v1/rpc/hotelerie_commande_handoa', {
@@ -519,10 +549,11 @@
         if (ids.indexOf(r.id) < 0 || r.voaloa) return;
         r.fandoavana = fomba;
         r.ref = ref;
-        r.laharana = fomba === 'vola' ? '' : (vola[fomba] || '');
+        r.laharana = (fomba === 'vola' || fomba === 'visa') ? '' : (vola[fomba] || '');
         r.tompony = vola.tompony || '';
       });
       refFandoavana = '';
+      refVisa = '';
       recusEcrire(l);
     }).catch(function () {
       b.disabled = false;
@@ -672,7 +703,7 @@
       tot.appendChild(el('span', ariary(r.total)));
       c.appendChild(tot);
       if (r.fandoavana) {
-        c.appendChild(sansTraduction(el('p', (r.fandoavana === 'vola' ? NOM_FOMBA.vola : '📱 ' + (NOM_FOMBA[r.fandoavana] || '')) +
+        c.appendChild(sansTraduction(el('p', (r.fandoavana === 'vola' ? NOM_FOMBA.vola : (r.fandoavana === 'visa' ? '💳 ' : '📱 ') + (NOM_FOMBA[r.fandoavana] || '')) +
           (r.ref ? ' · Réf : ' + r.ref : ''), 'recu-fomba')));
       }
       if (r.voaloa) {
@@ -793,6 +824,8 @@
       if (/^\+?[0-9 ]{6,20}$/.test(n)) vola[k] = n;
     });
     if (v.tompony) vola.tompony = String(v.tompony).trim().slice(0, 60);
+    const visa = String(v.visa || '').trim();
+    if (/^https:\/\/[^\s"'<>]{4,300}$/i.test(visa)) vola.visa = visa;
     // Les numéros ont changé : le bloc « Handoa » se redessine.
     if (JSON.stringify(vola) !== avant) dessinerRecus();
     document.getElementById('teteNom').textContent = nomHotel;
