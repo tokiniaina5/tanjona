@@ -567,6 +567,20 @@
   function ouvrirQR(w, uid, tables) {
     const t = teteLire();
     const logo = new URL(t.sary || LOGO_DEFAUT, location.href).href;
+    // Le paiement sur la carte : les numéros mobile money de l'hôtel, en
+    // clair et dans un second QR (le même pour toutes les tables).
+    const v = volaLire();
+    const lignesVola = FOMBA.filter(function (f) { return v[f[0]]; }).map(function (f) { return f[1] + ' : ' + v[f[0]]; });
+    let blocVolaCarte = '';
+    if (lignesVola.length) {
+      if (window.qrcode.stringToBytesFuncs) window.qrcode.stringToBytes = window.qrcode.stringToBytesFuncs['UTF-8'];
+      const qv = window.qrcode(0, 'M');
+      qv.addData(nomHotel() + '\n' + lignesVola.join('\n') + (v.tompony ? '\n' + v.tompony : ''), 'Byte');
+      qv.make();
+      blocVolaCarte = '<div class="v"><div class="vq">' + qv.createSvgTag({ cellSize: 4, margin: 1, scalable: true }) + '</div>' +
+        '<div class="vt"><strong>💳 Fandoavana</strong><br>' + lignesVola.map(html).join('<br>') +
+        (v.tompony ? '<br><small>' + html(v.tompony) + '</small>' : '') + '</div></div>';
+    }
     const cartes = tables.map(function (n) {
       // Correction « H » : le logo posé au milieu en cache une part, le QR
       // se lit quand même.
@@ -576,7 +590,7 @@
       return '<div class="c"><div class="h"><img src="' + html(logo) + '" alt=""><strong>' + html(nomHotel()) + '</strong></div>' +
         '<div class="q">' + qr.createSvgTag({ cellSize: 6, margin: 2, scalable: true }) + '<img class="l" src="' + html(logo) + '" alt=""></div>' +
         '<div class="n">T' + n + '</div>' +
-        '<small>📱 Scannez : menu sakafo &amp; commande</small></div>';
+        '<small>📱 Scannez : menu sakafo &amp; commande</small>' + blocVolaCarte + '</div>';
     }).join('');
     const page = '<!doctype html><html lang="mg"><head><meta charset="utf-8">' +
       '<meta name="viewport" content="width=device-width, initial-scale=1">' +
@@ -589,6 +603,8 @@
       '.q svg{width:100%;height:auto;display:block;}' +
       '.q .l{position:absolute;left:50%;top:50%;width:22%;height:22%;transform:translate(-50%,-50%);object-fit:cover;background:#fff;border:3px solid #fff;border-radius:8px;box-shadow:0 0 0 1px #ddd;}' +
       '.n{font-size:2rem;font-weight:800;}small{color:#555;}' +
+      '.v{display:flex;gap:10px;align-items:center;text-align:left;margin-top:12px;padding-top:10px;border-top:1px dashed #bbb;font-size:0.85rem;}' +
+      '.vq{flex:0 0 84px;}.vq svg{width:84px;height:84px;display:block;}' +
       'button{margin:16px auto 0;display:block;font:inherit;padding:8px 16px;cursor:pointer;}' +
       '@media print{button{display:none;}body{padding:0;}}' +
       '</style></head><body><div class="g">' + cartes + '</div>' +
