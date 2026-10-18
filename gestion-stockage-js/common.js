@@ -4263,7 +4263,9 @@
       'section-abonnement',
       'section-fond',
       'section-corbeille',
-      'section-connexions', 'section-admin'
+      'section-connexions', 'section-admin',
+      // Hasina Hôtellerie (hotelerie.js) : une fenêtre qu'on déplace comme les autres.
+      'section-hotelerie'
     ];
     const COINS = [
       { nom: 'hg', x: -1, y: -1 }, { nom: 'hd', x: 1, y: -1 },
