@@ -67,6 +67,56 @@
       return compte;
     }, function () { return null; });
   }
+  // ---------- Les sary ----------
+  // La photo d'un plat, prise dans un dossier de l'appareil, réduite ici
+  // (600 px, JPEG) puis posée dans le bucket hotelerie-sary
+  // (supabase/sql/supabase-hotelerie-sary.sql) : le plat n'en garde que
+  // l'adresse, le menu reste léger à relire. Sans compte en ligne (un employé
+  // ouvert chez le patron), la photo reste dans le plat, plus petite.
+  const BUCKET_SARY = 'hotelerie-sary';
+  function reduireSary(fichier, cote, qualite) {
+    return new Promise(function (ok, ko) {
+      const url = URL.createObjectURL(fichier);
+      const img = new Image();
+      img.onload = function () {
+        URL.revokeObjectURL(url);
+        const r = Math.min(1, cote / Math.max(img.naturalWidth, img.naturalHeight));
+        const c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round(img.naturalWidth * r));
+        c.height = Math.max(1, Math.round(img.naturalHeight * r));
+        const g = c.getContext('2d');
+        g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+        g.drawImage(img, 0, 0, c.width, c.height);
+        c.toBlob(function (b) { b ? ok({ blob: b, canvas: c }) : ko(new Error('toBlob')); }, 'image/jpeg', qualite);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); ko(new Error('Tsy sary io fichier io.')); };
+      img.src = url;
+    });
+  }
+  function cheminSary(adresse) {
+    const m = String(adresse || '').match(new RegExp('/' + BUCKET_SARY + '/(.+)$'));
+    return m ? decodeURIComponent(m[1].split('?')[0]) : null;
+  }
+  function envoyerSary(platId, fichier) {
+    return idDuCompte().then(function (uid) {
+      if (!uid) {
+        return reduireSary(fichier, 240, 0.6).then(function (r) { return r.canvas.toDataURL('image/jpeg', 0.6); });
+      }
+      return reduireSary(fichier, 600, 0.75).then(function (r) {
+        const nom = uid + '/' + platId + '-' + Date.now().toString(36) + '.jpg';
+        return sb().storage.from(BUCKET_SARY).upload(nom, r.blob, { contentType: 'image/jpeg', upsert: true })
+          .then(function (res) {
+            if (res.error) throw new Error(res.error.message);
+            return sb().storage.from(BUCKET_SARY).getPublicUrl(nom).data.publicUrl;
+          });
+      });
+    });
+  }
+  function effacerSary(adresse) {
+    const chemin = cheminSary(adresse);
+    if (chemin && sb()) sb().storage.from(BUCKET_SARY).remove([chemin]).catch(function () { });
+  }
+
   function direEnLigne(t) {
     etatEnLigne = t;
     const p = document.getElementById('sakafoEnLigne');
@@ -648,14 +698,53 @@
         liste[i].misy = !liste[i].misy;
         liste[i].maj = Date.now();
         if (ecrire(liste)) rendre();
+      } else if (b.dataset.action === 'sary') {
+        choisirSary(b, liste[i].id);
+      } else if (b.dataset.action === 'tsysary') {
+        if (!confirm('Esorina ve ny sarin\'i « ' + liste[i].anarana + ' » ?')) return;
+        effacerSary(liste[i].sary);
+        delete liste[i].sary;
+        liste[i].maj = Date.now();
+        if (ecrire(liste)) rendre();
       } else if (b.dataset.action === 'esory') {
         if (!confirm('Esorina ve « ' + liste[i].anarana + ' » ?')) return;
         if (enCours === liste[i].id) enCours = null;
+        effacerSary(liste[i].sary);
         fafanaAjouter(liste[i].id);
         liste.splice(i, 1);
         if (ecrire(liste)) rendre();
       }
     });
+  }
+
+  // Le bouton « 🖼️ Sary » : on ouvre le dossier de l'appareil, on envoie la
+  // photo choisie, et le plat la garde. La liste se relit après l'envoi : un
+  // autre appareil a pu la changer pendant ce temps.
+  function choisirSary(bouton, id) {
+    const champ = document.createElement('input');
+    champ.type = 'file';
+    champ.accept = 'image/*';
+    champ.addEventListener('change', function () {
+      const f = champ.files && champ.files[0];
+      if (!f) return;
+      const texte = bouton.textContent;
+      bouton.disabled = true;
+      bouton.textContent = '⏳ Alefa...';
+      envoyerSary(id, f).then(function (adresse) {
+        const liste = lire();
+        const p = liste.find(function (x) { return x.id === id; });
+        if (!p) { effacerSary(adresse); return; }
+        if (p.sary && p.sary !== adresse) effacerSary(p.sary);
+        p.sary = adresse;
+        p.maj = Date.now();
+        if (ecrire(liste)) rendre();
+      }).catch(function (e) {
+        bouton.disabled = false;
+        bouton.textContent = texte;
+        alert('Tsy tafiditra ny sary' + (e && e.message ? ' : ' + e.message : '.'));
+      });
+    });
+    champ.click();
   }
 
   // Les plats « misy » seulement, dans l'ordre des sokajy : c'est ce que le
@@ -734,6 +823,7 @@
         groupe.map(function (p) {
           return '<div style="display:flex; gap:0.6rem; align-items:flex-start; flex-wrap:wrap; margin-bottom:0.5rem; padding:0.6rem 0.8rem; border-radius:8px; border:1px solid var(--line);' +
               (p.misy ? '' : ' opacity:0.55;') + '">' +
+            (p.sary ? '<img src="' + html(p.sary) + '" alt="" loading="lazy" style="width:56px; height:56px; object-fit:cover; border-radius:8px; border:1px solid var(--line); flex:0 0 auto;">' : '') +
             '<div style="flex:1 1 180px; min-width:0;">' +
               '<strong style="font-size:0.88rem;">' + html(p.anarana) + '</strong>' +
               (p.misy ? '' : ' <span style="font-size:0.7rem; color:#ff6b6b;">· Lany</span>') +
@@ -744,6 +834,8 @@
             '<div style="display:flex; gap:0.35rem; flex-wrap:wrap; flex-basis:100%;">' +
               '<button type="button" class="btn btn-sm" data-action="misy" data-id="' + p.id + '" style="width:auto;">' + (p.misy ? '✅ Misy' : '⛔ Lany') + '</button>' +
               '<button type="button" class="btn btn-sm" data-action="ovay" data-id="' + p.id + '" style="width:auto;">✏️ Ovay</button>' +
+              '<button type="button" class="btn btn-sm" data-action="sary" data-id="' + p.id + '" style="width:auto;">🖼️ ' + (p.sary ? 'Ovay sary' : 'Sary') + '</button>' +
+              (p.sary ? '<button type="button" class="btn btn-sm" data-action="tsysary" data-id="' + p.id + '" style="width:auto;" title="Esory ny sary">✕ Sary</button>' : '') +
               '<button type="button" class="btn btn-sm btn-red" data-action="esory" data-id="' + p.id + '" style="width:auto;">Esorina</button>' +
             '</div>' +
           '</div>';

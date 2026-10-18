@@ -50,6 +50,7 @@
   .sous{ color:var(--muted); margin:0.2rem 0 1.4rem; }
   h2{ font-size:1rem; margin:1.4rem 0 0.6rem; }
   .plat{ display:flex; gap:0.8rem; justify-content:space-between; align-items:flex-start; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:0.7rem 0.9rem; margin-bottom:0.5rem; }
+  .plat .sary{ width:64px; height:64px; object-fit:cover; border-radius:8px; flex:0 0 auto; border:1px solid var(--line); }
   .plat small{ display:block; color:var(--muted); }
   .prix{ font-weight:700; color:var(--accent); white-space:nowrap; }
   button{ font:inherit; cursor:pointer; border:1px solid var(--accent); color:var(--accent); background:transparent; border-radius:8px; padding:0.5rem 0.9rem; margin-top:1.4rem; }
@@ -152,7 +153,13 @@
         const d = ORDRE.indexOf(a.sokajy) - ORDRE.indexOf(b.sokajy);
         return d || String(a.anarana).localeCompare(String(b.anarana), 'fr');
       })
-      .map(function (p) { return [p.anarana, p.sokajy, p.vidiny, p.famaritana || '', Array.isArray(p.tables) ? p.tables : null]; });
+      .map(function (p) { return [p.anarana, p.sokajy, p.vidiny, p.famaritana || '', Array.isArray(p.tables) ? p.tables : null, saryValide(p.sary)]; });
+  }
+  // La photo d'un plat : une adresse du bucket de l'hôtel, ou une petite
+  // image posée dans le plat même. Rien d'autre ne s'affiche.
+  function saryValide(v) {
+    v = String(v || '');
+    return (v.indexOf(URL_SB + '/storage/v1/object/public/hotelerie-sary/') === 0 || /^data:image\/(jpeg|png|webp);base64,/.test(v)) ? v : '';
   }
   // Un plat qui nomme ses latabatra ne se voit qu'à elles ; tant que le client
   // n'a pas choisi la sienne, il ne voit que ce qui est servi partout.
@@ -197,7 +204,13 @@
         lignes.push('', SOKAJY[sokajy] || sokajy);
       }
       const ligne = el('div', null, 'plat');
+      if (p[5]) {
+        const img = el('img', null, 'sary');
+        img.src = p[5]; img.alt = ''; img.loading = 'lazy';
+        ligne.appendChild(img);
+      }
       const gauche = el('div');
+      gauche.style.flex = '1 1 auto';
       gauche.appendChild(el('strong', anarana));
       if (famaritana) gauche.appendChild(el('small', famaritana));
       if (enLigne) gauche.appendChild(compteur(anarana));
