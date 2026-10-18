@@ -951,6 +951,11 @@
   // Le bouton « 🖼️ Sary » : on ouvre le dossier de l'appareil, on envoie la
   // photo choisie, et le plat la garde. La liste se relit après l'envoi : un
   // autre appareil a pu la changer pendant ce temps.
+  // Un bouton d'action d'un plat, en icône.
+  function icone(action, id, signe, nom, classe) {
+    return '<button type="button" class="btn btn-sm' + (classe || '') + '" data-action="' + action + '" data-id="' + id + '"' +
+      ' title="' + html(nom) + '" aria-label="' + html(nom) + '" style="width:auto; padding:0.25rem 0.55rem; font-size:1rem; line-height:1;">' + signe + '</button>';
+  }
   function choisirSary(bouton, id) {
     const champ = document.createElement('input');
     champ.type = 'file';
@@ -960,7 +965,7 @@
       if (!f) return;
       const texte = bouton.textContent;
       bouton.disabled = true;
-      bouton.textContent = '⏳ Alefa...';
+      bouton.textContent = '⏳';
       envoyerSary(id, f).then(function (adresse) {
         const liste = lire();
         const p = liste.find(function (x) { return x.id === id; });
@@ -1063,11 +1068,13 @@
             '</div>' +
             '<strong style="font-size:0.88rem; color:var(--cyan); white-space:nowrap;">' + ariary(p.vidiny) + '</strong>' +
             '<div style="display:flex; gap:0.35rem; flex-wrap:wrap; flex-basis:100%;">' +
-              '<button type="button" class="btn btn-sm" data-action="misy" data-id="' + p.id + '" style="width:auto;">' + (p.misy ? '✅ Misy' : '⛔ Lany') + '</button>' +
-              '<button type="button" class="btn btn-sm" data-action="ovay" data-id="' + p.id + '" style="width:auto;">✏️ Ovay</button>' +
-              '<button type="button" class="btn btn-sm" data-action="sary" data-id="' + p.id + '" style="width:auto;">🖼️ ' + (p.sary ? 'Ovay sary' : 'Sary') + '</button>' +
-              (p.sary ? '<button type="button" class="btn btn-sm" data-action="tsysary" data-id="' + p.id + '" style="width:auto;" title="Esory ny sary">✕ Sary</button>' : '') +
-              '<button type="button" class="btn btn-sm btn-red" data-action="esory" data-id="' + p.id + '" style="width:auto;">Esorina</button>' +
+              // Des icônes seules : le nom de l'action reste au survol et pour
+              // les lecteurs d'écran.
+              icone('misy', p.id, p.misy ? '✅' : '⛔', p.misy ? 'Misy (tsindrio : lany)' : 'Lany (tsindrio : misy)') +
+              icone('ovay', p.id, '✏️', 'Ovay') +
+              icone('sary', p.id, '🖼️', p.sary ? 'Ovay sary' : 'Sary') +
+              (p.sary ? icone('tsysary', p.id, '✕', 'Esory ny sary') : '') +
+              icone('esory', p.id, '🗑️', 'Esorina', ' btn-red') +
             '</div>' +
           '</div>';
         }).join('');
