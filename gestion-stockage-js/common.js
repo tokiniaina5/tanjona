@@ -5484,21 +5484,6 @@
     }
     window.__ouvrirGuideInstallIOS = ouvrirGuideIOS;
 
-    // Installer l'application de cette page, sur demande (bouton « 📲
-    // Installer l'app Hôtel ») : l'invitation du navigateur si on l'a, le
-    // guide sur iPhone, sinon où trouver la commande dans le navigateur.
-    window.__proposerInstallation = function(){
-      if(dejaInstallee()){ alert('Efa voapetraka ity application ity.'); return; }
-      if(invitation){
-        cacher();
-        invitation.prompt();
-        invitation.userChoice.then(function(){ invitation = null; }, function(){});
-        return;
-      }
-      if(surIOS()){ ouvrirGuideIOS(); return; }
-      alert('Sokafy ny menu an\'ny navigateur (⋮), dia safidio « Installer l\'application » na « Ajouter à l\'écran d\'accueil ».');
-    };
-
     if(oui) oui.addEventListener('click', function(){
       cacher();
       if(!invitation){ if(surIOS()) ouvrirGuideIOS(); return; }
