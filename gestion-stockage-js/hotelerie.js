@@ -890,7 +890,8 @@
         '</div>' +
         '<div id="sokajyMpanova" style="display:none; margin-top:0.8rem; border:1px solid var(--line); border-radius:10px; padding:0.8rem;"></div>' +
         '<div class="field" style="margin:0.6rem 0 0;"><label for="sakafoFamaritana">🥗 Akora / Ingrédients (raha misy)</label>' +
-          '<input id="sakafoFamaritana" type="text" placeholder="Ex: hena kisoa, anamamy, sakamalao, vary — hita ao amin\'ny « Voir le plat »" value="' + html(plat ? plat.famaritana : '') + '"></div>' +
+          // Plusieurs lignes : un akora par ligne si l'on veut (Entrée).
+          '<textarea id="sakafoFamaritana" rows="3" placeholder="Ex: hena kisoa, anamamy, sakamalao, vary — hita ao amin\'ny « Voir le plat »" style="width:100%; box-sizing:border-box; resize:vertical; min-height:4.5rem; line-height:1.5; ' + CHAMP + '">' + html(plat ? plat.famaritana : '') + '</textarea></div>' +
         champLatabatra(plat) +
         '<div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.8rem;">' +
           '<button type="button" class="btn btn-sm btn-primary" id="sakafoTehirizo" style="width:auto;">💾 Tehirizo</button>' +
@@ -1333,7 +1334,7 @@
     let courant = null;
     visibles.forEach(function (p) {
       if (p.sokajy !== courant) { courant = p.sokajy; lignes.push('', nomSokajy(courant)); }
-      lignes.push('• ' + p.anarana + ' : ' + ariary(p.vidiny) + (p.famaritana ? ' (' + p.famaritana + ')' : ''));
+      lignes.push('• ' + p.anarana + ' : ' + ariary(p.vidiny) + (p.famaritana ? ' (' + p.famaritana.replace(/\s*\n+\s*/g, ', ') + ')' : ''));
     });
     return lignes.join('\n');
   }
@@ -1414,7 +1415,7 @@
               '<strong style="font-size:0.88rem;">' + html(p.anarana) + '</strong>' +
               (p.misy ? '' : ' <span style="font-size:0.7rem; color:#ff6b6b;">· Lany</span>') +
               (nomsTables(p) ? '<span style="display:block; font-size:0.72rem; color:var(--cyan); margin-top:0.2rem;">🍽️ ' + html(nomsTables(p)) + ' ihany</span>' : '') +
-              (p.famaritana ? '<span style="display:block; font-size:0.78rem; color:var(--muted); margin-top:0.2rem;">' + html(p.famaritana) + '</span>' : '') +
+              (p.famaritana ? '<span style="display:block; font-size:0.78rem; color:var(--muted); margin-top:0.2rem; white-space:pre-line;">' + html(p.famaritana) + '</span>' : '') +
             '</div>' +
             '<strong style="font-size:0.88rem; color:var(--cyan); white-space:nowrap;">' + ariary(p.vidiny) + '</strong>' +
             '<div style="display:flex; gap:0.35rem; flex-wrap:wrap; flex-basis:100%;">' +
