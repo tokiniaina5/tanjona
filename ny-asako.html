@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="0dcf7fef">
+<meta name="ny-asako-version" content="ae4fa5ea">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -190,6 +190,8 @@
     <!-- Deux dépannages séparés : le mot de passe oublié (code par email, le compte
          reste ouvert) et la demande de déblocage (compte fermé, paiement à confirmer). -->
     <div id="forgotWrap" style="display:none;">
+
+      <button type="button" class="btn btn-sm" id="helpBackBtn" style="width:100%; display:none;">← Retour à la connexion</button>
 
       <!-- 1) MOT DE PASSE OUBLIÉ : le code n'arrive que dans la boîte mail du titulaire -->
       <button type="button" class="btn btn-sm" id="resetToggleBtn" style="width:100%; margin-top:0.7rem;">🔑 Mot de passe oublié ?</button>
@@ -3253,7 +3255,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=ef5714f7"></script>
+<script src="gestion-stockage-js/common.js?v=b109d0fd"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=622d64e8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>

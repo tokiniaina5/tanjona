@@ -2429,7 +2429,32 @@
       const box = document.getElementById(id);
       if(box) box.style.display = 'none';
     });
+    showHelpOnly(null);
   }
+
+  // Un dépannage ouvert prend tout l'écran : la connexion et l'autre dépannage
+  // disparaissent, et « Retour à la connexion » les ramène.
+  function showHelpOnly(openId){
+    const pairs = { resetBox: 'resetToggleBtn', forgotBox: 'forgotToggleBtn' };
+    Object.keys(pairs).forEach(function(id){
+      const btn = document.getElementById(pairs[id]);
+      if(btn) btn.style.display = (!openId || openId === id) ? 'block' : 'none';
+    });
+    const back = document.getElementById('helpBackBtn');
+    if(back) back.style.display = openId ? 'block' : 'none';
+    if(openId && quickLoginForm) quickLoginForm.style.display = 'none';
+  }
+  function openHelpBox(id){
+    const box = document.getElementById(id);
+    const open = box.style.display === 'block';
+    closeHelpBoxes();
+    if(open){ if(quickLoginForm) quickLoginForm.style.display = 'block'; return false; }
+    box.style.display = 'block';
+    showHelpOnly(id);
+    return true;
+  }
+  const helpBackBtn = document.getElementById('helpBackBtn');
+  if(helpBackBtn) helpBackBtn.addEventListener('click', function(){ showLoginMode('quick'); });
   function refreshLoginMode(){
     // On ouvre toujours sur la première connexion (inscription) : c'est là que
     // la personne crée son compte. Celle qui en a déjà un bascule sur
@@ -2449,11 +2474,7 @@
   const resetToggleBtn = document.getElementById('resetToggleBtn');
   if(resetToggleBtn){
     resetToggleBtn.addEventListener('click', function(){
-      const box = document.getElementById('resetBox');
-      const open = box.style.display === 'block';
-      closeHelpBoxes();
-      box.style.display = open ? 'none' : 'block';
-      if(!open){
+      if(openHelpBox('resetBox')){
         const field = document.getElementById('resetEmail');
         const tape = document.getElementById('quickEmail').value.trim();
         const known = (tape.indexOf('@') >= 0 ? tape : '') || loadLastEmail();
@@ -2837,11 +2858,7 @@
   const forgotToggleBtn = document.getElementById('forgotToggleBtn');
   if(forgotToggleBtn){
     forgotToggleBtn.addEventListener('click', function(){
-      const box = document.getElementById('forgotBox');
-      const open = box.style.display === 'block';
-      closeHelpBoxes();
-      box.style.display = open ? 'none' : 'block';
-      if(open) return;
+      if(!openHelpBox('forgotBox')) return;
       // Ce que la personne vient de taper pour se connecter sert déjà : on ne
       // lui redemande pas son email deux fois de suite.
       const quickEmail = document.getElementById('quickEmail').value.trim();
