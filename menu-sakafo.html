@@ -143,6 +143,8 @@
   #fandoavanaRefVisa{ width:100%; font:inherit; color:var(--text); background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:0.5rem 0.6rem; margin-bottom:0.5rem; }
   .lien-vola{ display:inline-block; padding:0.35rem 0.7rem; font-size:0.85rem; border:1px solid var(--accent); color:var(--accent); border-radius:8px; text-decoration:none; font-weight:700; }
   .qr-vola{ margin:0.5rem 0 0; }
+  /* Le QR de paiement, en grand : il se scanne de loin, d'un autre téléphone. */
+  .qr-vola .qr-image{ width:min(300px, 80vw); }
   .qr-nom-petit{ font-size:1.05rem; }
   .qr-nom{ font-size:1.6rem; font-weight:800; margin:0.3rem 0 0; }
   .qr-boite .vide{ color:#555; font-size:0.85rem; margin:0.3rem 0 0; }
@@ -544,6 +546,16 @@
   // le numéro se copie, et un QR le porte avec la somme — pour le scanner
   // depuis un autre téléphone, ou le montrer à qui paie pour la table.
   const USSD = { mvola: '#111#', orange: '#144#', airtel: '*436#' };
+  // Le code qui paie d'un coup : le transfert MVola avec le numéro de l'hôtel
+  // et la somme déjà dedans (#111*1*1*numéro*somme#, donné par l'hôtel).
+  // Pour Orange Money et Airtel Money, on n'a que le menu de l'opérateur.
+  function codePaiement(fomba, total) {
+    let n = String(vola[fomba] || '').replace(/[^\d+]/g, '');
+    if (/^\+?261/.test(n)) n = '0' + n.replace(/^\+?261/, '');
+    const somme = Math.round(Number(total) || 0);
+    if (fomba === 'mvola' && /^0\d{9}$/.test(n) && somme > 0) return '#111*1*1*' + n + '*' + somme + '#';
+    return USSD[fomba];
+  }
   function outilsVola(fomba, total) {
     const z = el('div', null, 'outils-vola');
     const rangee = el('div', null, 'fombas');
@@ -572,9 +584,11 @@
       if (!boite.hidden) { boite.hidden = true; voir.textContent = '🔳 QR'; return; }
       voir.disabled = true;
       chargerQR().then(function () {
-        const texte = NOM_FOMBA[fomba] + ' : ' + vola[fomba] + (vola.tompony ? ' (' + vola.tompony + ')' : '') +
-          ' — ' + ariary(total) + ' — ' + nomHotel + ' T' + (tableFixe || latabatraChoisie || '');
-        // En UTF-8 : sans cela « — » et les accents sortent en charabia.
+        // Le QR paie : scanné par l'appareil photo, il ouvre le clavier du
+        // téléphone avec le code de transfert (numéro et somme compris) ;
+        // il n'y a plus qu'à appeler et taper son code secret.
+        const code = codePaiement(fomba, total);
+        const texte = 'tel:' + encodeURIComponent(code);
         if (window.qrcode.stringToBytesFuncs) window.qrcode.stringToBytes = window.qrcode.stringToBytesFuncs['UTF-8'];
         // « H » : le logo au milieu en cache une part, il se lit quand même.
         const qr = window.qrcode(0, 'H');
@@ -588,6 +602,10 @@
         boite.appendChild(img);
         boite.appendChild(sansTraduction(el('p', NOM_FOMBA[fomba] + ' · ' + vola[fomba], 'qr-nom qr-nom-petit')));
         boite.appendChild(el('p', ariary(total) + (vola.tompony ? ' · ' + vola.tompony : ''), 'vide'));
+        boite.appendChild(sansTraduction(el('p', code, 'vide')));
+        boite.appendChild(el('p', code === USSD[fomba]
+          ? "Scanneo : misokatra ny menu " + NOM_FOMBA[fomba] + ", soraty ao ny laharana sy ny vola."
+          : "Scanneo amin'ny appareil photo : efa misy ny laharana sy ny vola, antsoy fotsiny dia ampidiro ny code miafinao.", 'vide'));
         boite.hidden = false;
         voir.textContent = '✕ QR';
       }, function () {
@@ -597,6 +615,9 @@
     rangee.appendChild(voir);
     z.appendChild(rangee);
     z.appendChild(boite);
+    // Le QR de paiement s'affiche de lui-même, en grand : pas besoin de
+    // chercher le bouton. « ✕ QR » le referme si on n'en veut pas.
+    setTimeout(function () { if (boite.hidden && !voir.disabled) voir.click(); }, 0);
     return z;
   }
   // Le client dit comment il a payé ; l'hôtel le voit à côté de chaque
