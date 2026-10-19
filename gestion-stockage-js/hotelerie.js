@@ -1049,8 +1049,8 @@
     }).join('');
   }
   // L'éditeur s'ouvre sous le formulaire, sans le redessiner : ce qu'on y
-  // tapait pour un plat reste là. On travaille sur un brouillon, enregistré
-  // d'un coup par « 💾 Tehirizo ».
+  // tapait pour un plat reste là. Chaque changement s'enregistre
+  // aussitôt ; « ✓ Vita » referme l'éditeur.
   function ouvrirMpanovaSokajy(z) {
     const boite = z.querySelector('#sokajyMpanova');
     if (!boite) return;
@@ -1072,8 +1072,7 @@
         }).join('') +
         '<div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.6rem;">' +
           '<button type="button" class="btn btn-sm" data-sk-hetsika="ampio" style="width:auto;">＋ Sokajy vaovao</button>' +
-          '<button type="button" class="btn btn-sm btn-primary" data-sk-hetsika="tehirizo" style="width:auto;">💾 Tehirizo</button>' +
-          '<button type="button" class="btn btn-sm" data-sk-hetsika="ajanony" style="width:auto;">Ajanony</button>' +
+          '<button type="button" class="btn btn-sm btn-primary" data-sk-hetsika="vita" style="width:auto;">✓ Vita</button>' +
           '<button type="button" class="btn btn-sm" data-sk-hetsika="averina" style="width:auto;">↺ Ireo voalohany</button>' +
         '</div>';
     }
@@ -1081,6 +1080,33 @@
     function relever() {
       boite.querySelectorAll('[data-sk-nom]').forEach(function (c) { brouillon[Number(c.dataset.skNom)].nom = c.value; });
     }
+    // Chaque geste vaut tout de suite : supprimé, renommé, déplacé, la liste
+    // « Sokajy » du formulaire et le menu changent aussitôt. Un sokajy encore
+    // sans nom attend qu'on l'écrive.
+    function appliquer() {
+      const valides = brouillon.filter(function (s) { return s.nom.trim(); });
+      if (!valides.length) return;
+      const t = teteLire();
+      t.sokajy = valides.map(function (s) { return [s.k, s.nom.trim().slice(0, 40)]; });
+      teteEcrire(t);
+      // Les plats d'un sokajy retiré passent dans le premier.
+      const cles = valides.map(function (s) { return s.k; });
+      const liste = lire();
+      let bouge = false;
+      liste.forEach(function (p) {
+        if (cles.indexOf(p.sokajy) < 0) { p.sokajy = cles[0]; p.maj = Date.now(); bouge = true; }
+      });
+      if (bouge) ecrire(liste);
+      const select = z.querySelector('#sakafoSokajy');
+      const avant = select.value;
+      select.innerHTML = optionsSokajy(cles.indexOf(avant) >= 0 ? avant : cles[0]);
+      dessinerListe(z, lire());
+    }
+    boite.onchange = function (e) {
+      if (!e.target.matches('[data-sk-nom]')) return;
+      relever();
+      appliquer();
+    };
     boite.onclick = function (e) {
       const b = e.target.closest('[data-sk-hetsika]');
       if (!b) return;
@@ -1091,32 +1117,16 @@
       else if (h === 'ambany' && i < brouillon.length - 1) brouillon.splice(i + 1, 0, brouillon.splice(i, 1)[0]);
       else if (h === 'esory' && brouillon.length > 1) {
         const n = nbPlats(brouillon[i].k);
-        if (n && !confirm('Misy sakafo ' + n + ' ao amin\'« ' + brouillon[i].nom + ' ». Hafindra any amin\'ny sokajy voalohany izy ireo rehefa voatahiry. Esorina ve ?')) return;
+        if (n && !confirm('Misy sakafo ' + n + ' ao amin\'« ' + brouillon[i].nom + ' ». Hafindra any amin\'ny sokajy voalohany izy ireo. Esorina ve ?')) return;
         brouillon.splice(i, 1);
       } else if (h === 'ampio') brouillon.push({ k: 's' + nouvelId(), nom: '' });
       else if (h === 'averina') brouillon = SOKAJY_DEFAUT.map(function (s) { return { k: s[0], nom: s[1] }; });
-      else if (h === 'ajanony') { boite.style.display = 'none'; return; }
-      else if (h === 'tehirizo') {
-        brouillon.forEach(function (s) { s.nom = s.nom.trim(); });
-        if (brouillon.some(function (s) { return !s.nom; })) { alert('Soraty ny anaran\'ny sokajy rehetra.'); return; }
-        const t = teteLire();
-        t.sokajy = brouillon.map(function (s) { return [s.k, s.nom.slice(0, 40)]; });
-        teteEcrire(t);
-        // Les plats d'un sokajy retiré passent dans le premier.
-        const cles = brouillon.map(function (s) { return s.k; });
-        const liste = lire();
-        let bouge = false;
-        liste.forEach(function (p) {
-          if (cles.indexOf(p.sokajy) < 0) { p.sokajy = cles[0]; p.maj = Date.now(); bouge = true; }
-        });
-        if (bouge) ecrire(liste);
-        const select = z.querySelector('#sakafoSokajy');
-        const avant = select.value;
-        select.innerHTML = optionsSokajy(cles.indexOf(avant) >= 0 ? avant : cles[0]);
+      else if (h === 'vita') {
+        appliquer();
         boite.style.display = 'none';
-        dessinerListe(z, lire());
         return;
       }
+      if (h !== 'ampio') appliquer();
       dessiner();
       if (h === 'ampio') { const champs = boite.querySelectorAll('[data-sk-nom]'); champs[champs.length - 1].focus(); }
     };
