@@ -94,10 +94,11 @@
     });
 
     // WeChat n'a pas d'adresse web qui ouvre une conversation : il n'y a que
-    // l'identifiant, à coller dans la recherche de l'application.
+    // l'identifiant, à coller dans la recherche de l'application. Il se copie
+    // d'un appui, sans être écrit à côté du nom.
     var wechat = String(ch.wechat || '').trim();
     if (wechat) {
-      lignes.push({ nom: '💚 WeChat', couleur: '#07C160', adresse: '', copie: wechat, sous: wechat });
+      lignes.push({ nom: '💚 WeChat', couleur: '#07C160', adresse: '', copie: wechat });
     }
 
     (extra || []).forEach(function (item) {
