@@ -3623,9 +3623,45 @@
   let welcomeOpen = false;
   let noticeWaitsForWelcome = false;
 
+  // Le mot de bienvenue est devenu un petit guide de quelques pages (essai,
+  // abonnement, inscription). Vu ou fermé une fois, il ne revient plus sur cet
+  // appareil — et l'avis « Essai gratuit » qu'il remplace non plus.
+  const GUIDE_VU_KEY = 'nyasako-guide-vu';
+  function guideDejaVu(){
+    try{ return localStorage.getItem(GUIDE_VU_KEY) === '1'; }catch(e){ return false; }
+  }
+  function marquerGuideVu(){
+    try{ localStorage.setItem(GUIDE_VU_KEY, '1'); }catch(e){}
+  }
+  let guidePage = 1;
+  function guidePages(){
+    return document.querySelectorAll('#welcomeOverlay .guide-page');
+  }
+  function showGuidePage(n){
+    const pages = guidePages();
+    guidePage = Math.max(1, Math.min(n, pages.length));
+    pages.forEach(function(p){ p.style.display = Number(p.dataset.page) === guidePage ? 'block' : 'none'; });
+    const dots = document.getElementById('guideDots');
+    if(dots){
+      dots.innerHTML = '';
+      for(let i = 1; i <= pages.length; i++){
+        const d = document.createElement('span');
+        d.style.cssText = 'width:8px; height:8px; border-radius:50%; background:' +
+          (i === guidePage ? 'var(--cyan)' : 'var(--line)') + ';';
+        dots.appendChild(d);
+      }
+    }
+    const next = document.getElementById('welcomeEnterBtn');
+    if(next) next.textContent = guidePage === pages.length ? 'Commencer l\'inscription' : 'Suivant →';
+    const prev = document.getElementById('guidePrevBtn');
+    if(prev) prev.style.visibility = guidePage > 1 ? 'visible' : 'hidden';
+  }
+
   function showWelcome(){
+    if(guideDejaVu()) return;
     const box = document.getElementById('welcomeOverlay');
     if(!box) return;
+    showGuidePage(1);
     box.style.display = 'flex';
     welcomeOpen = true;
   }
@@ -3638,6 +3674,7 @@
     if(box) box.style.display = 'none';
     if(!welcomeOpen) return;
     welcomeOpen = false;
+    if(showPending) marquerGuideVu();
     const pending = noticeWaitsForWelcome;
     const entree = entreeLibreAttendBienvenue;
     noticeWaitsForWelcome = false;
@@ -3711,10 +3748,22 @@
     showLoginMode('full');
   }
 
-  ['welcomeClose', 'welcomeEnterBtn'].forEach(function(id){
-    const btn = document.getElementById(id);
-    if(btn) btn.addEventListener('click', function(){ closeWelcome(true); });
+  const welcomeCloseBtn = document.getElementById('welcomeClose');
+  if(welcomeCloseBtn) welcomeCloseBtn.addEventListener('click', function(){ closeWelcome(true); });
+  const welcomeEnterBtn = document.getElementById('welcomeEnterBtn');
+  if(welcomeEnterBtn) welcomeEnterBtn.addEventListener('click', function(){
+    if(guidePage < guidePages().length){ showGuidePage(guidePage + 1); return; }
+    // Dernière page : on mène à la première inscription (ou, pendant l'entrée
+    // libre, closeWelcome ouvre l'application sans compte).
+    closeWelcome(true);
+    if(!modeVisiteur && loginScreen.style.display !== 'none'){
+      showLoginMode('full');
+      const first = document.getElementById('loginFirstName');
+      if(first) first.focus();
+    }
   });
+  const guidePrevBtn = document.getElementById('guidePrevBtn');
+  if(guidePrevBtn) guidePrevBtn.addEventListener('click', function(){ showGuidePage(guidePage - 1); });
   document.addEventListener('keydown', function(e){
     if(e.key === 'Escape' && welcomeOpen) closeWelcome(true);
   });
@@ -3740,6 +3789,8 @@
       closeBtn.style.display = 'none';
       loginBtn.style.display = 'block';
     } else {
+      // Le guide de première visite a déjà tout expliqué : on ne le redit pas.
+      if(guideDejaVu()) return;
       title.textContent = 'Essai gratuit & abonnement';
       // Tant que la fenêtre est ouverte, l'avis commence par ce qui vient de se
       // passer sous les yeux : on est entré sans rien remplir, et voilà pourquoi.

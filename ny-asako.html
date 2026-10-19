@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="69e66eb2">
+<meta name="ny-asako-version" content="3ffd4be6">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -307,7 +307,6 @@
         <div class="field">
           <label for="loginLogo">Logo (image)</label>
           <input id="loginLogo" type="file" accept="image/*">
-          <p style="font-size:0.72rem; color:var(--muted); margin-top:0.4rem;">Obligatoire uniquement à la 1ère connexion — ensuite votre nom suffit à retrouver votre logo.</p>
         </div>
       </div>
 
@@ -315,7 +314,6 @@
         <div class="field">
           <label for="loginCode">Mot de passe</label>
           <input id="loginCode" type="password" required minlength="6" placeholder="6 caractères minimum" autocomplete="new-password">
-          <p style="font-size:0.72rem; color:var(--muted); margin-top:0.4rem;">Il est conservé chiffré sur le serveur (jamais sur cet appareil) et vous permet de vous connecter depuis n'importe quel téléphone ou ordinateur.</p>
         </div>
         <div class="field">
           <label for="loginCodeConfirm">Confirmer le mot de passe</label>
@@ -366,20 +364,62 @@
   </div>
 </div>
 
-<!-- ============ ACCUEIL : MOT DE BIENVENUE ============ -->
-<!-- Première chose vue en arrivant sur le site, avant l'écran de connexion. -->
+<!-- ============ ACCUEIL : GUIDE DE PREMIÈRE VISITE ============ -->
+<!-- Première chose vue en arrivant sur le site : quelques petites pages qui
+     expliquent l'essai, l'abonnement et l'inscription, et mènent à la première
+     inscription. Vu (ou fermé) une fois, il ne se rouvre plus sur cet appareil. -->
 <div id="welcomeOverlay" style="display:none; position:fixed; inset:0; background:rgba(6,10,18,0.94); align-items:center; justify-content:center; z-index:300; padding:1.2rem;">
-  <div class="login-card" style="max-width:520px; position:relative; text-align:center; padding:3rem 2.2rem;">
+  <div class="login-card" style="max-width:520px; position:relative; text-align:center; padding:2.6rem 2rem 2rem;">
     <button type="button" id="welcomeClose" aria-label="Fermer" style="position:absolute; top:0.8rem; right:1rem; background:none; border:none; color:var(--muted); font-size:1.6rem; cursor:pointer; line-height:1;">✕</button>
-    <div class="eyebrow" style="font-size:0.8rem;">Tongasoa · Bienvenue</div>
-    <h1 style="font-size:2rem; line-height:1.25; margin-bottom:0.9rem;">
-      Tongasoa eto amin'ny tranonkala<br>
-      <span style="color:var(--cyan);">Ny Asako</span>
-    </h1>
-    <p class="sub" style="font-size:1rem; margin-bottom:1.8rem;">
-      Bienvenue sur le site de <strong style="color:var(--text);">Ny Asako</strong>.
-    </p>
-    <button type="button" class="btn btn-primary" id="welcomeEnterBtn" style="width:100%;">Hiditra · Entrer</button>
+
+    <div class="guide-page" data-page="1">
+      <div class="eyebrow" style="font-size:0.8rem;">Tongasoa · Bienvenue</div>
+      <h1 style="font-size:2rem; line-height:1.25; margin-bottom:0.9rem;">
+        Tongasoa eto amin'ny tranonkala<br>
+        <span style="color:var(--cyan);">Ny Asako</span>
+      </h1>
+      <p class="sub" style="font-size:1rem;">
+        Bienvenue sur le site de <strong style="color:var(--text);">Ny Asako</strong>.
+        Quelques pages pour bien commencer.
+      </p>
+    </div>
+
+    <div class="guide-page" data-page="2" style="display:none;">
+      <div class="eyebrow">Essai gratuit</div>
+      <h1 style="font-size:1.4rem; margin-bottom:0.9rem;">🎁 15 jours offerts</h1>
+      <p class="sub" style="font-size:0.95rem;">
+        Les <strong style="color:var(--text);">7 premiers jours</strong>, l'application s'ouvre
+        <strong style="color:var(--text);">sans compte</strong> : rien à remplir, on entre.
+        Passé ce délai, un <strong style="color:var(--text);">compte</strong> est demandé — l'essai,
+        lui, continue jusqu'au 15<sup>e</sup> jour, et ce qui a été saisi reste en place.
+      </p>
+    </div>
+
+    <div class="guide-page" data-page="3" style="display:none;">
+      <div class="eyebrow">Abonnement</div>
+      <h1 style="font-size:1.4rem; margin-bottom:0.9rem;">📅 Mensuel ou annuel</h1>
+      <p class="sub" style="font-size:0.95rem;">
+        Après les 15 jours, un abonnement <strong style="color:var(--text);">mensuel</strong> ou
+        <strong style="color:var(--text);">annuel</strong> est demandé pour continuer. Sans paiement,
+        l'accès est bloqué ; un <strong style="color:var(--text);">code de déverrouillage</strong>
+        vous est alors envoyé par email pour réactiver votre compte.
+      </p>
+    </div>
+
+    <div class="guide-page" data-page="4" style="display:none;">
+      <div class="eyebrow">Votre compte</div>
+      <h1 style="font-size:1.4rem; margin-bottom:0.9rem;">✍️ L'inscription en 4 étapes</h1>
+      <ol class="sub" style="font-size:0.92rem; text-align:left; margin:0 auto; padding-left:1.3rem; max-width:360px; line-height:1.7;">
+        <li>Votre <strong style="color:var(--text);">prénom</strong> et votre <strong style="color:var(--text);">nom</strong>.</li>
+        <li>Votre <strong style="color:var(--text);">email</strong> et votre <strong style="color:var(--text);">téléphone</strong>.</li>
+        <li>Votre <strong style="color:var(--text);">logo</strong> — demandé seulement la 1<sup>re</sup> fois, ensuite votre nom suffit à le retrouver.</li>
+        <li>Un <strong style="color:var(--text);">mot de passe</strong>, tapé deux fois : il est conservé chiffré sur le serveur (jamais sur l'appareil) et vous connecte depuis n'importe quel téléphone ou ordinateur.</li>
+      </ol>
+    </div>
+
+    <div id="guideDots" aria-hidden="true" style="display:flex; justify-content:center; gap:0.4rem; margin:1.6rem 0 1.1rem;"></div>
+    <button type="button" class="btn btn-primary" id="welcomeEnterBtn" style="width:100%;">Suivant →</button>
+    <button type="button" class="btn btn-sm" id="guidePrevBtn" style="width:100%; margin-top:0.6rem; visibility:hidden;">← Retour</button>
   </div>
 </div>
 
@@ -3280,7 +3320,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=d9a6a645"></script>
+<script src="gestion-stockage-js/common.js?v=5f1f3869"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=622d64e8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
