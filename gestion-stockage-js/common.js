@@ -5473,6 +5473,16 @@
     }
     window.__ouvrirGuideInstallIOS = ouvrirGuideIOS;
 
+    // Le bandeau ne passe qu'une fois : l'entrée du menu, elle, reste là sur
+    // iPhone tant que l'application n'est pas installée.
+    const menuIOS = document.getElementById('menuInstallIOS');
+    if(menuIOS){
+      // .nav-action impose display:block : l'attribut hidden n'y suffirait pas.
+      menuIOS.hidden = false;
+      menuIOS.style.display = (surIOS() && !dejaInstallee()) ? '' : 'none';
+      menuIOS.addEventListener('click', ouvrirGuideIOS);
+    }
+
     if(oui) oui.addEventListener('click', function(){
       cacher();
       if(!invitation){ if(surIOS()) ouvrirGuideIOS(); return; }
@@ -5548,7 +5558,7 @@
     // « Installer l'application ». Les deux icônes 📲, pareilles, restaient
     // dans la rangée sans qu'on sache laquelle était laquelle. Écartées ici,
     // elles disparaissent aussi des rangées où elles étaient déjà posées.
-    const JAMAIS_EPINGLEES = ['id:menuInstallFokontany', 'id:menuInstallCommun'];
+    const JAMAIS_EPINGLEES = ['id:menuInstallFokontany', 'id:menuInstallCommun', 'id:menuInstallIOS'];
     function ecrireEpingles(liste){
       try{ localStorage.setItem(CLE, JSON.stringify(liste)); }catch(e){}
     }
@@ -5978,7 +5988,7 @@
     function entreesEpinglables(){
       // « Ny momba ahy » n'existe que pour l'employé : ouvert dans le
       // navigateur du patron, il y laisserait une icône vers une page vide.
-      const hors = ['navStock', 'navMoi', 'menuInstallFokontany', 'menuInstallCommun'];
+      const hors = ['navStock', 'navMoi', 'menuInstallFokontany', 'menuInstallCommun', 'menuInstallIOS'];
       return [].slice.call(document.querySelectorAll('#navList .nav-action, #navList .nav-item[data-section]'))
         .filter(function(e){ return hors.indexOf(e.id) < 0; });
     }
