@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="479f60de">
+<meta name="ny-asako-version" content="8120e1cb">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -276,10 +276,10 @@
       </div>
     </div>
 
-    <!-- Inscription en trois étapes : le nom, puis comment vous joindre,
-         puis le logo et le mot de passe. -->
+    <!-- Inscription en quatre étapes : le nom, puis comment vous joindre,
+         puis le logo, enfin le mot de passe et sa confirmation. -->
     <form id="loginForm" novalidate>
-      <div class="eyebrow" id="loginStepLabel" style="margin-bottom:0.8rem;">Étape 1 sur 3</div>
+      <div class="eyebrow" id="loginStepLabel" style="margin-bottom:0.8rem;">Étape 1 sur 4</div>
 
       <div class="login-step" data-step="1">
         <div class="field">
@@ -309,10 +309,17 @@
           <input id="loginLogo" type="file" accept="image/*">
           <p style="font-size:0.72rem; color:var(--muted); margin-top:0.4rem;">Obligatoire uniquement à la 1ère connexion — ensuite votre nom suffit à retrouver votre logo.</p>
         </div>
+      </div>
+
+      <div class="login-step" data-step="4" style="display:none;">
         <div class="field">
           <label for="loginCode">Mot de passe</label>
           <input id="loginCode" type="password" required minlength="6" placeholder="6 caractères minimum" autocomplete="new-password">
           <p style="font-size:0.72rem; color:var(--muted); margin-top:0.4rem;">Il est conservé chiffré sur le serveur (jamais sur cet appareil) et vous permet de vous connecter depuis n'importe quel téléphone ou ordinateur.</p>
+        </div>
+        <div class="field">
+          <label for="loginCodeConfirm">Confirmer le mot de passe</label>
+          <input id="loginCodeConfirm" type="password" required minlength="6" placeholder="Retapez le mot de passe" autocomplete="new-password">
         </div>
       </div>
 
@@ -3273,7 +3280,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=543f2dc0"></script>
+<script src="gestion-stockage-js/common.js?v=d9a6a645"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=622d64e8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>

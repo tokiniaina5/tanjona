@@ -3079,10 +3079,11 @@
     if(text) console.warn('[connexion] ' + text);
   }
 
-  // ---------------- INSCRIPTION EN TROIS ÉTAPES ----------------
-  // 1) prénom + nom, 2) email + téléphone, 3) logo + mot de passe.
+  // ---------------- INSCRIPTION EN QUATRE ÉTAPES ----------------
+  // 1) prénom + nom, 2) email + téléphone, 3) logo, 4) mot de passe + confirmation.
   // Le formulaire est en novalidate : chaque étape vérifie ses propres champs,
   // sinon le navigateur bloquerait sur un champ caché d'une autre étape.
+  const LOGIN_STEPS = 4;
   let loginStep = 1;
   function loginFullName(){
     const first = document.getElementById('loginFirstName').value.trim();
@@ -3095,9 +3096,9 @@
       el.style.display = Number(el.dataset.step) === step ? 'block' : 'none';
     });
     const label = document.getElementById('loginStepLabel');
-    if(label) label.textContent = 'Étape ' + step + ' sur 3';
+    if(label) label.textContent = 'Étape ' + step + ' sur ' + LOGIN_STEPS;
     const submitBtn = document.getElementById('loginSubmitBtn');
-    if(submitBtn) submitBtn.textContent = step === 3 ? 'Se connecter' : 'Suivant →';
+    if(submitBtn) submitBtn.textContent = step === LOGIN_STEPS ? 'Se connecter' : 'Suivant →';
     const prevBtn = document.getElementById('loginPrevBtn');
     if(prevBtn) prevBtn.style.display = step > 1 ? 'block' : 'none';
     setLoginStatus('');
@@ -3113,6 +3114,15 @@
       const known = findProfile(loginFullName());
       if(!known || !known.phone){ setLoginStatus('Veuillez indiquer votre numéro de téléphone.'); return false; }
     }
+    if(step === 3 && !document.getElementById('loginLogo').files[0] && !findProfile(loginFullName())){
+      setLoginStatus('Veuillez ajouter un logo pour votre première connexion.');
+      return false;
+    }
+    if(step === 4 && document.getElementById('loginCode').value !== document.getElementById('loginCodeConfirm').value){
+      setLoginStatus('Les deux mots de passe ne sont pas identiques.');
+      document.getElementById('loginCodeConfirm').focus();
+      return false;
+    }
     return true;
   }
   const loginPrevBtn = document.getElementById('loginPrevBtn');
@@ -3125,7 +3135,7 @@
     e.preventDefault();
     setLoginStatus('');
     if(!loginStepValid(loginStep)) return;
-    if(loginStep < 3){ showLoginStep(loginStep + 1); return; }
+    if(loginStep < LOGIN_STEPS){ showLoginStep(loginStep + 1); return; }
     const name = loginFullName();
     const email = document.getElementById('loginEmail').value.trim();
     const phoneInput = document.getElementById('loginPhone').value.trim();
