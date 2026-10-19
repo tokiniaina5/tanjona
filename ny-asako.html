@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="e4fd93ab">
+<meta name="ny-asako-version" content="e7cc490f">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -44,8 +44,11 @@
     if(location.pathname === '/hotely/'){ location.replace('/hotely' + location.search + location.hash); return; }
     document.documentElement.classList.add('app-hotely');
     document.title = 'Ny asako Hôtel';
+    // Comme le Fokontany : pas de manifeste tant que l'admin n'est pas entré
+    // — le navigateur n'a rien à installer pour personne d'autre. common.js
+    // pose celui de l'Hôtel dès que l'admin est reconnu.
     var m = document.querySelector('link[rel="manifest"]');
-    if(m) m.href = '/hotely.webmanifest';
+    if(m) m.parentNode.removeChild(m);
   })();
 </script>
 <meta name="theme-color" content="#0a0d10">
@@ -169,7 +172,7 @@
 <!-- fin des écrans de démarrage iOS -->
 <link rel="icon" href="/icone-192.png" type="image/png">
 <link rel="stylesheet" href="gestion-stockage-css/base.css?v=b2c3c50f">
-<link rel="stylesheet" href="gestion-stockage-css/components.css?v=54e0f08b">
+<link rel="stylesheet" href="gestion-stockage-css/components.css?v=97ad644e">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" crossorigin="anonymous"></script>
@@ -801,6 +804,7 @@
         <!-- Installer les deux applications : le propriétaire seul, et d'ici
              seulement — leurs pages ne s'installent pour personne d'autre. -->
         <button type="button" class="nav-action" id="menuInstallFokontany">📲 Télécharger Fokontany</button>
+        <button type="button" class="nav-action" id="menuInstallHotel">📲 Télécharger Hôtel</button>
         <button type="button" class="nav-action" id="menuInstallCommun">📲 Télécharger Commun</button>
         <button type="button" class="nav-action" id="notifToggle" aria-label="Notifications" aria-expanded="false" style="position:relative;">
           <span>🔔 Notifications</span>
@@ -3410,7 +3414,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=fc14d91d"></script>
+<script src="gestion-stockage-js/common.js?v=5060884d"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=622d64e8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
@@ -3435,7 +3439,7 @@
 <script src="gestion-stockage-js/equipe.js?v=307dc2cd"></script>
 <script src="gestion-stockage-js/vue-mpiasa.js?v=1e6cfbec"></script>
 <script src="gestion-stockage-js/vue-suivi.js?v=978e31e5"></script>
-<script src="gestion-stockage-js/hotelerie.js?v=1dc3e7e2"></script>
+<script src="gestion-stockage-js/hotelerie.js?v=70c73ba7"></script>
 <script src="gestion-stockage-js/fitaovana.js?v=bf90a8a5"></script>
 <script src="gestion-stockage-js/photocopie.js?v=be4f35a5"></script>
 <script src="gestion-stockage-js/pdf.js?v=b7c1f056"></script>

@@ -245,16 +245,10 @@
       return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
     } catch (e) { return false; }
   }
-  // Depuis Ny asako, le bouton ouvre la page de l'Hôtel dans le navigateur :
-  // c'est là, et seulement là, que le navigateur propose de l'installer.
-  // Sur la page de l'Hôtel, il lance l'installation elle-même.
+  // Le bouton n'existe que sur la page de l'Hôtel : il lance l'installation.
   document.addEventListener('click', function (e) {
     if (!e.target.closest || !e.target.closest('#hotelInstallApp')) return;
-    if (surPageHotel()) {
-      if (typeof window.__proposerInstallation === 'function') window.__proposerInstallation();
-      return;
-    }
-    window.open('/hotely', '_blank');
+    if (typeof window.__proposerInstallation === 'function') window.__proposerInstallation();
   });
   function nouvelId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
   function ariary(n) { return Number(n || 0).toLocaleString('fr-FR') + ' Ar'; }
@@ -832,9 +826,10 @@
               (t.sary ? '<button type="button" class="btn btn-sm" id="hotelLogoEsory" title="Esory ny sary" aria-label="Esory ny sary" style="width:auto; padding:0.2rem 0.45rem; font-size:0.95rem; line-height:1;">✕</button>' : '') +
             '</h2>') +
         '<p>Ny menu sakafo an\'ny hotely sy ny commande an\'ny mpanjifa isaky ny latabatra.</p></div>' +
-        // Ny asako Hôtel s'installe à part (/hotely) : le bouton disparaît
-        // dans l'application Hôtel déjà installée.
-        (appHotelInstallee() ? '' :
+        // Ny asako Hôtel s'installe à part (/hotely), comme le Fokontany : on
+        // y vient par « 📲 Télécharger Hôtel » du menu, et c'est sur cette
+        // page seulement que le bouton paraît — plus une fois installée.
+        (!surPageHotel() || appHotelInstallee() ? '' :
           '<button type="button" class="btn btn-sm btn-primary" id="hotelInstallApp" style="width:auto; align-self:flex-start;">📲 Installer l\'app Hôtel</button>') +
       '</div>' +
       '<div class="dash-tabs" style="margin-bottom:1rem; display:flex; gap:0.4rem; flex-wrap:wrap;">' +

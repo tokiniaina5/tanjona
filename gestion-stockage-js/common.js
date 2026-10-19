@@ -686,7 +686,8 @@
     restaurationEnCours = true;
     try{
       // Ny asako Hôtel (/hotely) s'ouvre sur l'Hôtellerie, pas sur l'Accueil.
-      if(document.documentElement.classList.contains('app-hotely')){
+      if(document.documentElement.classList.contains('app-hotely') &&
+         currentUser && currentUser.email && isOwnerEmail(currentUser.email)){
         const navHotel = document.querySelector('.nav-item[data-section="hotelerie"]');
         if(navHotel){
           if(!navHotel.classList.contains('active')) navHotel.click();
@@ -5573,7 +5574,7 @@
     // « Installer l'application ». Les deux icônes 📲, pareilles, restaient
     // dans la rangée sans qu'on sache laquelle était laquelle. Écartées ici,
     // elles disparaissent aussi des rangées où elles étaient déjà posées.
-    const JAMAIS_EPINGLEES = ['id:menuInstallFokontany', 'id:menuInstallCommun'];
+    const JAMAIS_EPINGLEES = ['id:menuInstallFokontany', 'id:menuInstallCommun', 'id:menuInstallHotel'];
     function ecrireEpingles(liste){
       try{ localStorage.setItem(CLE, JSON.stringify(liste)); }catch(e){}
     }
@@ -6003,7 +6004,7 @@
     function entreesEpinglables(){
       // « Ny momba ahy » n'existe que pour l'employé : ouvert dans le
       // navigateur du patron, il y laisserait une icône vers une page vide.
-      const hors = ['navStock', 'navMoi', 'menuInstallFokontany', 'menuInstallCommun'];
+      const hors = ['navStock', 'navMoi', 'menuInstallFokontany', 'menuInstallCommun', 'menuInstallHotel'];
       return [].slice.call(document.querySelectorAll('#navList .nav-action, #navList .nav-item[data-section]'))
         .filter(function(e){ return hors.indexOf(e.id) < 0; });
     }
@@ -6713,7 +6714,9 @@
     // et l'on prendrait ce filtre pour une interdiction. La règle est redite.
     function entreeOuverte(el){
       if(el.id === 'navStock') return false;
-      if(el.id === 'navAdmin') return !!(currentUser && currentUser.email && isOwnerEmail(currentUser.email));
+      if(el.id === 'navAdmin' || el.id === 'menuInstallHotel' || el.dataset.section === 'hotelerie'){
+        return !!(currentUser && currentUser.email && isOwnerEmail(currentUser.email));
+      }
       if(el.classList.contains('seulement-mpiasa')) return document.body.classList.contains('mode-mpiasa');
       return true;
     }
@@ -7533,6 +7536,32 @@
       window.__validerAvantInstall(function(suffixe){ window.__versLInstallation(p[1], suffixe); }, p[2]);
     });
   });
+
+  // Ny asako Hôtel : comme le Fokontany, l'admin seul l'installe, depuis le
+  // menu. Pas de code de fokontany à valider ici : la page /hotely s'ouvre
+  // dans le navigateur, où l'installation se propose.
+  const menuInstallHotel = document.getElementById('menuInstallHotel');
+  if(menuInstallHotel) menuInstallHotel.addEventListener('click', function(){
+    if(!(currentUser && currentUser.email && isOwnerEmail(currentUser.email))) return;
+    window.__versLInstallation('/hotely', '');
+  });
+
+  // Sur /hotely, le manifeste de l'Hôtel n'est posé qu'une fois l'admin
+  // reconnu (parametres.js met alors .est-proprietaire sur la racine) :
+  // pour tout autre, le navigateur n'a rien à installer.
+  (function(){
+    const racine = document.documentElement;
+    if(!racine.classList.contains('app-hotely')) return;
+    function poser(){
+      if(!racine.classList.contains('est-proprietaire') || document.querySelector('link[rel="manifest"]')) return;
+      const lien = document.createElement('link');
+      lien.rel = 'manifest';
+      lien.href = '/hotely.webmanifest';
+      document.head.appendChild(lien);
+    }
+    new MutationObserver(poser).observe(racine, { attributes: true, attributeFilter: ['class'] });
+    poser();
+  })();
 
   // La validation avant l'installation : une page entière, à l'image de la
   // porte du Fokontany (« 🔐 Mila alalana ity pejy ity »). L'admin y écrit le

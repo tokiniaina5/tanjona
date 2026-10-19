@@ -48,7 +48,13 @@
   html:not(.est-proprietaire):not(.fokontany) [data-epingle="id:menuCommun"],
   html:not(.est-proprietaire):not(.fokontany) [data-epingle="id:menuCommunAdmin"],
   html:not(.est-proprietaire):not(.fokontany) #dash-commun,
-  html:not(.est-proprietaire):not(.fokontany) #dash-communadmin{ display:none !important; }
+  html:not(.est-proprietaire):not(.fokontany) #dash-communadmin,
+  /* Ny asako Hôtel : à l'admin seul, lui aussi — l'entrée, son icône
+     épinglée, sa page et son installation (/hotely). */
+  html:not(.est-proprietaire):not(.fokontany) .nav-item[data-section="hotelerie"],
+  html:not(.est-proprietaire):not(.fokontany) [data-epingle="section:hotelerie"],
+  html:not(.est-proprietaire):not(.fokontany) #section-hotelerie,
+  html:not(.est-proprietaire):not(.fokontany) #menuInstallHotel{ display:none !important; }
   /* appel vidéo : au centre de la rangée, en évidence sans être criard */
   .dash-tab-call{ color:var(--cyan); }
   .dash-tab-call:hover{ color:var(--text); }
