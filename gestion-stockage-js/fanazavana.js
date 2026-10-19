@@ -1,15 +1,19 @@
 /* ============================================================
-   FANAZAVANA — les explications deviennent des petites fiches
+   FANAZAVANA — les explications en visite guidée (modèle MVola)
    ------------------------------------------------------------
-   Partout dans l'application, les paragraphes d'explication (texte gris,
-   « color:var(--muted) ») sont rangés dans une petite fiche « 💡 Fanazavana »
-   avec un ✕. Fermée une fois, une fiche ne revient plus sur cet appareil.
+   Les paragraphes d'explication (texte gris, « color:var(--muted) ») ne
+   restent plus dans la page : quand une page s'ouvre, ses explications
+   passent une à une dans une visite guidée. L'écran s'assombrit, la partie
+   expliquée reste éclairée, et une boîte blanche donne le texte avec
+   « 1 / 3 », « Ignorer » et « Suivant ». Vue (ou ignorée) une fois, une
+   explication ne revient plus sur cet appareil.
 
    On ne touche qu'aux vraies explications : pas aux lignes d'état que le
    code remplit (elles ont un id ou un data-*), pas aux textes courts, pas
    aux paragraphes qui portent un bouton ou un champ. Un texte gris qui
-   n'est pas une explication (la note d'un client…) porte data-fz-tsia. Les pages dessinées
-   après coup (photocopie, hôtellerie, partage…) sont prises au passage.
+   n'est pas une explication (la note d'un client…) porte data-fz-tsia.
+   Les pages dessinées après coup (photocopie, hôtellerie, partage…) sont
+   prises au passage.
    ============================================================ */
 (function () {
   'use strict';
@@ -17,7 +21,10 @@
   var PREFIXE = 'fz:';
   var MIN_CARACTERES = 50;
   // Ce qui a déjà sa propre présentation reste tel quel.
-  var EXCLUS = '#welcomeOverlay, #autoNoticeModal, [data-zr-fanazavana], .fz-karatra';
+  var EXCLUS = '#welcomeOverlay, #autoNoticeModal, #fzVisite';
+
+  var connues = [];        // { p, cache, cle } — les explications repérées
+  var visite = null;       // la visite en cours, s'il y en a une
 
   function cle(texte) {
     // Petite empreinte du texte : la même explication garde la même clé
@@ -26,16 +33,15 @@
     for (var i = 0; i < texte.length; i++) h = ((h << 5) + h + texte.charCodeAt(i)) | 0;
     return PREFIXE + (h >>> 0).toString(36) + texte.length;
   }
-
-  function dejaFermee(k) {
+  function dejaVue(k) {
     try { return localStorage.getItem(k) === '1'; } catch (e) { return false; }
   }
-  function fermer(k) {
+  function marquerVue(k) {
     try { localStorage.setItem(k, '1'); } catch (e) {}
   }
 
   function estExplication(p) {
-    if (p.id || p.closest(EXCLUS)) return false;
+    if (p.id || p.closest(EXCLUS) || p.classList.contains('fz-ao-anaty')) return false;
     var attrs = p.attributes;
     for (var i = 0; i < attrs.length; i++) if (attrs[i].name.indexOf('data-') === 0) return false;
     var gris = p.style.color === 'var(--muted)' || p.classList.contains('panneau-note');
@@ -47,61 +53,218 @@
     return texte.length >= MIN_CARACTERES ? texte : false;
   }
 
-  function habiller(p) {
+  // L'explication quitte la page : elle ne vit plus que dans la visite.
+  function retenir(p) {
     var texte = estExplication(p);
     if (!texte) return;
-    var k = cle(texte);
-    var fiche = document.createElement('div');
-    fiche.className = 'fz-karatra';
-    if (dejaFermee(k)) fiche.style.display = 'none';
-    fiche.innerHTML =
-      '<button type="button" class="fz-hidio" aria-label="Hidio ny fanazavana" title="Hidio">✕</button>' +
-      '<div class="fz-lohateny">💡 Fanazavana</div>';
-    fiche.querySelector('.fz-hidio').addEventListener('click', function () {
-      fiche.style.display = 'none';
-      fermer(k);
-    });
-    p.parentNode.insertBefore(fiche, p);
-    fiche.appendChild(p);
+    // La fiche « 💡 Fanazavana » du partage est cachée avec son texte.
+    var cache = p.closest('[data-zr-fanazavana]') || p;
+    cache.classList.add('fz-ao-anaty');
+    p.classList.add('fz-ao-anaty');
+    connues.push({ p: p, cache: cache, cle: cle(texte) });
   }
 
   function parcourir(racine) {
     if (!racine || racine.nodeType !== 1) return;
-    if (racine.tagName === 'P') { habiller(racine); return; }
+    if (racine.tagName === 'P') { retenir(racine); return; }
     var liste = racine.querySelectorAll('p');
-    for (var i = 0; i < liste.length; i++) habiller(liste[i]);
+    for (var i = 0; i < liste.length; i++) retenir(liste[i]);
+  }
+
+  // La page de l'explication est-elle à l'écran ? Le paragraphe est caché
+  // par nous ; c'est son parent qui dit si la page est ouverte, et son
+  // propre style si le code le montre en ce moment.
+  function aLEcran(e) {
+    if (!e.cache.isConnected) return false;
+    if (e.p.style.display === 'none') return false;
+    var parent = e.cache.parentElement;
+    return !!(parent && parent.getClientRects().length);
+  }
+
+  function cible(e) {
+    return e.cache.closest('.panel, .login-card, .plan-card, section, [role="dialog"]') || e.cache.parentElement;
+  }
+  function titre(e, zone) {
+    var h = zone && zone.querySelector('h1, h2, h3, h4');
+    var t = h ? h.textContent.replace(/\s+/g, ' ').trim() : '';
+    return t && t.length <= 60 ? t : '💡 Fanazavana';
+  }
+
+  function guideOuvert() {
+    var w = document.getElementById('welcomeOverlay');
+    return w && getComputedStyle(w).display !== 'none';
+  }
+
+  // ---------- la visite ----------
+  var calque, lumiere, boite;
+
+  function construire() {
+    calque = document.createElement('div');
+    calque.id = 'fzVisite';
+    calque.setAttribute('role', 'dialog');
+    calque.setAttribute('aria-modal', 'true');
+    calque.innerHTML =
+      '<div class="fz-lumiere"></div>' +
+      '<div class="fz-boite">' +
+        '<div class="fz-tete"><strong class="fz-titre"></strong><span class="fz-isa"></span></div>' +
+        '<div class="fz-texte"></div>' +
+        '<div class="fz-bokotra">' +
+          '<button type="button" class="fz-ignorer">Ignorer</button>' +
+          '<button type="button" class="fz-suivant">Suivant</button>' +
+        '</div>' +
+        '<div class="fz-points" aria-hidden="true"></div>' +
+      '</div>';
+    document.body.appendChild(calque);
+    lumiere = calque.querySelector('.fz-lumiere');
+    boite = calque.querySelector('.fz-boite');
+    calque.querySelector('.fz-ignorer').addEventListener('click', function () { finir(); });
+    calque.querySelector('.fz-suivant').addEventListener('click', function () {
+      if (!visite) return;
+      marquerVue(visite.etapes[visite.i].cle);
+      if (visite.i < visite.etapes.length - 1) { visite.i++; montrer(); } else finir();
+    });
+    window.addEventListener('resize', placer);
+    window.addEventListener('scroll', placer, true);
+  }
+
+  function commencer(etapes) {
+    if (!calque) construire();
+    visite = { etapes: etapes, i: 0 };
+    calque.style.display = 'block';
+    montrer();
+  }
+
+  function montrer() {
+    var e = visite.etapes[visite.i];
+    var zone = cible(e);
+    calque.querySelector('.fz-titre').textContent = titre(e, zone);
+    calque.querySelector('.fz-isa').textContent = (visite.i + 1) + ' / ' + visite.etapes.length;
+    calque.querySelector('.fz-texte').innerHTML = e.p.innerHTML;
+    calque.querySelector('.fz-suivant').textContent =
+      visite.i === visite.etapes.length - 1 ? 'Vita' : 'Suivant';
+    var points = calque.querySelector('.fz-points');
+    points.innerHTML = '';
+    for (var i = 0; i < visite.etapes.length; i++) {
+      var d = document.createElement('span');
+      if (i === visite.i) d.className = 'ici';
+      points.appendChild(d);
+    }
+    visite.zone = zone;
+    if (zone && zone.scrollIntoView) zone.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    placer();
+    // Le défilement doux prend un instant : on recale une fois arrivé.
+    setTimeout(placer, 350);
+  }
+
+  function placer() {
+    if (!visite || !visite.zone) return;
+    // La page a été quittée sous la visite : on la range sans la compter
+    // comme vue, elle reviendra à la prochaine ouverture de la page.
+    if (!visite.zone.isConnected || !visite.zone.getClientRects().length) { abandonner(); return; }
+    var r = visite.zone.getBoundingClientRect();
+    var marge = 6;
+    var haut = Math.max(r.top - marge, 4);
+    var bas = Math.min(r.bottom + marge, window.innerHeight - 4);
+    lumiere.style.left = Math.max(r.left - marge, 4) + 'px';
+    lumiere.style.top = haut + 'px';
+    lumiere.style.width = Math.max(Math.min(r.right + marge, window.innerWidth - 4) - Math.max(r.left - marge, 4), 0) + 'px';
+    lumiere.style.height = Math.max(bas - haut, 0) + 'px';
+    // La boîte se met du côté où il reste le plus de place.
+    var placeDessus = haut, placeDessous = window.innerHeight - bas;
+    boite.style.top = boite.style.bottom = '';
+    if (placeDessus >= placeDessous) boite.style.top = '12px';
+    else boite.style.bottom = '12px';
+  }
+
+  function abandonner() {
+    visite = null;
+    calque.style.display = 'none';
+    bientot();
+  }
+
+  function finir() {
+    if (!visite) return;
+    // « Ignorer » vaut pour toutes les explications de cette page.
+    visite.etapes.forEach(function (e) { marquerVue(e.cle); });
+    visite = null;
+    calque.style.display = 'none';
+    setTimeout(verifier, 600);
+  }
+
+  // Une page vient de s'ouvrir ? Ses explications pas encore vues partent
+  // en visite, dans l'ordre de la page.
+  function verifier() {
+    if (visite || guideOuvert()) return;
+    connues = connues.filter(function (e) { return e.cache.isConnected; });
+    var etapes = connues.filter(function (e) {
+      if (dejaVue(e.cle) || !aLEcran(e)) return false;
+      var zone = cible(e);
+      return !!(zone && zone.getClientRects().length);
+    });
+    if (!etapes.length) return;
+    etapes.sort(function (a, b) {
+      return a.cache.compareDocumentPosition(b.cache) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
+    });
+    commencer(etapes);
+  }
+
+  var minuteur = null;
+  function bientot() {
+    // On laisse la page finir de s'afficher avant d'y poser la visite. Pas
+    // de remise à zéro : ce qui bouge sans cesse (stories, compteurs)
+    // repousserait la visite indéfiniment.
+    if (minuteur) return;
+    minuteur = setTimeout(function () { minuteur = null; verifier(); }, 700);
   }
 
   var style = document.createElement('style');
   style.textContent =
-    '.fz-karatra{ position:relative; border:1px solid var(--line); border-left:3px solid var(--cyan);' +
-      ' border-radius:8px; background:var(--panel-2); padding:0.6rem 2.2rem 0.6rem 0.85rem; margin:0.5rem 0 0.8rem; text-align:left; }' +
-    '.fz-karatra > p{ margin:0 !important; }' +
-    '.fz-karatra:has(> p[style*="display: none"]), .fz-karatra:has(> p[style*="display:none"]){ display:none; }' +
-    '.fz-hidio{ position:absolute; top:0.3rem; right:0.45rem; background:none; border:none; color:var(--muted);' +
-      ' font-size:1.05rem; line-height:1; cursor:pointer; padding:0.2rem; }' +
-    '.fz-hidio:hover{ color:var(--text); }' +
-    '.fz-lohateny{ font-size:0.66rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--cyan);' +
-      ' font-family:var(--font-mono); margin-bottom:0.25rem; }';
+    '.fz-ao-anaty{ display:none !important; }' +
+    '#fzVisite{ display:none; position:fixed; inset:0; z-index:10050; }' +
+    '#fzVisite .fz-lumiere{ position:fixed; border-radius:16px; box-shadow:0 0 0 200vmax rgba(0,0,0,0.62);' +
+      ' transition:left .25s, top .25s, width .25s, height .25s; pointer-events:none; }' +
+    '#fzVisite .fz-boite{ position:fixed; left:50%; transform:translateX(-50%); width:min(92vw, 480px);' +
+      ' background:#fff; color:#111; border-radius:22px; padding:1.1rem 1.2rem 0.9rem; box-shadow:0 10px 30px rgba(0,0,0,.35);' +
+      ' font-family:var(--font-body, sans-serif); }' +
+    '#fzVisite .fz-tete{ display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; margin-bottom:0.5rem; }' +
+    '#fzVisite .fz-titre{ font-size:1.05rem; line-height:1.3; color:#111; }' +
+    '#fzVisite .fz-isa{ font-size:0.9rem; color:#777; white-space:nowrap; }' +
+    '#fzVisite .fz-texte{ font-size:0.92rem; line-height:1.55; color:#222; margin-bottom:1rem; }' +
+    '#fzVisite .fz-texte strong{ color:#000 !important; }' +
+    '#fzVisite .fz-bokotra{ display:flex; gap:0.7rem; }' +
+    '#fzVisite .fz-bokotra button{ flex:1; border-radius:999px; padding:0.7rem 1rem; font-size:0.95rem; cursor:pointer; font-family:inherit; }' +
+    '#fzVisite .fz-ignorer{ background:#fff; color:#111; border:2px solid #111; }' +
+    '#fzVisite .fz-suivant{ background:#111; color:#fff; border:2px solid #111; }' +
+    '#fzVisite .fz-points{ display:flex; justify-content:center; gap:6px; margin-top:0.8rem; }' +
+    '#fzVisite .fz-points span{ width:7px; height:7px; border-radius:999px; background:#ccc; transition:width .2s; }' +
+    '#fzVisite .fz-points span.ici{ width:22px; background:#111; }';
   document.head.appendChild(style);
 
   function demarrer() {
     parcourir(document.body);
-    // Les pages dessinées plus tard passent par ici, regroupées par image.
+    // Les pages dessinées plus tard passent par ici, regroupées par image ;
+    // un changement d'affichage (on ouvre une page, un onglet) relance le
+    // repérage de ce qui est à l'écran.
     var enAttente = [];
     var prevu = false;
     new MutationObserver(function (mutations) {
+      var affichage = false;
       mutations.forEach(function (m) {
+        if (m.type === 'attributes') { if (!calque || !calque.contains(m.target)) affichage = true; return; }
         for (var i = 0; i < m.addedNodes.length; i++) enAttente.push(m.addedNodes[i]);
       });
-      if (prevu) return;
+      if (affichage) { if (visite) requestAnimationFrame(placer); else bientot(); }
+      if (prevu || !enAttente.length) return;
       prevu = true;
       requestAnimationFrame(function () {
         prevu = false;
         var lot = enAttente; enAttente = [];
         lot.forEach(function (n) { if (n.isConnected) parcourir(n); });
+        bientot();
       });
-    }).observe(document.body, { childList: true, subtree: true });
+    }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'class', 'hidden'] });
+    document.addEventListener('click', bientot, true);
+    bientot();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', demarrer);
