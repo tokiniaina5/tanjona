@@ -3764,6 +3764,25 @@
       if(first) first.focus();
     }
   });
+  // « Se connecter » / « Créer un compte » : on quitte le guide pour le
+  // formulaire choisi, même pendant l'entrée libre (sinon closeWelcome
+  // ouvrirait l'application sans compte à la place).
+  function quitterGuideVers(mode){
+    entreeLibreAttendBienvenue = false;
+    closeWelcome(true);
+    modeVisiteur = false;
+    document.body.classList.remove('mode-visiteur');
+    appScreen.style.display = 'none';
+    paywallScreen.style.display = 'none';
+    loginScreen.style.display = 'flex';
+    showLoginMode(mode);
+    const champ = document.getElementById(mode === 'quick' ? 'quickEmail' : 'loginFirstName');
+    if(champ) champ.focus();
+  }
+  const guideLoginBtn = document.getElementById('guideLoginBtn');
+  if(guideLoginBtn) guideLoginBtn.addEventListener('click', function(){ quitterGuideVers('quick'); });
+  const guideSignupBtn = document.getElementById('guideSignupBtn');
+  if(guideSignupBtn) guideSignupBtn.addEventListener('click', function(){ quitterGuideVers('full'); });
   const guidePrevBtn = document.getElementById('guidePrevBtn');
   if(guidePrevBtn) guidePrevBtn.addEventListener('click', function(){ showGuidePage(guidePage - 1); });
   document.addEventListener('keydown', function(e){

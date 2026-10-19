@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="0076cdef">
+<meta name="ny-asako-version" content="8cba3a7e">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -484,6 +484,12 @@
     <div id="guideDots" aria-hidden="true" style="display:flex; justify-content:center; gap:0.4rem; margin:1.6rem 0 1.1rem;"></div>
     <button type="button" class="btn btn-primary" id="welcomeEnterBtn" style="width:100%;">Suivant →</button>
     <button type="button" class="btn btn-sm" id="guidePrevBtn" style="width:100%; margin-top:0.6rem; visibility:hidden;">← Retour</button>
+    <!-- Raccourcis, sur chaque page : on n'est pas obligé de lire le guide
+         jusqu'au bout pour se connecter ou s'inscrire. -->
+    <div style="display:flex; gap:0.6rem; margin-top:0.9rem; padding-top:0.9rem; border-top:1px solid var(--line);">
+      <button type="button" class="btn btn-sm" id="guideLoginBtn" style="flex:1;">🔑 Se connecter</button>
+      <button type="button" class="btn btn-sm" id="guideSignupBtn" style="flex:1;">✍️ Créer un compte</button>
+    </div>
   </div>
 </div>
 
@@ -3384,7 +3390,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=c45b5210"></script>
+<script src="gestion-stockage-js/common.js?v=41fe2d8d"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=622d64e8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
