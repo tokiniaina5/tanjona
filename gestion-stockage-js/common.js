@@ -3637,7 +3637,13 @@
   function showGuidePage(n){
     const pages = guidePages();
     guidePage = Math.max(1, Math.min(n, pages.length));
-    pages.forEach(function(p){ p.style.display = Number(p.dataset.page) === guidePage ? 'block' : 'none'; });
+    pages.forEach(function(p){
+      const ici = Number(p.dataset.page) === guidePage;
+      p.style.display = ici ? 'block' : 'none';
+      // La page qui arrive glisse en place, son image avec elle.
+      p.classList.remove('guide-entre');
+      if(ici){ void p.offsetWidth; p.classList.add('guide-entre'); }
+    });
     const dots = document.getElementById('guideDots');
     if(dots){
       dots.innerHTML = '';
