@@ -547,13 +547,13 @@
   // depuis un autre téléphone, ou le montrer à qui paie pour la table.
   const USSD = { mvola: '#111#', orange: '#144#', airtel: '*436#' };
   // Le code qui paie d'un coup : le transfert MVola avec le numéro de l'hôtel
-  // et la somme déjà dedans (#111*1*1*numéro*somme#, donné par l'hôtel).
+  // et la somme déjà dedans (#111*1*2*numéro*somme# : 1*2 = transfert ; 1*1 serait un achat de crédit).
   // Pour Orange Money et Airtel Money, on n'a que le menu de l'opérateur.
   function codePaiement(fomba, total) {
     let n = String(vola[fomba] || '').replace(/[^\d+]/g, '');
     if (/^\+?261/.test(n)) n = '0' + n.replace(/^\+?261/, '');
     const somme = Math.round(Number(total) || 0);
-    if (fomba === 'mvola' && /^0\d{9}$/.test(n) && somme > 0) return '#111*1*1*' + n + '*' + somme + '#';
+    if (fomba === 'mvola' && /^0\d{9}$/.test(n) && somme > 0) return '#111*1*2*' + n + '*' + somme + '#';
     return USSD[fomba];
   }
   function outilsVola(fomba, total) {
