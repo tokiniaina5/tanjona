@@ -999,17 +999,6 @@
         choisirSary(b, liste[i].id);
       } else if (b.dataset.action === 'soloy') {
         soloanaSary(b, liste[i].id, Number(b.dataset.n) || 0);
-      } else if (b.dataset.action === 'voalohany') {
-        // Cette photo devient la première : c'est elle que le client voit
-        // dans la grille du menu.
-        const l = saryDe(liste[i]);
-        const n = Number(b.dataset.n) || 0;
-        if (n > 0 && l[n]) {
-          l.unshift(l.splice(n, 1)[0]);
-          poserSarys(liste[i], l);
-          liste[i].maj = Date.now();
-          if (ecrire(liste)) rendre();
-        }
       } else if (b.dataset.action === 'tsysary') {
         if (!confirm('Esorina ve ity sarin\'i « ' + liste[i].anarana + ' » ity ?')) return;
         const l = saryDe(liste[i]);
@@ -1396,17 +1385,13 @@
           return '<div data-plat="' + p.id + '" style="display:flex; gap:0.6rem; align-items:flex-start; flex-wrap:wrap; margin-bottom:0.5rem; padding:0.6rem 0.8rem; border-radius:8px; border:1px solid var(--line);' +
               (p.misy ? '' : ' opacity:0.55;') + '">' +
             (saryDe(p).length ? '<div style="display:flex; gap:0.35rem; flex-wrap:wrap; flex-basis:100%;">' + saryDe(p).map(function (src, n) {
-              // La photo elle-même se touche pour la remplacer ; ⭐ en fait la
-              // photo de la grille du menu (la première) ; ✕ l'enlève.
+              // La photo elle-même se touche pour la remplacer ; ✕ l'enlève.
+              // La première est celle de la grille du menu.
               return '<span style="position:relative; display:inline-block;">' +
                 '<button type="button" data-action="soloy" data-id="' + p.id + '" data-n="' + n + '" title="Soloy amin\'ny sary voadika (Ctrl+V)" aria-label="Soloy amin\'ny sary voadika"' +
-                  ' style="display:block; padding:0; border:' + (n === 0 ? '2px solid var(--cyan)' : '1px solid var(--line)') + '; border-radius:8px; background:none; cursor:pointer; overflow:hidden;">' +
+                  ' style="display:block; padding:0; border:1px solid var(--line); border-radius:8px; background:none; cursor:pointer; overflow:hidden;">' +
                   '<img src="' + html(src) + '" alt="" loading="lazy" style="width:56px; height:56px; object-fit:cover; display:block;">' +
                 '</button>' +
-                (n === 0
-                  ? '<span title="Sary hita ao amin\'ny menu" style="position:absolute; bottom:-6px; left:-6px; font-size:0.75rem; line-height:1;">⭐</span>'
-                  : '<button type="button" data-action="voalohany" data-id="' + p.id + '" data-n="' + n + '" title="Ataovy sary lehibe (hita ao amin\'ny menu)" aria-label="Ataovy sary lehibe"' +
-                      ' style="position:absolute; bottom:-6px; left:-6px; width:20px; height:20px; padding:0; border-radius:50%; border:1px solid var(--line); background:var(--panel, #fff); color:var(--text); font-size:0.65rem; line-height:1; cursor:pointer; filter:grayscale(1);">⭐</button>') +
                 '<button type="button" data-action="tsysary" data-id="' + p.id + '" data-n="' + n + '" title="Esory ity sary ity" aria-label="Esory ity sary ity"' +
                   ' style="position:absolute; top:-6px; right:-6px; width:20px; height:20px; padding:0; border-radius:50%; border:1px solid var(--line); background:var(--panel, #fff); color:var(--text); font-size:0.7rem; line-height:1; cursor:pointer;">✕</button>' +
               '</span>';

@@ -64,7 +64,9 @@
   .galerie-info{ flex:0 0 auto; color:#fff; max-width:640px; width:100%; margin:12px auto 0; background:#1c262b; border:1px solid rgba(255,255,255,0.12); border-radius:14px; padding:0.8rem 1rem; max-height:40vh; overflow-y:auto; }
   .galerie-info h3{ margin:0 0 0.3rem; font-size:0.95rem; }
   .galerie-prix{ margin:0 0 0.5rem; font-weight:700; color:#7fe3ea; font-size:1.05rem; }
-  .galerie-akora{ margin:0; line-height:1.55; white-space:pre-line; }
+  .galerie-akora{ margin:0; line-height:1.55; }
+  ul.galerie-akora{ padding-left:1.2rem; }
+  ul.galerie-akora li{ margin:0.1rem 0; }
   .galerie-akora.vide{ color:rgba(255,255,255,0.6); font-style:italic; }
   .plat small{ display:block; color:var(--muted); }
   /* Les plats en grille de photos, comme une carte de restaurant : trois
@@ -387,7 +389,17 @@
       const bas = el('div', null, 'galerie-info');
       if (info.prix != null) bas.appendChild(el('p', ariary(info.prix), 'galerie-prix'));
       bas.appendChild(el('h3', '🥗 Akora · Ingrédients'));
-      bas.appendChild(el('p', info.akora || "Tsy mbola nosoratan'ny hotely ny akora.", info.akora ? 'galerie-akora' : 'galerie-akora vide'));
+      // Un akora par ligne : ce que l'hôtel a séparé par une nouvelle ligne,
+      // une virgule ou un point-virgule devient une liste.
+      const akora = String(info.akora || '').split(/[\n,;•]+/)
+        .map(function (s) { return s.trim(); }).filter(Boolean);
+      if (akora.length) {
+        const liste = el('ul', null, 'galerie-akora');
+        akora.forEach(function (a) { liste.appendChild(el('li', a)); });
+        bas.appendChild(liste);
+      } else {
+        bas.appendChild(el('p', "Tsy mbola nosoratan'ny hotely ny akora.", 'galerie-akora vide'));
+      }
       fond.appendChild(bas);
     }
     function partir() { fond.remove(); document.removeEventListener('keydown', touche); }
