@@ -169,12 +169,22 @@
         //    quelqu'un en particulier.
         '<div class="panel">' +
           '<h3>👥 Client tsirairay (WhatsApp) <span data-wa-auto style="display:none; color:var(--cyan); font-size:0.8rem;">⚡ ho azy</span></h3>' +
-          '<p style="font-size:0.78rem; color:var(--muted); line-height:1.6; margin:0 0 0.9rem;">' +
-            'Ireto ny client rehetra manana nomerao — <strong style="color:var(--text);">tsy misy fetra ny isa</strong>. ' +
-            '<span data-wa-tanana>Hisokatra tsirairay ny resaka, feno ny hafatra ; ianao no manindry « Envoyer » ao.</span>' +
-            '<span data-wa-ho-azy style="display:none;">Ny serveur no mandefa ny hafatra any amin\'ny client voamarika tsirairay, ' +
-              'tsy misy tsindriana (WhatsApp Business).</span>' +
-          '</p>' +
+          // Petite fiche d'explication : un ✕ la ferme, et elle reste fermée
+          // sur cet appareil.
+          '<div data-zr-fanazavana style="position:relative; border:1px solid var(--line); border-left:3px solid var(--cyan); ' +
+            'border-radius:8px; background:var(--panel-2); padding:0.7rem 2.2rem 0.7rem 0.9rem; margin:0 0 0.9rem;">' +
+            '<button type="button" data-zr-fanazavana-hidio aria-label="Hidio ny fanazavana" title="Hidio" ' +
+              'style="position:absolute; top:0.35rem; right:0.5rem; background:none; border:none; color:var(--muted); ' +
+              'font-size:1.1rem; line-height:1; cursor:pointer; padding:0.2rem;">✕</button>' +
+            '<div style="font-size:0.7rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--cyan); ' +
+              'font-family:var(--font-mono); margin-bottom:0.3rem;">💡 Fanazavana</div>' +
+            '<p style="font-size:0.78rem; color:var(--muted); line-height:1.6; margin:0;">' +
+              'Ireto ny client rehetra manana nomerao — <strong style="color:var(--text);">tsy misy fetra ny isa</strong>. ' +
+              '<span data-wa-tanana>Hisokatra tsirairay ny resaka, feno ny hafatra ; ianao no manindry « Envoyer » ao.</span>' +
+              '<span data-wa-ho-azy style="display:none;">Ny serveur no mandefa ny hafatra any amin\'ny client voamarika tsirairay, ' +
+                'tsy misy tsindriana (WhatsApp Business).</span>' +
+            '</p>' +
+          '</div>' +
           '<div class="field">' +
             '<label for="zrSivana">Tadiavo</label>' +
             '<input type="text" id="zrSivana" data-sivana placeholder="Anarana na nomerao" autocomplete="off">' +
@@ -496,6 +506,15 @@
     }
     bTehirizo.addEventListener('click', tehirizo);
     bEsory.addEventListener('click', function () { champOra.value = ''; tehirizo(); });
+
+    // La fiche d'explication fermée d'un ✕ ne revient pas sur cet appareil.
+    var fanazavana = page.querySelector('[data-zr-fanazavana]');
+    var FANAZAVANA_KEY = 'zr-fanazavana-hidiana';
+    try { if (localStorage.getItem(FANAZAVANA_KEY) === '1') fanazavana.style.display = 'none'; } catch (e) {}
+    page.querySelector('[data-zr-fanazavana-hidio]').addEventListener('click', function () {
+      fanazavana.style.display = 'none';
+      try { localStorage.setItem(FANAZAVANA_KEY, '1'); } catch (e) {}
+    });
 
     var boite = page.querySelector('[data-liste]');
     var vide = page.querySelector('[data-vide]');
