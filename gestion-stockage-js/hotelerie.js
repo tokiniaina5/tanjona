@@ -110,6 +110,31 @@
   // ouvert chez le patron), la photo reste dans le plat, plus petite.
   const BUCKET_SARY = 'hotelerie-sary';
   function reduireSary(fichier, cote, qualite) {
+    // Le plus rapide : le navigateur décode la photo directement à la petite
+    // taille (createImageBitmap + resizeWidth). Une photo de téléphone de
+    // 12 Mpx n'est alors jamais décodée en entier — c'était le plus long.
+    // Une seule dimension donnée : l'autre suit les proportions. Une photo
+    // en hauteur dépasse alors en haut : on la redécode par la hauteur.
+    if (window.createImageBitmap) {
+      return createImageBitmap(fichier, { resizeWidth: cote, resizeQuality: 'medium' }).then(function (bm) {
+        if (bm.height <= cote) return bm;
+        bm.close();
+        return createImageBitmap(fichier, { resizeHeight: cote, resizeQuality: 'medium' });
+      }).then(function (bm) {
+        const c = document.createElement('canvas');
+        c.width = bm.width; c.height = bm.height;
+        const g = c.getContext('2d');
+        g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+        g.drawImage(bm, 0, 0);
+        bm.close();
+        return new Promise(function (ok, ko) {
+          c.toBlob(function (b) { b ? ok({ blob: b, canvas: c }) : ko(new Error('toBlob')); }, 'image/jpeg', qualite);
+        });
+      }).catch(function () { return reduireSaryVieux(fichier, cote, qualite); });
+    }
+    return reduireSaryVieux(fichier, cote, qualite);
+  }
+  function reduireSaryVieux(fichier, cote, qualite) {
     return new Promise(function (ok, ko) {
       const url = URL.createObjectURL(fichier);
       const img = new Image();
@@ -1006,6 +1031,24 @@
     return '<button type="button" class="btn btn-sm' + (classe || '') + '" data-action="' + action + '" data-id="' + id + '"' +
       ' title="' + html(nom) + '" aria-label="' + html(nom) + '" style="width:auto; padding:0.25rem 0.55rem; font-size:1rem; line-height:1;">' + signe + '</button>';
   }
+  // Les photos choisies, montrées aussitôt dans la fiche du plat (pâles, avec
+  // ⏳) : on voit qu'elles arrivent pendant qu'elles partent en ligne.
+  function apercuSary(bouton, fichiers) {
+    const fiche = bouton.closest('[data-plat]');
+    const urls = fichiers.map(function (f) { return URL.createObjectURL(f); });
+    if (!fiche) return urls;
+    const rang = document.createElement('div');
+    rang.setAttribute('data-sary-apercu', '');
+    rang.style.cssText = 'display:flex; gap:0.35rem; flex-wrap:wrap; flex-basis:100%;';
+    rang.innerHTML = urls.map(function (u) {
+      return '<span style="position:relative; display:inline-block;">' +
+        '<img src="' + u + '" alt="" style="width:56px; height:56px; object-fit:cover; border-radius:8px; border:1px dashed var(--cyan); display:block; opacity:0.55;">' +
+        '<span style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:1rem;">⏳</span>' +
+      '</span>';
+    }).join('');
+    fiche.insertBefore(rang, fiche.firstChild);
+    return urls;
+  }
   function choisirSary(bouton, id) {
     const champ = document.createElement('input');
     champ.type = 'file';
@@ -1019,11 +1062,11 @@
       const texte = bouton.textContent;
       bouton.disabled = true;
       bouton.textContent = '⏳';
-      // Un à un : l'ordre choisi est gardé, et le réseau n'est pas noyé.
-      const adresses = [];
-      fichiers.reduce(function (suite, f) {
-        return suite.then(function () { return envoyerSary(id, f).then(function (a) { adresses.push(a); }); });
-      }, Promise.resolve()).then(function () {
+      // Les photos paraissent tout de suite, pâles, le temps de l'envoi.
+      const apercus = apercuSary(bouton, fichiers);
+      // Toutes ensemble : Promise.all garde l'ordre choisi.
+      Promise.all(fichiers.map(function (f) { return envoyerSary(id, f); })).then(function (adresses) {
+        apercus.forEach(function (u) { URL.revokeObjectURL(u); });
         const liste = lire();
         const p = liste.find(function (x) { return x.id === id; });
         if (!p) { adresses.forEach(effacerSary); return; }
@@ -1031,6 +1074,9 @@
         p.maj = Date.now();
         if (ecrire(liste)) rendre();
       }).catch(function (e) {
+        apercus.forEach(function (u) { URL.revokeObjectURL(u); });
+        const z = document.querySelector('[data-sary-apercu]');
+        if (z) z.remove();
         bouton.disabled = false;
         bouton.textContent = texte;
         alert('Tsy tafiditra ny sary' + (e && e.message ? ' : ' + e.message : '.'));
@@ -1146,8 +1192,13 @@
       const f = champ.files && champ.files[0];
       if (!f) return;
       bouton.disabled = true;
-      bouton.style.opacity = '0.5';
+      bouton.style.opacity = '0.55';
+      // La nouvelle photo prend la place tout de suite, pâle pendant l'envoi.
+      const apercu = URL.createObjectURL(f);
+      const img = bouton.querySelector('img');
+      if (img) img.src = apercu;
       envoyerSary(id, f).then(function (adresse) {
+        URL.revokeObjectURL(apercu);
         const liste = lire();
         const p = liste.find(function (x) { return x.id === id; });
         if (!p) { effacerSary(adresse); return; }
@@ -1240,7 +1291,7 @@
       if (!groupe.length) return '';
       return '<h4 style="margin:0.8rem 0 0.5rem; font-size:0.9rem;">' + html(nomSokajy(c)) + '</h4>' +
         groupe.map(function (p) {
-          return '<div style="display:flex; gap:0.6rem; align-items:flex-start; flex-wrap:wrap; margin-bottom:0.5rem; padding:0.6rem 0.8rem; border-radius:8px; border:1px solid var(--line);' +
+          return '<div data-plat="' + p.id + '" style="display:flex; gap:0.6rem; align-items:flex-start; flex-wrap:wrap; margin-bottom:0.5rem; padding:0.6rem 0.8rem; border-radius:8px; border:1px solid var(--line);' +
               (p.misy ? '' : ' opacity:0.55;') + '">' +
             (saryDe(p).length ? '<div style="display:flex; gap:0.35rem; flex-wrap:wrap; flex-basis:100%;">' + saryDe(p).map(function (src, n) {
               // La photo elle-même se touche pour la remplacer ; ⭐ en fait la
