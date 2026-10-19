@@ -584,11 +584,14 @@
       if (!boite.hidden) { boite.hidden = true; voir.textContent = '🔳 QR'; return; }
       voir.disabled = true;
       chargerQR().then(function () {
-        // Le QR paie : scanné par l'appareil photo, il ouvre le clavier du
-        // téléphone avec le code de transfert (numéro et somme compris) ;
-        // il n'y a plus qu'à appeler et taper son code secret.
+        // Le QR paie : scanné, il ouvre la page handoa.html qui montre le
+        // code de transfert (numéro et somme compris), à copier puis coller
+        // dans « Téléphone » — un iPhone refuse un code * ou # venu d'un QR —
+        // ou à appeler d'un appui sur Android.
         const code = codePaiement(fomba, total);
-        const texte = 'tel:' + encodeURIComponent(code);
+        const texte = location.origin + '/handoa.html?' + new URLSearchParams({
+          c: code, f: fomba, n: String(vola[fomba] || ''), v: String(Math.round(Number(total) || 0)), h: nomHotel
+        }).toString();
         if (window.qrcode.stringToBytesFuncs) window.qrcode.stringToBytes = window.qrcode.stringToBytesFuncs['UTF-8'];
         // « H » : le logo au milieu en cache une part, il se lit quand même.
         const qr = window.qrcode(0, 'H');
@@ -605,7 +608,7 @@
         boite.appendChild(sansTraduction(el('p', code, 'vide')));
         boite.appendChild(el('p', code === USSD[fomba]
           ? "Scanneo : misokatra ny menu " + NOM_FOMBA[fomba] + ", soraty ao ny laharana sy ny vola."
-          : "Scanneo amin'ny appareil photo : efa misy ny laharana sy ny vola, antsoy fotsiny dia ampidiro ny code miafinao.", 'vide'));
+          : "Scanneo amin'ny appareil photo : misokatra ny code (efa misy ny laharana sy ny vola). Adikao dia apetaho ao amin'ny Téléphone, na antsoy mivantana amin'ny Android.", 'vide'));
         boite.hidden = false;
         voir.textContent = '✕ QR';
       }, function () {

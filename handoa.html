@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="mg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Handoa · Ny asako</title>
+<link rel="icon" href="/icone-192.png">
+<!-- La page du QR de paiement (menu-sakafo.html). Un iPhone refuse d'ouvrir
+     un code USSD (* ou #) depuis un lien ou un QR : Apple l'interdit. Le QR
+     mène donc ici, où le code s'affiche en grand, se copie d'un appui, puis
+     se colle dans « Téléphone ». Sur Android, « 📞 Antsoy » ouvre directement
+     le clavier avec le code. Rien n'est payé ni envoyé depuis cette page. -->
+<style>
+  :root{ --bg:#f6f8f9; --card:#fff; --text:#1d2a30; --muted:#64757d; --line:#dbe3e6; --accent:#0f8a92; }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){ --bg:#0f171b; --card:#16222a; --text:#e6eef0; --muted:#8fa3aa; --line:#25343b; --accent:#4fd8e0; }
+  }
+  :root[data-theme="dark"]{ --bg:#0f171b; --card:#16222a; --text:#e6eef0; --muted:#8fa3aa; --line:#25343b; --accent:#4fd8e0; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--text); font:16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main{ max-width:480px; margin:0 auto; padding:24px 16px 40px; }
+  .carte{ background:var(--card); border:1px solid var(--line); border-radius:16px; padding:1.2rem 1.1rem; }
+  h1{ font-size:1.25rem; margin:0 0 0.2rem; }
+  .sous{ color:var(--muted); margin:0 0 1rem; font-size:0.92rem; }
+  .somme{ font-size:2rem; font-weight:800; color:var(--accent); margin:0.2rem 0 0.8rem; }
+  .ligne{ display:flex; justify-content:space-between; gap:0.8rem; padding:0.35rem 0; border-bottom:1px solid var(--line); font-size:0.95rem; }
+  .ligne span{ color:var(--muted); }
+  .code{ margin:1rem 0 0.6rem; padding:0.9rem; border:2px dashed var(--accent); border-radius:12px; text-align:center;
+    font:700 1.35rem/1.3 ui-monospace, "Cascadia Mono", Consolas, monospace; letter-spacing:0.03em; word-break:break-all; user-select:all; }
+  button, .bouton{ display:block; width:100%; text-align:center; font:inherit; font-weight:700; cursor:pointer; text-decoration:none;
+    border-radius:12px; padding:0.85rem 1rem; margin-top:0.6rem; }
+  .plein{ background:var(--accent); color:var(--card); border:2px solid var(--accent); }
+  .contour{ background:transparent; color:var(--text); border:2px solid var(--text); }
+  ol{ margin:1rem 0 0; padding-left:1.3rem; color:var(--muted); font-size:0.9rem; }
+  ol li{ margin:0.25rem 0; }
+  .erreur{ color:#e05a5a; }
+</style>
+</head>
+<body>
+<main>
+  <div class="carte" id="carte">
+    <h1 id="titre">💳 Handoa</h1>
+    <p class="sous" id="hotely"></p>
+    <p class="somme" id="somme"></p>
+    <div class="ligne"><span>Fomba</span><strong id="fomba" translate="no" class="notranslate"></strong></div>
+    <div class="ligne"><span>Laharana</span><strong id="laharana" translate="no" class="notranslate"></strong></div>
+    <div class="code notranslate" id="code" translate="no"></div>
+    <button type="button" class="plein" id="adikao">📋 Adikao ny code</button>
+    <a class="bouton contour" id="antsoy">📞 Antsoy (Android)</a>
+    <ol id="torolalana">
+      <li>Tsindrio ny <strong>📋 Adikao ny code</strong>.</li>
+      <li>Sokafy ny <strong>Téléphone</strong> → <strong>Clavier</strong>.</li>
+      <li>Tsindrio ela ny toerana misy ny laharana → <strong>Coller</strong>.</li>
+      <li>Antsoy, dia ampidiro ny <strong>code miafinao</strong>.</li>
+    </ol>
+  </div>
+</main>
+<script>
+(function () {
+  const p = new URLSearchParams(location.search);
+  const code = String(p.get('c') || '');
+  const NOMS = { mvola: 'MVola', orange: 'Orange Money', airtel: 'Airtel Money' };
+  const fomba = NOMS[p.get('f')] || 'Mobile money';
+  // Un code USSD ne contient que des chiffres, * et # : le reste est refusé,
+  // pour qu'un lien trafiqué ne fasse rien composer d'autre.
+  if (!/^[#*0-9]{3,60}$/.test(code)) {
+    document.getElementById('carte').innerHTML = '<p class="erreur">Tsy mety ity rohy ity. Scanneo indray ny QR ao amin\'ny menu.</p>';
+    return;
+  }
+  const somme = Math.round(Number(p.get('v')) || 0);
+  const hotely = String(p.get('h') || '').slice(0, 60);
+  document.getElementById('somme').textContent = somme ? somme.toLocaleString('fr-FR') + ' Ar' : '';
+  document.getElementById('hotely').textContent = hotely;
+  document.getElementById('fomba').textContent = fomba;
+  document.getElementById('laharana').textContent = String(p.get('n') || '').replace(/[^\d+ ]/g, '').slice(0, 20);
+  document.getElementById('code').textContent = code;
+  document.getElementById('antsoy').href = 'tel:' + encodeURIComponent(code);
+
+  const iphone = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  // Sur iPhone, l'appel direct ne marche pas : on cache le bouton.
+  if (iphone) document.getElementById('antsoy').style.display = 'none';
+  else document.getElementById('torolalana').firstElementChild.insertAdjacentHTML('beforebegin',
+    '<li>Android : tsindrio fotsiny ny <strong>📞 Antsoy</strong>. Raha tsy mandeha, araho ireto :</li>');
+
+  const bouton = document.getElementById('adikao');
+  bouton.addEventListener('click', function () {
+    function fait() { bouton.textContent = '✅ Voadika — apetaho ao amin\'ny Téléphone'; }
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(code).then(fait, vieux);
+    } else vieux();
+    function vieux() {
+      const t = document.createElement('textarea');
+      t.value = code; t.setAttribute('readonly', ''); t.style.position = 'fixed'; t.style.opacity = '0';
+      document.body.appendChild(t); t.select(); t.setSelectionRange(0, code.length);
+      try { document.execCommand('copy'); fait(); } catch (e) { bouton.textContent = 'Tsindrio ela ilay code ambony dia « Copier »'; }
+      t.remove();
+    }
+  });
+})();
+</script>
+</body>
+</html>
