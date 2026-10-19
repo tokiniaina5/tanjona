@@ -195,10 +195,10 @@
 
     sortie += '<div class="panel">' +
       '<div class="panneau-titre">' + html(d.entana || 'Ny entanao') + '</div>' +
-      (d.client ? '<p style="font-size:0.85rem; color:var(--muted); margin:0 0 0.6rem;">Ho an’i ' + html(d.client) + '</p>' : '') +
+      (d.client ? '<p data-fz-tsia style="font-size:0.85rem; color:var(--muted); margin:0 0 0.6rem;">Ho an’i ' + html(d.client) + '</p>' : '') +
       '<p style="font-size:1.05rem; font-weight:600; color:' + st.couleur + '; margin:0.3rem 0 0.4rem;">' +
       html(st.texte) + '</p>' +
-      '<p style="font-size:0.85rem; color:var(--muted); line-height:1.6; margin:0;">' + html(st.note) + '</p>' +
+      '<p data-fz-tsia style="font-size:0.85rem; color:var(--muted); line-height:1.6; margin:0;">' + html(st.note) + '</p>' +
       (d.livreur ? '<p style="font-size:0.85rem; margin:0.7rem 0 0;">Mpitondra : <strong style="color:var(--cyan);">' + html(d.livreur) + '</strong></p>' : '') +
       '</div>';
 
