@@ -18,13 +18,23 @@
   const CLE = 'stockmanager_hotelerie_sakafo' + SUFFIXE;
   const CLE_FAFANA = CLE + '_fafana';
   const CHAMP = 'background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:0.5rem 0.6rem; font:inherit;';
-  const SOKAJY = [
+  // Les sokajy de départ. L'hôtel peut les renommer, les ranger, en ajouter
+  // ou en retirer (✏️ à côté de « Sokajy ») : sa liste vit dans tete.sokajy,
+  // en ligne avec le reste de l'en-tête, et la page du client la lit.
+  const SOKAJY_DEFAUT = [
     ['maraina', '🌅 Sakafo maraina'],
     ['atoandro', '🍛 Sakafo atoandro'],
     ['hariva', '🌙 Sakafo hariva'],
     ['fisotro', '🥤 Zava-pisotro'],
     ['tsindrina', '🍰 Tsindrin-tsakafo']
   ];
+  function sokajyListe() {
+    const l = teteLire().sokajy;
+    const ok = Array.isArray(l) && l.length && l.every(function (s) {
+      return Array.isArray(s) && typeof s[0] === 'string' && s[0] && typeof s[1] === 'string' && s[1].trim();
+    });
+    return ok ? l : SOKAJY_DEFAUT;
+  }
 
   function lire() {
     try {
@@ -238,7 +248,7 @@
   function nouvelId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
   function ariary(n) { return Number(n || 0).toLocaleString('fr-FR') + ' Ar'; }
   function nomSokajy(c) {
-    const s = SOKAJY.find(function (x) { return x[0] === c; });
+    const s = sokajyListe().find(function (x) { return x[0] === c; });
     return s ? s[1] : c;
   }
 
@@ -831,12 +841,14 @@
           '<div class="field" style="margin-bottom:0;"><label for="sakafoAnarana">Anarana</label>' +
             '<input id="sakafoAnarana" type="text" placeholder="Ex: Romazava" value="' + html(plat ? plat.anarana : '') + '"></div>' +
           '<div class="field" style="margin-bottom:0;"><label for="sakafoSokajy">Sokajy</label>' +
-            '<select id="sakafoSokajy">' + SOKAJY.map(function (s) {
-              return '<option value="' + s[0] + '"' + (plat && plat.sokajy === s[0] ? ' selected' : '') + '>' + s[1] + '</option>';
-            }).join('') + '</select></div>' +
+            '<div style="display:flex; gap:0.35rem;">' +
+              '<select id="sakafoSokajy" style="flex:1 1 auto; min-width:0;">' + optionsSokajy(plat && plat.sokajy) + '</select>' +
+              '<button type="button" class="btn btn-sm" id="sokajyOvay" title="Ovay ny sokajy" aria-label="Ovay ny sokajy" style="width:auto; padding:0.25rem 0.55rem; font-size:1rem; line-height:1;">✏️</button>' +
+            '</div></div>' +
           '<div class="field" style="margin-bottom:0;"><label for="sakafoVidiny">Vidiny (Ar)</label>' +
             '<input id="sakafoVidiny" type="number" min="0" step="100" placeholder="Ex: 12000" value="' + html(plat ? plat.vidiny : '') + '"></div>' +
         '</div>' +
+        '<div id="sokajyMpanova" style="display:none; margin-top:0.8rem; border:1px solid var(--line); border-radius:10px; padding:0.8rem;"></div>' +
         '<div class="field" style="margin:0.6rem 0 0;"><label for="sakafoFamaritana">🥗 Akora / Ingrédients (raha misy)</label>' +
           '<input id="sakafoFamaritana" type="text" placeholder="Ex: hena kisoa, anamamy, sakamalao, vary — hita ao amin\'ny « Voir le plat »" value="' + html(plat ? plat.famaritana : '') + '"></div>' +
         champLatabatra(plat) +
@@ -868,6 +880,7 @@
       z.querySelector('#sakafoTables').style.display = e.target.checked ? 'none' : 'flex';
     });
 
+    z.querySelector('#sokajyOvay').addEventListener('click', function () { ouvrirMpanovaSokajy(z); });
     z.querySelector('#sakafoRecherche').addEventListener('input', function (e) {
       recherche = e.target.value;
       dessinerListe(z, lire());
@@ -1028,6 +1041,91 @@
     champ.click();
   }
 
+  // ---- Les sokajy de l'hôtel ----
+  function optionsSokajy(choisi) {
+    const l = sokajyListe();
+    // Un plat rangé dans un sokajy qui n'existe plus le garde, en dernier.
+    const extra = choisi && !l.some(function (s) { return s[0] === choisi; }) ? [[choisi, choisi]] : [];
+    return l.concat(extra).map(function (s) {
+      return '<option value="' + html(s[0]) + '"' + (choisi === s[0] ? ' selected' : '') + '>' + html(s[1]) + '</option>';
+    }).join('');
+  }
+  // L'éditeur s'ouvre sous le formulaire, sans le redessiner : ce qu'on y
+  // tapait pour un plat reste là. On travaille sur un brouillon, enregistré
+  // d'un coup par « 💾 Tehirizo ».
+  function ouvrirMpanovaSokajy(z) {
+    const boite = z.querySelector('#sokajyMpanova');
+    if (!boite) return;
+    if (boite.style.display !== 'none') { boite.style.display = 'none'; return; }
+    let brouillon = sokajyListe().map(function (s) { return { k: s[0], nom: s[1] }; });
+    function nbPlats(k) { return lire().filter(function (p) { return p.sokajy === k; }).length; }
+    function dessiner() {
+      boite.innerHTML =
+        '<h4 style="margin:0 0 0.6rem; font-size:0.9rem;">✏️ Ovay ny sokajy</h4>' +
+        brouillon.map(function (s, i) {
+          const n = nbPlats(s.k);
+          return '<div style="display:flex; gap:0.35rem; align-items:center; margin-bottom:0.4rem;">' +
+            '<input type="text" maxlength="40" data-sk-nom="' + i + '" value="' + html(s.nom) + '" style="flex:1 1 auto; min-width:0; ' + CHAMP + '">' +
+            '<span style="font-size:0.72rem; color:var(--muted); white-space:nowrap;">' + n + ' sakafo</span>' +
+            '<button type="button" class="btn btn-sm" data-sk-hetsika="ambony" data-sk="' + i + '" title="Ambony" aria-label="Ambony" style="width:auto; padding:0.2rem 0.45rem;"' + (i === 0 ? ' disabled' : '') + '>↑</button>' +
+            '<button type="button" class="btn btn-sm" data-sk-hetsika="ambany" data-sk="' + i + '" title="Ambany" aria-label="Ambany" style="width:auto; padding:0.2rem 0.45rem;"' + (i === brouillon.length - 1 ? ' disabled' : '') + '>↓</button>' +
+            '<button type="button" class="btn btn-sm btn-red" data-sk-hetsika="esory" data-sk="' + i + '" title="Esory" aria-label="Esory" style="width:auto; padding:0.2rem 0.45rem;"' + (brouillon.length <= 1 ? ' disabled' : '') + '>🗑️</button>' +
+          '</div>';
+        }).join('') +
+        '<div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.6rem;">' +
+          '<button type="button" class="btn btn-sm" data-sk-hetsika="ampio" style="width:auto;">＋ Sokajy vaovao</button>' +
+          '<button type="button" class="btn btn-sm btn-primary" data-sk-hetsika="tehirizo" style="width:auto;">💾 Tehirizo</button>' +
+          '<button type="button" class="btn btn-sm" data-sk-hetsika="ajanony" style="width:auto;">Ajanony</button>' +
+          '<button type="button" class="btn btn-sm" data-sk-hetsika="averina" style="width:auto;">↺ Ireo voalohany</button>' +
+        '</div>';
+    }
+    // Ce qui est tapé reste dans le brouillon, même quand la liste se redessine.
+    function relever() {
+      boite.querySelectorAll('[data-sk-nom]').forEach(function (c) { brouillon[Number(c.dataset.skNom)].nom = c.value; });
+    }
+    boite.onclick = function (e) {
+      const b = e.target.closest('[data-sk-hetsika]');
+      if (!b) return;
+      relever();
+      const i = Number(b.dataset.sk);
+      const h = b.dataset.skHetsika;
+      if (h === 'ambony' && i > 0) brouillon.splice(i - 1, 0, brouillon.splice(i, 1)[0]);
+      else if (h === 'ambany' && i < brouillon.length - 1) brouillon.splice(i + 1, 0, brouillon.splice(i, 1)[0]);
+      else if (h === 'esory' && brouillon.length > 1) {
+        const n = nbPlats(brouillon[i].k);
+        if (n && !confirm('Misy sakafo ' + n + ' ao amin\'« ' + brouillon[i].nom + ' ». Hafindra any amin\'ny sokajy voalohany izy ireo rehefa voatahiry. Esorina ve ?')) return;
+        brouillon.splice(i, 1);
+      } else if (h === 'ampio') brouillon.push({ k: 's' + nouvelId(), nom: '' });
+      else if (h === 'averina') brouillon = SOKAJY_DEFAUT.map(function (s) { return { k: s[0], nom: s[1] }; });
+      else if (h === 'ajanony') { boite.style.display = 'none'; return; }
+      else if (h === 'tehirizo') {
+        brouillon.forEach(function (s) { s.nom = s.nom.trim(); });
+        if (brouillon.some(function (s) { return !s.nom; })) { alert('Soraty ny anaran\'ny sokajy rehetra.'); return; }
+        const t = teteLire();
+        t.sokajy = brouillon.map(function (s) { return [s.k, s.nom.slice(0, 40)]; });
+        teteEcrire(t);
+        // Les plats d'un sokajy retiré passent dans le premier.
+        const cles = brouillon.map(function (s) { return s.k; });
+        const liste = lire();
+        let bouge = false;
+        liste.forEach(function (p) {
+          if (cles.indexOf(p.sokajy) < 0) { p.sokajy = cles[0]; p.maj = Date.now(); bouge = true; }
+        });
+        if (bouge) ecrire(liste);
+        const select = z.querySelector('#sakafoSokajy');
+        const avant = select.value;
+        select.innerHTML = optionsSokajy(cles.indexOf(avant) >= 0 ? avant : cles[0]);
+        boite.style.display = 'none';
+        dessinerListe(z, lire());
+        return;
+      }
+      dessiner();
+      if (h === 'ampio') { const champs = boite.querySelectorAll('[data-sk-nom]'); champs[champs.length - 1].focus(); }
+    };
+    dessiner();
+    boite.style.display = 'block';
+  }
+
   // Remplacer une photo du plat, à sa place : on en choisit une autre sur
   // l'appareil, elle prend le rang de l'ancienne, et l'ancienne s'efface.
   function soloanaSary(bouton, id, n) {
@@ -1061,7 +1159,7 @@
   // Les plats « misy » seulement, dans l'ordre des sokajy : c'est ce que le
   // client doit voir, que ce soit en texte collé ou par le lien.
   function platsVisibles(plats) {
-    const ordre = SOKAJY.map(function (s) { return s[0]; });
+    const ordre = sokajyListe().map(function (s) { return s[0]; });
     return plats.filter(function (p) { return p.misy; }).sort(function (a, b) {
       const d = ordre.indexOf(a.sokajy) - ordre.indexOf(b.sokajy);
       return d || a.anarana.localeCompare(b.anarana, 'fr');
@@ -1124,7 +1222,7 @@
       return;
     }
     // Les sokajy connus d'abord, dans leur ordre ; puis ce qui viendrait d'ailleurs.
-    const ordre = SOKAJY.map(function (s) { return s[0]; });
+    const ordre = sokajyListe().map(function (s) { return s[0]; });
     trouves.forEach(function (p) { if (ordre.indexOf(p.sokajy) < 0) ordre.push(p.sokajy); });
     boite.innerHTML = ordre.map(function (c) {
       const groupe = trouves.filter(function (p) { return p.sokajy === c; })

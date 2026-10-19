@@ -170,10 +170,13 @@
 </main>
 <script>
 (function () {
-  const SOKAJY = {
+  // Les sokajy de départ ; l'hôtel peut avoir les siens (tete.sokajy, lus
+  // par poserTete) : leurs noms et leur ordre remplacent alors ceux-ci.
+  const SOKAJY_DEFAUT = {
     maraina: '🌅 Sakafo maraina', atoandro: '🍛 Sakafo atoandro', hariva: '🌙 Sakafo hariva',
     fisotro: '🥤 Zava-pisotro', tsindrina: '🍰 Tsindrin-tsakafo'
   };
+  let SOKAJY = Object.assign({}, SOKAJY_DEFAUT);
   const boite = document.getElementById('menu');
   function ariary(n) { return Number(n || 0).toLocaleString('fr-FR') + ' Ar'; }
   function el(tag, texte, classe) {
@@ -190,7 +193,9 @@
   // l'ancien lien, qui porte en lui le menu du jour où il a été fait.
   const URL_SB = 'https://ezpsapvthujkhttbfhlr.supabase.co';
   const CLE_SB = 'sb_publishable_7YAttwKbsmxJUxn9IwR86g_9_h4ZThk';
-  const ORDRE = Object.keys(SOKAJY);
+  let ORDRE = Object.keys(SOKAJY);
+  // Un sokajy inconnu (retiré depuis) passe après les autres.
+  function rangSokajy(k) { const i = ORDRE.indexOf(k); return i < 0 ? ORDRE.length : i; }
   const params = new URLSearchParams(location.search);
   // L'hôtel du lien, retenu : l'application installée qui s'ouvrirait sans
   // lui (un écran d'accueil qui a perdu l'adresse) retrouve quand même le sien.
@@ -239,7 +244,7 @@
     return (Array.isArray(plats) ? plats : [])
       .filter(function (p) { return p && p.misy; })
       .sort(function (a, b) {
-        const d = ORDRE.indexOf(a.sokajy) - ORDRE.indexOf(b.sokajy);
+        const d = rangSokajy(a.sokajy) - rangSokajy(b.sokajy);
         return d || String(a.anarana).localeCompare(String(b.anarana), 'fr');
       })
       .map(function (p) { return [p.anarana, p.sokajy, p.vidiny, p.famaritana || '', Array.isArray(p.tables) ? p.tables : null, saryValide(p.sary), sarysValides(p)]; });
@@ -269,7 +274,7 @@
   function afficher(tous) {
     dernierRecu = tous;
     const plats = pourLaTable(tous);
-    const e = JSON.stringify(plats) + '|' + nbLatabatra + '|' + latabatraChoisie;
+    const e = JSON.stringify(plats) + '|' + nbLatabatra + '|' + latabatraChoisie + '|' + JSON.stringify(SOKAJY) + ORDRE.join(',');
     if (e === empreinte) return;
     empreinte = e;
     // Ce que le client a déjà écrit ne doit pas s'effacer au rafraîchissement.
@@ -865,6 +870,14 @@
   let nomHotel = 'Ny asako Hôtellerie';
   function poserTete(t) {
     t = t && typeof t === 'object' ? t : {};
+    // Les sokajy de l'hôtel : leurs noms, et l'ordre où il les a rangés.
+    const l = Array.isArray(t.sokajy) ? t.sokajy.filter(function (s) {
+      return Array.isArray(s) && typeof s[0] === 'string' && s[0] && typeof s[1] === 'string' && s[1].trim();
+    }) : [];
+    SOKAJY = {};
+    if (l.length) l.forEach(function (s) { SOKAJY[s[0]] = s[1].trim().slice(0, 40); });
+    else SOKAJY = Object.assign({}, SOKAJY_DEFAUT);
+    ORDRE = Object.keys(SOKAJY);
     const nomAvant = nomHotel;
     nomHotel = String(t.anarana || '').trim().slice(0, 60) || 'Ny asako Hôtellerie';
     if (nomHotel !== nomAvant) dessinerRecus();
