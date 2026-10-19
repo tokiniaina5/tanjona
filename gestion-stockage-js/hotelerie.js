@@ -1,7 +1,7 @@
 // Ny asako Hôtellerie : le menu sakafo de l'hôtel.
 //
 // Une page du menu, et dedans le menu sakafo : les plats rangés par sokajy
-// (maraina, atoandro, hariva, zava-pisotro, tsindrin-tsakafo), chacun avec son
+// (maraina, zava-pisotro, tsindrin-tsakafo — modifiables par l'hôtel), chacun avec son
 // prix et une marque « misy / lany ». Le menu se garde dans ce navigateur
 // (localStorage), et, pour le compte connecté, dans la table hotelerie_menu
 // (supabase/sql/supabase-hotelerie-menu.sql) à chaque changement : le lien
@@ -23,8 +23,6 @@
   // en ligne avec le reste de l'en-tête, et la page du client la lit.
   const SOKAJY_DEFAUT = [
     ['maraina', '🌅 Sakafo maraina'],
-    ['atoandro', '🍛 Sakafo atoandro'],
-    ['hariva', '🌙 Sakafo hariva'],
     ['fisotro', '🥤 Zava-pisotro'],
     ['tsindrina', '🍰 Tsindrin-tsakafo']
   ];
