@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="0e66f5f4">
+<meta name="ny-asako-version" content="e4fd93ab">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -34,6 +34,20 @@
 <!-- Application installable : le manifeste décrit le nom, l'icône et la façon
      de s'ouvrir ; le reste est affaire de service worker, enregistré plus bas. -->
 <link rel="manifest" href="/manifest.webmanifest">
+<!-- « /hotely » sert cette même page (_redirects) : Ny asako Hôtel, qui
+     s'installe à part avec son propre manifeste et s'ouvre sur l'Hôtellerie.
+     Avec une barre finale, les chemins relatifs de la page partiraient de
+     /hotely/ : on revient tout de suite à l'adresse sans barre. -->
+<script>
+  (function(){
+    if(!/^\/hotely\/?$/.test(location.pathname)) return;
+    if(location.pathname === '/hotely/'){ location.replace('/hotely' + location.search + location.hash); return; }
+    document.documentElement.classList.add('app-hotely');
+    document.title = 'Ny asako Hôtel';
+    var m = document.querySelector('link[rel="manifest"]');
+    if(m) m.href = '/hotely.webmanifest';
+  })();
+</script>
 <meta name="theme-color" content="#0a0d10">
 <!-- Le mode jour, avant tout le reste : posé plus tard, la page s'ouvrait
      sombre puis s'éclairait d'un coup (theme.js tient le bouton). -->
@@ -116,6 +130,12 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Ny asako">
+<script>
+  // Sur l'iPhone, le nom proposé sous l'icône est celui de l'Hôtel.
+  if(document.documentElement.classList.contains('app-hotely')){
+    document.querySelector('meta[name="apple-mobile-web-app-title"]').content = 'Ny asako Hôtel';
+  }
+</script>
 <link rel="apple-touch-icon" href="/icone-192.png">
 <!-- Sans image à sa taille exacte, iOS ouvre l'application sur un rectangle
      vide : il ne lit pas le manifeste, d'où Android tire le sien. -->
@@ -3390,7 +3410,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=617d8e4d"></script>
+<script src="gestion-stockage-js/common.js?v=fc14d91d"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=622d64e8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
@@ -3415,7 +3435,7 @@
 <script src="gestion-stockage-js/equipe.js?v=307dc2cd"></script>
 <script src="gestion-stockage-js/vue-mpiasa.js?v=1e6cfbec"></script>
 <script src="gestion-stockage-js/vue-suivi.js?v=978e31e5"></script>
-<script src="gestion-stockage-js/hotelerie.js?v=9eabcffa"></script>
+<script src="gestion-stockage-js/hotelerie.js?v=1dc3e7e2"></script>
 <script src="gestion-stockage-js/fitaovana.js?v=bf90a8a5"></script>
 <script src="gestion-stockage-js/photocopie.js?v=be4f35a5"></script>
 <script src="gestion-stockage-js/pdf.js?v=b7c1f056"></script>

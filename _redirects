@@ -35,6 +35,12 @@
 /confirmation            /ny-asako.html  200
 /confirmation/           /ny-asako.html  200
 
+# Ny asako Hôtel : l'application elle-même, sous une adresse à elle, pour
+# s'installer à part avec son nom et son manifeste (hotely.webmanifest) et
+# s'ouvrir directement sur l'Hôtellerie. Sans barre finale : les chemins
+# relatifs de la page se résolvent alors depuis la racine.
+/hotely                  /ny-asako.html  200
+
 # L'Administratif Commun est la page du Fokontany, sous une autre adresse.
 # Son manifeste et ses icônes existent vraiment, rangés sous fokontany/commun/.
 /commun                  /fokontany/index.html  200

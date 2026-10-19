@@ -685,6 +685,14 @@
   function ouvrirSurLAccueil(){
     restaurationEnCours = true;
     try{
+      // Ny asako Hôtel (/hotely) s'ouvre sur l'Hôtellerie, pas sur l'Accueil.
+      if(document.documentElement.classList.contains('app-hotely')){
+        const navHotel = document.querySelector('.nav-item[data-section="hotelerie"]');
+        if(navHotel){
+          if(!navHotel.classList.contains('active')) navHotel.click();
+          return;
+        }
+      }
       const navStock = document.querySelector('.nav-item[data-section="stock"]');
       if(navStock && !navStock.classList.contains('active')) navStock.click();
       if(typeof showDashView === 'function') showDashView('accueil');
@@ -5259,7 +5267,9 @@
     const sous = document.getElementById('bandeauInstallSous');
     const oui = document.getElementById('bandeauInstallOui');
     const non = document.getElementById('bandeauInstallNon');
-    const CLE = 'stockmanager_install_propose';
+    // Ny asako Hôtel s'installe à part : sa proposition a sa propre clé.
+    const CLE = 'stockmanager_install_propose' +
+      (document.documentElement.classList.contains('app-hotely') ? '_hotely' : '');
 
     function dejaRepondu(){
       try{ return localStorage.getItem(CLE) === 'oui'; }catch(e){ return false; }
@@ -5472,6 +5482,21 @@
       points.innerHTML = ETAPES_IOS.map(function(_, j){ return '<span' + (j === i ? ' class="ici"' : '') + '></span>'; }).join('');
     }
     window.__ouvrirGuideInstallIOS = ouvrirGuideIOS;
+
+    // Installer l'application de cette page, sur demande (bouton « 📲
+    // Installer l'app Hôtel ») : l'invitation du navigateur si on l'a, le
+    // guide sur iPhone, sinon où trouver la commande dans le navigateur.
+    window.__proposerInstallation = function(){
+      if(dejaInstallee()){ alert('Efa voapetraka ity application ity.'); return; }
+      if(invitation){
+        cacher();
+        invitation.prompt();
+        invitation.userChoice.then(function(){ invitation = null; }, function(){});
+        return;
+      }
+      if(surIOS()){ ouvrirGuideIOS(); return; }
+      alert('Sokafy ny menu an\'ny navigateur (⋮), dia safidio « Installer l\'application » na « Ajouter à l\'écran d\'accueil ».');
+    };
 
     if(oui) oui.addEventListener('click', function(){
       cacher();
