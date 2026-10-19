@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="ae4fa5ea">
+<meta name="ny-asako-version" content="479f60de">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -276,31 +276,49 @@
       </div>
     </div>
 
-    <form id="loginForm">
-      <div class="field">
-        <label for="loginName">Nom</label>
-        <input id="loginName" type="text" required placeholder="Votre nom">
+    <!-- Inscription en trois étapes : le nom, puis comment vous joindre,
+         puis le logo et le mot de passe. -->
+    <form id="loginForm" novalidate>
+      <div class="eyebrow" id="loginStepLabel" style="margin-bottom:0.8rem;">Étape 1 sur 3</div>
+
+      <div class="login-step" data-step="1">
+        <div class="field">
+          <label for="loginFirstName">Prénom</label>
+          <input id="loginFirstName" type="text" required placeholder="Votre prénom" autocomplete="given-name">
+        </div>
+        <div class="field">
+          <label for="loginLastName">Nom</label>
+          <input id="loginLastName" type="text" required placeholder="Votre nom" autocomplete="family-name">
+        </div>
       </div>
-      <div class="field">
-        <label for="loginEmail">Email</label>
-        <input id="loginEmail" type="email" required placeholder="vous@exemple.com">
+
+      <div class="login-step" data-step="2" style="display:none;">
+        <div class="field">
+          <label for="loginEmail">Email</label>
+          <input id="loginEmail" type="email" required placeholder="vous@exemple.com" autocomplete="email">
+        </div>
+        <div class="field">
+          <label for="loginPhone">Numéro de téléphone</label>
+          <input id="loginPhone" type="tel" placeholder="034 00 000 00" autocomplete="tel">
+        </div>
       </div>
-      <div class="field">
-        <label for="loginPhone">Numéro de téléphone</label>
-        <input id="loginPhone" type="tel" placeholder="034 00 000 00">
+
+      <div class="login-step" data-step="3" style="display:none;">
+        <div class="field">
+          <label for="loginLogo">Logo (image)</label>
+          <input id="loginLogo" type="file" accept="image/*">
+          <p style="font-size:0.72rem; color:var(--muted); margin-top:0.4rem;">Obligatoire uniquement à la 1ère connexion — ensuite votre nom suffit à retrouver votre logo.</p>
+        </div>
+        <div class="field">
+          <label for="loginCode">Mot de passe</label>
+          <input id="loginCode" type="password" required minlength="6" placeholder="6 caractères minimum" autocomplete="new-password">
+          <p style="font-size:0.72rem; color:var(--muted); margin-top:0.4rem;">Il est conservé chiffré sur le serveur (jamais sur cet appareil) et vous permet de vous connecter depuis n'importe quel téléphone ou ordinateur.</p>
+        </div>
       </div>
-      <div class="field">
-        <label for="loginLogo">Logo (image)</label>
-        <input id="loginLogo" type="file" accept="image/*">
-        <p style="font-size:0.72rem; color:var(--muted); margin-top:0.4rem;">Obligatoire uniquement à la 1ère connexion — ensuite votre nom suffit à retrouver votre logo.</p>
-      </div>
-      <div class="field">
-        <label for="loginCode">Mot de passe</label>
-        <input id="loginCode" type="password" required minlength="6" placeholder="6 caractères minimum" autocomplete="new-password">
-        <p style="font-size:0.72rem; color:var(--muted); margin-top:0.4rem;">Il est conservé chiffré sur le serveur (jamais sur cet appareil) et vous permet de vous connecter depuis n'importe quel téléphone ou ordinateur.</p>
-      </div>
+
       <p id="loginStatus" style="font-size:0.78rem; color:var(--amber); margin:-0.2rem 0 0.8rem; line-height:1.5;"></p>
-      <button type="submit" class="btn btn-primary">Se connecter</button>
+      <button type="submit" class="btn btn-primary" id="loginSubmitBtn">Suivant →</button>
+      <button type="button" class="btn btn-sm" id="loginPrevBtn" style="width:100%; margin-top:0.7rem; display:none;">← Retour</button>
       <button type="button" class="btn btn-sm" id="showQuickLoginBtn" style="width:100%; margin-top:0.7rem; display:none;">J’ai déjà un compte — connexion rapide</button>
     </form>
   </div>
@@ -3255,7 +3273,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=b109d0fd"></script>
+<script src="gestion-stockage-js/common.js?v=543f2dc0"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=622d64e8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>

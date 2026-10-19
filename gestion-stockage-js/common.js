@@ -3079,10 +3079,54 @@
     if(text) console.warn('[connexion] ' + text);
   }
 
+  // ---------------- INSCRIPTION EN TROIS ÉTAPES ----------------
+  // 1) prénom + nom, 2) email + téléphone, 3) logo + mot de passe.
+  // Le formulaire est en novalidate : chaque étape vérifie ses propres champs,
+  // sinon le navigateur bloquerait sur un champ caché d'une autre étape.
+  let loginStep = 1;
+  function loginFullName(){
+    const first = document.getElementById('loginFirstName').value.trim();
+    const last = document.getElementById('loginLastName').value.trim();
+    return (first + ' ' + last).trim();
+  }
+  function showLoginStep(step){
+    loginStep = step;
+    loginForm.querySelectorAll('.login-step').forEach(function(el){
+      el.style.display = Number(el.dataset.step) === step ? 'block' : 'none';
+    });
+    const label = document.getElementById('loginStepLabel');
+    if(label) label.textContent = 'Étape ' + step + ' sur 3';
+    const submitBtn = document.getElementById('loginSubmitBtn');
+    if(submitBtn) submitBtn.textContent = step === 3 ? 'Se connecter' : 'Suivant →';
+    const prevBtn = document.getElementById('loginPrevBtn');
+    if(prevBtn) prevBtn.style.display = step > 1 ? 'block' : 'none';
+    setLoginStatus('');
+    const current = loginForm.querySelector('.login-step[data-step="' + step + '"] input');
+    if(current && loginScreen.style.display !== 'none') current.focus();
+  }
+  function loginStepValid(step){
+    const inputs = loginForm.querySelectorAll('.login-step[data-step="' + step + '"] input');
+    for(let i = 0; i < inputs.length; i++){
+      if(!inputs[i].checkValidity()){ inputs[i].reportValidity(); return false; }
+    }
+    if(step === 2 && !document.getElementById('loginPhone').value.trim()){
+      const known = findProfile(loginFullName());
+      if(!known || !known.phone){ setLoginStatus('Veuillez indiquer votre numéro de téléphone.'); return false; }
+    }
+    return true;
+  }
+  const loginPrevBtn = document.getElementById('loginPrevBtn');
+  if(loginPrevBtn) loginPrevBtn.addEventListener('click', function(){
+    if(loginStep > 1) showLoginStep(loginStep - 1);
+  });
+  loginForm.addEventListener('reset', function(){ setTimeout(function(){ showLoginStep(1); }, 0); });
+
   loginForm.addEventListener('submit', function(e){
     e.preventDefault();
     setLoginStatus('');
-    const name = document.getElementById('loginName').value.trim();
+    if(!loginStepValid(loginStep)) return;
+    if(loginStep < 3){ showLoginStep(loginStep + 1); return; }
+    const name = loginFullName();
     const email = document.getElementById('loginEmail').value.trim();
     const phoneInput = document.getElementById('loginPhone').value.trim();
     const logoFile = document.getElementById('loginLogo').files[0];
@@ -3711,7 +3755,7 @@
     document.getElementById('autoNoticeModal').style.display = 'none';
     // Le champ à remplir dépend du formulaire affiché : « Bon retour » ou inscription.
     const quickVisible = quickLoginForm && quickLoginForm.style.display !== 'none';
-    const firstField = document.getElementById(quickVisible ? 'quickEmail' : 'loginName');
+    const firstField = document.getElementById(quickVisible ? 'quickEmail' : 'loginFirstName');
     if(firstField) firstField.focus();
   });
 
