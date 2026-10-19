@@ -114,6 +114,18 @@
   // (*.tif;*.pjp;*.apng…) et restait figé « Ne répond pas » de longues
   // secondes. .jfif est un JPEG (les photos enregistrées depuis le web).
   const ACCEPT_SARY = 'image/jpeg,image/png,image/webp,.jpg,.jpeg,.jfif,.png,.webp';
+  // Ouvrir le sélecteur de fichiers. Le champ est posé (caché) dans la page
+  // le temps du choix : un champ créé à la volée mais laissé hors de la page
+  // pouvait être ramassé par le navigateur pendant que la fenêtre de Windows
+  // tardait à répondre, et la photo choisie n'arrivait jamais — sans erreur.
+  function ouvrirFichier(champ) {
+    champ.style.cssText = 'position:fixed; left:-9999px; width:1px; height:1px; opacity:0;';
+    document.body.appendChild(champ);
+    function partir() { setTimeout(function () { champ.remove(); }, 0); }
+    champ.addEventListener('change', partir);
+    champ.addEventListener('cancel', partir);
+    champ.click();
+  }
   function reduireSary(fichier, cote, qualite) {
     // Le plus rapide : le navigateur décode la photo directement à la petite
     // taille (createImageBitmap + resizeWidth). Une photo de téléphone de
@@ -393,7 +405,7 @@
           alert('Tsy tafiditra ny sary' + (e && e.message ? ' : ' + e.message : '.'));
         });
       });
-      f.click();
+      ouvrirFichier(f);
     }
     sur('hotelLogo', changerLogo);
     sur('hotelLogoOvay', changerLogo);
@@ -1087,7 +1099,7 @@
         alert('Tsy tafiditra ny sary' + (e && e.message ? ' : ' + e.message : '.'));
       });
     });
-    champ.click();
+    ouvrirFichier(champ);
   }
 
   // ---- Les sokajy de l'hôtel ----
@@ -1219,7 +1231,7 @@
         alert('Tsy tafiditra ny sary' + (e && e.message ? ' : ' + e.message : '.'));
       });
     });
-    champ.click();
+    ouvrirFichier(champ);
   }
 
   // Les plats « misy » seulement, dans l'ordre des sokajy : c'est ce que le
