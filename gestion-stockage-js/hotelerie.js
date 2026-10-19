@@ -109,6 +109,11 @@
   // l'adresse, le menu reste léger à relire. Sans compte en ligne (un employé
   // ouvert chez le patron), la photo reste dans le plat, plus petite.
   const BUCKET_SARY = 'hotelerie-sary';
+  // Les types de photo acceptés, nommés un à un. « image/* » faisait ouvrir
+  // sous Windows un sélecteur qui listait tous les formats d'image connus
+  // (*.tif;*.pjp;*.apng…) et restait figé « Ne répond pas » de longues
+  // secondes. .jfif est un JPEG (les photos enregistrées depuis le web).
+  const ACCEPT_SARY = 'image/jpeg,image/png,image/webp,.jpg,.jpeg,.jfif,.png,.webp';
   function reduireSary(fichier, cote, qualite) {
     // Le plus rapide : le navigateur décode la photo directement à la petite
     // taille (createImageBitmap + resizeWidth). Une photo de téléphone de
@@ -372,7 +377,7 @@
       const bouton = z.querySelector('#hotelLogoOvay');
       const f = document.createElement('input');
       f.type = 'file';
-      f.accept = 'image/*';
+      f.accept = ACCEPT_SARY;
       f.addEventListener('change', function () {
         const fichier = f.files && f.files[0];
         if (!fichier) return;
@@ -1052,7 +1057,7 @@
   function choisirSary(bouton, id) {
     const champ = document.createElement('input');
     champ.type = 'file';
-    champ.accept = 'image/*';
+    champ.accept = ACCEPT_SARY;
     champ.multiple = true;
     champ.addEventListener('change', function () {
       const deja = (lire().find(function (x) { return x.id === id; }) || {});
@@ -1187,7 +1192,7 @@
   function soloanaSary(bouton, id, n) {
     const champ = document.createElement('input');
     champ.type = 'file';
-    champ.accept = 'image/*';
+    champ.accept = ACCEPT_SARY;
     champ.addEventListener('change', function () {
       const f = champ.files && champ.files[0];
       if (!f) return;
