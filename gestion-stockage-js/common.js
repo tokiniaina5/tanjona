@@ -685,12 +685,14 @@
   function ouvrirSurLAccueil(){
     restaurationEnCours = true;
     try{
-      // Ny asako Hôtel (/hotely) s'ouvre sur l'Hôtellerie, pas sur l'Accueil.
-      if(document.documentElement.classList.contains('app-hotely') &&
-         currentUser && currentUser.email && isOwnerEmail(currentUser.email)){
-        const navHotel = document.querySelector('.nav-item[data-section="hotelerie"]');
-        if(navHotel){
-          if(!navHotel.classList.contains('active')) navHotel.click();
+      // Ny asako Hôtel (/hotely) n'a pas de Botika : l'admin arrive sur
+      // l'Hôtellerie ; un autre compte, sur ses Paramètres (l'Hôtel n'est
+      // qu'à l'admin, et le reste de Ny asako n'est pas dans ce menu).
+      if(document.documentElement.classList.contains('app-hotely')){
+        const admin = !!(currentUser && currentUser.email && isOwnerEmail(currentUser.email));
+        const nav = document.querySelector('.nav-item[data-section="' + (admin ? 'hotelerie' : 'connexions') + '"]');
+        if(nav){
+          if(!nav.classList.contains('active')) nav.click();
           return;
         }
       }
@@ -3703,6 +3705,14 @@
   let entreeLibreAttendBienvenue = false;
 
   function ouvrirEnVisiteur(){
+    // Ny asako Hôtel n'a pas d'entrée libre : sans compte, il n'y aurait que
+    // la Botika à montrer, et elle n'est pas de cette application. On se
+    // connecte (« Bon retour »).
+    if(document.documentElement.classList.contains('app-hotely')){
+      loginScreen.style.display = 'flex';
+      showLoginMode('quick');
+      return;
+    }
     // Il n'y a rien à remplir : l'écran de connexion s'efface tout de suite,
     // même s'il faut encore attendre que le mot de bienvenue soit lu. Sinon on
     // le devine derrière, et il dit le contraire de ce qu'on est en train de

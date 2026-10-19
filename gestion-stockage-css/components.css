@@ -64,7 +64,9 @@
   html.app-hotely #navList > .nav-action:not(#menuTheme):not(#notifToggle),
   html.app-hotely #stockMainTabs [data-epingle]:not([data-epingle="section:hotelerie"]):not([data-epingle="section:wallet"]):not([data-epingle="section:mpiasa"]):not([data-epingle="section:livreur"]):not([data-epingle="section:toerana"]):not([data-epingle="section:abonnement"]):not([data-epingle="section:fond"]):not([data-epingle="section:corbeille"]):not([data-epingle="section:connexions"]):not([data-epingle="id:menuTheme"]):not([data-epingle="id:notifToggle"]),
   html.app-hotely #barComposer,
-  html.app-hotely #barAccueil{ display:none !important; }
+  html.app-hotely #barAccueil,
+  /* … ni la Botika, ni le Stock : ils sont à Ny asako. */
+  html.app-hotely #section-stock{ display:none !important; }
   /* appel vidéo : au centre de la rangée, en évidence sans être criard */
   .dash-tab-call{ color:var(--cyan); }
   .dash-tab-call:hover{ color:var(--text); }
