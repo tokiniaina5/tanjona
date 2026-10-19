@@ -837,8 +837,8 @@
           '<div class="field" style="margin-bottom:0;"><label for="sakafoVidiny">Vidiny (Ar)</label>' +
             '<input id="sakafoVidiny" type="number" min="0" step="100" placeholder="Ex: 12000" value="' + html(plat ? plat.vidiny : '') + '"></div>' +
         '</div>' +
-        '<div class="field" style="margin:0.6rem 0 0;"><label for="sakafoFamaritana">Famaritana (raha misy)</label>' +
-          '<input id="sakafoFamaritana" type="text" placeholder="Ex: hena kisoa, anamamy, vary" value="' + html(plat ? plat.famaritana : '') + '"></div>' +
+        '<div class="field" style="margin:0.6rem 0 0;"><label for="sakafoFamaritana">🥗 Akora / Ingrédients (raha misy)</label>' +
+          '<input id="sakafoFamaritana" type="text" placeholder="Ex: hena kisoa, anamamy, sakamalao, vary — hita ao amin\'ny « Voir le plat »" value="' + html(plat ? plat.famaritana : '') + '"></div>' +
         champLatabatra(plat) +
         '<div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.8rem;">' +
           '<button type="button" class="btn btn-sm btn-primary" id="sakafoTehirizo" style="width:auto;">💾 Tehirizo</button>' +
@@ -943,6 +943,19 @@
         if (ecrire(liste)) rendre();
       } else if (b.dataset.action === 'sary') {
         choisirSary(b, liste[i].id);
+      } else if (b.dataset.action === 'soloy') {
+        soloanaSary(b, liste[i].id, Number(b.dataset.n) || 0);
+      } else if (b.dataset.action === 'voalohany') {
+        // Cette photo devient la première : c'est elle que le client voit
+        // dans la grille du menu.
+        const l = saryDe(liste[i]);
+        const n = Number(b.dataset.n) || 0;
+        if (n > 0 && l[n]) {
+          l.unshift(l.splice(n, 1)[0]);
+          poserSarys(liste[i], l);
+          liste[i].maj = Date.now();
+          if (ecrire(liste)) rendre();
+        }
       } else if (b.dataset.action === 'tsysary') {
         if (!confirm('Esorina ve ity sarin\'i « ' + liste[i].anarana + ' » ity ?')) return;
         const l = saryDe(liste[i]);
@@ -1009,6 +1022,36 @@
       }).catch(function (e) {
         bouton.disabled = false;
         bouton.textContent = texte;
+        alert('Tsy tafiditra ny sary' + (e && e.message ? ' : ' + e.message : '.'));
+      });
+    });
+    champ.click();
+  }
+
+  // Remplacer une photo du plat, à sa place : on en choisit une autre sur
+  // l'appareil, elle prend le rang de l'ancienne, et l'ancienne s'efface.
+  function soloanaSary(bouton, id, n) {
+    const champ = document.createElement('input');
+    champ.type = 'file';
+    champ.accept = 'image/*';
+    champ.addEventListener('change', function () {
+      const f = champ.files && champ.files[0];
+      if (!f) return;
+      bouton.disabled = true;
+      bouton.style.opacity = '0.5';
+      envoyerSary(id, f).then(function (adresse) {
+        const liste = lire();
+        const p = liste.find(function (x) { return x.id === id; });
+        if (!p) { effacerSary(adresse); return; }
+        const l = saryDe(p);
+        const ancienne = l[n];
+        if (ancienne) l[n] = adresse; else l.push(adresse);
+        poserSarys(p, l);
+        p.maj = Date.now();
+        if (ecrire(liste)) { if (ancienne) effacerSary(ancienne); rendre(); }
+      }).catch(function (e) {
+        bouton.disabled = false;
+        bouton.style.opacity = '';
         alert('Tsy tafiditra ny sary' + (e && e.message ? ' : ' + e.message : '.'));
       });
     });
@@ -1092,8 +1135,17 @@
           return '<div style="display:flex; gap:0.6rem; align-items:flex-start; flex-wrap:wrap; margin-bottom:0.5rem; padding:0.6rem 0.8rem; border-radius:8px; border:1px solid var(--line);' +
               (p.misy ? '' : ' opacity:0.55;') + '">' +
             (saryDe(p).length ? '<div style="display:flex; gap:0.35rem; flex-wrap:wrap; flex-basis:100%;">' + saryDe(p).map(function (src, n) {
+              // La photo elle-même se touche pour la remplacer ; ⭐ en fait la
+              // photo de la grille du menu (la première) ; ✕ l'enlève.
               return '<span style="position:relative; display:inline-block;">' +
-                '<img src="' + html(src) + '" alt="" loading="lazy" style="width:56px; height:56px; object-fit:cover; border-radius:8px; border:1px solid var(--line); display:block;">' +
+                '<button type="button" data-action="soloy" data-id="' + p.id + '" data-n="' + n + '" title="Ovay ity sary ity" aria-label="Ovay ity sary ity"' +
+                  ' style="display:block; padding:0; border:' + (n === 0 ? '2px solid var(--cyan)' : '1px solid var(--line)') + '; border-radius:8px; background:none; cursor:pointer; overflow:hidden;">' +
+                  '<img src="' + html(src) + '" alt="" loading="lazy" style="width:56px; height:56px; object-fit:cover; display:block;">' +
+                '</button>' +
+                (n === 0
+                  ? '<span title="Sary hita ao amin\'ny menu" style="position:absolute; bottom:-6px; left:-6px; font-size:0.75rem; line-height:1;">⭐</span>'
+                  : '<button type="button" data-action="voalohany" data-id="' + p.id + '" data-n="' + n + '" title="Ataovy sary lehibe (hita ao amin\'ny menu)" aria-label="Ataovy sary lehibe"' +
+                      ' style="position:absolute; bottom:-6px; left:-6px; width:20px; height:20px; padding:0; border-radius:50%; border:1px solid var(--line); background:var(--panel, #fff); color:var(--text); font-size:0.65rem; line-height:1; cursor:pointer; filter:grayscale(1);">⭐</button>') +
                 '<button type="button" data-action="tsysary" data-id="' + p.id + '" data-n="' + n + '" title="Esory ity sary ity" aria-label="Esory ity sary ity"' +
                   ' style="position:absolute; top:-6px; right:-6px; width:20px; height:20px; padding:0; border-radius:50%; border:1px solid var(--line); background:var(--panel, #fff); color:var(--text); font-size:0.7rem; line-height:1; cursor:pointer;">✕</button>' +
               '</span>';

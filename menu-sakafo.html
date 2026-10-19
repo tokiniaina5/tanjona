@@ -45,7 +45,7 @@
   :root[data-theme="dark"]{ --bg:#0f171b; --card:#16222a; --text:#e6eef0; --muted:#8fa3aa; --line:#25343b; --accent:#4fd8e0; }
   *{ box-sizing:border-box; }
   body{ margin:0; background:var(--bg); color:var(--text); font:16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  main{ max-width:640px; margin:0 auto; padding:24px 16px 48px; }
+  main{ max-width:900px; margin:0 auto; padding:24px 16px 48px; }
   h1{ font-size:1.5rem; margin:0; display:flex; align-items:center; gap:0.5rem; }
   h1 img{ width:2.6rem; height:2.6rem; object-fit:cover; border-radius:10px; border:1px solid var(--line); }
   .sous{ color:var(--muted); margin:0.2rem 0 1.4rem; }
@@ -56,12 +56,38 @@
   /* Toutes les photos d'un plat, côte à côte sous son nom. */
   .sarys{ display:flex; gap:0.4rem; flex-wrap:wrap; margin:0.45rem 0 0.1rem; }
   .sarys .sary{ width:72px; height:72px; }
-  .galerie{ position:fixed; inset:0; z-index:50; background:rgba(0,0,0,0.88); display:flex; flex-direction:column; padding:16px; }
+  .galerie{ position:fixed; inset:0; z-index:50; background:rgba(0,0,0,0.95); display:flex; flex-direction:column; padding:16px; }
   .galerie-haut{ display:flex; justify-content:space-between; align-items:center; gap:0.6rem; color:#fff; margin-bottom:12px; }
   .galerie-fermer{ margin:0; color:#fff; border-color:#fff; padding:0.3rem 0.8rem; }
   .galerie-bande{ flex:1; display:flex; gap:12px; overflow-x:auto; scroll-snap-type:x mandatory; align-items:center; }
   .galerie-bande img{ flex:0 0 100%; max-height:100%; width:100%; object-fit:contain; scroll-snap-align:center; border-radius:10px; }
+  .galerie-info{ flex:0 0 auto; color:#fff; max-width:640px; width:100%; margin:12px auto 0; background:#1c262b; border:1px solid rgba(255,255,255,0.12); border-radius:14px; padding:0.8rem 1rem; max-height:40vh; overflow-y:auto; }
+  .galerie-info h3{ margin:0 0 0.3rem; font-size:0.95rem; }
+  .galerie-prix{ margin:0 0 0.5rem; font-weight:700; color:#7fe3ea; font-size:1.05rem; }
+  .galerie-akora{ margin:0; line-height:1.55; white-space:pre-line; }
+  .galerie-akora.vide{ color:rgba(255,255,255,0.6); font-style:italic; }
   .plat small{ display:block; color:var(--muted); }
+  /* Les plats en grille de photos, comme une carte de restaurant : trois
+     colonnes sur un grand écran, deux sur un téléphone. */
+  .grille-plats{ display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:16px; margin-bottom:0.6rem; }
+  @media (max-width:560px){ .grille-plats{ grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px; } }
+  .plat-carte{ display:flex; flex-direction:column; min-width:0; }
+  .plat-photo{ position:relative; display:block; width:100%; aspect-ratio:1 / 1; margin:0; padding:0; border:0; border-radius:16px; overflow:hidden;
+    background:var(--card); box-shadow:0 6px 18px rgba(0,0,0,0.14); cursor:pointer; }
+  .plat-photo img{ width:100%; height:100%; object-fit:cover; display:block; transition:transform .35s ease; }
+  .plat-photo:hover img, .plat-photo:focus-visible img{ transform:scale(1.05); }
+  .plat-voir{ position:absolute; left:50%; bottom:12px; transform:translateX(-50%); background:rgba(255,255,255,0.92); color:#2b2b2b;
+    font-size:0.75rem; padding:0.3rem 0.9rem; border-radius:999px; white-space:nowrap; opacity:0; transition:opacity .25s; }
+  .plat-photo:hover .plat-voir, .plat-photo:focus-visible .plat-voir{ opacity:1; }
+  /* Sur un écran tactile, pas de survol : le bouton reste visible. */
+  @media (hover:none){ .plat-voir{ opacity:1; } }
+  .plat-plus{ position:absolute; top:8px; right:8px; background:rgba(0,0,0,0.6); color:#fff; font-size:0.72rem; font-weight:700; border-radius:999px; padding:0.1rem 0.5rem; }
+  .plat-photo.sans-photo{ display:flex; align-items:center; justify-content:center; border:1px solid var(--line); box-shadow:none; }
+  .plat-emoji{ font-size:2.4rem; opacity:0.5; }
+  .plat-texte{ padding:0.5rem 0.15rem 0; }
+  .plat-tete{ display:flex; justify-content:space-between; align-items:baseline; gap:0.4rem; }
+  .plat-tete strong{ min-width:0; overflow-wrap:anywhere; line-height:1.3; }
+  .plat-texte small{ display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; color:var(--muted); font-size:0.8rem; margin-top:0.15rem; }
   .prix{ font-weight:700; color:var(--accent); white-space:nowrap; }
   button{ font:inherit; cursor:pointer; border:1px solid var(--accent); color:var(--accent); background:transparent; border-radius:8px; padding:0.5rem 0.9rem; margin-top:1.4rem; }
   .vide{ color:var(--muted); }
@@ -264,42 +290,48 @@
 
     const lignes = ['🏨 ' + nomHotel + ' — 🍽️ Menu sakafo'];
     let courant = null;
+    let grille = null;
     plats.forEach(function (p) {
       const anarana = String(p[0] || ''), sokajy = String(p[1] || ''), famaritana = String(p[3] || '');
       if (sokajy !== courant) {
         courant = sokajy;
         boite.appendChild(el('h2', SOKAJY[sokajy] || sokajy));
         lignes.push('', SOKAJY[sokajy] || sokajy);
+        grille = el('div', null, 'grille-plats');
+        boite.appendChild(grille);
       }
-      const ligne = el('div', null, 'plat');
+      // Une carte par plat, en grille : la grande photo d'abord, comme sur
+      // une carte de restaurant ; « Voir le plat » l'ouvre en grand, avec
+      // ses autres photos. Le nom, le prix et le compteur dessous.
+      const carte = el('div', null, 'plat-carte');
       const photos = p[6] && p[6].length ? p[6] : (p[5] ? [p[5]] : []);
-      // Une photo à gauche ; plusieurs, toutes en rang sous le nom. Chacune
-      // s'ouvre en grand d'un appui, à sa place dans la galerie.
-      function vignette(i) {
-        const cadre = el('button', null, 'sary-cadre');
-        cadre.type = 'button';
-        cadre.setAttribute('aria-label', 'Jereo ny sarin\'i ' + anarana + (photos.length > 1 ? ' (' + (i + 1) + ')' : ''));
-        const img = el('img', null, 'sary');
-        img.src = photos[i]; img.alt = ''; img.loading = 'lazy';
+      const cadre = el('button', null, 'plat-photo');
+      cadre.type = 'button';
+      cadre.setAttribute('aria-label', 'Jereo ny sakafo : ' + anarana);
+      if (photos.length) {
+        const img = el('img');
+        img.src = photos[0]; img.alt = ''; img.loading = 'lazy';
         cadre.appendChild(img);
-        cadre.addEventListener('click', function () { ouvrirGalerie(photos, anarana, i); });
-        return cadre;
+        if (photos.length > 1) cadre.appendChild(el('span', '+' + (photos.length - 1), 'plat-plus'));
+      } else {
+        cadre.classList.add('sans-photo');
+        cadre.appendChild(el('span', '🍽️', 'plat-emoji'));
       }
-      if (photos.length === 1) ligne.appendChild(vignette(0));
-      const gauche = el('div');
-      gauche.style.flex = '1 1 auto';
-      gauche.style.minWidth = '0';
-      gauche.appendChild(el('strong', anarana));
-      if (famaritana) gauche.appendChild(el('small', famaritana));
-      if (photos.length > 1) {
-        const rang = el('div', null, 'sarys');
-        photos.forEach(function (_, i) { rang.appendChild(vignette(i)); });
-        gauche.appendChild(rang);
-      }
-      if (enLigne) gauche.appendChild(compteur(anarana));
-      ligne.appendChild(gauche);
-      ligne.appendChild(el('span', ariary(p[2]), 'prix'));
-      boite.appendChild(ligne);
+      // Avec ou sans photo, « Voir le plat » montre ses akora.
+      cadre.appendChild(el('span', 'Voir le plat', 'plat-voir'));
+      cadre.addEventListener('click', function () {
+        ouvrirGalerie(photos, anarana, 0, { prix: p[2], akora: famaritana });
+      });
+      carte.appendChild(cadre);
+      const texte = el('div', null, 'plat-texte');
+      const tete = el('div', null, 'plat-tete');
+      tete.appendChild(el('strong', anarana));
+      tete.appendChild(el('span', ariary(p[2]), 'prix'));
+      texte.appendChild(tete);
+      if (famaritana) texte.appendChild(el('small', famaritana));
+      if (enLigne) texte.appendChild(compteur(anarana));
+      carte.appendChild(texte);
+      grille.appendChild(carte);
       lignes.push('• ' + anarana + ' : ' + ariary(p[2]) + (famaritana ? ' (' + famaritana + ')' : ''));
     });
 
@@ -327,7 +359,9 @@
   }
 
   // ---------- Les photos en grand ----------
-  function ouvrirGalerie(photos, titre, debut) {
+  // « Voir le plat » : les photos en grand, et dessous ce qui le compose
+  // (les akora que l'hôtel a écrits), avec le prix.
+  function ouvrirGalerie(photos, titre, debut, info) {
     const fond = el('div', null, 'galerie');
     fond.setAttribute('role', 'dialog');
     fond.setAttribute('aria-label', titre);
@@ -344,7 +378,14 @@
       i.src = src; i.alt = '';
       bande.appendChild(i);
     });
-    fond.appendChild(bande);
+    if (photos.length) fond.appendChild(bande);
+    if (info) {
+      const bas = el('div', null, 'galerie-info');
+      if (info.prix != null) bas.appendChild(el('p', ariary(info.prix), 'galerie-prix'));
+      bas.appendChild(el('h3', '🥗 Akora · Ingrédients'));
+      bas.appendChild(el('p', info.akora || "Tsy mbola nosoratan'ny hotely ny akora.", info.akora ? 'galerie-akora' : 'galerie-akora vide'));
+      fond.appendChild(bas);
+    }
     function partir() { fond.remove(); document.removeEventListener('keydown', touche); }
     function touche(e) { if (e.key === 'Escape') partir(); }
     fermer.addEventListener('click', partir);
