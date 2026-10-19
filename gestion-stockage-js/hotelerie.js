@@ -1066,13 +1066,9 @@
     fiche.insertBefore(rang, fiche.firstChild);
     return urls;
   }
+  // 📋 : la photo copiée s'ajoute au plat (copier-coller, voir apetahoSary).
   function choisirSary(bouton, id) {
-    const champ = document.createElement('input');
-    champ.type = 'file';
-    champ.accept = ACCEPT_SARY;
-    champ.multiple = true;
-    champ.addEventListener('change', function () { ajouterSarys(bouton, id, champ.files); });
-    ouvrirFichier(champ);
+    apetahoSary(bouton, function (fichiers) { ajouterSarys(bouton, id, fichiers); });
   }
   // Ajouter des photos au plat — choisies par 🖼️, ou glissées sur sa fiche
   // (quand la fenêtre « Ouvrir » de Windows reste figée, on s'en passe).
@@ -1237,11 +1233,9 @@
   // Remplacer une photo du plat, à sa place : on en choisit une autre sur
   // l'appareil, elle prend le rang de l'ancienne, et l'ancienne s'efface.
   function soloanaSary(bouton, id, n) {
-    const champ = document.createElement('input');
-    champ.type = 'file';
-    champ.accept = ACCEPT_SARY;
-    champ.addEventListener('change', function () {
-      const f = champ.files && champ.files[0];
+    apetahoSary(bouton, function (fichiers) { soloanaSaryFichier(bouton, id, n, fichiers[0]); });
+  }
+  function soloanaSaryFichier(bouton, id, n, f) {
       if (!f) return;
       bouton.disabled = true;
       bouton.style.opacity = '0.55';
@@ -1265,9 +1259,63 @@
         bouton.style.opacity = '';
         alert('Tsy tafiditra ny sary' + (e && e.message ? ' : ' + e.message : '.'));
       });
-    });
-    ouvrirFichier(champ);
   }
+
+  // ---- Coller une photo (copier-coller) ----
+  // Plus de fenêtre « Ouvrir » de Windows (elle restait figée) : on copie la
+  // photo ailleurs — « Copier l'image » dans une page, Ctrl+C sur une photo
+  // dans l'Explorateur, une capture d'écran — puis on la colle ici. Le
+  // bouton 📋 lit le presse-papiers ; s'il ne peut pas (navigateur qui
+  // refuse, fichier copié dans l'Explorateur), il attend un Ctrl+V.
+  let cibleColler = null;
+  function estSary(f) {
+    return !!f && (/^image\/(jpeg|png|webp)$/.test(f.type) || /\.(jpe?g|jfif|png|webp)$/i.test(f.name || ''));
+  }
+  function attendreColler(bouton, ensuite) {
+    if (cibleColler && cibleColler.bouton !== bouton) finirColler();
+    const texte = bouton.innerHTML;
+    bouton.innerHTML = '⌨️ Ctrl+V';
+    bouton.style.outline = '2px dashed var(--cyan)';
+    cibleColler = {
+      bouton: bouton, ensuite: ensuite,
+      remettre: function () { bouton.innerHTML = texte; bouton.style.outline = ''; },
+      minuterie: setTimeout(finirColler, 60000)
+    };
+  }
+  function finirColler() {
+    if (!cibleColler) return;
+    clearTimeout(cibleColler.minuterie);
+    if (cibleColler.bouton.isConnected) cibleColler.remettre();
+    cibleColler = null;
+  }
+  function apetahoSary(bouton, ensuite) {
+    if (!(navigator.clipboard && navigator.clipboard.read)) { attendreColler(bouton, ensuite); return; }
+    navigator.clipboard.read().then(function (elements) {
+      const lectures = [];
+      elements.forEach(function (el) {
+        const type = el.types.find(function (t) { return /^image\/(png|jpeg|webp)$/.test(t); });
+        if (type) lectures.push(el.getType(type).then(function (b) {
+          return new File([b], 'sary.' + type.split('/')[1], { type: type });
+        }));
+      });
+      if (!lectures.length) { attendreColler(bouton, ensuite); return; }
+      return Promise.all(lectures).then(function (fichiers) { finirColler(); ensuite(fichiers); });
+    }).catch(function () { attendreColler(bouton, ensuite); });
+  }
+  document.addEventListener('paste', function (e) {
+    if (!cibleColler || !cibleColler.bouton.isConnected || !e.clipboardData) return;
+    const fichiers = [].slice.call(e.clipboardData.files || []).filter(estSary);
+    if (!fichiers.length) {
+      [].forEach.call(e.clipboardData.items || [], function (it) {
+        if (it.kind === 'file') { const f = it.getAsFile(); if (estSary(f)) fichiers.push(f); }
+      });
+    }
+    if (!fichiers.length) { alert('Tsy misy sary voadika. Adikao aloha ilay sary (Ctrl+C na « Copier l\'image »).'); return; }
+    e.preventDefault();
+    const ensuite = cibleColler.ensuite;
+    finirColler();
+    ensuite(fichiers);
+  });
 
   // Les plats « misy » seulement, dans l'ordre des sokajy : c'est ce que le
   // client doit voir, que ce soit en texte collé ou par le lien.
@@ -1350,7 +1398,7 @@
               // La photo elle-même se touche pour la remplacer ; ⭐ en fait la
               // photo de la grille du menu (la première) ; ✕ l'enlève.
               return '<span style="position:relative; display:inline-block;">' +
-                '<button type="button" data-action="soloy" data-id="' + p.id + '" data-n="' + n + '" title="Ovay ity sary ity" aria-label="Ovay ity sary ity"' +
+                '<button type="button" data-action="soloy" data-id="' + p.id + '" data-n="' + n + '" title="Soloy amin\'ny sary voadika (Ctrl+V)" aria-label="Soloy amin\'ny sary voadika"' +
                   ' style="display:block; padding:0; border:' + (n === 0 ? '2px solid var(--cyan)' : '1px solid var(--line)') + '; border-radius:8px; background:none; cursor:pointer; overflow:hidden;">' +
                   '<img src="' + html(src) + '" alt="" loading="lazy" style="width:56px; height:56px; object-fit:cover; display:block;">' +
                 '</button>' +
@@ -1374,7 +1422,7 @@
               // les lecteurs d'écran.
               icone('misy', p.id, p.misy ? '✅' : '⛔', p.misy ? 'Misy (tsindrio : lany)' : 'Lany (tsindrio : misy)') +
               icone('ovay', p.id, '✏️', 'Ovay') +
-              (saryDe(p).length < SARY_MAX ? icone('sary', p.id, '🖼️', (saryDe(p).length ? 'Ampio sary' : 'Sary') + ' — na sintony eto ny sary') : '') +
+              (saryDe(p).length < SARY_MAX ? icone('sary', p.id, '📋', 'Apetaho ny sary voadika (Ctrl+V)') : '') +
               icone('esory', p.id, '🗑️', 'Esorina', ' btn-red') +
             '</div>' +
           '</div>';
