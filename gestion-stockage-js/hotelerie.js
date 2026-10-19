@@ -1071,11 +1071,21 @@
     champ.type = 'file';
     champ.accept = ACCEPT_SARY;
     champ.multiple = true;
-    champ.addEventListener('change', function () {
+    champ.addEventListener('change', function () { ajouterSarys(bouton, id, champ.files); });
+    ouvrirFichier(champ);
+  }
+  // Ajouter des photos au plat — choisies par 🖼️, ou glissées sur sa fiche
+  // (quand la fenêtre « Ouvrir » de Windows reste figée, on s'en passe).
+  function ajouterSarys(bouton, id, liste) {
       const deja = (lire().find(function (x) { return x.id === id; }) || {});
       const place = SARY_MAX - saryDe(deja).length;
-      const fichiers = [].slice.call(champ.files || []).slice(0, Math.max(0, place));
-      if (!fichiers.length) { if (place <= 0) alert('Sary ' + SARY_MAX + ' farafahabetsany isaky ny sakafo.'); return; }
+      const fichiers = [].slice.call(liste || []).filter(function (f) {
+        return /^image\/(jpeg|png|webp)$/.test(f.type) || /\.(jpe?g|jfif|png|webp)$/i.test(f.name || '');
+      }).slice(0, Math.max(0, place));
+      if (!fichiers.length) {
+        alert(place <= 0 ? 'Sary ' + SARY_MAX + ' farafahabetsany isaky ny sakafo.' : 'Tsy sary JPEG, PNG na WebP io.');
+        return;
+      }
       const texte = bouton.textContent;
       bouton.disabled = true;
       bouton.textContent = '⏳';
@@ -1098,8 +1108,33 @@
         bouton.textContent = texte;
         alert('Tsy tafiditra ny sary' + (e && e.message ? ' : ' + e.message : '.'));
       });
+  }
+  // Glisser une photo (depuis l'Explorateur, le bureau, une autre page) sur
+  // la fiche d'un plat : elle s'ajoute comme par 🖼️.
+  function brancherGlisser(boite) {
+    if (boite.dataset.glisser) return;
+    boite.dataset.glisser = '1';
+    function fiche(e) { return e.target.closest && e.target.closest('[data-plat]'); }
+    boite.addEventListener('dragover', function (e) {
+      const f = fiche(e);
+      if (!f || !e.dataTransfer || [].indexOf.call(e.dataTransfer.types || [], 'Files') < 0) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+      boite.querySelectorAll('[data-plat]').forEach(function (x) { x.style.outline = x === f ? '2px dashed var(--cyan)' : ''; });
     });
-    ouvrirFichier(champ);
+    boite.addEventListener('dragleave', function (e) {
+      const f = fiche(e);
+      if (f && !f.contains(e.relatedTarget)) f.style.outline = '';
+    });
+    boite.addEventListener('drop', function (e) {
+      const f = fiche(e);
+      if (!f) return;
+      e.preventDefault();
+      f.style.outline = '';
+      const bouton = f.querySelector('[data-action="sary"]');
+      if (!bouton) { alert('Sary ' + SARY_MAX + ' farafahabetsany isaky ny sakafo.'); return; }
+      ajouterSarys(bouton, f.dataset.plat, e.dataTransfer.files);
+    });
   }
 
   // ---- Les sokajy de l'hôtel ----
@@ -1290,6 +1325,7 @@
 
   function dessinerListe(z, plats) {
     const boite = z.querySelector('#sakafoListe');
+    brancherGlisser(boite);
     const q = recherche.trim().toLowerCase();
     const trouves = plats.filter(function (p) {
       return !q || (p.anarana + ' ' + (p.famaritana || '')).toLowerCase().indexOf(q) >= 0;
@@ -1338,7 +1374,7 @@
               // les lecteurs d'écran.
               icone('misy', p.id, p.misy ? '✅' : '⛔', p.misy ? 'Misy (tsindrio : lany)' : 'Lany (tsindrio : misy)') +
               icone('ovay', p.id, '✏️', 'Ovay') +
-              (saryDe(p).length < SARY_MAX ? icone('sary', p.id, '🖼️', saryDe(p).length ? 'Ampio sary' : 'Sary') : '') +
+              (saryDe(p).length < SARY_MAX ? icone('sary', p.id, '🖼️', (saryDe(p).length ? 'Ampio sary' : 'Sary') + ' — na sintony eto ny sary') : '') +
               icone('esory', p.id, '🗑️', 'Esorina', ' btn-red') +
             '</div>' +
           '</div>';
