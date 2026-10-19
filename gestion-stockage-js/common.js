@@ -3624,15 +3624,12 @@
   let noticeWaitsForWelcome = false;
 
   // Le mot de bienvenue est devenu un petit guide de quelques pages (essai,
-  // abonnement, inscription). Vu ou fermé une fois, il ne revient plus sur cet
-  // appareil — et l'avis « Essai gratuit » qu'il remplace non plus.
-  const GUIDE_VU_KEY = 'nyasako-guide-vu';
-  function guideDejaVu(){
-    try{ return localStorage.getItem(GUIDE_VU_KEY) === '1'; }catch(e){ return false; }
-  }
-  function marquerGuideVu(){
-    try{ localStorage.setItem(GUIDE_VU_KEY, '1'); }catch(e){}
-  }
+  // abonnement, inscription). Il s'ouvre à chaque arrivée sur le site (choix
+  // de l'utilisateur, 19/10/2026). Une fois lu, l'avis « Essai gratuit » qu'il
+  // remplace ne le répète pas dans la même visite.
+  let guideVuIci = false;
+  function guideDejaVu(){ return guideVuIci; }
+  function marquerGuideVu(){ guideVuIci = true; }
   let guidePage = 1;
   function guidePages(){
     return document.querySelectorAll('#welcomeOverlay .guide-page');
@@ -3658,7 +3655,6 @@
   }
 
   function showWelcome(){
-    if(guideDejaVu()) return;
     const box = document.getElementById('welcomeOverlay');
     if(!box) return;
     showGuidePage(1);
