@@ -6697,8 +6697,13 @@
     // « Ny momba ahy » à l'employé. On ne lit pas l'affichage de la liste du
     // menu pour le savoir — elle reste parfois filtrée d'une fois sur l'autre,
     // et l'on prendrait ce filtre pour une interdiction. La règle est redite.
+    // Ny asako Hôtel (/hotely) : la recherche ne propose que ce que son menu
+    // montre (components.css tient la même liste).
+    const HOTEL_GARDEES = ['hotelerie', 'wallet', 'mpiasa', 'livreur', 'toerana', 'abonnement', 'fond', 'corbeille', 'connexions', 'menuTheme', 'notifToggle'];
     function entreeOuverte(el){
       if(el.id === 'navStock') return false;
+      if(document.documentElement.classList.contains('app-hotely') &&
+         HOTEL_GARDEES.indexOf(el.dataset.section || el.id) < 0) return false;
       if(el.id === 'navAdmin' || el.id === 'menuInstallHotel' || el.dataset.section === 'hotelerie'){
         return !!(currentUser && currentUser.email && isOwnerEmail(currentUser.email));
       }
