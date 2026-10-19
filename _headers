@@ -17,6 +17,10 @@
   Content-Type: application/manifest+json; charset=utf-8
 
 # Le menu sakafo installable (menu-sakafo.html) : son manifeste et son worker.
+# Ny asako Hôtel, installable à part (/hotely) : son manifeste.
+/hotely.webmanifest
+  Content-Type: application/manifest+json; charset=utf-8
+
 /menu-sakafo.webmanifest
   Content-Type: application/manifest+json; charset=utf-8
 
