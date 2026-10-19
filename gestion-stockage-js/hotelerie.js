@@ -1071,9 +1071,11 @@
           '</div>';
         }).join('') +
         '<div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.6rem;">' +
-          '<button type="button" class="btn btn-sm" data-sk-hetsika="ampio" style="width:auto;">＋ Sokajy vaovao</button>' +
-          '<button type="button" class="btn btn-sm btn-primary" data-sk-hetsika="vita" style="width:auto;">✓ Vita</button>' +
-          '<button type="button" class="btn btn-sm" data-sk-hetsika="averina" style="width:auto;">↺ Ireo voalohany</button>' +
+          // Des icônes seules, comme les boutons des plats : le nom reste au
+          // survol et pour les lecteurs d'écran.
+          '<button type="button" class="btn btn-sm" data-sk-hetsika="ampio" title="Sokajy vaovao" aria-label="Sokajy vaovao" style="width:auto; padding:0.25rem 0.6rem; font-size:1rem; line-height:1;">➕</button>' +
+          '<button type="button" class="btn btn-sm btn-primary" data-sk-hetsika="vita" title="Vita" aria-label="Vita" style="width:auto; padding:0.25rem 0.6rem; font-size:1rem; line-height:1;">✅</button>' +
+          '<button type="button" class="btn btn-sm" data-sk-hetsika="averina" title="Ireo sokajy voalohany" aria-label="Ireo sokajy voalohany" style="width:auto; padding:0.25rem 0.6rem; font-size:1rem; line-height:1;">↺</button>' +
         '</div>';
     }
     // Ce qui est tapé reste dans le brouillon, même quand la liste se redessine.
