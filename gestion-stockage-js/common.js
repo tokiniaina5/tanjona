@@ -5311,10 +5311,10 @@
         if(oui) oui.hidden = false;
       }else{
         // Safari ne propose rien et n'annonce rien : le seul chemin passe par
-        // le menu de partage. Le bouton n'aurait ici rien à déclencher — on le
-        // retire, et la phrase dit où aller.
-        if(sous) sous.textContent = "Touchez Partager ⬆️ puis « Sur l'écran d'accueil ».";
-        if(oui) oui.hidden = true;
+        // le menu de partage. Le bouton ouvre ici un petit guide illustré,
+        // étape par étape, plutôt qu'une phrase à retenir.
+        if(sous) sous.textContent = "Sur iPhone, ça passe par le bouton Partager de Safari : 4 étapes.";
+        if(oui){ oui.hidden = false; oui.textContent = 'Voir comment'; }
       }
       mesurerLaRangee();
       bandeau.hidden = false;
@@ -5332,15 +5332,150 @@
       if(!invitation && !surIOS()) return;   // ailleurs, rien à proposer
       if(!applicationVisible()) return;
       prevu = true;
-      setTimeout(function(){
+      setTimeout(function essai(){
         if(dejaInstallee() || !applicationVisible()){ prevu = false; return; }
+        // Une visite « Fanazavana » ou le guide d'accueil passe devant : le
+        // bandeau, proposé une seule fois, serait caché dessous et perdu.
+        const devant = ['fzVisite', 'welcomeOverlay', 'guideInstallIOS'].some(function(id){
+          const el = document.getElementById(id);
+          return el && getComputedStyle(el).display !== 'none';
+        });
+        if(devant){ setTimeout(essai, 3000); return; }
         montrer();
       }, 5000);
     }
 
+    // ---- Le guide iPhone : quatre petites étapes illustrées, à la manière
+    // des visites MVola (boîte blanche, « 1 / 4 », Ignorer / Suivant). Les
+    // mots sont ceux qu'affiche l'iPhone, pour qu'on les retrouve à l'écran.
+    const ICONE_PARTAGE = '<path d="M0 -14 L0 4 M-6 -8 L0 -14 L6 -8" fill="none" stroke="#0a84ff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<path d="M-7 -3 H-10 V12 H10 V-3 H7" fill="none" stroke="#0a84ff" stroke-width="2.6" stroke-linejoin="round"/>';
+    const ETAPES_IOS = [
+      {
+        titre: 'Touchez « Partager »',
+        texte: 'Dans <strong>Safari</strong>, touchez le bouton <strong>Partager</strong> (le carré avec une flèche vers le haut), en bas de l\'écran. ' +
+          'Si vous ne le voyez pas, touchez d\'abord <strong>•••</strong> en bas à droite.',
+        sary: '<svg viewBox="0 0 260 120" class="ios-sary">' +
+          '<rect x="10" y="10" width="240" height="100" rx="14" fill="#f2f2f7"/>' +
+          '<rect x="22" y="22" width="216" height="26" rx="9" fill="#e3e3ea"/>' +
+          '<text x="130" y="40" text-anchor="middle" font-size="11" fill="#555">ny-asako.netlify.app</text>' +
+          '<g transform="translate(40 84)"><path d="M6 -7 L-2 0 L6 7" fill="none" stroke="#0a84ff" stroke-width="2.6" stroke-linecap="round"/></g>' +
+          '<g transform="translate(85 84)"><path d="M-6 -7 L2 0 L-6 7" fill="none" stroke="#c7c7cc" stroke-width="2.6" stroke-linecap="round"/></g>' +
+          '<circle cx="130" cy="82" r="20" fill="#0a84ff" opacity=".14" class="ios-pulse"/>' +
+          '<g transform="translate(130 82)">' + ICONE_PARTAGE + '</g>' +
+          '<g transform="translate(175 84)" fill="none" stroke="#0a84ff" stroke-width="2.2"><path d="M-8 -8 h16 v16 h-16 z"/><path d="M-4 -4 h8"/></g>' +
+          '<g transform="translate(220 84)" fill="#0a84ff"><circle cx="-7" cy="0" r="2.2"/><circle cx="0" cy="0" r="2.2"/><circle cx="7" cy="0" r="2.2"/></g>' +
+        '</svg>'
+      },
+      {
+        titre: 'Touchez « Sur l\'écran d\'accueil »',
+        texte: 'Une liste s\'ouvre. Faites-la glisser vers le haut si besoin, puis touchez <strong>Sur l\'écran d\'accueil</strong> ' +
+          '(l\'icône avec un <strong>+</strong> dans un carré).',
+        sary: '<svg viewBox="0 0 260 120" class="ios-sary">' +
+          '<rect x="10" y="6" width="240" height="108" rx="14" fill="#f2f2f7"/>' +
+          '<rect x="22" y="16" width="216" height="26" rx="8" fill="#fff"/><text x="34" y="33" font-size="11" fill="#333">Copier</text>' +
+          '<rect x="22" y="47" width="216" height="26" rx="8" fill="#fff"/><text x="34" y="64" font-size="11" fill="#333">Ajouter aux favoris</text>' +
+          '<rect x="22" y="78" width="216" height="28" rx="8" fill="#fff" stroke="#0a84ff" stroke-width="2.5" class="ios-pulse-trait"/>' +
+          '<text x="34" y="96" font-size="11.5" font-weight="700" fill="#111">Sur l\'écran d\'accueil</text>' +
+          '<g transform="translate(220 92)" fill="none" stroke="#111" stroke-width="1.8"><rect x="-8" y="-8" width="16" height="16" rx="3"/><path d="M0 -4 v8 M-4 0 h8"/></g>' +
+        '</svg>'
+      },
+      {
+        titre: 'Touchez « Ajouter »',
+        texte: 'Le nom <strong>Ny asako</strong> est déjà écrit. Touchez <strong>Ajouter</strong>, en haut à droite.',
+        sary: '<svg viewBox="0 0 260 120" class="ios-sary">' +
+          '<rect x="10" y="10" width="240" height="100" rx="14" fill="#f2f2f7"/>' +
+          '<text x="26" y="34" font-size="11.5" fill="#0a84ff">Annuler</text>' +
+          '<text x="130" y="34" text-anchor="middle" font-size="11.5" font-weight="700" fill="#111">Ajouter à l\'écran</text>' +
+          '<rect x="190" y="18" width="52" height="24" rx="12" fill="#0a84ff" opacity=".14" class="ios-pulse"/>' +
+          '<text x="216" y="34" text-anchor="middle" font-size="11.5" font-weight="700" fill="#0a84ff">Ajouter</text>' +
+          '<rect x="22" y="52" width="216" height="46" rx="10" fill="#fff"/>' +
+          '<image href="/icone-192.png" x="32" y="58" width="34" height="34"/>' +
+          '<text x="78" y="80" font-size="12" fill="#111">Ny asako</text>' +
+        '</svg>'
+      },
+      {
+        titre: 'C\'est installé',
+        texte: 'L\'icône <strong>Ny asako</strong> est sur votre écran d\'accueil. Ouvrez l\'application <strong>depuis cette icône</strong> : ' +
+          'elle s\'affiche en plein écran, comme une vraie application.',
+        sary: '<svg viewBox="0 0 260 120" class="ios-sary">' +
+          '<rect x="70" y="4" width="120" height="112" rx="18" fill="#1c1c2e"/>' +
+          '<g fill="#3a3a55"><rect x="84" y="16" width="22" height="22" rx="6"/><rect x="119" y="16" width="22" height="22" rx="6"/><rect x="154" y="16" width="22" height="22" rx="6"/>' +
+          '<rect x="84" y="50" width="22" height="22" rx="6"/><rect x="154" y="50" width="22" height="22" rx="6"/></g>' +
+          '<g class="ios-pop"><image href="/icone-192.png" x="117" y="48" width="26" height="26"/></g>' +
+          '<text x="130" y="86" text-anchor="middle" font-size="8" fill="#fff">Ny asako</text>' +
+        '</svg>'
+      }
+    ];
+
+    function ouvrirGuideIOS(){
+      let guide = document.getElementById('guideInstallIOS');
+      if(!guide){
+        guide = document.createElement('div');
+        guide.id = 'guideInstallIOS';
+        guide.setAttribute('role', 'dialog');
+        guide.setAttribute('aria-modal', 'true');
+        guide.innerHTML =
+          '<style>' +
+            '#guideInstallIOS{ position:fixed; inset:0; z-index:10060; background:rgba(0,0,0,0.62); display:flex; align-items:flex-end; justify-content:center; padding:0.8rem; }' +
+            '#guideInstallIOS .ios-boite{ width:min(480px, 100%); background:#fff; color:#111; border-radius:22px; padding:1.1rem 1.2rem 0.9rem; margin-bottom:env(safe-area-inset-bottom, 0px); font-family:var(--font-body, sans-serif); }' +
+            '#guideInstallIOS .ios-tete{ display:flex; justify-content:space-between; gap:1rem; align-items:flex-start; margin-bottom:0.5rem; }' +
+            '#guideInstallIOS .ios-titre{ font-size:1.05rem; line-height:1.3; }' +
+            '#guideInstallIOS .ios-isa{ color:#777; font-size:0.9rem; white-space:nowrap; }' +
+            '#guideInstallIOS .ios-sary{ display:block; width:100%; max-width:300px; height:auto; margin:0.2rem auto 0.7rem; }' +
+            '#guideInstallIOS .ios-texte{ font-size:0.93rem; line-height:1.55; color:#222; margin-bottom:1rem; }' +
+            '#guideInstallIOS .ios-bokotra{ display:flex; gap:0.7rem; }' +
+            '#guideInstallIOS .ios-bokotra button{ flex:1; border-radius:999px; padding:0.7rem 1rem; font-size:0.95rem; cursor:pointer; font-family:inherit; }' +
+            '#guideInstallIOS .ios-ignorer{ background:#fff; color:#111; border:2px solid #111; }' +
+            '#guideInstallIOS .ios-suivant{ background:#111; color:#fff; border:2px solid #111; }' +
+            '#guideInstallIOS .ios-points{ display:flex; justify-content:center; gap:6px; margin-top:0.8rem; }' +
+            '#guideInstallIOS .ios-points span{ width:7px; height:7px; border-radius:999px; background:#ccc; }' +
+            '#guideInstallIOS .ios-points span.ici{ width:22px; background:#111; }' +
+            '#guideInstallIOS .ios-pulse{ animation:iosPulse 1.4s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }' +
+            '#guideInstallIOS .ios-pulse-trait{ animation:iosTrait 1.4s ease-in-out infinite; }' +
+            '#guideInstallIOS .ios-pop{ animation:iosPop 1.6s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }' +
+            '@keyframes iosPulse{ 0%,100%{ transform:scale(1); opacity:.14; } 50%{ transform:scale(1.35); opacity:.3; } }' +
+            '@keyframes iosTrait{ 0%,100%{ stroke-opacity:1; } 50%{ stroke-opacity:.3; } }' +
+            '@keyframes iosPop{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.15); } }' +
+            '@media (prefers-reduced-motion: reduce){ #guideInstallIOS *{ animation:none !important; } }' +
+          '</style>' +
+          '<div class="ios-boite">' +
+            '<div class="ios-tete"><strong class="ios-titre"></strong><span class="ios-isa"></span></div>' +
+            '<div class="ios-sary-zone"></div>' +
+            '<div class="ios-texte"></div>' +
+            '<div class="ios-bokotra">' +
+              '<button type="button" class="ios-ignorer">Ignorer</button>' +
+              '<button type="button" class="ios-suivant">Suivant</button>' +
+            '</div>' +
+            '<div class="ios-points" aria-hidden="true"></div>' +
+          '</div>';
+        document.body.appendChild(guide);
+        guide.querySelector('.ios-ignorer').addEventListener('click', function(){ guide.style.display = 'none'; });
+        guide.querySelector('.ios-suivant').addEventListener('click', function(){
+          const i = Number(guide.dataset.etape || 0);
+          if(i < ETAPES_IOS.length - 1) etapeIOS(i + 1); else guide.style.display = 'none';
+        });
+      }
+      guide.style.display = 'flex';
+      etapeIOS(0);
+    }
+    function etapeIOS(i){
+      const guide = document.getElementById('guideInstallIOS');
+      const e = ETAPES_IOS[i];
+      guide.dataset.etape = i;
+      guide.querySelector('.ios-titre').textContent = e.titre;
+      guide.querySelector('.ios-isa').textContent = (i + 1) + ' / ' + ETAPES_IOS.length;
+      guide.querySelector('.ios-sary-zone').innerHTML = e.sary;
+      guide.querySelector('.ios-texte').innerHTML = e.texte;
+      guide.querySelector('.ios-suivant').textContent = i === ETAPES_IOS.length - 1 ? 'Vita' : 'Suivant';
+      const points = guide.querySelector('.ios-points');
+      points.innerHTML = ETAPES_IOS.map(function(_, j){ return '<span' + (j === i ? ' class="ici"' : '') + '></span>'; }).join('');
+    }
+    window.__ouvrirGuideInstallIOS = ouvrirGuideIOS;
+
     if(oui) oui.addEventListener('click', function(){
       cacher();
-      if(!invitation) return;
+      if(!invitation){ if(surIOS()) ouvrirGuideIOS(); return; }
       invitation.prompt();
       invitation.userChoice.then(function(){ invitation = null; }, function(){});
     });
