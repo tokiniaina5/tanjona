@@ -150,11 +150,9 @@
         ? '<button type="button" class="btn btn-primary btn-sm" data-daholo style="width:100%; margin-top:0.6rem;">' +
           '↗️ Sokafy daholo (' + aOuvrir.length + ')</button>'
         : '') +
-      '<p data-avis style="font-size:0.74rem; color:var(--muted); line-height:1.5; margin:0.7rem 0 0;"></p>' +
       '<button type="button" class="btn btn-sm" data-hidio style="width:auto; margin-top:0.6rem;">Hidio</button>';
 
     var liste = boite.querySelector('[data-liste]');
-    var avis = boite.querySelector('[data-avis]');
 
     function dessiner() {
       liste.innerHTML = lignes.map(function (l, i) {
@@ -204,25 +202,15 @@
     var bDaholo = boite.querySelector('[data-daholo]');
     if (bDaholo) {
       bDaholo.addEventListener('click', function () {
-        var refuses = 0;
+        // Pas de message après coup : ce qui n'a pas pu s'ouvrir reste
+        // dans la liste, où un appui sur son nom suffit.
         aOuvrir.forEach(function (l) {
           var fenetre = window.open(l.adresse, '_blank', 'noopener');
-          if (fenetre) l.ouvert = true; else refuses++;
+          if (fenetre) l.ouvert = true;
         });
         var copies = lignes.filter(function (l) { return l.copie; });
         copies.forEach(function (l) { prendre(l, true); });
         dessiner();
-        var mot = refuses
-          ? refuses + ' no tsy nisokatra : sakanan\'ny navigateur ny « pop-up ». ' +
-            'Tsindrio tsirairay eo ambony — tsy misy misakana izany mihitsy.'
-          : 'Nisokatra daholo. Jereo ny onglet vaovao.';
-        // Le dernier identifiant copié est celui qui est dans le presse-papier :
-        // c'est lui, et lui seul, qu'on peut coller tout de suite.
-        if (copies.length) {
-          var dernier = copies[copies.length - 1];
-          mot += ' Voadika ny anaran\'ny ' + dernier.nom.replace(/^\S+\s/, '') + ' : ' + dernier.copie + '.';
-        }
-        avis.textContent = mot;
       });
     }
 
