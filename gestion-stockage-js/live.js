@@ -1028,6 +1028,9 @@
         const type = (p.get('type') || 'video').toLowerCase() === 'audio' ? 'audio' : 'video';
         return { kind: 'call', email: call, name: p.get('name') || call, type: type };
       }
+      // Le lien « confirmation » unique : la personne choisit ensuite.
+      const rohy = (p.get('rohy') || '').trim().toLowerCase();
+      if(rohy) return { kind: 'safidy', email: rohy, name: p.get('name') || rohy };
     }catch(e){}
     return null;
   }
@@ -1040,7 +1043,49 @@
     const me = myIdentity();
     if(action.email === me.email) return; // tsy miantso ny tenany
     linkActionDone = true;
+    if(action.kind === 'safidy'){ montrerLesChoix(action); return; }
+    executerAction(action, false);
+  }
 
+  // Le lien « confirmation » de « Copier tout » : une seule adresse dans le
+  // message, et ici les boutons — entrer, rejoindre le Live, appeler en vidéo
+  // ou en audio. Le choix est un vrai toucher : l'appel peut démarrer tout de
+  // suite (la caméra le demande).
+  function montrerLesChoix(action){
+    const ancien = document.getElementById('rohySafidy');
+    if(ancien) ancien.remove();
+    const fond = document.createElement('div');
+    fond.id = 'rohySafidy';
+    fond.setAttribute('role', 'dialog');
+    fond.setAttribute('aria-modal', 'true');
+    fond.style.cssText = 'position:fixed; inset:0; z-index:9000; background:rgba(0,0,0,0.6); display:flex; ' +
+      'align-items:center; justify-content:center; padding:16px;';
+    const bokotra = function(id, ik, texte, classe){
+      return '<button type="button" class="btn ' + (classe || '') + '" data-safidy="' + id + '" style="width:100%; margin-top:0.6rem;">' +
+        ik + ' ' + texte + '</button>';
+    };
+    fond.innerHTML =
+      '<div class="panel" style="max-width:380px; width:100%; margin:0; text-align:center;">' +
+        '<div class="eyebrow">Confirmation</div>' +
+        '<h3 style="margin:0.3rem 0 0.4rem;">' + escapeHtml(action.name) + '</h3>' +
+        '<p style="font-size:0.85rem; color:var(--muted); margin:0 0 0.4rem;" data-fz-tsia>Safidio izay tianao atao.</p>' +
+        bokotra('hiditra', '✅', 'Hiditra ao amin\'ny Ny asako', 'btn-primary') +
+        bokotra('live', '🔴', 'Live direct') +
+        bokotra('video', '📹', 'Antso video') +
+        bokotra('audio', '📞', 'Antso audio') +
+      '</div>';
+    fond.addEventListener('click', function(e){
+      const b = e.target.closest('[data-safidy]');
+      if(!b && e.target !== fond) return;
+      fond.remove();
+      const s = b ? b.dataset.safidy : 'hiditra';
+      if(s === 'live') executerAction({ kind: 'live', email: action.email, name: action.name }, true);
+      else if(s === 'video' || s === 'audio') executerAction({ kind: 'call', email: action.email, name: action.name, type: s }, true);
+    });
+    document.body.appendChild(fond);
+  }
+
+  function executerAction(action, toucher){
     // Les deux ont maintenant leur propre page : un lien d'appel n'a plus de
     // raison d'ouvrir le Live, ni l'inverse.
     const nav = document.querySelector('.nav-item[data-section="' +
@@ -1048,6 +1093,8 @@
     if(nav && !nav.classList.contains('active')) nav.click();
 
     if(action.kind === 'call'){
+      // Déjà choisi d'un toucher (bouton de la confirmation) : on appelle.
+      if(toucher){ startCall(action.email, action.name, action.type); return; }
       // Antso mivantana : ny fangatahana kamera dia mitaky tsindry an-tanana,
       // ka bokotra no aseho fa tsy antso mandeha ho azy.
       showLinkActionPrompt(
@@ -1211,6 +1258,14 @@
     }
     host.insertBefore(box, host.firstChild);
     return box;
+  }
+
+  // Le lien unique « confirmation » : il mène aux boutons (montrerLesChoix).
+  function confirmationLink(){
+    const me = myIdentity();
+    const base = (typeof appShareLink === 'function') ? appShareLink() : window.location.href;
+    const sep = base.indexOf('?') >= 0 ? '&' : '?';
+    return base + sep + 'rohy=' + encodeURIComponent(me.email) + '&name=' + encodeURIComponent(me.name);
   }
 
   // Rohy antso : ny mpanjifa manokatra azy dia tonga dia manomboka antso aminao.

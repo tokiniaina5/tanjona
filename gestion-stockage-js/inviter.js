@@ -57,27 +57,16 @@
 
   // « Copier tout » : rassemble tous les liens de l'application (invitation,
   // Live, appel vidéo, appel audio) en un seul texte prêt à être partagé.
+  // Un seul lien, « confirmation » : celui qui l'ouvre y trouve les boutons
+  // (entrer, Live direct, antso video, antso audio — live.js). Quatre longues
+  // adresses dans un message ne se lisaient pas.
   function allShareLinksText(){
-    const lines = [];
-    const invite = document.getElementById('inviteLink').value;
-    lines.push('📦 Ny asako — rohy rehetra');
-    lines.push('');
-    lines.push('🔗 Fanasana (invitation) :');
-    lines.push(invite);
-    if(typeof liveJoinLink === 'function'){
-      lines.push('');
-      lines.push('🔴 Live direct :');
-      lines.push(liveJoinLink());
-    }
-    if(typeof callInviteLink === 'function'){
-      lines.push('');
-      lines.push('📹 Antso video :');
-      lines.push(callInviteLink('video'));
-      lines.push('');
-      lines.push('📞 Antso audio :');
-      lines.push(callInviteLink('audio'));
-    }
-    return lines.join('\n');
+    const lien = typeof confirmationLink === 'function'
+      ? confirmationLink() : document.getElementById('inviteLink').value;
+    return 'Ny asako\n\n' +
+      'Tsindrio ny rohy confirmation : ao ianao no misafidy, hiditra ao amin\'ny Ny asako, ' +
+      'hijery ny Live direct, na hanao antso video na audio.\n\n' +
+      'Confirmation : ' + lien;
   }
 
   function copyTextWithFallback(text){
