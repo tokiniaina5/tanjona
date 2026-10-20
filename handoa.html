@@ -32,9 +32,16 @@
   .etape h2{ font-size:0.95rem; margin:0 0 0.4rem; display:flex; gap:0.5rem; align-items:center; }
   .etape h2 b{ display:inline-flex; width:1.5rem; height:1.5rem; border-radius:50%; background:var(--accent); color:var(--card); align-items:center; justify-content:center; font-size:0.85rem; flex:0 0 auto; }
   .valeur{ display:flex; align-items:center; gap:0.5rem; }
-  .valeur code{ flex:1; padding:0.7rem 0.8rem; border:2px dashed var(--accent); border-radius:12px; text-align:center;
-    font:700 1.3rem/1.3 ui-monospace, "Cascadia Mono", Consolas, monospace; letter-spacing:0.03em; word-break:break-all; user-select:all; }
+  /* Sur une seule ligne, toujours : un code coupé (« # » seul en dessous)
+     se lit mal et se recopie de travers. La taille se réduit pour tenir
+     (ajuster(), plus bas). */
+  .valeur code{ flex:1; min-width:0; padding:0.7rem 0.6rem; border:2px dashed var(--accent); border-radius:12px; text-align:center;
+    font:700 1.3rem/1.3 ui-monospace, "Cascadia Mono", Consolas, monospace; letter-spacing:0.02em; white-space:nowrap; overflow:hidden; user-select:all; }
   .valeur button{ flex:0 0 auto; width:auto; margin:0; padding:0.7rem 0.8rem; }
+  /* Un code long prend toute la largeur ; « Adikao » passe dessous. */
+  .valeur.lava{ flex-direction:column; align-items:stretch; }
+  .valeur.lava code{ padding:0.8rem 0.4rem; letter-spacing:0; }
+  .valeur.lava button{ width:100%; }
   button, .bouton{ display:block; width:100%; text-align:center; font:inherit; font-weight:700; cursor:pointer; text-decoration:none;
     border-radius:12px; padding:0.8rem 1rem; margin-top:0.6rem; }
   .plein{ background:var(--accent); color:var(--card); border:2px solid var(--accent); }
@@ -105,13 +112,15 @@
   }
   // Une valeur en grand, avec son bouton « Adikao ».
   function valeur(texte) {
-    const v = el('div', null, 'valeur');
+    const lava = texte.length > 12;
+    const v = el('div', null, 'valeur' + (lava ? ' lava' : ''));
     const c = el('code', texte);
     c.setAttribute('translate', 'no'); c.className = 'notranslate';
-    const b = el('button', '📋', 'plein');
+    const libelle = lava ? '📋 Adikao' : '📋';
+    const b = el('button', libelle, 'plein');
     b.type = 'button';
     b.setAttribute('aria-label', 'Adikao');
-    b.addEventListener('click', function () { copier(texte, b, '📋'); });
+    b.addEventListener('click', function () { copier(texte, b, libelle); });
     v.appendChild(c); v.appendChild(b);
     return v;
   }
@@ -133,7 +142,7 @@
   // 1. Le code de l'opérateur.
   const e1 = etape(1, 'Antsoy ity code ity');
   e1.appendChild(valeur(code));
-  if (!iphone) e1.appendChild(antsoy(code, '📞 Antsoy ' + code, 'plein'));
+  if (!iphone) e1.appendChild(antsoy(code, '📞 Antsoy', 'plein'));
   e1.appendChild(el('p', iphone
     ? "iPhone : tsindrio ny 📋, sokafy ny Téléphone › Clavier, tsindrio ela › Coller, dia antsoy."
     : "Raha tsy misokatra ny 📞, tsindrio ny 📋 dia apetaho ao amin'ny Téléphone.", 'note'));
@@ -165,8 +174,24 @@
     d.appendChild(valeur(feno));
     if (!iphone) d.appendChild(antsoy(feno, '📞 Antsoy ny code haingana', 'contour'));
     d.appendChild(el('p', "Raha tsy mandeha amin'ny téléphone-nao ity, araho ny dingana 1 – " + z.children.length + " etsy ambony.", 'note'));
+    d.addEventListener('toggle', ajuster);
     z.appendChild(d);
   }
+
+  // Chaque code tient sur sa ligne : on réduit la police tant qu'il déborde.
+  function ajuster() {
+    document.querySelectorAll('.valeur code').forEach(function (c) {
+      c.style.fontSize = '';
+      let t = parseFloat(getComputedStyle(c).fontSize);
+      while (c.scrollWidth > c.clientWidth && t > 11) {
+        t -= 1;
+        c.style.fontSize = t + 'px';
+      }
+    });
+  }
+  ajuster();
+  window.addEventListener('resize', ajuster);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(ajuster);
 })();
 </script>
 </body>
