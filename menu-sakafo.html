@@ -137,6 +137,9 @@
   #recuEcran{ position:fixed; inset:0; z-index:1000; display:flex; flex-direction:column; background:var(--bg); padding:max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); gap:16px; overflow-y:auto; }
   .ecran-hafatra{ position:relative; flex:1 1 0; min-height:40vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.6rem; padding:3.5rem 1.2rem; border-radius:20px; background:rgba(47,191,113,0.15); color:#2fbf71; text-align:center; }
   .ecran-hafatra strong{ font-size:clamp(2.2rem, 9vw, 5rem); line-height:1.15; font-weight:800; }
+  /* Les photos des plats commandés, tirées du menu, au-dessus de « Vita ny sakafo ». */
+  .ecran-sarys{ display:flex; flex-wrap:wrap; justify-content:center; gap:0.8rem; margin-bottom:0.6rem; }
+  .ecran-sarys img{ width:clamp(120px, 38vw, 260px); aspect-ratio:1 / 1; object-fit:cover; border-radius:18px; box-shadow:0 6px 20px rgba(0,0,0,0.25); display:block; }
   .ecran-hafatra span{ font-size:clamp(1.5rem, 6vw, 3.2rem); line-height:1.2; font-weight:700; }
   .ecran-hidy{ position:absolute; top:0.7rem; right:0.7rem; width:3.2rem; height:3.2rem; margin:0; padding:0; border:0; border-radius:50%; background:rgba(47,191,113,0.25); color:#2fbf71; font-size:1.7rem; font-weight:700; line-height:3.2rem; cursor:pointer; }
   .recu-attente{ color:#e0a020; font-weight:600; }
@@ -294,7 +297,11 @@
   let empreinte = null;
   let dernierRecu = [];
   function afficher(tous) {
+    const avantMenu = dernierRecu;
     dernierRecu = tous;
+    // Les photos de « Vita ny sakafo » viennent du menu : arrivé après les
+    // reçus, il les redessine une fois.
+    if (!avantMenu.length && tous.length) dessinerRecus();
     const plats = pourLaTable(tous);
     const e = JSON.stringify(plats) + '|' + nbLatabatra + '|' + latabatraChoisie + '|' + JSON.stringify(SOKAJY) + ORDRE.join(',');
     if (e === empreinte) return;
@@ -832,7 +839,7 @@
       // La marque de la cuisine : envoyée, puis 🔔 sonnée en lakozia. Prête,
       // elle prend l'écran jusqu'au ✕, et le reçu n'en garde rien.
       if (r.vita) {
-        if (!r.vita_hidy) ecran.push(hafatraEcran(r, '🍳 Vita ny sakafo', 'enjoy your meal 😋', 'vita_hidy'));
+        if (!r.vita_hidy) ecran.push(hafatraEcran(r, '🍳 Vita ny sakafo', 'enjoy your meal 😋', 'vita_hidy', saryNyCommande(r)));
       } else {
         const lk = r.lakozia ? el('p', null, 'recu-lakozia tonga')
           : el('p', '⏳ Mbola alefa any an-dakozia...', 'recu-lakozia miandry');
@@ -872,8 +879,27 @@
   }
   // Un message plein écran ; son ✕ le note sur le reçu (cle), qui ne le
   // remontre plus.
-  function hafatraEcran(r, titre, sous, cle) {
+  // La première photo de chaque plat de la commande, telle que le menu la montre.
+  function saryNyCommande(r) {
+    const l = [];
+    (r.plats || []).forEach(function (p) {
+      const m = dernierRecu.find(function (x) { return x[0] === p.anarana; });
+      const src = m && ((m[6] && m[6][0]) || m[5]);
+      if (src && l.indexOf(src) < 0) l.push(src);
+    });
+    return l.slice(0, 6);
+  }
+  function hafatraEcran(r, titre, sous, cle, sarys) {
     const b = el('div', null, 'ecran-hafatra');
+    if (sarys && sarys.length) {
+      const rangee = el('div', null, 'ecran-sarys');
+      sarys.forEach(function (src) {
+        const img = el('img');
+        img.src = src; img.alt = '';
+        rangee.appendChild(img);
+      });
+      b.appendChild(rangee);
+    }
     b.appendChild(el('strong', titre));
     b.appendChild(el('span', sous));
     const hidy = el('button', '✕', 'ecran-hidy');
