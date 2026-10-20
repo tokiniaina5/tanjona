@@ -43,7 +43,7 @@
     }
     Promise.all([
       window.__sb.from('contact_channels').select('*').eq('id', 1).maybeSingle(),
-      window.__sb.from('contact_extra_channels').select('name,url').order('created_at', { ascending: true })
+      window.__sb.from('contact_extra_channels').select('id,name,url').order('created_at', { ascending: true })
     ]).then(function(results){
       const chRes = results[0], exRes = results[1];
       const channels = (chRes && chRes.data) ? chRes.data : loadContactChannelsLocal();
@@ -608,9 +608,25 @@
       return '<button type="button" data-canal="' + l.canal + '" aria-pressed="false" ' + attrs.replace('style="', 'style="background:none; border:0; padding:0; font:inherit; ') + '>' +
         carre + nom + '</button>';
     }
-    return l.lien
+    const corps = l.lien
       ? '<a href="' + escapeHtml(l.lien) + '" target="_blank" rel="noopener" ' + attrs + '>' + carre + nom + '</a>'
       : '<div ' + attrs + '>' + carre + nom + '</div>';
+    // Un canal ajouté à la main s'efface d'un ✕ (surtout quand il est faux).
+    if(!l.id) return corps;
+    return '<span style="position:relative; display:inline-flex;">' + corps +
+      '<button type="button" data-fafana="' + escapeHtml(l.id) + '" data-nom="' + escapeHtml(l.nom) + '" title="Fafana" aria-label="Fafana ' + escapeHtml(l.nom) + '" ' +
+      'style="position:absolute; top:-0.55rem; left:-0.55rem; width:1.5rem; height:1.5rem; padding:0; border-radius:50%; ' +
+      'border:2px solid var(--panel); background:#e05a5a; color:#fff; font-size:0.8rem; font-weight:700; line-height:1; cursor:pointer;">✕</button></span>';
+  }
+  function fafanaCanal(id, nom){
+    if(!window.__sb || !id) return;
+    if(!confirm('Fafana ve ny canal « ' + nom + ' » ? Tsy hitan\'ny client intsony izy.')) return;
+    window.__sb.from('contact_extra_channels').delete().eq('id', id).select('id').then(function(res){
+      if(res && res.error){ alert('Tsy voafafa : ' + (res.error.message || 'erreur')); return; }
+      if(!res || !res.data || !res.data.length){ alert('Tsy voafafa : ny admin ihany no afaka mamafa.'); return; }
+      afficherLesEnregistres();
+      renderContactButtons();
+    }, function(err){ alert('Tsy voafafa : ' + ((err && err.message) || 'réessayez')); });
   }
   function lienDuCanal(cle, valeur){
     if(cle === 'whatsapp'){ const n = toInternationalNumber(valeur); return n.length >= 8 ? 'https://wa.me/' + n : ''; }
@@ -636,7 +652,7 @@
         let lien = !item.url ? '' : /^(viber|mailto|tg|sgnl):/i.test(item.url) ? item.url : adresseDeProfil('', item.url);
         if(/\s/.test(lien)) lien = '';
         const ok = !!lien || !item.url;
-        lignes.push({ logo: logoDe(item.name, item.url), nom: item.name, lien: lien, ok: ok,
+        lignes.push({ logo: logoDe(item.name, item.url), nom: item.name, lien: lien, ok: ok, id: item.id,
           titre: lien || (item.url ? item.url + ' — à reprendre' : 'Copie du nom') });
       });
       const remplis = lignes.filter(function(l){ return !l.vide; }).length;
@@ -648,6 +664,9 @@
           ? '<p style="font-size:0.72rem; color:var(--amber); margin:0.7rem 0 0;" data-fz-tsia>⚠️ = lien à reprendre : vos clients ne le voient pas.</p>' : '');
       zone.querySelectorAll('[data-canal]').forEach(function(b){
         b.addEventListener('click', function(){ ouvrirLaCase(b.dataset.canal); });
+      });
+      zone.querySelectorAll('[data-fafana]').forEach(function(b){
+        b.addEventListener('click', function(e){ e.preventDefault(); fafanaCanal(b.dataset.fafana, b.dataset.nom); });
       });
       if(caseOuverte) marquerLogo(caseOuverte);
     });
