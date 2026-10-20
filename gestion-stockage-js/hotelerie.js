@@ -285,6 +285,25 @@
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
+  // Les icônes des boutons : de vrais dessins (SVG), pas des émojis — ceux-ci
+  // changent d'un téléphone à l'autre et se lisent mal en petit. Chacune a
+  // sa couleur ; le trait suit currentColor quand il n'en a pas.
+  const IKONA = {
+    rohy: ['#1e88e5', '<path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.5-1.5"/>'],
+    sokafy: ['#1e88e5', '<path d="M14 4h6v6"/><path d="M20 4 11 13"/><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/>'],
+    vaovao: ['#2e9e5b', '<path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/>'],
+    qr: ['currentColor', '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h4v-3"/>'],
+    hidio: ['#e05a5a', '<path d="M6 6l12 12M18 6 6 18"/>'],
+    afeno: ['#8e6bd8', '<path d="M3 3l18 18"/><path d="M10.6 5.1A10 10 0 0 1 12 5c6 0 9.5 7 9.5 7a17 17 0 0 1-3 3.9M6.6 6.6A17 17 0 0 0 2.5 12S6 19 12 19a9.6 9.6 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>'],
+    asehoy: ['#8e6bd8', '<path d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7z"/><circle cx="12" cy="12" r="3"/>'],
+    havaozina: ['#1e88e5', '<path d="M21 12a9 9 0 1 1-2.6-6.4L21 8"/><path d="M21 3v5h-5"/>'],
+  };
+  function ikona(nom) {
+    const k = IKONA[nom];
+    return '<svg class="ikona" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="' + k[0] +
+      '" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ' +
+      'style="vertical-align:-3px; margin-right:0.35rem; pointer-events:none;">' + k[1] + '</svg>';
+  }
   function nouvelId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
   // 24242 → « 24.242 MGA » : le point pour les milliers, comme le menu.
   function ariary(n) { return String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' MGA'; }
@@ -457,9 +476,9 @@
       '<div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center; justify-content:space-between;">' +
         '<strong style="font-size:0.9rem;">👨‍🍳 Lakozia</strong>' +
         '<div style="display:flex; gap:0.4rem; flex-wrap:wrap;">' +
-          '<button type="button" class="btn btn-sm" id="lakoziaAdikao" style="width:auto;">🔗 Adikao ny rohy</button>' +
-          '<button type="button" class="btn btn-sm" id="lakoziaSokafy" style="width:auto;">↗️ Sokafy</button>' +
-          '<button type="button" class="btn btn-sm" id="lakoziaOvay" style="width:auto;">♻️ Code vaovao</button>' +
+          '<button type="button" class="btn btn-sm" id="lakoziaAdikao" style="width:auto;">' + ikona('rohy') + 'Adikao ny rohy</button>' +
+          '<button type="button" class="btn btn-sm" id="lakoziaSokafy" style="width:auto;">' + ikona('sokafy') + 'Sokafy</button>' +
+          '<button type="button" class="btn btn-sm" id="lakoziaOvay" style="width:auto;">' + ikona('vaovao') + 'Code vaovao</button>' +
         '</div>' +
       '</div>' +
       '<p style="font-size:0.75rem; color:var(--muted); margin:0.5rem 0 0;">Sokafy amin\'ny téléphone na tablette ao an-dakozia ity rohy ity, dia « 📲 Installer » : miseho ao avy hatrany ny commande avy amin\'ny latabatra rehetra (misy feo), ary ny lakozia no manindry « ✅ Vita ». « ♻️ Code vaovao » : tsy mandeha intsony ny rohy taloha.</p>' +
@@ -473,7 +492,7 @@
       });
     }
     zone.querySelector('#lakoziaAdikao').addEventListener('click', function (e) {
-      const bouton = e.target;
+      const bouton = e.currentTarget;
       avecCompte(function (uid) {
         rohyLakozia(uid, false).then(function (l) { copier(l, bouton, '🔗 Adikao ny rohy'); }, function (err) { alert(err.message || err); });
       });
@@ -489,7 +508,7 @@
     });
     zone.querySelector('#lakoziaOvay').addEventListener('click', function (e) {
       if (!confirm('Hanova ny code ve ? Tsy mandeha intsony ny rohy lakozia taloha : mila omena ny vaovao ny lakozia.')) return;
-      const bouton = e.target;
+      const bouton = e.currentTarget;
       avecCompte(function (uid) {
         rohyLakozia(uid, true).then(function (l) { copier(l, bouton, '♻️ Code vaovao'); }, function (err) { alert(err.message || err); });
       });
@@ -513,8 +532,8 @@
         '<h4 style="margin:0;">🍽️ Latabatra</h4>' +
         (tableOuverte
           ? '<div style="display:flex; gap:0.4rem; flex-wrap:wrap;">' +
-              '<button type="button" class="btn btn-sm" data-qr="' + tableOuverte + '" style="width:auto;">🔳 QR T' + tableOuverte + '</button>' +
-              '<button type="button" class="btn btn-sm" data-ouvrir="0" style="width:auto;">✕ Hidio ny T' + tableOuverte + '</button>' +
+              '<button type="button" class="btn btn-sm" data-qr="' + tableOuverte + '" style="width:auto;">' + ikona('qr') + 'QR T' + tableOuverte + '</button>' +
+              '<button type="button" class="btn btn-sm" data-ouvrir="0" style="width:auto;">' + ikona('hidio') + 'Hidio ny T' + tableOuverte + '</button>' +
             '</div>'
           : '') +
       '</div>' +
@@ -825,7 +844,7 @@
           '<button type="button" class="btn btn-sm" id="latabatraTehirizo" style="width:auto;">💾 Tehirizo</button>' +
           '<div class="field" style="margin-bottom:0; flex:0 1 150px;"><label for="latabatraRohy">Rohy isaky ny latabatra</label>' +
             '<select id="latabatraRohy">' + options + '</select></div>' +
-          '<button type="button" class="btn btn-sm" id="latabatraAdikao" style="width:auto;">🔗 Adikao</button>' +
+          '<button type="button" class="btn btn-sm" id="latabatraAdikao" style="width:auto;">' + ikona('rohy') + 'Adikao</button>' +
         '</div>' +
         '<p style="font-size:0.75rem; color:var(--muted); margin:0.5rem 0 0;">Ny rohy isaky ny latabatra dia efa misafidy ny latabatra ho an\'ny mpanjifa (🔳 QR eo amin\'ny latabatra tsirairay : printy, dia apetraho eo ambony latabatra). Sokafy amin\'ny téléphone na tablette eo amin\'ilay latabatra, dia « 📲 Installer » : lasa appli « T1 », « T2 »… manokana izy.</p>' +
       '</div>' +
@@ -838,8 +857,8 @@
             ? 'T' + tableOuverte + ' : ' + (enAttente[tableOuverte] || 0) + ' commande mbola tsy vita'
             : nbVaovao + ' commande mbola tsy vita') + '</strong>' +
           '<div style="display:flex; gap:0.4rem; flex-wrap:wrap;">' +
-            '<button type="button" class="btn btn-sm" id="commandesVita" style="width:auto;">' + (voirVita ? '🙈 Afeno ny vita taloha' : '👁️ Asehoy ny vita taloha') + '</button>' +
-            '<button type="button" class="btn btn-sm" id="commandesHavaozina" style="width:auto;">🔄 Havaozina</button>' +
+            '<button type="button" class="btn btn-sm" id="commandesVita" style="width:auto;">' + (voirVita ? ikona('afeno') + 'Afeno ny vita taloha' : ikona('asehoy') + 'Asehoy ny vita taloha') + '</button>' +
+            '<button type="button" class="btn btn-sm" id="commandesHavaozina" style="width:auto;">' + ikona('havaozina') + 'Havaozina</button>' +
           '</div>' +
         '</div>' +
         (etatCommandes ? '<p class="empty-hint" style="margin:0.8rem 0 0;">' + html(etatCommandes) + '</p>' : '') +
@@ -851,7 +870,7 @@
           return '<div style="margin-top:1rem; border:1px solid var(--cyan); border-radius:10px; padding:0.7rem 0.8rem;">' +
             '<div style="display:flex; justify-content:space-between; gap:0.5rem; flex-wrap:wrap; align-items:center;">' +
               '<h4 style="margin:0; font-size:1rem;">🍽️ T' + t + '</h4>' +
-              '<button type="button" class="btn btn-sm" data-qr="' + t + '" style="width:auto;">🔳 QR</button>' +
+              '<button type="button" class="btn btn-sm" data-qr="' + t + '" style="width:auto;">' + ikona('qr') + 'QR</button>' +
               (reste ? '<strong style="color:var(--cyan); font-size:0.88rem;">' + ariary(reste) + '</strong>' : '') +
               (tsyVoaloa ? '<span style="font-size:0.78rem; color:#ffb020;">💳 Tsy voaloa : ' + ariary(tsyVoaloa) + '</span>' : '') +
             '</div>' +
@@ -936,7 +955,7 @@
     });
     zone.querySelector('#latabatraAdikao').addEventListener('click', function (e) {
       const n = zone.querySelector('#latabatraRohy').value;
-      const bouton = e.target;
+      const bouton = e.currentTarget;
       function donner(uid) {
         if (!uid) { alert('Midira ao amin\'ny kaontinao aloha.'); return; }
         copier(rohyLatabatra(uid, n), bouton, '🔗 Adikao');
@@ -1520,9 +1539,12 @@
     return location.origin + '/menu-sakafo.html#m=' + code;
   }
   function copier(texte, bouton, libelle) {
+    // Le bouton reprend ensuite son dessin d'avant (icône comprise).
+    const avant = bouton.dataset.avant || bouton.innerHTML || html(libelle);
+    bouton.dataset.avant = avant;
     function fait() {
       bouton.textContent = '✅ Voadika';
-      setTimeout(function () { bouton.textContent = libelle; }, 1800);
+      setTimeout(function () { bouton.innerHTML = avant; delete bouton.dataset.avant; }, 1800);
     }
     if (navigator.clipboard && window.isSecureContext) {
       navigator.clipboard.writeText(texte).then(fait, function () { copierVieux(texte); fait(); });
