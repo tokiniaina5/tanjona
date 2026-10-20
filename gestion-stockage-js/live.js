@@ -251,7 +251,8 @@
         const o = olona[Number(btn.getAttribute('data-i'))];
         if(!o) return;
         const safidy = [];
-        if(o.online && o.email){
+        // Ao foana ny resaka ao anaty appli : tonga raha miditra ilay olona.
+        if(o.email){
           safidy.push({ label: '💬 Hafatra mivantana (ao anaty appli)', color: 'var(--cyan)', run: function(){ sokafyResaka(o.email, o.name); } });
         }
         if(o.phone){
