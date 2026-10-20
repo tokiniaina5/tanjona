@@ -209,7 +209,14 @@
           // Même règle pour un canal ajouté à la main : « web.telegram.org »
           // ouvre le Telegram du client, pas le vôtre.
           const propre = adresseDeProfil('', value);
-          if(propre) voice.push({ label: item.name, color: 'var(--cyan)', run: openUrl(propre) });
+          // Un nom avec une espace (« t.me/tokiniaina tanjona ») n'ouvre personne.
+          if(propre && !/\s/.test(propre)) voice.push({ label: item.name, color: 'var(--cyan)', run: openUrl(propre) });
+          return;
+        }
+        // viber://, mailto: : un lien d'application, à ouvrir tel quel — et
+        // non un numéro à composer, malgré les chiffres qu'il contient.
+        if(/^(viber|mailto|tg|sgnl):/i.test(value)){
+          voice.push({ label: item.name, color: 'var(--cyan)', run: openUrl(value) });
           return;
         }
         const digits = value.replace(/[^\d]/g, '');
@@ -534,12 +541,59 @@
           return;
         }
         status.textContent = 'Enregistré ✓ Visible par tous vos clients.';
+        afficherLesEnregistres();
       }, function(err){
         renderContactButtons();
         status.textContent = "Échec de l'enregistrement serveur : " + ((err && err.message) || 'réessayez');
       });
     });
   }
+
+  // ---------------- CE QUI EST ENREGISTRÉ ----------------
+  // Sous « Enregistrer », la liste de tous les canaux tels que le serveur les
+  // garde — ceux des cases et ceux ajoutés à la main — chacun avec le lien
+  // que le client ouvrira, à toucher pour l'essayer.
+  const NOMS_CANAUX = { whatsapp: ['💬', 'WhatsApp'], facebook: ['📘', 'Facebook'], instagram: ['📸', 'Instagram'],
+    tiktok: ['🎵', 'TikTok'], threads: ['🧵', 'Threads'], twitter: ['✖️', 'X (Twitter)'], wechat: ['💚', 'WeChat'] };
+  function lienDuCanal(cle, valeur){
+    if(cle === 'whatsapp'){ const n = toInternationalNumber(valeur); return n.length >= 8 ? 'https://wa.me/' + n : ''; }
+    if(cle === 'wechat') return '';
+    return adresseDeProfil(cle, valeur);
+  }
+  function afficherLesEnregistres(){
+    const zone = document.getElementById('contactEnregistres');
+    if(!zone) return;
+    fetchContactChannels(function(channels, extra){
+      const lignes = [];
+      Object.keys(NOMS_CANAUX).forEach(function(cle){
+        const v = String((channels && channels[cle]) || '').trim();
+        if(!v) return;
+        const lien = lienDuCanal(cle, v);
+        lignes.push({ ik: NOMS_CANAUX[cle][0], nom: NOMS_CANAUX[cle][1], lien: lien,
+          texte: lien || (cle === 'wechat' ? 'ID : ' + v : v), ok: !!lien || cle === 'wechat' });
+      });
+      (extra || []).forEach(function(item){
+        if(!item || !item.name) return;
+        let lien = !item.url ? '' : /^(viber|mailto|tg|sgnl):/i.test(item.url) ? item.url : adresseDeProfil('', item.url);
+        if(/\s/.test(lien)) lien = '';
+        lignes.push({ ik: '🔗', nom: item.name, lien: lien, texte: lien || item.url || '(copie du nom)', ok: !!lien || !item.url });
+      });
+      if(!lignes.length){ zone.innerHTML = ''; return; }
+      zone.innerHTML =
+        '<div style="font-size:0.8rem; font-weight:600; margin-bottom:0.4rem;">Vos canaux enregistrés (' + lignes.length + ')</div>' +
+        '<div style="display:grid; gap:0.35rem;">' +
+        lignes.map(function(l){
+          const cible = l.lien
+            ? '<a href="' + escapeHtml(l.lien) + '" target="_blank" rel="noopener" style="color:var(--cyan); word-break:break-all;">' + escapeHtml(l.texte) + '</a>'
+            : '<span style="color:' + (l.ok ? 'var(--muted)' : 'var(--amber)') + '; word-break:break-all;">' + escapeHtml(l.texte) + '</span>';
+          return '<div style="display:flex; gap:0.6rem; align-items:baseline; padding:0.45rem 0.6rem; border:1px solid var(--line); border-radius:10px; font-size:0.78rem;">' +
+            '<span>' + l.ik + '</span><strong style="flex:0 0 auto; min-width:6.5rem;">' + escapeHtml(l.nom) + '</strong>' +
+            '<span style="flex:1 1 auto; min-width:0;">' + cible + (l.ok ? '' : ' — à reprendre') + '</span></div>';
+        }).join('') +
+        '</div>';
+    });
+  }
+  afficherLesEnregistres();
 
   // ---------------- LE LIEN SE FAIT TOUT SEUL ----------------
   // On écrit son nom ou son numéro ; l'adresse se construit, et se montre
@@ -638,6 +692,12 @@
       return { lien: examen.valeur, souci: examen.souci };
     }
     if(!lien) return { lien: '', souci: r.champ.toLowerCase() + ' à vérifier' };
+    // Un nom d'utilisateur ne porte pas d'espace : « tokiniaina tanjona »
+    // donnait « t.me/tokiniaina tanjona », qui n'ouvre personne.
+    if(/\s/.test(lien)){
+      return { lien: '', souci: 'un nom d\'utilisateur s\'écrit sans espace (ex. ' +
+        v.replace(/^@/, '').trim().replace(/\s+/g, '_') + ') : recopiez-le tel que ' + r.nom + ' l\'affiche.' };
+    }
     return { lien: lien, souci: '' };
   }
   function majAjout(){
@@ -683,6 +743,7 @@
         list.push({ name: name, url: url });
         saveContactExtraLocal(list);
         renderContactButtons();
+        afficherLesEnregistres();
         document.getElementById('newContactName').value = '';
         document.getElementById('newContactUrl').value = '';
         majAjout();
@@ -694,6 +755,7 @@
           return;
         }
         renderContactButtons();
+        afficherLesEnregistres();
         document.getElementById('newContactName').value = '';
         document.getElementById('newContactUrl').value = '';
         majAjout();
