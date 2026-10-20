@@ -132,9 +132,8 @@
   .recu-ligne{ display:flex; justify-content:space-between; gap:0.6rem; font-size:0.9rem; padding:0.15rem 0; border-bottom:1px solid var(--line); }
   .recu-total{ font-weight:700; border-bottom:0; padding-top:0.35rem; }
   .recu p{ margin:0.35rem 0 0; font-size:0.88rem; }
-  .recu-ok{ color:#2fbf71; font-weight:700; }
   /* « Vita ny sakafo » et le merci : sur tout l'écran, jusqu'à ce que le
-     client les ferme (✕). Le reçu n'en garde ensuite qu'une petite marque. */
+     client les ferme (✕). Le reçu n'en garde ensuite aucune marque. */
   #recuEcran{ position:fixed; inset:0; z-index:1000; display:flex; flex-direction:column; background:var(--bg); padding:max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); gap:16px; overflow-y:auto; }
   .ecran-hafatra{ position:relative; flex:1 1 0; min-height:40vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.6rem; padding:3.5rem 1.2rem; border-radius:20px; background:rgba(47,191,113,0.15); color:#2fbf71; text-align:center; }
   .ecran-hafatra strong{ font-size:clamp(2.2rem, 9vw, 5rem); line-height:1.15; font-weight:800; }
@@ -146,7 +145,6 @@
   .recu-lakozia.miandry{ background:rgba(143,163,170,0.15); color:var(--muted); }
   .recu-lakozia.tonga{ background:rgba(79,216,224,0.15); color:var(--accent); }
   .recu-lakozia.tonga .feo{ display:inline-block; animation:mihetsika 1s ease 3; transform-origin:50% 0; }
-  .recu-lakozia.vita{ background:rgba(47,191,113,0.15); color:#2fbf71; }
   @keyframes mihetsika{ 20%{ transform:rotate(18deg); } 40%{ transform:rotate(-14deg); } 60%{ transform:rotate(8deg); } 80%{ transform:rotate(-4deg); } }
   .recu-num{ display:block; margin-top:0.4rem; font-size:0.75rem; }
   .recu-fafa{ margin:0.5rem 0 0; padding:0.3rem 0.8rem; font-size:0.82rem; border-color:#e05a5a; color:#e05a5a; }
@@ -831,16 +829,19 @@
       tot.appendChild(el('span', 'Total'));
       tot.appendChild(el('span', ariary(r.total)));
       c.appendChild(tot);
-      // La marque de la cuisine : envoyée, puis 🔔 sonnée en lakozia, puis prête.
-      const lk = r.vita ? el('p', '🍳 Vita ny sakafo', 'recu-lakozia vita')
-        : r.lakozia ? el('p', null, 'recu-lakozia tonga')
-        : el('p', '⏳ Mbola alefa any an-dakozia...', 'recu-lakozia miandry');
-      if (!r.vita && r.lakozia) {
-        lk.appendChild(el('span', '🔔', 'feo'));
-        lk.appendChild(document.createTextNode(' Naneno tany an-dakozia'));
+      // La marque de la cuisine : envoyée, puis 🔔 sonnée en lakozia. Prête,
+      // elle prend l'écran jusqu'au ✕, et le reçu n'en garde rien.
+      if (r.vita) {
+        if (!r.vita_hidy) ecran.push(hafatraEcran(r, '🍳 Vita ny sakafo', 'enjoy your meal 😋', 'vita_hidy'));
+      } else {
+        const lk = r.lakozia ? el('p', null, 'recu-lakozia tonga')
+          : el('p', '⏳ Mbola alefa any an-dakozia...', 'recu-lakozia miandry');
+        if (r.lakozia) {
+          lk.appendChild(el('span', '🔔', 'feo'));
+          lk.appendChild(document.createTextNode(' Naneno tany an-dakozia'));
+        }
+        c.appendChild(lk);
       }
-      if (r.vita && !r.vita_hidy) ecran.push(hafatraEcran(r, '🍳 Vita ny sakafo', 'enjoy your meal 😋', 'vita_hidy'));
-      c.appendChild(lk);
       if (r.fandoavana) {
         c.appendChild(sansTraduction(el('p', (r.fandoavana === 'vola' ? NOM_FOMBA.vola : (r.fandoavana === 'visa' ? '💳 ' : '📱 ') + (NOM_FOMBA[r.fandoavana] || '')) +
           (r.ref ? ' · Réf : ' + r.ref : ''), 'recu-fomba')));
@@ -848,7 +849,6 @@
       if (r.voaloa) {
         // Le merci prend l'écran jusqu'au ✕ ; le reçu, lui, reste (🗑️ Fafana l'ôte).
         if (!r.fisaorana_hidy) ecran.push(hafatraEcran(r, '💰 Mankasitraka indrindra fa voaray ilay vola', 'thank you so much 🙏', 'fisaorana_hidy'));
-        c.appendChild(el('p', '💰 Voaloa', 'recu-ok'));
         // Payé : le client peut l'ôter de son appareil (l'hôtel garde le sien).
         const fafa = el('button', '🗑️ Fafana', 'recu-fafa');
         fafa.type = 'button';
