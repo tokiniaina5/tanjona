@@ -133,17 +133,20 @@
   .recu-total{ font-weight:700; border-bottom:0; padding-top:0.35rem; }
   .recu p{ margin:0.35rem 0 0; font-size:0.88rem; }
   .recu-ok{ color:#2fbf71; font-weight:700; }
-  /* Le merci, une fois l'argent reçu : en grand, et le client le ferme (✕). */
-  .recu .recu-ok{ position:relative; margin:0.6rem 0 0; padding:0.8rem 2.6rem 0.8rem 1rem; border-radius:14px; background:rgba(47,191,113,0.15); font-size:1.35rem; line-height:1.3; text-align:center; }
-  .recu-ok-hidy{ position:absolute; top:0.35rem; right:0.4rem; width:2rem; height:2rem; margin:0; padding:0; border:0; border-radius:50%; background:rgba(47,191,113,0.25); color:#2fbf71; font-size:1.1rem; font-weight:700; line-height:2rem; cursor:pointer; }
+  /* « Vita ny sakafo » et le merci : sur tout l'écran, jusqu'à ce que le
+     client les ferme (✕). Le reçu n'en garde ensuite qu'une petite marque. */
+  #recuEcran{ position:fixed; inset:0; z-index:1000; display:flex; flex-direction:column; background:var(--bg); padding:max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); gap:16px; overflow-y:auto; }
+  .ecran-hafatra{ position:relative; flex:1 1 0; min-height:40vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.6rem; padding:3.5rem 1.2rem; border-radius:20px; background:rgba(47,191,113,0.15); color:#2fbf71; text-align:center; }
+  .ecran-hafatra strong{ font-size:clamp(2.2rem, 9vw, 5rem); line-height:1.15; font-weight:800; }
+  .ecran-hafatra span{ font-size:clamp(1.5rem, 6vw, 3.2rem); line-height:1.2; font-weight:700; }
+  .ecran-hidy{ position:absolute; top:0.7rem; right:0.7rem; width:3.2rem; height:3.2rem; margin:0; padding:0; border:0; border-radius:50%; background:rgba(47,191,113,0.25); color:#2fbf71; font-size:1.7rem; font-weight:700; line-height:3.2rem; cursor:pointer; }
   .recu-attente{ color:#e0a020; font-weight:600; }
   /* Où en est la commande en cuisine : la marque que la lakozia a sonné. */
   .recu-lakozia{ display:inline-flex; align-items:center; gap:0.35rem; margin:0.45rem 0 0; padding:0.2rem 0.65rem; border-radius:999px; font-size:0.85rem; font-weight:700; }
   .recu-lakozia.miandry{ background:rgba(143,163,170,0.15); color:var(--muted); }
   .recu-lakozia.tonga{ background:rgba(79,216,224,0.15); color:var(--accent); }
   .recu-lakozia.tonga .feo{ display:inline-block; animation:mihetsika 1s ease 3; transform-origin:50% 0; }
-  /* Vita ny sakafo : en grand comme le merci, et le client le ferme (✕). */
-  .recu .recu-lakozia.vita{ position:relative; display:block; margin:0.6rem 0 0; background:rgba(47,191,113,0.15); color:#2fbf71; padding:0.8rem 2.6rem 0.8rem 1rem; border-radius:14px; font-size:1.35rem; line-height:1.3; text-align:center; }
+  .recu-lakozia.vita{ background:rgba(47,191,113,0.15); color:#2fbf71; }
   @keyframes mihetsika{ 20%{ transform:rotate(18deg); } 40%{ transform:rotate(-14deg); } 60%{ transform:rotate(8deg); } 80%{ transform:rotate(-4deg); } }
   .recu-num{ display:block; margin-top:0.4rem; font-size:0.75rem; }
   .recu-fafa{ margin:0.5rem 0 0; padding:0.3rem 0.8rem; font-size:0.82rem; border-color:#e05a5a; color:#e05a5a; }
@@ -807,7 +810,9 @@
     // payer) ce que T1 a commandé.
     const l = recusLire().filter(function (r) { return !latabatraChoisie || Number(r.latabatra) === latabatraChoisie; });
     z.replaceChildren();
-    if (!l.length) return;
+    // Ce qui doit occuper l'écran (vita, voaloa), le temps que le client le ferme.
+    const ecran = [];
+    if (!l.length) { dessinerEcran(ecran); return; }
     z.appendChild(el('h2', '🧾 Ny reçu-nao'));
     l.forEach(function (r) {
       const c = el('div', null, 'recu');
@@ -827,50 +832,23 @@
       tot.appendChild(el('span', ariary(r.total)));
       c.appendChild(tot);
       // La marque de la cuisine : envoyée, puis 🔔 sonnée en lakozia, puis prête.
-      let lk = r.vita ? el('p', '🍳 Vita ny sakafo — enjoy your meal 😋', 'recu-lakozia vita')
+      const lk = r.vita ? el('p', '🍳 Vita ny sakafo', 'recu-lakozia vita')
         : r.lakozia ? el('p', null, 'recu-lakozia tonga')
         : el('p', '⏳ Mbola alefa any an-dakozia...', 'recu-lakozia miandry');
       if (!r.vita && r.lakozia) {
         lk.appendChild(el('span', '🔔', 'feo'));
         lk.appendChild(document.createTextNode(' Naneno tany an-dakozia'));
       }
-      if (r.vita) {
-        // Le ✕ ferme l'annonce ; le reçu, lui, reste.
-        if (r.vita_hidy) lk = null;
-        else {
-          const hidy = el('button', '✕', 'recu-ok-hidy');
-          hidy.type = 'button';
-          hidy.title = 'Hidio';
-          hidy.setAttribute('aria-label', 'Hidio');
-          hidy.addEventListener('click', function () {
-            recusEcrire(recusLire().map(function (x) {
-              return x.id === r.id ? Object.assign({}, x, { vita_hidy: true }) : x;
-            }));
-          });
-          lk.appendChild(hidy);
-        }
-      }
-      if (lk) c.appendChild(lk);
+      if (r.vita && !r.vita_hidy) ecran.push(hafatraEcran(r, '🍳 Vita ny sakafo', 'enjoy your meal 😋', 'vita_hidy'));
+      c.appendChild(lk);
       if (r.fandoavana) {
         c.appendChild(sansTraduction(el('p', (r.fandoavana === 'vola' ? NOM_FOMBA.vola : (r.fandoavana === 'visa' ? '💳 ' : '📱 ') + (NOM_FOMBA[r.fandoavana] || '')) +
           (r.ref ? ' · Réf : ' + r.ref : ''), 'recu-fomba')));
       }
       if (r.voaloa) {
-        // Le merci se ferme d'un ✕ ; le reçu, lui, reste (🗑️ Fafana l'ôte).
-        if (!r.fisaorana_hidy) {
-          const merci = el('p', '💰 Mankasitraka indrindra fa voaray ilay vola, thank you so much 🙏', 'recu-ok');
-          const hidy = el('button', '✕', 'recu-ok-hidy');
-          hidy.type = 'button';
-          hidy.title = 'Hidio';
-          hidy.setAttribute('aria-label', 'Hidio');
-          hidy.addEventListener('click', function () {
-            recusEcrire(recusLire().map(function (x) {
-              return x.id === r.id ? Object.assign({}, x, { fisaorana_hidy: true }) : x;
-            }));
-          });
-          merci.appendChild(hidy);
-          c.appendChild(merci);
-        }
+        // Le merci prend l'écran jusqu'au ✕ ; le reçu, lui, reste (🗑️ Fafana l'ôte).
+        if (!r.fisaorana_hidy) ecran.push(hafatraEcran(r, '💰 Mankasitraka indrindra fa voaray ilay vola', 'thank you so much 🙏', 'fisaorana_hidy'));
+        c.appendChild(el('p', '💰 Voaloa', 'recu-ok'));
         // Payé : le client peut l'ôter de son appareil (l'hôtel garde le sien).
         const fafa = el('button', '🗑️ Fafana', 'recu-fafa');
         fafa.type = 'button';
@@ -890,6 +868,35 @@
     // Ce qui reste à payer (et que le client n'a pas encore dit avoir payé).
     const attente = l.filter(function (r) { return !r.voaloa && !r.fandoavana; });
     if (attente.length) z.appendChild(blocHandoa(attente));
+    dessinerEcran(ecran);
+  }
+  // Un message plein écran ; son ✕ le note sur le reçu (cle), qui ne le
+  // remontre plus.
+  function hafatraEcran(r, titre, sous, cle) {
+    const b = el('div', null, 'ecran-hafatra');
+    b.appendChild(el('strong', titre));
+    b.appendChild(el('span', sous));
+    const hidy = el('button', '✕', 'ecran-hidy');
+    hidy.type = 'button';
+    hidy.title = 'Hidio';
+    hidy.setAttribute('aria-label', 'Hidio');
+    hidy.addEventListener('click', function () {
+      recusEcrire(recusLire().map(function (x) {
+        if (x.id !== r.id) return x;
+        const y = Object.assign({}, x);
+        y[cle] = true;
+        return y;
+      }));
+    });
+    b.appendChild(hidy);
+    return b;
+  }
+  function dessinerEcran(l) {
+    let e = document.getElementById('recuEcran');
+    if (!l.length) { if (e) e.remove(); document.body.style.overflow = ''; return; }
+    if (!e) { e = el('div'); e.id = 'recuEcran'; document.body.appendChild(e); }
+    e.replaceChildren.apply(e, l);
+    document.body.style.overflow = 'hidden';
   }
   // L'hôtel coche « voaloa » : on le demande pour les reçus qui attendent.
   function recusSata() {
