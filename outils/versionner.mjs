@@ -91,3 +91,23 @@ if (fs.existsSync(cheminSw)) {
   fs.writeFileSync(cheminSw, crlfSw ? sw.replace(/\n/g, '\r\n') : sw);
   console.log('cache du service worker : nyasako-' + marque);
 }
+
+// ---------- Le menu des latabatra et la lakozia ----------
+// Pages à part, installées et laissées ouvertes : leurs scripts (mazava.js,
+// pejy-version.js) prennent leur empreinte, et la page la sienne dans
+// <meta name="pejy-version">, que pejy-version.js compare à celle du serveur
+// pour se recharger seule.
+const PAGES_SEULES = ['menu-sakafo.html', 'lakozia.html'];
+const motifSeul = /((?:href|src)="\/)((?:mazava|pejy-version)\.js)(?:\?v=[^"]*)?(")/g;
+const META_PEJY = /(<meta name="pejy-version" content=")[^"]*(")/;
+for (const PAGE of PAGES_SEULES) {
+  let page = fs.readFileSync(path.join(racine, PAGE), 'utf8');
+  const crlf = page.includes('\r\n');
+  if (crlf) page = page.replace(/\r\n/g, '\n');
+  page = page.replace(motifSeul, (tout, avant, relatif, apres) => avant + relatif + '?v=' + empreinte(relatif) + apres);
+  if (!META_PEJY.test(page)) throw new Error('meta pejy-version introuvable dans ' + PAGE);
+  const marquePejy = crypto.createHash('md5').update(page.replace(META_PEJY, '$1$2')).digest('hex').slice(0, 8);
+  page = page.replace(META_PEJY, '$1' + marquePejy + '$2');
+  fs.writeFileSync(path.join(racine, PAGE), crlf ? page.replace(/\n/g, '\r\n') : page);
+  console.log('version de ' + PAGE + ' : ' + marquePejy);
+}
