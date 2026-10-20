@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="78a88386">
+<meta name="ny-asako-version" content="d5d15b11">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -44,11 +44,9 @@
     if(location.pathname === '/hotely/'){ location.replace('/hotely' + location.search + location.hash); return; }
     document.documentElement.classList.add('app-hotely');
     document.title = 'Ny asako Hôtel';
-    // Comme le Fokontany : pas de manifeste tant que l'admin n'est pas entré
-    // — le navigateur n'a rien à installer pour personne d'autre. common.js
-    // pose celui de l'Hôtel dès que l'admin est reconnu.
+    // L'Hôtel s'installe sous son propre nom, pour tout le monde.
     var m = document.querySelector('link[rel="manifest"]');
-    if(m) m.parentNode.removeChild(m);
+    if(m) m.href = '/hotely.webmanifest';
   })();
 </script>
 <meta name="theme-color" content="#0a0d10">
@@ -172,7 +170,7 @@
 <!-- fin des écrans de démarrage iOS -->
 <link rel="icon" href="/icone-192.png" type="image/png">
 <link rel="stylesheet" href="gestion-stockage-css/base.css?v=80a789a9">
-<link rel="stylesheet" href="gestion-stockage-css/components.css?v=6e231d37">
+<link rel="stylesheet" href="gestion-stockage-css/components.css?v=db20ebde">
 <!-- Les émojis dessinés en 3D (emoji-3d.js). -->
 <script src="gestion-stockage-js/emoji-3d.js?v=66dad412" defer></script>
 </head>
@@ -486,7 +484,37 @@
       </p>
     </div>
 
+    <!-- Ny asako Hôtel : une application à part (/hotely), ouverte à tous. -->
     <div class="guide-page" data-page="4" style="display:none;">
+      <svg class="guide-sary" viewBox="0 0 260 120" aria-hidden="true">
+        <g class="flotte">
+          <rect x="70" y="26" width="120" height="86" rx="6" fill="var(--panel-2)" stroke="var(--cyan)" stroke-width="2"/>
+          <rect x="70" y="26" width="120" height="18" rx="6" fill="var(--cyan)"/>
+          <text x="130" y="39" text-anchor="middle" font-size="10" font-weight="700" fill="var(--panel)" font-family="var(--font-mono)">HÔTEL</text>
+          <g fill="var(--amber)"><rect x="84" y="54" width="18" height="14" rx="2"/><rect x="121" y="54" width="18" height="14" rx="2"/><rect x="158" y="54" width="18" height="14" rx="2"/>
+            <rect x="84" y="76" width="18" height="14" rx="2"/><rect x="158" y="76" width="18" height="14" rx="2"/></g>
+          <rect x="120" y="80" width="20" height="32" rx="2" fill="var(--violet)"/>
+        </g>
+        <g class="flotte" style="animation-delay:.8s">
+          <path d="M206 84 a16 16 0 0 1 32 0 Z" fill="var(--amber)"/><rect x="202" y="84" width="40" height="5" rx="2" fill="var(--amber)"/><circle cx="222" cy="66" r="3" fill="var(--amber)"/>
+        </g>
+        <g class="flotte" style="animation-delay:1.4s">
+          <rect x="20" y="50" width="34" height="56" rx="6" fill="var(--panel-2)" stroke="var(--line)" stroke-width="2"/>
+          <rect x="27" y="60" width="20" height="20" fill="none" stroke="var(--cyan)" stroke-width="2"/><rect x="33" y="66" width="8" height="8" fill="var(--cyan)"/>
+        </g>
+      </svg>
+      <div class="eyebrow">Ny asako Hôtel</div>
+      <h1 style="font-size:1.4rem; margin-bottom:0.9rem;">🏨 Hôtel et restaurant</h1>
+      <p class="sub" style="font-size:0.95rem;">
+        Le <strong style="color:var(--text);">menu sakafo</strong> avec ses photos, un
+        <strong style="color:var(--text);">QR par table</strong>, les commandes qui arrivent en
+        <strong style="color:var(--text);">cuisine</strong> et le paiement Mobile Money. Elle
+        s'installe à part, comme une application, sur le téléphone ou la tablette.
+      </p>
+      <a href="/hotely" id="guideHotelInstaller" style="display:inline-block; margin-top:0.8rem; color:var(--cyan); font-weight:700; text-decoration:none;">📲 Installer Ny asako Hôtel →</a>
+    </div>
+
+    <div class="guide-page" data-page="5" style="display:none;">
       <svg class="guide-sary" viewBox="0 0 260 120" aria-hidden="true">
         <line x1="40" y1="55" x2="220" y2="55" stroke="var(--line)" stroke-width="3" stroke-dasharray="6 5"/>
         <g class="tour t1"><circle cx="40" cy="55" r="24" fill="var(--panel-2)" stroke="var(--cyan)" stroke-width="2"/><circle cx="40" cy="48" r="7" fill="var(--cyan)"/><path d="M27 68 a13 11 0 0 1 26 0 Z" fill="var(--cyan)"/></g>
@@ -3385,7 +3413,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=9fc14352"></script>
+<script src="gestion-stockage-js/common.js?v=23b7b42f"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=622d64e8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>

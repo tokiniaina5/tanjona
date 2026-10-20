@@ -616,12 +616,10 @@
   function ouvrirSurLAccueil(){
     restaurationEnCours = true;
     try{
-      // Ny asako Hôtel (/hotely) n'a pas de Botika : l'admin arrive sur
-      // l'Hôtellerie ; un autre compte, sur ses Paramètres (l'Hôtel n'est
-      // qu'à l'admin, et le reste de Ny asako n'est pas dans ce menu).
+      // Ny asako Hôtel (/hotely) n'a pas de Botika : on arrive sur
+      // l'Hôtellerie (ouverte à tous, chacun son menu).
       if(document.documentElement.classList.contains('app-hotely')){
-        const admin = !!(currentUser && currentUser.email && isOwnerEmail(currentUser.email));
-        const nav = document.querySelector('.nav-item[data-section="' + (admin ? 'hotelerie' : 'connexions') + '"]');
+        const nav = document.querySelector('.nav-item[data-section="hotelerie"]');
         if(nav){
           if(!nav.classList.contains('active')) nav.click();
           return;
@@ -3639,6 +3637,14 @@
   if(guideLoginBtn) guideLoginBtn.addEventListener('click', function(){ quitterGuideVers('quick'); });
   const guideSignupBtn = document.getElementById('guideSignupBtn');
   if(guideSignupBtn) guideSignupBtn.addEventListener('click', function(){ quitterGuideVers('full'); });
+  // « Installer Ny asako Hôtel » : sa page /hotely, dans un onglet (ou son
+  // adresse à ouvrir dans Chrome, depuis Ny asako déjà installée).
+  const guideHotelInstaller = document.getElementById('guideHotelInstaller');
+  if(guideHotelInstaller) guideHotelInstaller.addEventListener('click', function(e){
+    if(typeof window.__versLInstallation !== 'function') return;
+    e.preventDefault();
+    window.__versLInstallation('/hotely', '');
+  });
   const guidePrevBtn = document.getElementById('guidePrevBtn');
   if(guidePrevBtn) guidePrevBtn.addEventListener('click', function(){ showGuidePage(guidePage - 1); });
   document.addEventListener('keydown', function(e){
@@ -6549,8 +6555,7 @@
       if(el.id === 'navStock') return false;
       if(document.documentElement.classList.contains('app-hotely') &&
          HOTEL_GARDEES.indexOf(el.dataset.section || el.id) < 0) return false;
-      if(el.id === 'navAdmin' || el.id === 'menuInstallHotel' || el.dataset.section === 'hotelerie' ||
-         el.dataset.section === 'photocopie'){
+      if(el.id === 'navAdmin' || el.dataset.section === 'photocopie'){
         return !!(currentUser && currentUser.email && isOwnerEmail(currentUser.email));
       }
       if(el.classList.contains('seulement-mpiasa')) return document.body.classList.contains('mode-mpiasa');
@@ -7378,26 +7383,8 @@
   // dans le navigateur, où l'installation se propose.
   const menuInstallHotel = document.getElementById('menuInstallHotel');
   if(menuInstallHotel) menuInstallHotel.addEventListener('click', function(){
-    if(!(currentUser && currentUser.email && isOwnerEmail(currentUser.email))) return;
     window.__versLInstallation('/hotely', '');
   });
-
-  // Sur /hotely, le manifeste de l'Hôtel n'est posé qu'une fois l'admin
-  // reconnu (parametres.js met alors .est-proprietaire sur la racine) :
-  // pour tout autre, le navigateur n'a rien à installer.
-  (function(){
-    const racine = document.documentElement;
-    if(!racine.classList.contains('app-hotely')) return;
-    function poser(){
-      if(!racine.classList.contains('est-proprietaire') || document.querySelector('link[rel="manifest"]')) return;
-      const lien = document.createElement('link');
-      lien.rel = 'manifest';
-      lien.href = '/hotely.webmanifest';
-      document.head.appendChild(lien);
-    }
-    new MutationObserver(poser).observe(racine, { attributes: true, attributeFilter: ['class'] });
-    poser();
-  })();
 
   // La validation avant l'installation : une page entière, à l'image de la
   // porte du Fokontany (« 🔐 Mila alalana ity pejy ity »). L'admin y écrit le
