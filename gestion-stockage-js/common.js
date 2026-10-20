@@ -4282,7 +4282,7 @@
     // « Ny asako », la bannière d'essai et la rangée du bas.
     const PAGES = [
       'dash-accueil',
-      'dash-articles', 'dash-dashboard', 'dash-commun', 'dash-communadmin', 'section-factures', 'section-inviter', 'section-contact',
+      'dash-articles', 'dash-dashboard', 'dash-commun', 'dash-communadmin', 'section-factures', 'section-inviter', 'section-contact', 'section-serviceclient',
       // Les outils de bureau (fitaovana.js).
       'section-notes', 'section-kajy',
       'section-calendrier', 'section-horaire',
@@ -6587,7 +6587,7 @@
       if(el.id === 'navStock') return false;
       if(document.documentElement.classList.contains('app-hotely') &&
          HOTEL_GARDEES.indexOf(el.dataset.section || el.id) < 0) return false;
-      if(el.id === 'navAdmin' || el.dataset.section === 'photocopie'){
+      if(el.id === 'navAdmin' || el.dataset.section === 'photocopie' || el.dataset.section === 'contact'){
         return !!(currentUser && currentUser.email && isOwnerEmail(currentUser.email));
       }
       if(el.classList.contains('seulement-mpiasa')) return document.body.classList.contains('mode-mpiasa');

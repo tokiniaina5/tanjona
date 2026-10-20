@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="e9046d29">
+<meta name="ny-asako-version" content="dbeebdae">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -170,7 +170,7 @@
 <!-- fin des écrans de démarrage iOS -->
 <link rel="icon" href="/icone-192.png" type="image/png">
 <link rel="stylesheet" href="gestion-stockage-css/base.css?v=f4615c94">
-<link rel="stylesheet" href="gestion-stockage-css/components.css?v=db20ebde">
+<link rel="stylesheet" href="gestion-stockage-css/components.css?v=9b0f7cb2">
 <!-- Les émojis dessinés en 3D (emoji-3d.js). -->
 <script src="gestion-stockage-js/emoji-3d.js?v=66dad412" defer></script>
 </head>
@@ -1010,6 +1010,7 @@
         <div class="nav-item" data-section="calendrier">📅 Calendrier</div>
         <div class="nav-item" data-section="horaire">🕒 Horaire</div>
         <div class="nav-item" data-section="inviter">✉️ Inviter des amis</div>
+        <div class="nav-item" data-section="serviceclient">🎧 Service client</div>
         <div class="nav-item" data-section="contact">☎️ Nous contacter</div>
         <div class="nav-item" data-section="live">🔴 Live direct</div>
         <div class="nav-item" data-section="appels">📞 Antso mivantana</div>
@@ -2370,25 +2371,11 @@
           </div>
         </div>
 
-        <div class="panel">
-          <h3>Contactez le service client</h3>
-          <p style="font-size:0.78rem; color:var(--muted); margin-bottom:1rem;">
-            Bokotra telo ihany : antso, antso video, fizarana. Rehefa maro ny canal
-            misokatra dia asehoina ny lisitra mba hisafidiananao.
-          </p>
-
-          <div class="actions-row" id="contactMainActions" style="flex-wrap:wrap; gap:0.6rem;"></div>
-
-          <p class="empty-hint" id="contactButtonsEmptyHint" style="display:none;">
-            Aucun canal de contact n'a encore été configuré. Revenez bientôt !
-          </p>
-        </div>
-
         <div class="panel" id="contactAdminPanel" style="display:none;">
           <h3>⚙️ Configurer vos canaux de contact (admin — vous uniquement)</h3>
           <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.8rem;">
             Renseignez vos comptes réels : ces boutons seront visibles par <strong>tous vos clients</strong>
-            dans « Nous contacter », pour qu'ils puissent vous écrire directement.
+            dans « Service client », pour qu'ils puissent vous écrire directement.
           </p>
           <div class="field">
             <label for="contactSiteUrlInput">Adresse publique du site (URL partagée à vos clients)</label>
@@ -2444,6 +2431,31 @@
             <button type="button" class="btn btn-sm" id="addContactChannelBtn" style="width:auto; margin-top:0.6rem;">Ajouter ce canal</button>
           </div>
         </div>
+      </section>
+
+      <!-- ---- SERVICE CLIENT : antso, antso video, fizarana (contact.js) ---- -->
+      <section class="section" id="section-serviceclient">
+        <div class="section-head">
+          <div>
+            <h2>🎧 Service client</h2>
+            <p>Antso, antso video na fizarana : mifandraisa mivantana amin'ny service client.</p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Contactez le service client</h3>
+          <p style="font-size:0.78rem; color:var(--muted); margin-bottom:1rem;">
+            Bokotra telo ihany : antso, antso video, fizarana. Rehefa maro ny canal
+            misokatra dia asehoina ny lisitra mba hisafidiananao.
+          </p>
+
+          <div class="actions-row" id="contactMainActions" style="flex-wrap:wrap; gap:0.6rem;"></div>
+
+          <p class="empty-hint" id="contactButtonsEmptyHint" style="display:none;">
+            Aucun canal de contact n'a encore été configuré. Revenez bientôt !
+          </p>
+        </div>
+
       </section>
 
       <!-- ---- LIVE DIRECT ---- -->
@@ -3546,7 +3558,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=ae9e01c0"></script>
+<script src="gestion-stockage-js/common.js?v=5b63c7d9"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=622d64e8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>

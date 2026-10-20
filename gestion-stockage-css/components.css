@@ -53,6 +53,11 @@
      y tient son propre menu (hotelerie_menu.user_id = auth.uid()). */
   /* Multi-service (photocopie.js) : à l’admin seul. */
   html:not(.est-proprietaire):not(.fokontany) .nav-item[data-section="photocopie"],
+  /* « Nous contacter » ne garde que la configuration des canaux : les
+     clients passent par « 🎧 Service client ». */
+  html:not(.est-proprietaire):not(.fokontany) .nav-item[data-section="contact"],
+  html:not(.est-proprietaire):not(.fokontany) [data-epingle="section:contact"],
+  html:not(.est-proprietaire):not(.fokontany) #section-contact,
   html:not(.est-proprietaire):not(.fokontany) [data-epingle="section:photocopie"],
   html:not(.est-proprietaire):not(.fokontany) #section-photocopie{ display:none !important; }
   /* Dans Ny asako Hôtel (/hotely), le menu ne garde que l'Hôtel et ce qui
