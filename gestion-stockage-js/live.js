@@ -4,9 +4,20 @@
     { urls: 'stun:stun1.l.google.com:19302' }
   ] };
 
+  // Ny mpitsidika tsy niditra dia manana anarana maharitra (avy amin'ny
+  // identifiant an'ny installation), mba ho azo antsoina sy andefasana hafatra.
+  let mpitsidikaId = null;
+  function idMpitsidika(){
+    if(!mpitsidikaId){
+      let id = '';
+      try{ id = (typeof ensureInstallDate === 'function' && ensureInstallDate().id) || ''; }catch(e){}
+      mpitsidikaId = 'mpitsidika-' + (String(id).replace(/[^a-z0-9]/gi, '').slice(0, 10) || Math.random().toString(36).slice(2, 12));
+    }
+    return mpitsidikaId;
+  }
   function myIdentity(){
-    const email = (currentUser && currentUser.email) ? currentUser.email.trim().toLowerCase() : 'invite-' + Math.random().toString(36).slice(2);
-    const name = (currentUser && currentUser.name) || 'Utilisateur';
+    const email = (currentUser && currentUser.email) ? currentUser.email.trim().toLowerCase() : idMpitsidika();
+    const name = (currentUser && currentUser.name) || (currentUser ? 'Utilisateur' : 'Mpitsidika');
     const isAdmin = !!(currentUser && currentUser.email && currentUser.email.trim().toLowerCase() === OWNER_EMAIL.toLowerCase());
     return { email: email, name: name, isAdmin: isAdmin };
   }
@@ -75,10 +86,18 @@
     }catch(e){}
   }
 
+  let presenceKey = null;
   function initPresence(){
-    if(!window.__sb || presenceChannel) return;
-    askNotificationPermissionOnFirstClick();
+    if(!window.__sb) return;
     const me = myIdentity();
+    // Efa nipoitra ho mpitsidika, avy eo niditra : averina amin'ny anarana vaovao.
+    if(presenceChannel && presenceKey !== me.email){
+      try{ window.__sb.removeChannel(presenceChannel); }catch(e){}
+      presenceChannel = null;
+    }
+    if(presenceChannel) return;
+    presenceKey = me.email;
+    askNotificationPermissionOnFirstClick();
     presenceChannel = window.__sb.channel('presence-tanjona', { config: { presence: { key: me.email } } });
     presenceChannel.on('presence', { event: 'sync' }, function(){
       const state = presenceChannel.presenceState();
@@ -123,7 +142,7 @@
   let mpisoratraCache = null, mpisoratraAt = 0, mpisoratraMaka = false;
   function renderMpisoratraForCall(){
     // Ny pejy Call sy ny pejy Message dia samy manana ny lisitra.
-    const panels = ['callMpisoratraPanel', 'msgMpisoratraPanel']
+    const panels = ['callMpisoratraPanel', 'msgMpisoratraPanel', 'callMitsidikaPanel', 'msgMitsidikaPanel']
       .map(function(id){ return document.getElementById(id); })
       .filter(Boolean);
     if(!panels.length) return;
@@ -131,6 +150,7 @@
     const admin = me.isAdmin && !!window.__sb;
     panels.forEach(function(p){ p.style.display = admin ? '' : 'none'; });
     if(!admin) return;
+    renderMitsidika();
     if(!mpisoratraMaka && (!mpisoratraCache || Date.now() - mpisoratraAt > 60000)){
       mpisoratraMaka = true;
       window.__sb.from('client_signups').select('name,email,phone,created_at')
@@ -172,6 +192,40 @@
     renderMpisoratraHafatra(olona);
   }
 
+  // « 👀 Miditra ankehitriny » : izay rehetra miditra ankehitriny (afa-tsy
+  // ny admin), na mpitsidika tsy nanao inscription aza. Antso sy hafatra ao
+  // anaty appli ihany, satria tsy fantatra ny laharany na ny email-ny.
+  function renderMitsidika(){
+    const me = myIdentity();
+    const olona = Object.keys(presenceState).filter(function(k){ return k !== me.email; }).map(function(k){
+      const p = presenceState[k] || {};
+      const mpitsidika = k.indexOf('mpitsidika-') === 0;
+      return { email: k, name: mpitsidika ? '👤 Mpitsidika ' + k.slice(11, 15) : (p.name || k),
+        phone: '', online: true, mpitsidika: mpitsidika };
+    });
+    [['callMitsidika', '☎️', 'Antso', function(o){
+        openChannelChooser('☎️ ' + o.name, 'Miditra ankehitriny.', [
+          { label: '📞 Appel mivantana', color: '#25D366', run: function(){ startCall(o.email, o.name, 'audio'); } },
+          { label: '📹 Antso video', color: '#1877F2', run: function(){ startCall(o.email, o.name, 'video'); } }
+        ]);
+      }],
+     ['msgMitsidika', '💬', 'Hafatra', function(o){ sokafyResaka(o.email, o.name); }]
+    ].forEach(function(c){
+      const list = document.getElementById(c[0]);
+      if(!list) return;
+      document.getElementById(c[0] + 'Empty').style.display = olona.length ? 'none' : 'block';
+      list.innerHTML = andalanaMpisoratra(olona.map(function(o){
+        return Object.assign({}, o, { email: o.mpitsidika ? 'Tsy nanao inscription' : o.email });
+      }), c[1], c[2]);
+      list.querySelectorAll('[data-i]').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          const o = olona[Number(btn.getAttribute('data-i'))];
+          if(o) c[3](o);
+        });
+      });
+    });
+  }
+
   // Andalana iray isaky ny olona, miaraka amin'ny bokotra iray (data-i).
   function andalanaMpisoratra(olona, ikona, lohateny){
     return olona.map(function(o, i){
@@ -197,8 +251,11 @@
         const o = olona[Number(btn.getAttribute('data-i'))];
         if(!o) return;
         const safidy = [];
+        if(o.online && o.email){
+          safidy.push({ label: '💬 Hafatra mivantana (ao anaty appli)', color: 'var(--cyan)', run: function(){ sokafyResaka(o.email, o.name); } });
+        }
         if(o.phone){
-          const wa = 'https://wa.me/' + (typeof toInternationalNumber === 'function' ? toInternationalNumber(o.phone) : o.phone);
+          const wa ='https://wa.me/' + (typeof toInternationalNumber === 'function' ? toInternationalNumber(o.phone) : o.phone);
           const sms = 'sms:' + (o.phone.charAt(0) === '0' ? o.phone : '+' + o.phone);
           safidy.push({ label: '💬 WhatsApp — ' + o.phone, color: '#25D366', run: function(){ window.open(wa, '_blank'); } });
           safidy.push({ label: '✉️ SMS — ' + o.phone, color: '#25D366', run: function(){ window.location.href = sms; } });
@@ -363,7 +420,88 @@
     else if(payload.kind === 'end') onCallEnded(payload);
     // paroles reconnues chez l'autre : traduites puis affichées ici
     else if(payload.kind === 'speech'){ if(typeof onRemoteSpeech === 'function') onRemoteSpeech(payload); }
+    else if(payload.kind === 'hafatra') onHafatraTonga(payload);
   }
+
+  // ---------------- HAFATRA MIVANTANA (ao anaty appli) ----------------
+  // Mandeha amin'ny lalana mitovy amin'ny antso (broadcast) : tsy voatahiry
+  // ao amin'ny serveur, ka ireo miditra ihany no mahazo azy. Ampy hiresahana
+  // amin'ny mpitsidika tsy nanome laharana na email.
+  const resaka = {};   // email → [{ avy: 'izaho'|'izy', soratra, at }]
+  let resakaMisokatra = null;
+
+  function onHafatraTonga(payload){
+    const avy = payload.from;
+    if(!avy || !payload.text) return;
+    (resaka[avy] = resaka[avy] || []).push({ avy: 'izy', soratra: String(payload.text), at: Date.now() });
+    if(typeof playLiveChime === 'function') playLiveChime();
+    if(currentUser && typeof pushNotification === 'function') pushNotification('hafatra', '💬 Hafatra avy amin\'i ' + (payload.fromName || avy) + '.');
+    showSystemNotification('💬 ' + (payload.fromName || avy), String(payload.text).slice(0, 120), 'hafatra-' + avy);
+    sokafyResaka(avy, payload.fromName || avy);
+  }
+
+  function sokafyResaka(email, anarana){
+    initCallSignaling();
+    resakaMisokatra = { email: email, anarana: anarana || email };
+    let boaty = document.getElementById('resakaMivantana');
+    if(!boaty){
+      boaty = document.createElement('div');
+      boaty.id = 'resakaMivantana';
+      boaty.className = 'panel';
+      boaty.style.cssText = 'position:fixed; right:12px; bottom:12px; width:min(340px, calc(100vw - 24px)); z-index:9500; ' +
+        'margin:0; display:flex; flex-direction:column; max-height:70vh; box-shadow:0 10px 30px rgba(0,0,0,0.4);';
+      boaty.innerHTML =
+        '<div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; margin-bottom:0.5rem;">' +
+          '<strong data-lohateny style="font-size:0.9rem; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></strong>' +
+          '<button type="button" class="btn btn-sm" data-hidio style="width:auto;">✕</button>' +
+        '</div>' +
+        '<div data-hafatra style="flex:1; overflow-y:auto; font-size:0.82rem; min-height:120px; margin-bottom:0.5rem;"></div>' +
+        '<div style="display:flex; gap:0.4rem;">' +
+          '<input type="text" data-soratra placeholder="Soraty ny hafatra..." style="flex:1; padding:0.5rem 0.7rem; border-radius:8px; ' +
+            'border:1px solid var(--line); background:var(--bg); color:var(--text); font-size:0.82rem;">' +
+          '<button type="button" class="btn btn-sm btn-primary" data-alefa style="width:auto;">Alefa</button>' +
+        '</div>';
+      document.body.appendChild(boaty);
+      boaty.querySelector('[data-hidio]').addEventListener('click', function(){ boaty.style.display = 'none'; resakaMisokatra = null; });
+      const input = boaty.querySelector('[data-soratra]');
+      function alefa(){
+        const soratra = input.value.trim();
+        if(!soratra || !resakaMisokatra) return;
+        const me = myIdentity();
+        sendCallSignal({ kind: 'hafatra', from: me.email, fromName: me.name, to: resakaMisokatra.email, text: soratra });
+        (resaka[resakaMisokatra.email] = resaka[resakaMisokatra.email] || []).push({ avy: 'izaho', soratra: soratra, at: Date.now() });
+        input.value = '';
+        asehoyResaka();
+      }
+      boaty.querySelector('[data-alefa]').addEventListener('click', alefa);
+      input.addEventListener('keydown', function(e){ if(e.key === 'Enter') alefa(); });
+    }
+    boaty.style.display = 'flex';
+    asehoyResaka();
+    const input = boaty.querySelector('[data-soratra]');
+    if(input) input.focus();
+  }
+
+  function asehoyResaka(){
+    const boaty = document.getElementById('resakaMivantana');
+    if(!boaty || !resakaMisokatra) return;
+    const online = !!presenceState[resakaMisokatra.email];
+    boaty.querySelector('[data-lohateny]').textContent = '💬 ' + resakaMisokatra.anarana + (online ? ' 🟢' : ' ⚪');
+    const lisitra = resaka[resakaMisokatra.email] || [];
+    const zone = boaty.querySelector('[data-hafatra]');
+    zone.innerHTML = lisitra.length
+      ? lisitra.map(function(h){
+          const izaho = h.avy === 'izaho';
+          return '<div style="display:flex; justify-content:' + (izaho ? 'flex-end' : 'flex-start') + '; margin:0.25rem 0;">' +
+            '<span style="max-width:80%; padding:0.4rem 0.6rem; border-radius:10px; ' +
+              (izaho ? 'background:var(--cyan); color:#000;' : 'background:var(--panel-2); color:var(--text);') + '">' +
+              escapeHtml(h.soratra) + '</span></div>';
+        }).join('')
+      : '<p style="color:var(--muted); font-size:0.76rem;">' +
+          (online ? 'Soraty ny hafatra voalohany.' : 'Tsy miditra ankehitriny io olona io : tsy ho tonga ny hafatra raha tsy miditra izy.') + '</p>';
+    zone.scrollTop = zone.scrollHeight;
+  }
+  window.__sokafyResaka = sokafyResaka;
 
   function onIncomingRing(payload){
     const me = myIdentity();
@@ -375,7 +513,7 @@
     // Mitovy amin'ny Live : fampandrenesana ao amin'ny lakolosy koa, mba hisy
     // dian'ilay antso na dia tsy voaray aza.
     const who = payload.fromName || payload.from;
-    if(typeof pushNotification === 'function'){
+    if(currentUser && typeof pushNotification === 'function'){
       pushNotification('antso', (payload.callType === 'video' ? '📹 Antso video' : '📞 Antso feo') +
         ' avy amin\'i ' + who + '.');
     }
@@ -1552,3 +1690,20 @@
       tamin = hita;
     }).observe(section, { attributes: true, attributeFilter: ['class', 'style'] });
   });
+
+  // ---------------- MPITSIDIKA TSY NIDITRA ----------------
+  // Ny olona manokatra ny site fotsiny, na tsy nanao inscription aza, dia
+  // hita ao amin'ny « 👀 Miditra ankehitriny » an'ny admin : azo antsoina sy
+  // andefasana hafatra avy hatrany. Ny varavarankelin'ny antso dia ao anaty
+  // appScreen, izay miafina amin'ny pejy fidirana : afindra ao amin'ny body.
+  (function(){
+    function manomboka(){
+      const overlay = document.getElementById('callOverlay');
+      if(overlay && overlay.parentNode !== document.body) document.body.appendChild(overlay);
+      if(!window.__sb) return;
+      initPresence();
+      initCallSignaling();
+    }
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ setTimeout(manomboka, 1500); });
+    else setTimeout(manomboka, 1500);
+  })();

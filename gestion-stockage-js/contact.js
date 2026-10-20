@@ -354,6 +354,14 @@
         if(msgRow){
           msgRow.innerHTML = '';
           const hafatra = [];
+          // Ny mpanjifa sy ny mpitsidika : hafatra mivantana amin'ny admin ao
+          // anaty appli (live.js), tonga raha miditra izy.
+          if(window.__sb && !meRender.isAdmin && typeof window.__sokafyResaka === 'function'){
+            hafatra.push({ label: '💬 Hafatra mivantana', color: 'var(--cyan)', run: function(){
+              const p = (typeof presenceState === 'object') ? presenceState[OWNER_EMAIL.toLowerCase()] : null;
+              window.__sokafyResaka(OWNER_EMAIL.toLowerCase(), (p && p.name) || 'Admin');
+            } });
+          }
           voice.forEach(function(o){
             if(o === inAppVoice) return;
             if(o.tel){

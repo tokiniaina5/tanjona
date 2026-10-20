@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="479e1389">
+<meta name="ny-asako-version" content="01309b6f">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -2444,8 +2444,15 @@
           </div>
         </div>
 
+            <!-- 0) Admin ihany : izay miditra ankehitriny, na mpitsidika tsy nanao inscription aza (live.js). -->
+            <div class="panel" id="msgMitsidikaPanel" style="display:none; margin-top:0;">
+              <h3>👀 Miditra ankehitriny</h3>
+              <div id="msgMitsidika"></div>
+              <p class="empty-hint" id="msgMitsidikaEmpty" style="display:none;">Tsy misy olona miditra ankehitriny.</p>
+            </div>
+
             <!-- 1) Admin ihany : ireo nanao inscription, handefasana hafatra (live.js). -->
-            <div class="panel" id="msgMpisoratraPanel" style="display:none; margin-top:0;">
+            <div class="panel" id="msgMpisoratraPanel" style="display:none;">
               <h3>👥 Ireo nanao inscription</h3>
               <div id="msgMpisoratra"></div>
               <p class="empty-hint" id="msgMpisoratraEmpty" style="display:none;">Mbola tsy misy nanao inscription.</p>
@@ -2571,8 +2578,15 @@
           </div>
         </div>
 
+            <!-- 0) Admin ihany : izay miditra ankehitriny, na mpitsidika tsy nanao inscription aza (live.js). -->
+            <div class="panel" id="callMitsidikaPanel" style="display:none; margin-top:0;">
+              <h3>👀 Miditra ankehitriny</h3>
+              <div id="callMitsidika"></div>
+              <p class="empty-hint" id="callMitsidikaEmpty" style="display:none;">Tsy misy olona miditra ankehitriny.</p>
+            </div>
+
             <!-- 1) Admin ihany : ireo nanao inscription, hantsoina (live.js). -->
-            <div class="panel" id="callMpisoratraPanel" style="display:none; margin-top:0;">
+            <div class="panel" id="callMpisoratraPanel" style="display:none;">
               <h3>👥 Ireo nanao inscription</h3>
               <div id="callMpisoratra"></div>
               <p class="empty-hint" id="callMpisoratraEmpty" style="display:none;">Mbola tsy misy nanao inscription.</p>
@@ -3567,12 +3581,12 @@
 <script src="gestion-stockage-js/factures.js?v=69af0cd7"></script>
 <script src="gestion-stockage-js/factures-modely.js?v=8fbf4a42"></script>
 <script src="gestion-stockage-js/inviter.js?v=fffaed9c"></script>
-<script src="gestion-stockage-js/contact.js?v=7292320c"></script>
+<script src="gestion-stockage-js/contact.js?v=296df6d6"></script>
 <!-- Montre au client qui vient de s'inscrire, à sa première entrée, tous les
      canaux du propriétaire (contact.js les tient). -->
 <script src="gestion-stockage-js/serasera-voalohany.js?v=0b2800f2"></script>
 <script src="gestion-stockage-js/zara-rehetra.js?v=9b9c2469"></script>
-<script src="gestion-stockage-js/live.js?v=199ddc9e"></script>
+<script src="gestion-stockage-js/live.js?v=4fe5f0cb"></script>
 <script src="gestion-stockage-js/traduction.js?v=8f5605bc"></script>
 <script src="gestion-stockage-js/parametres.js?v=82b459de"></script>
 <!-- Le partage reçu du dehors remplit la boîte « Écrire », que parametres.js
