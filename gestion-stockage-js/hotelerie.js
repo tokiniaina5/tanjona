@@ -700,7 +700,13 @@
   function dessinerCommandes() {
     const zone = document.getElementById('commandesZone');
     if (!zone) return;
-    const visibles = commandes.filter(function (c) { return voirVita || !c.vita; });
+    // Une commande que la lakozia (ou l'hôtel) dit « vita » reste là, marquée
+    // ✅ Vita, jusqu'au lendemain : on la voit changer au lieu de la voir
+    // disparaître. « Asehoy ny vita taloha » montre aussi celles d'avant.
+    const anio = new Date().toDateString();
+    const visibles = commandes.filter(function (c) {
+      return voirVita || !c.vita || new Date(c.created_at).toDateString() === anio;
+    });
     const parTable = {};
     visibles.forEach(function (c) { (parTable[c.latabatra] = parTable[c.latabatra] || []).push(c); });
     let tables = Object.keys(parTable).map(Number).sort(function (a, b) { return a - b; });
@@ -734,7 +740,7 @@
             ? 'T' + tableOuverte + ' : ' + (enAttente[tableOuverte] || 0) + ' commande mbola tsy vita'
             : nbVaovao + ' commande mbola tsy vita') + '</strong>' +
           '<div style="display:flex; gap:0.4rem; flex-wrap:wrap;">' +
-            '<button type="button" class="btn btn-sm" id="commandesVita" style="width:auto;">' + (voirVita ? '🙈 Afeno ny vita' : '👁️ Asehoy ny vita') + '</button>' +
+            '<button type="button" class="btn btn-sm" id="commandesVita" style="width:auto;">' + (voirVita ? '🙈 Afeno ny vita taloha' : '👁️ Asehoy ny vita taloha') + '</button>' +
             '<button type="button" class="btn btn-sm" id="commandesHavaozina" style="width:auto;">🔄 Havaozina</button>' +
           '</div>' +
         '</div>' +
@@ -752,10 +758,10 @@
               (tsyVoaloa ? '<span style="font-size:0.78rem; color:#ffb020;">💳 Tsy voaloa : ' + ariary(tsyVoaloa) + '</span>' : '') +
             '</div>' +
             liste.map(function (c) {
-              return '<div style="margin-top:0.6rem; padding:0.6rem 0.7rem; border-radius:8px; border:1px solid var(--line);' + (c.vita ? ' opacity:0.55;' : '') + '">' +
+              return '<div style="margin-top:0.6rem; padding:0.6rem 0.7rem; border-radius:8px; border:1px solid var(--line);' + (c.vita ? ' border-color:#3ecf8e; opacity:0.8;' : '') + '">' +
                 '<div style="display:flex; justify-content:space-between; gap:0.5rem; font-size:0.75rem; color:var(--muted);">' +
                   '<span>🕒 ' + heure(c.created_at) + '</span>' +
-                  '<span>' + (c.vita ? '✅ Vita' : '⏳ Miandry') + '</span>' +
+                  (c.vita ? '<span style="color:#3ecf8e; font-weight:700;">✅ Vita</span>' : '<span>⏳ Miandry</span>') +
                 '</div>' +
                 (c.plats || []).map(function (p) {
                   return '<div style="display:flex; justify-content:space-between; gap:0.5rem; font-size:0.86rem; margin-top:0.25rem;">' +
