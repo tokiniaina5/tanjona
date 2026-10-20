@@ -541,15 +541,139 @@
     });
   }
 
+  // ---------------- LE LIEN SE FAIT TOUT SEUL ----------------
+  // On écrit son nom ou son numéro ; l'adresse se construit, et se montre
+  // sous la case pendant qu'on tape : ce qu'on lit est ce que le client
+  // ouvrira. Plus d'adresse copiée depuis la barre du navigateur (« web.
+  // telegram.org », « facebook.com/home.php »…) qui ouvrait le compte de
+  // celui qui clique.
+  function apercuSous(input){
+    let p = input.parentNode.querySelector('.lien-auto');
+    if(!p){
+      p = document.createElement('small');
+      p.className = 'lien-auto';
+      p.setAttribute('data-fz-tsia', '');
+      p.style.cssText = 'display:block; margin-top:0.3rem; font-size:0.72rem; line-height:1.4; word-break:break-all;';
+      input.parentNode.appendChild(p);
+    }
+    return p;
+  }
+  function montrerApercu(p, lien, souci){
+    if(souci){ p.style.color = 'var(--amber)'; p.textContent = '⚠️ ' + souci; return; }
+    if(!lien){ p.textContent = ''; return; }
+    p.style.color = 'var(--cyan)';
+    p.textContent = '✓ ' + lien;
+  }
+  function lienWhatsapp(brut){
+    const n = toInternationalNumber(brut);
+    return n.length >= 8 ? 'https://wa.me/' + n : '';
+  }
+  CONTACT_FIELD_MAP.forEach(function(field){
+    const input = document.getElementById(field.inputId);
+    if(!input || field.key === 'site_url') return;
+    function maj(){
+      const p = apercuSous(input);
+      const v = input.value.trim();
+      if(!v){ montrerApercu(p, ''); return; }
+      if(field.key === 'whatsapp'){
+        const l = lienWhatsapp(v);
+        montrerApercu(p, l, l ? '' : 'numéro trop court');
+        return;
+      }
+      if(field.key === 'wechat'){ montrerApercu(p, 'ID WeChat : ' + v.replace(/^@/, '')); return; }
+      const examen = verifierLAdresse(field.key, v);
+      montrerApercu(p, examen.valeur, examen.souci);
+    }
+    input.addEventListener('input', maj);
+    // En quittant la case, ce qu'on a écrit devient le lien lui-même.
+    input.addEventListener('blur', function(){
+      const v = input.value.trim();
+      if(!v) return;
+      if(field.key === 'whatsapp'){ const n = toInternationalNumber(v); if(n.length >= 8) input.value = n; }
+      else if(PROFILS_RESEAUX[field.key]){
+        const examen = verifierLAdresse(field.key, v);
+        if(!examen.souci) input.value = examen.valeur;
+      }
+      maj();
+    });
+    // Les valeurs arrivent du serveur un peu après : on les montre alors.
+    setTimeout(maj, 1500);
+  });
+
+  // Un autre canal : on choisit le réseau, on écrit son nom ou son numéro.
+  const RESEAUX_AJOUT = [
+    { id: 'telegram', nom: 'Telegram', champ: 'Votre nom Telegram', ph: 'votrenom',
+      lien: function(v){ return 'https://t.me/' + v.replace(/^@/, '').replace(/^https?:\/\/(t\.me|telegram\.me)\//i, ''); } },
+    { id: 'messenger', nom: 'Messenger', champ: 'Votre nom Facebook', ph: 'votrepage',
+      lien: function(v){ return 'https://m.me/' + v.replace(/^@/, '').replace(/^https?:\/\/(www\.)?(m\.me|facebook\.com)\//i, ''); } },
+    { id: 'viber', nom: 'Viber', champ: 'Votre numéro', ph: '034 00 000 00',
+      lien: function(v){ const n = toInternationalNumber(v); return n.length >= 8 ? 'viber://chat?number=%2B' + n : ''; } },
+    { id: 'signal', nom: 'Signal', champ: 'Votre numéro', ph: '034 00 000 00',
+      lien: function(v){ const n = toInternationalNumber(v); return n.length >= 8 ? 'https://signal.me/#p/+' + n : ''; } },
+    { id: 'linkedin', nom: 'LinkedIn', champ: 'Votre nom LinkedIn', ph: 'votrenom',
+      lien: function(v){ return 'https://www.linkedin.com/in/' + v.replace(/^@/, '').replace(/^https?:\/\/(www\.)?linkedin\.com\/in\//i, ''); } },
+    { id: 'youtube', nom: 'YouTube', champ: 'Votre chaîne', ph: 'votrechaine',
+      lien: function(v){ return 'https://www.youtube.com/@' + v.replace(/^@/, '').replace(/^https?:\/\/(www\.)?youtube\.com\/@?/i, ''); } },
+    { id: 'snapchat', nom: 'Snapchat', champ: 'Votre nom Snapchat', ph: 'votrenom',
+      lien: function(v){ return 'https://www.snapchat.com/add/' + v.replace(/^@/, '').replace(/^https?:\/\/(www\.)?snapchat\.com\/add\//i, ''); } },
+    { id: 'email', nom: 'Email', champ: 'Votre adresse email', ph: 'vous@exemple.com',
+      lien: function(v){ return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v) ? 'mailto:' + v : ''; } },
+    { id: 'site', nom: 'Site web', champ: 'Adresse du site', ph: 'www.votresite.com',
+      lien: function(v){ return /^https?:\/\//i.test(v) ? v : 'https://' + v; } },
+    { id: 'autre', nom: '', champ: 'Lien ou identifiant', ph: 'https://… (vide = simple copie)',
+      lien: function(v){ return v; } }
+  ];
+  const selectReseau = document.getElementById('newContactReseau');
+  function reseauChoisi(){
+    const id = selectReseau ? selectReseau.value : 'autre';
+    return RESEAUX_AJOUT.find(function(r){ return r.id === id; }) || RESEAUX_AJOUT[RESEAUX_AJOUT.length - 1];
+  }
+  function lienAjout(){
+    const v = document.getElementById('newContactUrl').value.trim();
+    if(!v) return { lien: '', souci: '' };
+    const r = reseauChoisi();
+    let lien = r.lien(v);
+    if(r.id === 'autre'){
+      const examen = verifierLAdresse('', v);
+      return { lien: examen.valeur, souci: examen.souci };
+    }
+    if(!lien) return { lien: '', souci: r.champ.toLowerCase() + ' à vérifier' };
+    return { lien: lien, souci: '' };
+  }
+  function majAjout(){
+    const input = document.getElementById('newContactUrl');
+    if(!input) return;
+    const r = reseauChoisi();
+    const champNom = document.getElementById('newContactNameField');
+    if(champNom) champNom.hidden = r.id !== 'autre';
+    const label = document.getElementById('newContactUrlLabel');
+    if(label) label.textContent = r.champ;
+    input.placeholder = r.ph;
+    const a = lienAjout();
+    montrerApercu(apercuSous(input), a.lien, a.souci);
+  }
+  if(selectReseau){
+    selectReseau.innerHTML = RESEAUX_AJOUT.map(function(r){
+      return '<option value="' + r.id + '">' + (r.nom || 'Autre…') + '</option>';
+    }).join('');
+    selectReseau.addEventListener('change', majAjout);
+    document.getElementById('newContactUrl').addEventListener('input', majAjout);
+    majAjout();
+  }
+
   const addContactChannelBtn = document.getElementById('addContactChannelBtn');
   if(addContactChannelBtn){
     addContactChannelBtn.addEventListener('click', function(){
-      const name = document.getElementById('newContactName').value.trim();
-      const url = document.getElementById('newContactUrl').value.trim();
+      const r = reseauChoisi();
+      const name = r.id === 'autre' ? document.getElementById('newContactName').value.trim() : r.nom;
+      const a = lienAjout();
+      if(a.souci){ alert(name + ' : ' + a.souci); return; }
+      const url = a.lien;
       if(!name) return;
+      if(r.id !== 'autre' && !url){ alert(name + ' : ' + r.champ.toLowerCase() + ' manquant.'); return; }
       // Même règle que pour les cases au-dessus : « web.telegram.org » ouvre
       // le Telegram du client, et le canal ne servirait à rien.
-      const examen = verifierLAdresse('', url);
+      const examen = r.id === 'autre' ? verifierLAdresse('', url) : { souci: '' };
       if(examen.souci){
         alert(name + ' : ' + examen.souci);
         return;
@@ -561,6 +685,7 @@
         renderContactButtons();
         document.getElementById('newContactName').value = '';
         document.getElementById('newContactUrl').value = '';
+        majAjout();
         return;
       }
       window.__sb.from('contact_extra_channels').insert({ name: name, url: url }).then(function(res){
@@ -571,6 +696,7 @@
         renderContactButtons();
         document.getElementById('newContactName').value = '';
         document.getElementById('newContactUrl').value = '';
+        majAjout();
       }, function(err){
         alert("Échec de l'enregistrement du canal sur le serveur : " + ((err && err.message) || 'réessayez'));
       });

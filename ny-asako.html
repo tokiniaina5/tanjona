@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="dbeebdae">
+<meta name="ny-asako-version" content="4ee5025f">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -2383,36 +2383,37 @@
             <p class="local-link-warning" id="adminLinkWarning" style="display:none;"></p>
           </div>
 
-          <div class="form-grid">
+          <div class="form-grid" style="align-items:start;">
             <div class="field" style="margin-bottom:0;">
-              <label for="contactWhatsappInput">Numéro WhatsApp (avec indicatif, chiffres uniquement)</label>
-              <input id="contactWhatsappInput" type="text" placeholder="261340000000">
+              <label for="contactWhatsappInput">Numéro WhatsApp</label>
+              <input id="contactWhatsappInput" type="tel" inputmode="tel" placeholder="034 00 000 00">
             </div>
             <div class="field" style="margin-bottom:0;">
-              <label for="contactFacebookInput">Page Facebook (nom ou URL)</label>
-              <input id="contactFacebookInput" type="text" placeholder="https://facebook.com/votrepage">
+              <label for="contactFacebookInput">Facebook — votre nom</label>
+              <input id="contactFacebookInput" type="text" placeholder="votrepage">
             </div>
             <div class="field" style="margin-bottom:0;">
-              <label for="contactInstagramInput">Profil Instagram (nom ou URL)</label>
-              <input id="contactInstagramInput" type="text" placeholder="https://instagram.com/votrecompte">
+              <label for="contactInstagramInput">Instagram — votre nom</label>
+              <input id="contactInstagramInput" type="text" placeholder="votrecompte">
             </div>
             <div class="field" style="margin-bottom:0;">
-              <label for="contactTiktokInput">Profil TikTok (nom ou URL)</label>
-              <input id="contactTiktokInput" type="text" placeholder="https://tiktok.com/@votrecompte">
+              <label for="contactTiktokInput">TikTok — votre nom</label>
+              <input id="contactTiktokInput" type="text" placeholder="votrecompte">
             </div>
             <div class="field" style="margin-bottom:0;">
-              <label for="contactThreadsInput">Profil Threads (nom ou URL)</label>
-              <input id="contactThreadsInput" type="text" placeholder="https://threads.net/@votrecompte">
+              <label for="contactThreadsInput">Threads — votre nom</label>
+              <input id="contactThreadsInput" type="text" placeholder="votrecompte">
             </div>
             <div class="field" style="margin-bottom:0;">
-              <label for="contactTwitterInput">Profil X / Twitter (nom ou URL)</label>
-              <input id="contactTwitterInput" type="text" placeholder="https://x.com/votrecompte">
+              <label for="contactTwitterInput">X (Twitter) — votre nom</label>
+              <input id="contactTwitterInput" type="text" placeholder="votrecompte">
             </div>
             <div class="field" style="margin-bottom:0;">
               <label for="contactWechatInput">Identifiant WeChat</label>
               <input id="contactWechatInput" type="text" placeholder="ID WeChat">
             </div>
           </div>
+          <p style="font-size:0.75rem; color:var(--muted); margin:0.6rem 0 0;" data-fz-tsia>Écrivez seulement votre nom ou votre numéro : le lien se fait tout seul, et s'affiche sous chaque case.</p>
           <button type="button" class="btn btn-primary btn-sm" id="saveContactChannelsBtn" style="width:auto; margin-top:0.8rem;">Enregistrer</button>
           <span id="contactChannelsStatus" style="font-size:0.78rem; color:var(--muted); margin-left:0.6rem;"></span>
 
@@ -2420,12 +2421,16 @@
             <h3 style="font-size:0.95rem;">Ajouter un autre canal</h3>
             <div class="form-grid">
               <div class="field" style="margin-bottom:0;">
-                <label for="newContactName">Nom</label>
+                <label for="newContactReseau">Réseau</label>
+                <select id="newContactReseau"></select>
+              </div>
+              <div class="field" style="margin-bottom:0;" id="newContactNameField" hidden>
+                <label for="newContactName">Nom affiché</label>
                 <input id="newContactName" type="text" placeholder="Ex : Viber">
               </div>
               <div class="field" style="margin-bottom:0;">
-                <label for="newContactUrl">Lien ou identifiant</label>
-                <input id="newContactUrl" type="text" placeholder="https://... (laisser vide = simple copie)">
+                <label for="newContactUrl" id="newContactUrlLabel">Votre nom ou numéro</label>
+                <input id="newContactUrl" type="text" placeholder="votrenom">
               </div>
             </div>
             <button type="button" class="btn btn-sm" id="addContactChannelBtn" style="width:auto; margin-top:0.6rem;">Ajouter ce canal</button>
@@ -3566,7 +3571,7 @@
 <script src="gestion-stockage-js/factures.js?v=69af0cd7"></script>
 <script src="gestion-stockage-js/factures-modely.js?v=8fbf4a42"></script>
 <script src="gestion-stockage-js/inviter.js?v=fffaed9c"></script>
-<script src="gestion-stockage-js/contact.js?v=b7517b12"></script>
+<script src="gestion-stockage-js/contact.js?v=d2274b12"></script>
 <!-- Montre au client qui vient de s'inscrire, à sa première entrée, tous les
      canaux du propriétaire (contact.js les tient). -->
 <script src="gestion-stockage-js/serasera-voalohany.js?v=0b2800f2"></script>
