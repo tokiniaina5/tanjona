@@ -4,10 +4,9 @@
   // Fifandraisan'ny champ admin sy ny clé voatahiry. Ny endrika sy ny fitondran'ny
   // bokotra dia voafaritra ao amin'ny renderContactButtons, araka ny vondrona.
   const CONTACT_FIELD_MAP = [
-    // Adiresy publique an'ny site : io no ampiasaina amin'ny rohy rehetra zaraina
-    // (invitation, fanambarana Live…). Raha tsy voafeno dia ny adiresy an'ity
-    // pejy ity no alaina — izay tsy misokatra amin'ny olon-kafa raha localhost.
-    { key: 'site_url', inputId: 'contactSiteUrlInput' },
+    // L'adresse publique du site n'a plus de case (20/10/2026) : vide en base,
+    // elle laissait les liens partagés sur ny-asako.netlify.app (inviter.js),
+    // ce qu'ils font tout seuls. La colonne site_url reste, et n'est plus écrite.
     // Les coordonnées de paiement (PayPal, carte, virement, Mobile Money) ne
     // sont plus demandées : le déblocage se règle avec les crédits du
     // portefeuille, sans que rien ne sorte de l'application. Les colonnes
