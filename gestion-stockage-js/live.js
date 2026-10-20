@@ -239,6 +239,88 @@
     }).join('');
   }
 
+  // Hafatra iray soratana indray mandeha, alefa amin'ny canal rehetra :
+  // ao anaty appli, WhatsApp, SMS, Email. Ny ao anaty appli no lasa avy
+  // hatrany ; ny hafa dia misokatra feno ny hafatra, ka ilay app no
+  // manindry « Envoyer » (tsy azon'ny pejy web atao ho azy izany). Ny
+  // navigateur dia tsy mamela afa-tsy fanokafana iray isaky ny tsindry
+  // indraindray : ny canal tsy nisokatra dia mbola azo tsindriana tsirairay.
+  function alefaDaholo(o){
+    const canal = [];
+    // Ao anaty appli : tonga raha miditra ilay olona.
+    if(o.email){
+      canal.push({ cle: 'appli', nom: '💬 Hafatra mivantana (ao anaty appli)', couleur: 'var(--cyan)',
+        alefa: function(t){
+          const me = myIdentity();
+          sendCallSignal({ kind: 'hafatra', from: me.email, fromName: me.name, to: o.email, text: t });
+          (resaka[o.email] = resaka[o.email] || []).push({ avy: 'izaho', soratra: t, at: Date.now() });
+          return true;
+        } });
+    }
+    if(o.phone){
+      const intl = (typeof toInternationalNumber === 'function') ? toInternationalNumber(o.phone) : o.phone;
+      const tel = o.phone.charAt(0) === '0' ? o.phone : '+' + o.phone;
+      canal.push({ cle: 'wa', nom: '💬 WhatsApp — ' + o.phone, couleur: '#25D366',
+        alefa: function(t){ return !!window.open('https://wa.me/' + intl + '?text=' + encodeURIComponent(t), '_blank'); } });
+      canal.push({ cle: 'sms', nom: '✉️ SMS — ' + o.phone, couleur: '#25D366',
+        alefa: function(t){ window.location.href = 'sms:' + tel + '?body=' + encodeURIComponent(t); return true; } });
+    }
+    if(o.email && o.email.indexOf('@') > 0){
+      canal.push({ cle: 'mail', nom: '📧 Email — ' + o.email, couleur: 'var(--cyan)',
+        alefa: function(t){ return !!window.open('mailto:' + o.email + '?body=' + encodeURIComponent(t), '_blank'); } });
+    }
+    if(!canal.length){ alert(o.name + ' : tsy nanome laharana na email.'); return; }
+
+    const ancien = document.getElementById('alefaDaholo');
+    if(ancien) ancien.remove();
+    const fond = document.createElement('div');
+    fond.id = 'alefaDaholo';
+    fond.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.6); display:flex; align-items:center; ' +
+      'justify-content:center; z-index:210; padding:1rem;';
+    const boite = document.createElement('div');
+    boite.className = 'panel';
+    boite.style.cssText = 'max-width:400px; width:100%; margin:0;';
+    boite.innerHTML =
+      '<h3>💬 ' + escapeHtml(o.name) + '</h3>' +
+      '<textarea data-soratra rows="3" placeholder="Soraty ny hafatra..." style="width:100%; box-sizing:border-box; padding:0.5rem 0.7rem; ' +
+        'border-radius:8px; border:1px solid var(--line); background:var(--bg); color:var(--text); font-size:0.85rem; margin-bottom:0.6rem;"></textarea>' +
+      '<div data-canal></div>' +
+      '<button type="button" class="btn btn-primary btn-sm" data-daholo style="width:100%; margin-top:0.2rem;">📨 Alefa daholo (' + canal.length + ')</button>' +
+      '<button type="button" class="btn btn-sm" data-hidio style="width:auto; margin-top:0.6rem;">Fermer</button>';
+    const zone = boite.querySelector('[data-canal]');
+    const input = boite.querySelector('[data-soratra]');
+    canal.forEach(function(c){
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn btn-sm';
+      b.style.cssText = 'width:100%; margin-bottom:0.5rem;';
+      b.style.borderColor = c.couleur;
+      b.style.color = c.couleur;
+      b.textContent = c.nom;
+      c.bokotra = b;
+      b.addEventListener('click', function(){
+        const t = input.value.trim();
+        if(!t){ input.focus(); return; }
+        if(c.alefa(t)) b.textContent = '✓ ' + c.nom;
+      });
+      zone.appendChild(b);
+    });
+    boite.querySelector('[data-daholo]').addEventListener('click', function(){
+      const t = input.value.trim();
+      if(!t){ input.focus(); return; }
+      // Ny SMS farany : manova ny pejy izy, ka ny hafa aloha.
+      canal.slice().sort(function(a, b){ return (a.cle === 'sms') - (b.cle === 'sms'); }).forEach(function(c){
+        if(c.alefa(t)) c.bokotra.textContent = '✓ ' + c.nom;
+      });
+    });
+    function hidio(){ fond.remove(); }
+    boite.querySelector('[data-hidio]').addEventListener('click', hidio);
+    fond.addEventListener('click', function(e){ if(e.target === fond) hidio(); });
+    fond.appendChild(boite);
+    document.body.appendChild(fond);
+    input.focus();
+  }
+
   // Pejy « 💬 Message » : 💬 isaky ny olona, ao anatiny ny WhatsApp sy ny
   // SMS (raha misy laharana) ary ny Email (raha misy).
   function renderMpisoratraHafatra(olona){
@@ -250,22 +332,7 @@
       btn.addEventListener('click', function(){
         const o = olona[Number(btn.getAttribute('data-i'))];
         if(!o) return;
-        const safidy = [];
-        // Ao foana ny resaka ao anaty appli : tonga raha miditra ilay olona.
-        if(o.email){
-          safidy.push({ label: '💬 Hafatra mivantana (ao anaty appli)', color: 'var(--cyan)', run: function(){ sokafyResaka(o.email, o.name); } });
-        }
-        if(o.phone){
-          const wa ='https://wa.me/' + (typeof toInternationalNumber === 'function' ? toInternationalNumber(o.phone) : o.phone);
-          const sms = 'sms:' + (o.phone.charAt(0) === '0' ? o.phone : '+' + o.phone);
-          safidy.push({ label: '💬 WhatsApp — ' + o.phone, color: '#25D366', run: function(){ window.open(wa, '_blank'); } });
-          safidy.push({ label: '✉️ SMS — ' + o.phone, color: '#25D366', run: function(){ window.location.href = sms; } });
-        }
-        if(o.email.indexOf('@') > 0){
-          safidy.push({ label: '📧 Email — ' + o.email, color: 'var(--cyan)', run: function(){ window.location.href = 'mailto:' + o.email; } });
-        }
-        if(!safidy.length){ alert(o.name + ' : tsy nanome laharana na email.'); return; }
-        openChannelChooser('💬 ' + o.name, 'Safidio izay handefasana hafatra.', safidy);
+        alefaDaholo(o);
       });
     });
   }
