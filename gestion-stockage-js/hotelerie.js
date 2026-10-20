@@ -697,14 +697,111 @@
       alert('Tsy azo ny QR : jereo ny connexion, dia avereno.');
     });
   }
+  // ---------- Effacer en glissant ----------
+  // La carte glissée disparaît tout de suite ; l'effacement part 5 s plus
+  // tard, le temps de « ↩️ Averina ». Pendant qu'un doigt glisse, on ne
+  // redessine pas (la carte serait remplacée sous lui).
+  const effacements = {};
+  let glisseEnCours = false;
+  let aRedessiner = false;
+  function effacerPlusTard(c) {
+    effacements[c.id] = setTimeout(function () {
+      sb().from('hotelerie_commande').delete().eq('id', c.id).then(function (res) {
+        delete effacements[c.id];
+        if (res.error) alert('Tsy voafafa : ' + res.error.message);
+        chargerCommandes(true);
+      });
+      fermerAnnuler();
+    }, 5000);
+    dessinerCommandes();
+    montrerAnnuler(c);
+  }
+  let boiteAnnuler = null;
+  function fermerAnnuler() { if (boiteAnnuler) { boiteAnnuler.remove(); boiteAnnuler = null; } }
+  function montrerAnnuler(c) {
+    fermerAnnuler();
+    const b = document.createElement('div');
+    b.style.cssText = 'position:fixed; left:50%; bottom:20px; transform:translateX(-50%); z-index:9999; display:flex; align-items:center; gap:0.8rem;' +
+      ' background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:999px; padding:0.5rem 0.6rem 0.5rem 1rem; box-shadow:0 6px 24px rgba(0,0,0,0.4); font-size:0.88rem;';
+    b.appendChild(document.createTextNode('🗑️ Voafafa ny commande T' + c.latabatra));
+    const averina = document.createElement('button');
+    averina.type = 'button';
+    averina.className = 'btn btn-sm';
+    averina.style.width = 'auto';
+    averina.textContent = '↩️ Averina';
+    averina.addEventListener('click', function () {
+      clearTimeout(effacements[c.id]);
+      delete effacements[c.id];
+      fermerAnnuler();
+      dessinerCommandes();
+    });
+    b.appendChild(averina);
+    document.body.appendChild(b);
+    boiteAnnuler = b;
+  }
+  function brancherGlisse(zone) {
+    let g = null;
+    zone.addEventListener('pointerdown', function (e) {
+      const carte = e.target.closest('[data-glisse-carte]');
+      if (!carte || e.target.closest('button, a, input, select, textarea')) return;
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      g = { carte: carte, cadre: carte.parentNode, x: e.clientX, y: e.clientY, dx: 0, sens: null, id: e.pointerId };
+    });
+    zone.addEventListener('pointermove', function (e) {
+      if (!g || e.pointerId !== g.id) return;
+      const dx = e.clientX - g.x, dy = e.clientY - g.y;
+      if (!g.sens) {
+        if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+        // Un geste vertical, c'est le défilement : on laisse.
+        if (Math.abs(dy) > Math.abs(dx)) { g = null; return; }
+        g.sens = 'x';
+        glisseEnCours = true;
+        try { g.carte.setPointerCapture(e.pointerId); } catch (x) { }
+        g.carte.style.transition = 'none';
+      }
+      g.dx = dx;
+      g.carte.style.transform = 'translateX(' + dx + 'px)';
+      const fond = g.cadre.querySelector('[data-glisse-fond]');
+      // Le mot se place du côté qui se découvre.
+      if (fond) { fond.style.left = dx > 0 ? '1rem' : 'auto'; fond.style.right = dx > 0 ? 'auto' : '1rem'; }
+      e.preventDefault();
+    });
+    function fin(e) {
+      if (!g || e.pointerId !== g.id) return;
+      const ici = g;
+      g = null;
+      if (ici.sens !== 'x') return;
+      const largeur = ici.carte.offsetWidth || 300;
+      ici.carte.style.transition = 'transform 0.2s ease';
+      if (Math.abs(ici.dx) > largeur * 0.35 && e.type === 'pointerup') {
+        ici.carte.style.transform = 'translateX(' + (ici.dx > 0 ? largeur : -largeur) + 'px)';
+        const c = commandes.find(function (x) { return x.id === ici.cadre.dataset.glisse; });
+        setTimeout(function () {
+          glisseEnCours = false;
+          if (c) effacerPlusTard(c); else dessinerCommandes();
+        }, 200);
+      } else {
+        ici.carte.style.transform = 'translateX(0)';
+        setTimeout(function () {
+          glisseEnCours = false;
+          if (aRedessiner) { aRedessiner = false; dessinerCommandes(); }
+        }, 200);
+      }
+    }
+    zone.addEventListener('pointerup', fin);
+    zone.addEventListener('pointercancel', fin);
+  }
+
   function dessinerCommandes() {
     const zone = document.getElementById('commandesZone');
     if (!zone) return;
+    if (glisseEnCours) { aRedessiner = true; return; }
     // Une commande que la lakozia (ou l'hôtel) dit « vita » reste là, marquée
     // ✅ Vita, jusqu'au lendemain : on la voit changer au lieu de la voir
     // disparaître. « Asehoy ny vita taloha » montre aussi celles d'avant.
     const anio = new Date().toDateString();
     const visibles = commandes.filter(function (c) {
+      if (effacements[c.id]) return false;
       return voirVita || !c.vita || new Date(c.created_at).toDateString() === anio;
     });
     const parTable = {};
@@ -758,7 +855,11 @@
               (tsyVoaloa ? '<span style="font-size:0.78rem; color:#ffb020;">💳 Tsy voaloa : ' + ariary(tsyVoaloa) + '</span>' : '') +
             '</div>' +
             liste.map(function (c) {
-              return '<div style="margin-top:0.6rem; padding:0.6rem 0.7rem; border-radius:8px; border:1px solid var(--line);' + (c.vita ? ' border-color:#3ecf8e; opacity:0.8;' : '') + '">' +
+              // Glisser la carte à gauche ou à droite l'efface (le fond rouge
+              // apparaît dessous) ; « ↩️ Averina » la rend pendant 5 s.
+              return '<div data-glisse="' + c.id + '" style="position:relative; margin-top:0.6rem; border-radius:8px; overflow:hidden; background:var(--red);' + (c.vita ? ' opacity:0.8;' : '') + '">' +
+                '<span data-glisse-fond style="position:absolute; top:50%; transform:translateY(-50%); left:1rem; color:#fff; font-weight:700; font-size:0.9rem; pointer-events:none;">🗑️ Esorina</span>' +
+                '<div data-glisse-carte style="position:relative; padding:0.6rem 0.7rem; border-radius:8px; border:1px solid var(--line); background:var(--panel); touch-action:pan-y;' + (c.vita ? ' border-color:#3ecf8e;' : '') + '">' +
                 '<div style="display:flex; justify-content:space-between; gap:0.5rem; font-size:0.75rem; color:var(--muted);">' +
                   '<span>🕒 ' + heure(c.created_at) + '</span>' +
                   (c.vita ? '<span style="color:#3ecf8e; font-weight:700;">✅ Vita</span>' : '<span>⏳ Miandry</span>') +
@@ -781,7 +882,7 @@
                     '<button type="button" class="btn btn-sm btn-red" data-commande="esory" data-id="' + c.id + '" style="width:auto;">Esorina</button>' +
                   '</div>' +
                 '</div>' +
-              '</div>';
+              '</div></div>';
             }).join('') +
           '</div>';
         }).join('') +
@@ -845,6 +946,7 @@
     // écouteur pour les boutons des commandes.
     if (zone.dataset.branche) return;
     zone.dataset.branche = '1';
+    brancherGlisse(zone);
     zone.addEventListener('click', function (e) {
       const ouvrir = e.target.closest('button[data-ouvrir]');
       if (ouvrir) {
