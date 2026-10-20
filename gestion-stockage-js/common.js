@@ -3637,6 +3637,16 @@
   if(guideLoginBtn) guideLoginBtn.addEventListener('click', function(){ quitterGuideVers('quick'); });
   const guideSignupBtn = document.getElementById('guideSignupBtn');
   if(guideSignupBtn) guideSignupBtn.addEventListener('click', function(){ quitterGuideVers('full'); });
+  // La flèche de la première page : tout ce que contient Ny asako, déplié
+  // ou replié.
+  const guideToutBtn = document.getElementById('guideToutBtn');
+  if(guideToutBtn) guideToutBtn.addEventListener('click', function(){
+    const liste = document.getElementById('guideTout');
+    if(!liste) return;
+    const ouvrir = liste.hidden;
+    liste.hidden = !ouvrir;
+    guideToutBtn.setAttribute('aria-expanded', ouvrir ? 'true' : 'false');
+  });
   // « Installer Ny asako Hôtel » : sa page /hotely, dans un onglet (ou son
   // adresse à ouvrir dans Chrome, depuis Ny asako déjà installée).
   const guideHotelInstaller = document.getElementById('guideHotelInstaller');
