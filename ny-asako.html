@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="cda9ff36">
+<meta name="ny-asako-version" content="78a88386">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -171,7 +171,7 @@
 <link rel="apple-touch-startup-image" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)" href="/demarrage/2732x2048.png">
 <!-- fin des écrans de démarrage iOS -->
 <link rel="icon" href="/icone-192.png" type="image/png">
-<link rel="stylesheet" href="gestion-stockage-css/base.css?v=b2c3c50f">
+<link rel="stylesheet" href="gestion-stockage-css/base.css?v=80a789a9">
 <link rel="stylesheet" href="gestion-stockage-css/components.css?v=6e231d37">
 <!-- Les émojis dessinés en 3D (emoji-3d.js). -->
 <script src="gestion-stockage-js/emoji-3d.js?v=66dad412" defer></script>
@@ -198,7 +198,10 @@
       </div>
       <p id="quickLoginStatus" style="font-size:0.75rem; color:var(--muted); margin:-0.4rem 0 0.8rem; min-height:1.1em;"></p>
       <button type="submit" class="btn btn-primary">Se connecter</button>
-      <button type="button" class="btn btn-sm" id="showFullLoginBtn" style="width:100%; margin-top:0.7rem;">Première connexion / autre compte</button>
+      <!-- Les trois dépannages (autre compte, mot de passe oublié, compte
+           bloqué) restent rangés derrière un seul bouton (common.js). -->
+      <button type="button" class="btn btn-sm" id="loginPlusBtn" aria-expanded="false" style="width:100%; margin-top:0.7rem;">Autres options ▾</button>
+      <button type="button" class="btn btn-sm login-plus" id="showFullLoginBtn" style="width:100%; margin-top:0.7rem;">Première connexion / autre compte</button>
     </form>
 
     <!-- Retour depuis le lien de réinitialisation reçu par email -->
@@ -219,7 +222,7 @@
       <button type="button" class="btn btn-sm" id="helpBackBtn" style="width:100%; display:none;">← Retour à la connexion</button>
 
       <!-- 1) MOT DE PASSE OUBLIÉ : le code n'arrive que dans la boîte mail du titulaire -->
-      <button type="button" class="btn btn-sm" id="resetToggleBtn" style="width:100%; margin-top:0.7rem;">🔑 Mot de passe oublié ?</button>
+      <button type="button" class="btn btn-sm login-plus" id="resetToggleBtn" style="width:100%; margin-top:0.7rem;">🔑 Mot de passe oublié ?</button>
 
       <div id="resetBox" style="display:none; margin-top:0.9rem; border-top:1px solid var(--line); padding-top:0.9rem;">
         <p style="font-size:0.76rem; color:var(--muted); line-height:1.5; margin-bottom:0.9rem;">
@@ -250,7 +253,7 @@
       </div>
 
       <!-- 2) DEMANDE DE DÉBLOCAGE : lettre de demande de validation envoyée au propriétaire -->
-      <button type="button" class="btn btn-sm" id="forgotToggleBtn" style="width:100%; margin-top:0.7rem;">🔓 Mon compte est bloqué — demander un déblocage</button>
+      <button type="button" class="btn btn-sm login-plus" id="forgotToggleBtn" style="width:100%; margin-top:0.7rem;">🔓 Mon compte est bloqué — demander un déblocage</button>
 
       <div id="forgotBox" style="display:none; margin-top:0.9rem; border-top:1px solid var(--line); padding-top:0.9rem;">
         <p style="font-size:0.76rem; color:var(--muted); line-height:1.5; margin-bottom:0.9rem;">
@@ -3382,7 +3385,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=3a2e6959"></script>
+<script src="gestion-stockage-js/common.js?v=9fc14352"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=622d64e8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>

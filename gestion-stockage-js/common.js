@@ -2296,6 +2296,7 @@
     const forgotWrap = document.getElementById('forgotWrap');
     if(forgotWrap) forgotWrap.style.display = quick ? 'block' : 'none';
     closeHelpBoxes();
+    if(typeof plusOuvert === 'function') plusOuvert(false);
   }
 
   // Les deux dépannages sont indépendants : on n'en ouvre jamais deux à la fois.
@@ -2331,6 +2332,22 @@
   }
   const helpBackBtn = document.getElementById('helpBackBtn');
   if(helpBackBtn) helpBackBtn.addEventListener('click', function(){ showLoginMode('quick'); });
+  // « Autres options » : un seul bouton montre ou range les trois dépannages.
+  const loginPlusBtn = document.getElementById('loginPlusBtn');
+  // Appelée aussi par showLoginMode, parfois avant cette ligne : elle relit
+  // le bouton elle-même.
+  function plusOuvert(ouvert){
+    const ecran = document.getElementById('loginScreen');
+    if(ecran) ecran.classList.toggle('plus-ouvert', ouvert);
+    const b = document.getElementById('loginPlusBtn');
+    if(b){
+      b.textContent = ouvert ? 'Autres options ▴' : 'Autres options ▾';
+      b.setAttribute('aria-expanded', ouvert ? 'true' : 'false');
+    }
+  }
+  if(loginPlusBtn) loginPlusBtn.addEventListener('click', function(){
+    plusOuvert(!document.getElementById('loginScreen').classList.contains('plus-ouvert'));
+  });
   function refreshLoginMode(){
     // On ouvre toujours sur la première connexion (inscription) : c'est là que
     // la personne crée son compte. Celle qui en a déjà un bascule sur
