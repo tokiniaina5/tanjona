@@ -693,6 +693,7 @@
       // Le menu change avec la table : on le redessine.
       afficher(dernierRecu);
       majCommande();
+      dessinerRecus();
     });
     return choix;
   }
@@ -760,7 +761,7 @@
   }
 
   // ---------- Les reçus ----------
-  // Ceux de cet appareil, pour cet hôtel : les dix derniers, d'un jour au plus.
+  // Ceux de cet appareil, pour cet hôtel : les trente derniers, d'un jour au plus.
   // Le numéro mobile money y est recopié tel qu'il était à la commande.
   const CLE_RECU = 'recus_' + (id || '');
   function recusLire() {
@@ -769,11 +770,14 @@
     const hier = Date.now() - 24 * 3600 * 1000;
     return (Array.isArray(l) ? l : []).filter(function (r) { return r && r.id && r.at > hier; });
   }
-  function recusEcrire(l) { retenuEcrire(CLE_RECU, JSON.stringify(l.slice(0, 10))); dessinerRecus(); }
+  function recusEcrire(l) { retenuEcrire(CLE_RECU, JSON.stringify(l.slice(0, 30))); dessinerRecus(); }
   function recuAjouter(r) { recusEcrire([r].concat(recusLire())); }
   function dessinerRecus() {
     const z = document.getElementById('recus');
-    const l = recusLire();
+    // Chaque latabatra ne voit que ses reçus : les applications des tables
+    // partagent le même stockage sur l'appareil, mais T2 n'a pas à voir (ni à
+    // payer) ce que T1 a commandé.
+    const l = recusLire().filter(function (r) { return !latabatraChoisie || Number(r.latabatra) === latabatraChoisie; });
     z.replaceChildren();
     if (!l.length) return;
     z.appendChild(el('h2', '🧾 Ny reçu-nao'));
