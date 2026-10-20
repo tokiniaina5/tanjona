@@ -602,7 +602,12 @@
       (l.ok ? '' : '<span style="position:absolute; top:-0.5rem; right:-0.5rem; font-size:0.9rem;">⚠️</span>') + '</span>';
     const nom = '<span style="font-size:0.72rem; font-weight:600; color:var(--text); max-width:5.5rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + escapeHtml(l.nom) + '</span>';
     const attrs = 'title="' + escapeHtml(l.titre) + '" style="display:flex; flex-direction:column; align-items:center; gap:0.35rem; text-decoration:none; color:inherit;' +
-      (l.lien ? ' cursor:pointer;' : '') + '"';
+      (l.lien || l.canal ? ' cursor:pointer;' : '') + (l.vide ? ' opacity:0.45;' : '') + '"';
+    // Un canal des cases : le logo ouvre sa case (le lien est dedans).
+    if(l.canal){
+      return '<button type="button" data-canal="' + l.canal + '" aria-pressed="false" ' + attrs.replace('style="', 'style="background:none; border:0; padding:0; font:inherit; ') + '>' +
+        carre + nom + '</button>';
+    }
     return l.lien
       ? '<a href="' + escapeHtml(l.lien) + '" target="_blank" rel="noopener" ' + attrs + '>' + carre + nom + '</a>'
       : '<div ' + attrs + '>' + carre + nom + '</div>';
@@ -617,13 +622,14 @@
     if(!zone) return;
     fetchContactChannels(function(channels, extra){
       const lignes = [];
+      // Les réseaux des cases, tous : un logo pâle est un réseau pas encore
+      // rempli — on le touche pour l'ajouter.
       Object.keys(NOMS_CANAUX).forEach(function(cle){
         const v = String((channels && channels[cle]) || '').trim();
-        if(!v) return;
-        const lien = lienDuCanal(cle, v);
-        const ok = !!lien || cle === 'wechat';
-        lignes.push({ logo: CLE_LOGO[cle], nom: NOMS_CANAUX[cle], lien: lien, ok: ok,
-          titre: lien || (cle === 'wechat' ? 'ID WeChat : ' + v : v + ' — à reprendre') });
+        const lien = v ? lienDuCanal(cle, v) : '';
+        const ok = !v || !!lien || cle === 'wechat';
+        lignes.push({ logo: CLE_LOGO[cle], nom: NOMS_CANAUX[cle], lien: lien, ok: ok, canal: cle, vide: !v,
+          titre: !v ? 'Ajouter ' + NOMS_CANAUX[cle] : (lien || (cle === 'wechat' ? 'ID WeChat : ' + v : v + ' — à reprendre')) });
       });
       (extra || []).forEach(function(item){
         if(!item || !item.name) return;
@@ -633,13 +639,44 @@
         lignes.push({ logo: logoDe(item.name, item.url), nom: item.name, lien: lien, ok: ok,
           titre: lien || (item.url ? item.url + ' — à reprendre' : 'Copie du nom') });
       });
-      if(!lignes.length){ zone.innerHTML = ''; return; }
+      const remplis = lignes.filter(function(l){ return !l.vide; }).length;
       zone.innerHTML =
-        '<div style="font-size:0.8rem; font-weight:600; margin-bottom:0.7rem;">Vos canaux enregistrés (' + lignes.length + ')</div>' +
+        '<div style="font-size:0.8rem; font-weight:600; margin-bottom:0.2rem;">Vos canaux (' + remplis + ')</div>' +
+        '<p style="font-size:0.72rem; color:var(--muted); margin:0 0 0.8rem;" data-fz-tsia>Touchez un logo pour écrire votre nom ou votre numéro ; le lien se fait tout seul.</p>' +
         '<div style="display:flex; flex-wrap:wrap; gap:1rem 1.1rem;">' + lignes.map(tuile).join('') + '</div>' +
         (lignes.some(function(l){ return !l.ok; })
           ? '<p style="font-size:0.72rem; color:var(--amber); margin:0.7rem 0 0;" data-fz-tsia>⚠️ = lien à reprendre : vos clients ne le voient pas.</p>' : '');
+      zone.querySelectorAll('[data-canal]').forEach(function(b){
+        b.addEventListener('click', function(){ ouvrirLaCase(b.dataset.canal); });
+      });
+      if(caseOuverte) marquerLogo(caseOuverte);
     });
+  }
+
+  // Les cases sont rangées derrière les logos : un logo touché montre sa
+  // case seule, le même logo la referme.
+  let caseOuverte = '';
+  function marquerLogo(cle){
+    document.querySelectorAll('#contactEnregistres [data-canal]').forEach(function(b){
+      const ici = b.dataset.canal === cle;
+      b.setAttribute('aria-pressed', ici ? 'true' : 'false');
+      const carre = b.firstElementChild;
+      if(carre) carre.style.transform = ici ? 'translateY(-3px) scale(1.06)' : '';
+    });
+  }
+  function ouvrirLaCase(cle){
+    const grille = document.getElementById('contactChamps');
+    const champ = CONTACT_FIELD_MAP.find(function(f){ return f.key === cle; });
+    if(!grille || !champ) return;
+    if(caseOuverte === cle){ caseOuverte = ''; grille.style.display = 'none'; marquerLogo(''); return; }
+    caseOuverte = cle;
+    const input = document.getElementById(champ.inputId);
+    Array.prototype.forEach.call(grille.children, function(f){
+      f.style.display = f.contains(input) ? '' : 'none';
+    });
+    grille.style.display = 'grid';
+    marquerLogo(cle);
+    if(input) input.focus();
   }
   afficherLesEnregistres();
 
@@ -664,7 +701,12 @@
     if(souci){ p.style.color = 'var(--amber)'; p.textContent = '⚠️ ' + souci; return; }
     if(!lien){ p.textContent = ''; return; }
     p.style.color = 'var(--cyan)';
-    p.textContent = '✓ ' + lien;
+    // Le lien se touche pour l'essayer.
+    if(/^https?:\/\//i.test(lien)){
+      p.innerHTML = '✓ <a href="' + escapeHtml(lien) + '" target="_blank" rel="noopener" style="color:inherit;">' + escapeHtml(lien) + '</a>';
+    } else {
+      p.textContent = '✓ ' + lien;
+    }
   }
   function lienWhatsapp(brut){
     const n = toInternationalNumber(brut);
