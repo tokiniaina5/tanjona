@@ -133,6 +133,9 @@
   .recu-total{ font-weight:700; border-bottom:0; padding-top:0.35rem; }
   .recu p{ margin:0.35rem 0 0; font-size:0.88rem; }
   .recu-ok{ color:#2fbf71; font-weight:700; }
+  /* Le merci, une fois l'argent reçu : en grand, et le client le ferme (✕). */
+  .recu .recu-ok{ position:relative; margin:0.6rem 0 0; padding:0.8rem 2.6rem 0.8rem 1rem; border-radius:14px; background:rgba(47,191,113,0.15); font-size:1.35rem; line-height:1.3; text-align:center; }
+  .recu-ok-hidy{ position:absolute; top:0.35rem; right:0.4rem; width:2rem; height:2rem; margin:0; padding:0; border:0; border-radius:50%; background:rgba(47,191,113,0.25); color:#2fbf71; font-size:1.1rem; font-weight:700; line-height:2rem; cursor:pointer; }
   .recu-attente{ color:#e0a020; font-weight:600; }
   /* Où en est la commande en cuisine : la marque que la lakozia a sonné. */
   .recu-lakozia{ display:inline-flex; align-items:center; gap:0.35rem; margin:0.45rem 0 0; padding:0.2rem 0.65rem; border-radius:999px; font-size:0.85rem; font-weight:700; }
@@ -837,7 +840,21 @@
           (r.ref ? ' · Réf : ' + r.ref : ''), 'recu-fomba')));
       }
       if (r.voaloa) {
-        c.appendChild(el('p', '💰 Voaloa — misaotra !', 'recu-ok'));
+        // Le merci se ferme d'un ✕ ; le reçu, lui, reste (🗑️ Fafana l'ôte).
+        if (!r.fisaorana_hidy) {
+          const merci = el('p', '💰 Mankasitraka indrindra fa voaray ilay vola, thank you so much 🙏', 'recu-ok');
+          const hidy = el('button', '✕', 'recu-ok-hidy');
+          hidy.type = 'button';
+          hidy.title = 'Hidio';
+          hidy.setAttribute('aria-label', 'Hidio');
+          hidy.addEventListener('click', function () {
+            recusEcrire(recusLire().map(function (x) {
+              return x.id === r.id ? Object.assign({}, x, { fisaorana_hidy: true }) : x;
+            }));
+          });
+          merci.appendChild(hidy);
+          c.appendChild(merci);
+        }
         // Payé : le client peut l'ôter de son appareil (l'hôtel garde le sien).
         const fafa = el('button', '🗑️ Fafana', 'recu-fafa');
         fafa.type = 'button';
