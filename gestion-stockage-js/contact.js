@@ -285,8 +285,31 @@
       if(callRow){
         callRow.innerHTML = '';
         const liens = [];
-        if(inAppVoice) liens.push({ label: '📞 Appel mivantana', color: '#25D366', run: inAppVoice.run });
-        if(inAppVideo) liens.push({ label: '📹 Antso video', color: '#1877F2', run: inAppVideo.run });
+        // Ny admin no antsoin'ny mpanjifa ; izy kosa misafidy amin'ireo
+        // miditra ankehitriny izay hantsoiny.
+        // Jerena rehefa tsindriana : mety mbola tsy fantatra hoe admin ve
+        // rehefa vao nalaina ny canal.
+        function antso(type){
+          return function(){
+            const me = (typeof myIdentity === 'function') ? myIdentity() : { isAdmin: false };
+            if(!me.isAdmin){
+              const p = (typeof presenceState === 'object') ? presenceState[OWNER_EMAIL.toLowerCase()] : null;
+              startCall(OWNER_EMAIL.toLowerCase(), (p && p.name) || 'Admin', type);
+              return;
+            }
+            const ireo = (typeof presenceState === 'object') ? Object.keys(presenceState).filter(function(email){ return email !== me.email; }) : [];
+            if(!ireo.length){ alert('Tsy misy olona miditra ankehitriny.'); return; }
+            runOrChoose(type === 'video' ? '📹 Antso video' : '📞 Appel mivantana', 'Safidio izay hantsoina.',
+              ireo.map(function(email){
+                const p = presenceState[email] || {};
+                return { label: p.name || email, color: 'var(--cyan)', run: function(){ startCall(email, p.name || email, type); } };
+              }));
+          };
+        }
+        if(window.__sb){
+          liens.push({ label: '📞 Appel mivantana', color: '#25D366', run: antso('audio') });
+          liens.push({ label: '📹 Antso video', color: '#1877F2', run: antso('video') });
+        }
         voice.forEach(function(o){ if(o.tel) liens.push(o); });
         liens.forEach(function(opt){
           const btn = document.createElement('button');
