@@ -16,7 +16,7 @@
 <script src="/mazava.js?v=2bcdcfad" defer></script>
 <!-- 🔄 La page se met à jour seule quand une version neuve est en ligne (pejy-version.js) ;
      l'empreinte est écrite par outils/versionner.mjs. -->
-<meta name="pejy-version" content="fc360e35">
+<meta name="pejy-version" content="db6a5e84">
 <script src="/pejy-version.js?v=97acc3b0" defer></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -194,7 +194,8 @@
   };
   let SOKAJY = Object.assign({}, SOKAJY_DEFAUT);
   const boite = document.getElementById('menu');
-  function ariary(n) { return Number(n || 0).toLocaleString('fr-FR') + ' Ar'; }
+  // 24242 → « 24.242 MGA » : le point pour les milliers, comme handoa.html.
+  function ariary(n) { return String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' MGA'; }
   function el(tag, texte, classe) {
     const e = document.createElement(tag);
     if (texte != null) e.textContent = texte;

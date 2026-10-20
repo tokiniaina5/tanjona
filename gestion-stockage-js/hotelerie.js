@@ -286,7 +286,8 @@
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
   function nouvelId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
-  function ariary(n) { return Number(n || 0).toLocaleString('fr-FR') + ' Ar'; }
+  // 24242 → « 24.242 MGA » : le point pour les milliers, comme le menu.
+  function ariary(n) { return String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' MGA'; }
   function nomSokajy(c) {
     const s = sokajyListe().find(function (x) { return x[0] === c; });
     return s ? s[1] : c;
@@ -1062,7 +1063,7 @@
               '<select id="sakafoSokajy" style="flex:1 1 auto; min-width:0;">' + optionsSokajy(plat && plat.sokajy) + '</select>' +
               '<button type="button" class="btn btn-sm" id="sokajyOvay" title="Ovay ny sokajy" aria-label="Ovay ny sokajy" style="width:auto; padding:0.25rem 0.55rem; font-size:1rem; line-height:1;">✏️</button>' +
             '</div></div>' +
-          '<div class="field" style="margin-bottom:0;"><label for="sakafoVidiny">Vidiny (Ar)</label>' +
+          '<div class="field" style="margin-bottom:0;"><label for="sakafoVidiny">Vidiny (MGA)</label>' +
             '<input id="sakafoVidiny" type="number" min="0" step="100" placeholder="Ex: 12000" value="' + html(plat ? plat.vidiny : '') + '"></div>' +
         '</div>' +
         '<div id="sokajyMpanova" style="display:none; margin-top:0.8rem; border:1px solid var(--line); border-radius:10px; padding:0.8rem;"></div>' +
