@@ -288,6 +288,8 @@
           btn.type = 'button';
           btn.className = 'btn';
           btn.style.width = 'auto';
+          btn.style.flex = 'none';
+          btn.style.whiteSpace = 'nowrap';
           btn.style.borderColor = opt.color;
           btn.style.color = opt.color;
           btn.textContent = opt.label;
