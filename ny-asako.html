@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="3efc6947">
+<meta name="ny-asako-version" content="479e1389">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -2435,28 +2435,29 @@
         </div>
       </section>
 
-      <!-- ---- SERVICE CLIENT : antso, antso video, fizarana (contact.js) ---- -->
+      <!-- ---- MESSAGE : hafatra amin'ny nanao inscription sy ny réseaux (contact.js, live.js) ---- -->
       <section class="section" id="section-serviceclient">
         <div class="section-head">
           <div>
             <h2>💬 Message</h2>
-            <p>Antso, antso video na fizarana : mifandraisa mivantana amin'ny service client.</p>
+            <p>Ireo nanao inscription sy ny réseaux sociaux. Tsindrio ny iray handefasana hafatra.</p>
           </div>
         </div>
 
-        <div class="panel">
-          <h3>Contactez le service client</h3>
-          <p style="font-size:0.78rem; color:var(--muted); margin-bottom:1rem;">
-            Bokotra telo ihany : antso, antso video, fizarana. Rehefa maro ny canal
-            misokatra dia asehoina ny lisitra mba hisafidiananao.
-          </p>
+            <!-- 1) Admin ihany : ireo nanao inscription, handefasana hafatra (live.js). -->
+            <div class="panel" id="msgMpisoratraPanel" style="display:none; margin-top:0;">
+              <h3>👥 Ireo nanao inscription</h3>
+              <div id="msgMpisoratra"></div>
+              <p class="empty-hint" id="msgMpisoratraEmpty" style="display:none;">Mbola tsy misy nanao inscription.</p>
+            </div>
 
-          <div class="actions-row" id="contactMainActions" style="flex-wrap:wrap; gap:0.6rem;"></div>
-
-          <p class="empty-hint" id="contactButtonsEmptyHint" style="display:none;">
-            Aucun canal de contact n'a encore été configuré. Revenez bientôt !
-          </p>
-        </div>
+            <!-- 2) Les liens de « 🔗 Ajouter les liens » : un appui ouvre la
+                 conversation (contact.js, renderContactButtons). -->
+            <div class="panel">
+              <h3>🌐 Réseaux sociaux</h3>
+              <div class="actions-row" id="msgCanaux" style="flex-direction:column; align-items:stretch; gap:0.5rem;"></div>
+              <p class="empty-hint" id="msgCanauxEmpty" style="display:none;">Mbola tsy misy rohy nampidirina.</p>
+            </div>
 
       </section>
 
@@ -3566,12 +3567,12 @@
 <script src="gestion-stockage-js/factures.js?v=69af0cd7"></script>
 <script src="gestion-stockage-js/factures-modely.js?v=8fbf4a42"></script>
 <script src="gestion-stockage-js/inviter.js?v=fffaed9c"></script>
-<script src="gestion-stockage-js/contact.js?v=84195f57"></script>
+<script src="gestion-stockage-js/contact.js?v=7292320c"></script>
 <!-- Montre au client qui vient de s'inscrire, à sa première entrée, tous les
      canaux du propriétaire (contact.js les tient). -->
 <script src="gestion-stockage-js/serasera-voalohany.js?v=0b2800f2"></script>
 <script src="gestion-stockage-js/zara-rehetra.js?v=9b9c2469"></script>
-<script src="gestion-stockage-js/live.js?v=a05d7af0"></script>
+<script src="gestion-stockage-js/live.js?v=199ddc9e"></script>
 <script src="gestion-stockage-js/traduction.js?v=8f5605bc"></script>
 <script src="gestion-stockage-js/parametres.js?v=82b459de"></script>
 <!-- Le partage reçu du dehors remplit la boîte « Écrire », que parametres.js

@@ -122,12 +122,15 @@
   // ny hafa dia azo antsoina amin'ny laharany (tel:) raha nomeny.
   let mpisoratraCache = null, mpisoratraAt = 0, mpisoratraMaka = false;
   function renderMpisoratraForCall(){
-    const panel = document.getElementById('callMpisoratraPanel');
-    const list = document.getElementById('callMpisoratra');
-    if(!panel || !list) return;
+    // Ny pejy Call sy ny pejy Message dia samy manana ny lisitra.
+    const panels = ['callMpisoratraPanel', 'msgMpisoratraPanel']
+      .map(function(id){ return document.getElementById(id); })
+      .filter(Boolean);
+    if(!panels.length) return;
     const me = myIdentity();
-    if(!me.isAdmin || !window.__sb){ panel.style.display = 'none'; return; }
-    panel.style.display = '';
+    const admin = me.isAdmin && !!window.__sb;
+    panels.forEach(function(p){ p.style.display = admin ? '' : 'none'; });
+    if(!admin) return;
     if(!mpisoratraMaka && (!mpisoratraCache || Date.now() - mpisoratraAt > 60000)){
       mpisoratraMaka = true;
       window.__sb.from('client_signups').select('name,email,phone,created_at')
@@ -159,23 +162,61 @@
     renderMpisoratraListe();
   }
   function renderMpisoratraListe(){
-    const list = document.getElementById('callMpisoratra');
-    if(!list || !mpisoratraCache) return;
+    if(!mpisoratraCache) return;
     const olona = (mpisoratraCache || []).map(function(r){
       const email = String(r.email || '').trim().toLowerCase();
       return { email: email, name: r.name || email || r.phone, phone: String(r.phone || '').replace(/[^\d]/g, ''), online: !!presenceState[email] };
     });
     olona.sort(function(a, b){ return (b.online ? 1 : 0) - (a.online ? 1 : 0); });
-    document.getElementById('callMpisoratraEmpty').style.display = olona.length ? 'none' : 'block';
-    list.innerHTML = olona.map(function(o){
+    renderMpisoratraAntso(olona);
+    renderMpisoratraHafatra(olona);
+  }
+
+  // Andalana iray isaky ny olona, miaraka amin'ny bokotra iray (data-i).
+  function andalanaMpisoratra(olona, ikona, lohateny){
+    return olona.map(function(o, i){
       return '<div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; padding:0.6rem 0; border-bottom:1px solid var(--line);">' +
         '<div style="min-width:0;"><strong style="font-size:0.85rem;">' + escapeHtml(o.name) + '</strong>' +
           (o.online ? ' <span style="font-size:0.68rem; color:#25D366;">🟢 Miditra</span>' : '') +
           '<div style="font-size:0.72rem; color:var(--muted); overflow:hidden; text-overflow:ellipsis;">' +
             escapeHtml(o.phone || o.email) + '</div></div>' +
-        '<button type="button" class="btn btn-sm" title="Antso" data-i="' + olona.indexOf(o) + '" style="flex:none;">☎️</button>' +
+        '<button type="button" class="btn btn-sm" title="' + lohateny + '" data-i="' + i + '" style="flex:none;">' + ikona + '</button>' +
         '</div>';
     }).join('');
+  }
+
+  // Pejy « 💬 Message » : 💬 isaky ny olona, ao anatiny ny WhatsApp sy ny
+  // SMS (raha misy laharana) ary ny Email (raha misy).
+  function renderMpisoratraHafatra(olona){
+    const list = document.getElementById('msgMpisoratra');
+    if(!list) return;
+    document.getElementById('msgMpisoratraEmpty').style.display = olona.length ? 'none' : 'block';
+    list.innerHTML = andalanaMpisoratra(olona, '💬', 'Hafatra');
+    list.querySelectorAll('[data-i]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        const o = olona[Number(btn.getAttribute('data-i'))];
+        if(!o) return;
+        const safidy = [];
+        if(o.phone){
+          const wa = 'https://wa.me/' + (typeof toInternationalNumber === 'function' ? toInternationalNumber(o.phone) : o.phone);
+          const sms = 'sms:' + (o.phone.charAt(0) === '0' ? o.phone : '+' + o.phone);
+          safidy.push({ label: '💬 WhatsApp — ' + o.phone, color: '#25D366', run: function(){ window.open(wa, '_blank'); } });
+          safidy.push({ label: '✉️ SMS — ' + o.phone, color: '#25D366', run: function(){ window.location.href = sms; } });
+        }
+        if(o.email.indexOf('@') > 0){
+          safidy.push({ label: '📧 Email — ' + o.email, color: 'var(--cyan)', run: function(){ window.location.href = 'mailto:' + o.email; } });
+        }
+        if(!safidy.length){ alert(o.name + ' : tsy nanome laharana na email.'); return; }
+        openChannelChooser('💬 ' + o.name, 'Safidio izay handefasana hafatra.', safidy);
+      });
+    });
+  }
+
+  function renderMpisoratraAntso(olona){
+    const list = document.getElementById('callMpisoratra');
+    if(!list) return;
+    document.getElementById('callMpisoratraEmpty').style.display = olona.length ? 'none' : 'block';
+    list.innerHTML = andalanaMpisoratra(olona, '☎️', 'Antso');
     // Bokotra iray isaky ny olona : ao anatiny ny Appel mivantana, ny Antso
     // video (raha miditra izy) ary ny Antso an-tariby (raha misy laharana).
     list.querySelectorAll('[data-i]').forEach(function(btn){
@@ -1497,8 +1538,9 @@
   // Ny pejy « 📞 Call » dia mety misokatra tsy amin'ny menu (fenêtre averina
   // avy amin'ny icône, sns) : averina amboarina isaky ny miseho izy, mba
   // hampiseho ny lisitry ny admin raha vao fantatra fa admin no miditra.
-  (function(){
-    const section = document.getElementById('section-appels');
+  // Toy izany koa ny pejy « 💬 Message ».
+  ['section-appels', 'section-serviceclient'].forEach(function(id){
+    const section = document.getElementById(id);
     if(!section || !window.MutationObserver) return;
     let tamin = false;
     new MutationObserver(function(){
@@ -1509,4 +1551,4 @@
       }
       tamin = hita;
     }).observe(section, { attributes: true, attributeFilter: ['class', 'style'] });
-  })();
+  });

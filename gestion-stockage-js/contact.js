@@ -150,8 +150,10 @@
   }
 
   function renderContactButtons(){
-    const row = document.getElementById('contactMainActions');
-    if(!row) return;
+    // Ny bokotra telo taloha (📞 Antso · 📹 Antso video · ↗️ Partage) dia
+    // tsy eo amin'ny pejy intsony : noforonina ihany fa tsy aseho, ary ny
+    // pejy Call sy Message no mahazo ny canal.
+    const row = document.getElementById('contactMainActions') || document.createElement('div');
     fetchContactChannels(function(channels, extra){
       row.innerHTML = '';
       // Ny site_url dia mety vao tonga avy amin'ny serveur : averina amboarina ny
@@ -274,8 +276,8 @@
         updateOwnerPresenceLabel();
       }
 
-      document.getElementById('contactButtonsEmptyHint').style.display =
-        (voice.length || video.length) ? 'none' : 'block';
+      const vide = document.getElementById('contactButtonsEmptyHint');
+      if(vide) vide.style.display = (voice.length || video.length) ? 'none' : 'block';
 
       // Pejy « 📞 Call » : antso ao anaty appli (feo sy video) aloha, avy eo
       // ny canal rehetra voarafitra, tsy misy lisitra hisafidianana.
@@ -344,6 +346,27 @@
         }
         liens.forEach(function(opt){ bokotra(opt, callRow); });
         document.getElementById('callCanauxEmpty').style.display = liens.length ? 'none' : 'block';
+
+        // Pejy « 💬 Message » : mitovy amin'ny Call, fa hafatra no alefa.
+        // Ny laharana dia lasa SMS ; ny rohy hafa (WhatsApp, Messenger…) dia
+        // efa manokatra resaka.
+        const msgRow = document.getElementById('msgCanaux');
+        if(msgRow){
+          msgRow.innerHTML = '';
+          const hafatra = [];
+          voice.forEach(function(o){
+            if(o === inAppVoice) return;
+            if(o.tel){
+              const d = String(o.rohy || '');
+              hafatra.push({ label: '✉️ SMS', color: '#25D366', rohy: d,
+                run: function(){ window.location.href = 'sms:' + (d.charAt(0) === '0' ? d : '+' + d); } });
+              return;
+            }
+            hafatra.push(o);
+          });
+          hafatra.forEach(function(opt){ bokotra(opt, msgRow); });
+          document.getElementById('msgCanauxEmpty').style.display = hafatra.length ? 'none' : 'block';
+        }
       }
     });
   }
