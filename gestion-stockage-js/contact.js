@@ -278,7 +278,7 @@
         (voice.length || video.length) ? 'none' : 'block';
 
       // Pejy « 📞 Call » : antso ao anaty appli (feo sy video) aloha, avy eo
-      // ny canal rehetra voarafitra, tsy misy lisitra hisafidianana.
+      // ny laharana — antso tena mivantana ihany.
       const callRow = document.getElementById('callCanaux');
       if(callRow){
         callRow.innerHTML = '';
@@ -311,8 +311,9 @@
           liens.push({ label: '📞 Appel mivantana', color: '#25D366', run: antso('audio') });
           liens.push({ label: '📹 Antso video', color: '#1877F2', run: antso('video') });
         }
-        // Ary ny rohy rehetra nampidirina tao amin'ny « 🔗 Ajouter les liens ».
-        voice.forEach(function(o){ if(o !== inAppVoice) liens.push(o); });
+        // Ary ny laharana (tel:) : izy irery no manomboka antso avy hatrany.
+        // Ny rohy WhatsApp, Messenger, Instagram… dia manokatra resaka fotsiny.
+        voice.forEach(function(o){ if(o.tel) liens.push(o); });
         liens.forEach(function(opt){
           const btn = document.createElement('button');
           btn.type = 'button';
