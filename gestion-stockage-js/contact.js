@@ -313,11 +313,10 @@
           mivantana.push({ label: '📹 Antso video', color: '#1877F2', run: antso('video') });
         }
         voice.forEach(function(o){ if(o.tel) mivantana.push(o); });
+        // Ny admin kosa dia manana bokotra ☎️ isaky ny olona ao amin'ny case
+        // « 👥 Ireo nanao inscription » (live.js) : tsy averina eto ireo.
         const meRender = (typeof myIdentity === 'function') ? myIdentity() : { isAdmin: false };
-        const mivantanaRow = document.getElementById('callMivantana');
-        const anyAdmin = !!(meRender.isAdmin && mivantanaRow);
-        if(mivantanaRow) mivantanaRow.innerHTML = '';
-        if(!anyAdmin) mivantana.forEach(function(o){ liens.push(o); });
+        if(!meRender.isAdmin) mivantana.forEach(function(o){ liens.push(o); });
         // Ary ny rohy rehetra nampidirina tao amin'ny « 🔗 Ajouter les liens »,
         // miaraka amin'ny rohiny eo ambanin'ny anarany.
         voice.forEach(function(o){ if(o !== inAppVoice && !o.tel) liens.push(o); });
@@ -344,7 +343,6 @@
           row.appendChild(btn);
         }
         liens.forEach(function(opt){ bokotra(opt, callRow); });
-        if(anyAdmin) mivantana.forEach(function(opt){ bokotra(opt, mivantanaRow); });
         document.getElementById('callCanauxEmpty').style.display = liens.length ? 'none' : 'block';
       }
     });

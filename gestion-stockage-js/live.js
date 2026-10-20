@@ -173,19 +173,26 @@
           (o.online ? ' <span style="font-size:0.68rem; color:#25D366;">🟢 Miditra</span>' : '') +
           '<div style="font-size:0.72rem; color:var(--muted); overflow:hidden; text-overflow:ellipsis;">' +
             escapeHtml(o.phone || o.email) + '</div></div>' +
-        '<div style="display:flex; gap:0.4rem; flex:none;">' +
-          (o.online
-            ? '<button type="button" class="btn btn-sm" title="Appel mivantana" data-antso="audio" data-email="' + escapeHtml(o.email) + '" data-name="' + escapeHtml(o.name) + '">📞</button>' +
-              '<button type="button" class="btn btn-sm" title="Antso video" data-antso="video" data-email="' + escapeHtml(o.email) + '" data-name="' + escapeHtml(o.name) + '">📹</button>'
-            : '') +
-          (o.phone
-            ? '<a class="btn btn-sm" title="Antso an-tariby" href="tel:' + (o.phone.charAt(0) === '0' ? o.phone : '+' + o.phone) + '">☎️</a>'
-            : '') +
-        '</div></div>';
+        '<button type="button" class="btn btn-sm" title="Antso" data-i="' + olona.indexOf(o) + '" style="flex:none;">☎️</button>' +
+        '</div>';
     }).join('');
-    list.querySelectorAll('[data-antso]').forEach(function(btn){
+    // Bokotra iray isaky ny olona : ao anatiny ny Appel mivantana, ny Antso
+    // video (raha miditra izy) ary ny Antso an-tariby (raha misy laharana).
+    list.querySelectorAll('[data-i]').forEach(function(btn){
       btn.addEventListener('click', function(){
-        startCall(btn.getAttribute('data-email'), btn.getAttribute('data-name'), btn.getAttribute('data-antso'));
+        const o = olona[Number(btn.getAttribute('data-i'))];
+        if(!o) return;
+        const safidy = [];
+        if(o.online && o.email){
+          safidy.push({ label: '📞 Appel mivantana', color: '#25D366', run: function(){ startCall(o.email, o.name, 'audio'); } });
+          safidy.push({ label: '📹 Antso video', color: '#1877F2', run: function(){ startCall(o.email, o.name, 'video'); } });
+        }
+        if(o.phone){
+          const tel = 'tel:' + (o.phone.charAt(0) === '0' ? o.phone : '+' + o.phone);
+          safidy.push({ label: '☎️ Antso an-tariby — ' + o.phone, color: '#25D366', run: function(){ window.location.href = tel; } });
+        }
+        if(!safidy.length){ alert(o.name + ' : tsy miditra ankehitriny ary tsy nanome laharana.'); return; }
+        openChannelChooser('☎️ ' + o.name, o.online ? 'Miditra ankehitriny.' : 'Tsy miditra ankehitriny : antso an-tariby ihany.', safidy);
       });
     });
   }
