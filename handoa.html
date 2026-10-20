@@ -110,9 +110,9 @@
     if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(texte).then(fait, vieux);
     else vieux();
   }
-  // 24242 → « 24.242 Ariary » : lisible à l'écran. Ce qu'on copie reste les
+  // 24242 → « 24.242 MGA » : lisible à l'écran. Ce qu'on copie reste les
   // chiffres seuls, que le menu de l'opérateur attend.
-  function ariary(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' Ariary'; }
+  function ariary(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' MGA'; }
   // Une valeur en grand, avec son bouton « Adikao » (affiche, si donné,
   // remplace le texte à l'écran ; la copie garde le texte).
   function valeur(texte, affiche) {
