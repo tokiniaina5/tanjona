@@ -134,22 +134,36 @@
         .order('created_at', { ascending: false }).limit(1000)
         .then(function(res){
           mpisoratraMaka = false;
+          // Lisitra banga na diso : matetika ny session Supabase mbola tsy
+          // vonona. Tsy tazonina, fa averina alaina amin'ny manaraka.
+          if(!res || res.error || !res.data || !res.data.length){
+            if(!mpisoratraCache) mpisoratraCache = [];
+            mpisoratraAt = Date.now() - 50000; // averina afaka 10 s
+            renderMpisoratraListe();
+            return;
+          }
           mpisoratraAt = Date.now();
-          // Iray isaky ny email : ny inscription farany no tazonina.
+          // Iray isaky ny email (na laharana raha tsy misy email) : ny
+          // inscription farany no tazonina.
           const hita = {};
           mpisoratraCache = ((res && res.data) || []).filter(function(r){
             const e = String(r.email || '').trim().toLowerCase();
-            if(!e || hita[e] || e === me.email) return false;
-            hita[e] = true;
+            const cle = e || String(r.phone || '').replace(/[^\d]/g, '');
+            if(!cle || hita[cle] || e === me.email) return false;
+            hita[cle] = true;
             return true;
           });
-          renderMpisoratraForCall();
+          renderMpisoratraListe();
         }, function(){ mpisoratraMaka = false; });
-      if(!mpisoratraCache) return;
     }
+    renderMpisoratraListe();
+  }
+  function renderMpisoratraListe(){
+    const list = document.getElementById('callMpisoratra');
+    if(!list || !mpisoratraCache) return;
     const olona = (mpisoratraCache || []).map(function(r){
-      const email = String(r.email).trim().toLowerCase();
-      return { email: email, name: r.name || email, phone: String(r.phone || '').replace(/[^\d]/g, ''), online: !!presenceState[email] };
+      const email = String(r.email || '').trim().toLowerCase();
+      return { email: email, name: r.name || email || r.phone, phone: String(r.phone || '').replace(/[^\d]/g, ''), online: !!presenceState[email] };
     });
     olona.sort(function(a, b){ return (b.online ? 1 : 0) - (a.online ? 1 : 0); });
     document.getElementById('callMpisoratraEmpty').style.display = olona.length ? 'none' : 'block';
