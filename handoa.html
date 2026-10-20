@@ -89,7 +89,7 @@
   const feno = String(p.get('k') || '');
 
   document.getElementById('hotely').textContent = String(p.get('h') || '').slice(0, 60);
-  document.getElementById('somme').textContent = somme ? somme.toLocaleString('fr-FR') + ' Ar' : '';
+  document.getElementById('somme').textContent = somme ? ariary(somme) : '';
   document.getElementById('fomba').textContent = '📱 ' + nom;
 
   const iphone = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
@@ -110,11 +110,15 @@
     if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(texte).then(fait, vieux);
     else vieux();
   }
-  // Une valeur en grand, avec son bouton « Adikao ».
-  function valeur(texte) {
-    const lava = texte.length > 12;
+  // 24242 → « 24.242 Ariary » : lisible à l'écran. Ce qu'on copie reste les
+  // chiffres seuls, que le menu de l'opérateur attend.
+  function ariary(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' Ariary'; }
+  // Une valeur en grand, avec son bouton « Adikao » (affiche, si donné,
+  // remplace le texte à l'écran ; la copie garde le texte).
+  function valeur(texte, affiche) {
+    const lava = (affiche || texte).length > 12;
     const v = el('div', null, 'valeur' + (lava ? ' lava' : ''));
-    const c = el('code', texte);
+    const c = el('code', affiche || texte);
     c.setAttribute('translate', 'no'); c.className = 'notranslate';
     const libelle = lava ? '📋 Adikao' : '📋';
     const b = el('button', libelle, 'plein');
@@ -158,7 +162,8 @@
   // 3. La somme, en chiffres seuls (c'est ce que le menu attend).
   if (somme) {
     const e3 = etape(laharana ? 3 : 2, 'Vola alefa');
-    e3.appendChild(valeur(String(somme)));
+    e3.appendChild(valeur(String(somme), ariary(somme)));
+    e3.appendChild(el('p', "Ny isa ihany (" + somme + ") no adika : izay no soratana ao amin'ny téléphone.", 'note'));
     z.appendChild(e3);
   }
   // 4. Le code secret, que personne d'autre ne voit.
