@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="mg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Lakozia · Commandes</title>
+<!-- La cuisine de Ny asako Hôtellerie : les commandes des latabatra, à mesure
+     qu'elles arrivent. Le lien vient de l'onglet « Commandes » de l'hôtel
+     (gestion-stockage-js/hotelerie.js) : « ?id=<hôtel>&k=<code> ». Le code
+     est la clé (supabase/sql/supabase-hotelerie-lakozia.sql) : la cuisine n'a
+     pas de compte. Installable : le manifeste n'a pas de start_url,
+     l'application s'ouvre donc à l'adresse même où on l'a installée — ce que
+     la page retient aussi (localStorage) au cas où. -->
+<link rel="manifest" href="/lakozia.webmanifest">
+<meta name="theme-color" content="#0f171b">
+<link rel="icon" href="/icone-192.png">
+<link rel="apple-touch-icon" href="/icone-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Lakozia">
+<style>
+  :root{ --bg:#0f171b; --card:#16222a; --text:#e6eef0; --muted:#8fa3aa; --line:#25343b; --accent:#4fd8e0; --vaovao:#ffb020; --ok:#2fbf71; }
+  :root[data-theme="light"]{ --bg:#f6f8f9; --card:#fff; --text:#1d2a30; --muted:#64757d; --line:#dbe3e6; --accent:#0f8a92; --vaovao:#c77700; --ok:#1e8f52; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--text); font:16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main{ max-width:1200px; margin:0 auto; padding:20px 16px 48px; }
+  header{ display:flex; justify-content:space-between; align-items:center; gap:0.6rem; flex-wrap:wrap; margin-bottom:1rem; }
+  h1{ font-size:1.4rem; margin:0; }
+  h2{ font-size:1rem; margin:1.6rem 0 0.6rem; color:var(--muted); }
+  .etat{ color:var(--muted); font-size:0.85rem; }
+  .outils{ display:flex; gap:0.4rem; flex-wrap:wrap; }
+  button{ font:inherit; cursor:pointer; border:1px solid var(--accent); color:var(--accent); background:transparent; border-radius:8px; padding:0.45rem 0.85rem; }
+  button:disabled{ opacity:0.5; cursor:default; }
+  button.actif{ background:var(--accent); color:var(--bg); font-weight:700; }
+  .grille{ display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:14px; }
+  .bon{ background:var(--card); border:2px solid var(--vaovao); border-radius:14px; padding:0.8rem 0.9rem; display:flex; flex-direction:column; }
+  .bon.vaovao{ animation:flash 1s ease 3; }
+  @keyframes flash{ 50%{ box-shadow:0 0 0 6px var(--vaovao); } }
+  .bon.vita{ border-color:var(--line); opacity:0.6; }
+  .bon-tete{ display:flex; justify-content:space-between; align-items:baseline; gap:0.5rem; }
+  .bon-table{ font-size:1.8rem; font-weight:800; line-height:1; }
+  .bon-heure{ text-align:right; color:var(--muted); font-size:0.85rem; }
+  .bon-heure strong{ display:block; color:var(--vaovao); font-size:1rem; }
+  .bon.vita .bon-heure strong{ color:var(--muted); }
+  ul{ list-style:none; margin:0.7rem 0 0; padding:0; flex:1; }
+  li{ font-size:1.15rem; padding:0.3rem 0; border-bottom:1px solid var(--line); }
+  li b{ display:inline-block; min-width:2.4rem; color:var(--accent); }
+  .note{ margin:0.6rem 0 0; padding:0.4rem 0.6rem; border-radius:8px; background:rgba(255,176,32,0.12); font-size:0.95rem; }
+  .bon .vita-btn{ margin-top:0.8rem; width:100%; padding:0.7rem; font-size:1.05rem; font-weight:700; background:var(--ok); border-color:var(--ok); color:#fff; }
+  .bon.vita .vita-btn{ background:transparent; color:var(--muted); border-color:var(--line); font-weight:400; font-size:0.9rem; padding:0.4rem; }
+  .vide{ color:var(--muted); background:var(--card); border:1px dashed var(--line); border-radius:12px; padding:1.4rem; text-align:center; }
+  .erreur{ border-color:#e05a5a; color:#e05a5a; }
+  .installer{ display:none; align-items:center; justify-content:space-between; gap:0.6rem; flex-wrap:wrap; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:0.6rem 0.8rem; margin:0 0 1rem; }
+  .installer p{ margin:0; font-size:0.85rem; color:var(--muted); flex:1 1 200px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>👨‍🍳 Lakozia</h1>
+      <div class="etat" id="etat">Miandry...</div>
+    </div>
+    <div class="outils">
+      <button type="button" id="feo">🔔 Alefa ny feo</button>
+      <button type="button" id="mazava" hidden>💡 Aza maty ny écran</button>
+      <button type="button" id="havaozina">🔄</button>
+    </div>
+  </header>
+  <div class="installer" id="installer">
+    <p id="installerTexte">Apetraho eo amin'ny écran ny lakozia, hisokatra avy hatrany.</p>
+    <button type="button" id="installerBouton">📲 Installer</button>
+  </div>
+  <div id="miandry"></div>
+  <div id="vitaZone"></div>
+</main>
+<script>
+(function () {
+  const URL_SB = 'https://ezpsapvthujkhttbfhlr.supabase.co';
+  const CLE_SB = 'sb_publishable_7YAttwKbsmxJUxn9IwR86g_9_h4ZThk';
+  function el(tag, texte, classe) {
+    const e = document.createElement(tag);
+    if (texte != null) e.textContent = texte;
+    if (classe) e.className = classe;
+    return e;
+  }
+  function retenuLire(k) { try { return localStorage.getItem('lakozia_' + k); } catch (e) { return null; } }
+  function retenuEcrire(k, v) { try { localStorage.setItem('lakozia_' + k, v); } catch (e) { } }
+
+  // L'hôtel et le code du lien, retenus : l'application installée qui
+  // s'ouvrirait sans eux retrouve quand même sa cuisine.
+  const params = new URLSearchParams(location.search);
+  if (/^[0-9a-f-]{36}$/i.test(params.get('id') || '') && params.get('k')) {
+    retenuEcrire('id', params.get('id'));
+    retenuEcrire('k', params.get('k'));
+  }
+  const id = retenuLire('id') || '';
+  const code = retenuLire('k') || '';
+  const etat = document.getElementById('etat');
+  const zoneMiandry = document.getElementById('miandry');
+  const zoneVita = document.getElementById('vitaZone');
+
+  let commandes = [];
+  let connues = null; // les ids déjà vus : ce qui n'y est pas est neuf
+  let neuves = {};
+  let signature = '';
+
+  function heure(iso) {
+    return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  }
+  function depuis(iso) {
+    const m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+    return m < 1 ? 'izao' : (m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + (m % 60) + ' min');
+  }
+
+  // ---------- Le son ----------
+  // Un navigateur ne joue rien avant un geste : « 🔔 Alefa ny feo » l'ouvre.
+  let audio = null;
+  const bFeo = document.getElementById('feo');
+  bFeo.addEventListener('click', function () {
+    if (audio) { audio.close(); audio = null; bFeo.classList.remove('actif'); bFeo.textContent = '🔔 Alefa ny feo'; return; }
+    try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
+    bFeo.classList.add('actif');
+    bFeo.textContent = '🔔 Misy feo';
+    sonner();
+  });
+  function sonner() {
+    if (navigator.vibrate) navigator.vibrate([300, 150, 300]);
+    if (!audio) return;
+    if (audio.state === 'suspended') audio.resume();
+    [0, 0.25, 0.5].forEach(function (t, i) {
+      const o = audio.createOscillator(), g = audio.createGain();
+      o.frequency.value = i === 2 ? 1320 : 880;
+      g.gain.setValueAtTime(0.0001, audio.currentTime + t);
+      g.gain.exponentialRampToValueAtTime(0.4, audio.currentTime + t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + t + 0.2);
+      o.connect(g); g.connect(audio.destination);
+      o.start(audio.currentTime + t); o.stop(audio.currentTime + t + 0.22);
+    });
+  }
+
+  // ---------- L'écran allumé ----------
+  // La tablette de la cuisine reste posée : l'écran ne doit pas s'éteindre.
+  let verrou = null;
+  const bMazava = document.getElementById('mazava');
+  if ('wakeLock' in navigator) {
+    bMazava.hidden = false;
+    bMazava.addEventListener('click', function () {
+      if (verrou) { verrou.release(); verrou = null; majMazava(); return; }
+      prendreVerrou();
+    });
+  }
+  function prendreVerrou() {
+    navigator.wakeLock.request('screen').then(function (v) {
+      verrou = v;
+      v.addEventListener('release', function () { if (verrou === v) { verrou = null; majMazava(); } });
+      majMazava();
+    }).catch(function () { });
+  }
+  function majMazava() {
+    bMazava.classList.toggle('actif', !!verrou);
+    bMazava.textContent = verrou ? '💡 Mazava foana' : '💡 Aza maty ny écran';
+  }
+
+  // ---------- Les commandes ----------
+  function charger() {
+    if (!id || !code) {
+      etat.textContent = '';
+      zoneMiandry.replaceChildren(el('p', "Tsy feno ny rohy. Angataho amin'ny tompon'ny hotely ny rohy « 👨‍🍳 Lakozia » (ao amin'ny Commandes).", 'vide erreur'));
+      return;
+    }
+    fetch(URL_SB + '/rest/v1/rpc/hotelerie_lakozia_lisitra', {
+      method: 'POST',
+      headers: { apikey: CLE_SB, Authorization: 'Bearer ' + CLE_SB, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hotel: id, code: code }), cache: 'no-store'
+    }).then(function (r) {
+      if (r.status === 400 || r.status === 401 || r.status === 403) return r.json().then(function (j) { throw new Error(j && j.message === 'code diso' ? 'diso' : String(r.status)); });
+      if (!r.ok) throw new Error(String(r.status));
+      return r.json();
+    }).then(function (l) {
+      commandes = Array.isArray(l) ? l : [];
+      const ids = commandes.map(function (c) { return c.id; });
+      if (connues) {
+        const vaovao = commandes.filter(function (c) { return !c.vita && connues.indexOf(c.id) < 0; });
+        vaovao.forEach(function (c) { neuves[c.id] = true; });
+        if (vaovao.length) sonner();
+      }
+      connues = ids;
+      etat.textContent = '🟢 ' + new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      dessiner();
+    }).catch(function (e) {
+      if (e.message === 'diso') {
+        etat.textContent = '';
+        zoneMiandry.replaceChildren(el('p', "Tsy mety intsony ity rohy ity (novain'ny hotely ny code). Angataho ny rohy « 👨‍🍳 Lakozia » vaovao.", 'vide erreur'));
+        zoneVita.replaceChildren();
+        signature = '';
+        return;
+      }
+      etat.textContent = '🔴 Tsy misy connexion — miandry...';
+    });
+  }
+
+  function dessiner() {
+    const miandry = commandes.filter(function (c) { return !c.vita; });
+    const vita = commandes.filter(function (c) { return c.vita; }).reverse().slice(0, 12);
+    document.title = (miandry.length ? '(' + miandry.length + ') ' : '') + 'Lakozia · Commandes';
+    // Redessiner à chaque tour referait clignoter les bons : seulement si
+    // quelque chose a changé (ou chaque minute, pour le temps écoulé).
+    const sig = JSON.stringify(commandes) + '|' + Math.floor(Date.now() / 60000);
+    if (sig === signature) return;
+    signature = sig;
+
+    zoneMiandry.replaceChildren(el('h2', '⏳ Miandry (' + miandry.length + ')'));
+    if (!miandry.length) zoneMiandry.appendChild(el('p', 'Tsy misy commande miandry izao. 👌', 'vide'));
+    else {
+      const g = el('div', null, 'grille');
+      miandry.forEach(function (c) { g.appendChild(bon(c)); });
+      zoneMiandry.appendChild(g);
+    }
+    zoneVita.replaceChildren();
+    if (vita.length) {
+      zoneVita.appendChild(el('h2', '✅ Vita farany'));
+      const g = el('div', null, 'grille');
+      vita.forEach(function (c) { g.appendChild(bon(c)); });
+      zoneVita.appendChild(g);
+    }
+    neuves = {};
+  }
+
+  function bon(c) {
+    const b = el('div', null, 'bon' + (c.vita ? ' vita' : '') + (neuves[c.id] ? ' vaovao' : ''));
+    const tete = el('div', null, 'bon-tete');
+    tete.appendChild(el('span', 'T' + c.latabatra, 'bon-table'));
+    const h = el('span', null, 'bon-heure');
+    h.appendChild(el('strong', depuis(c.created_at)));
+    h.appendChild(document.createTextNode('🕒 ' + heure(c.created_at)));
+    tete.appendChild(h);
+    b.appendChild(tete);
+    const ul = el('ul');
+    (c.plats || []).forEach(function (p) {
+      const li = el('li');
+      li.appendChild(el('b', (Number(p.isa) || 0) + ' ×'));
+      li.appendChild(document.createTextNode(' ' + p.anarana));
+      ul.appendChild(li);
+    });
+    b.appendChild(ul);
+    if (c.fanamarihana) b.appendChild(el('p', '📝 ' + c.fanamarihana, 'note'));
+    const v = el('button', c.vita ? '↩️ Tsy mbola vita' : '✅ Vita', 'vita-btn');
+    v.type = 'button';
+    v.addEventListener('click', function () { marquer(c, v); });
+    b.appendChild(v);
+    return b;
+  }
+
+  function marquer(c, v) {
+    v.disabled = true;
+    fetch(URL_SB + '/rest/v1/rpc/hotelerie_lakozia_vita', {
+      method: 'POST',
+      headers: { apikey: CLE_SB, Authorization: 'Bearer ' + CLE_SB, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hotel: id, code: code, commande: c.id, vita: !c.vita })
+    }).then(function (r) {
+      if (!r.ok) throw new Error(String(r.status));
+      c.vita = !c.vita;
+      dessiner();
+    }).catch(function () {
+      v.disabled = false;
+      alert('Tsy lasa : jereo ny connexion, dia avereno.');
+    });
+  }
+
+  document.getElementById('havaozina').addEventListener('click', function () { signature = ''; charger(); });
+
+  // ---------- L'installation ----------
+  (function () {
+    const boiteInst = document.getElementById('installer');
+    const bouton = document.getElementById('installerBouton');
+    const texte = document.getElementById('installerTexte');
+    const installee = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/lakozia-sw.js', { scope: '/lakozia.html' }).catch(function () { });
+    }
+    if (installee) return;
+    let invite = null;
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      invite = e;
+      bouton.style.display = '';
+      boiteInst.style.display = 'flex';
+    });
+    bouton.addEventListener('click', function () {
+      if (!invite) return;
+      invite.prompt();
+      invite.userChoice.then(function () { invite = null; boiteInst.style.display = 'none'; });
+    });
+    window.addEventListener('appinstalled', function () { boiteInst.style.display = 'none'; });
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    if (ios) {
+      texte.textContent = "Mba hametrahana ny lakozia eo amin'ny écran : tsindrio ny ⎙ (Partager), dia « Sur l'écran d'accueil ».";
+      bouton.style.display = 'none';
+      boiteInst.style.display = 'flex';
+    }
+  })();
+
+  charger();
+  // La cuisine regarde l'écran de loin : on relit souvent.
+  setInterval(function () { if (!document.hidden) charger(); else dessiner(); }, 8000);
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) return;
+    charger();
+    if (bMazava.classList.contains('actif') && !verrou) prendreVerrou();
+  });
+})();
+</script>
+</body>
+</html>

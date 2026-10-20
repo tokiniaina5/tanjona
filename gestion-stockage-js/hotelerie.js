@@ -427,6 +427,73 @@
   function rohyLatabatra(uid, n) {
     return location.origin + '/menu-sakafo.html?id=' + uid + '&latabatra=' + n;
   }
+  // ---------- La lakozia ----------
+  // La cuisine reçoit les commandes sur sa page à elle (lakozia.html), sans
+  // compte : son lien porte un code tiré ici, gardé dans hotelerie_lakozia
+  // (supabase/sql/supabase-hotelerie-lakozia.sql). « ♻️ Code vaovao » en tire
+  // un autre : l'ancien lien ne sert plus.
+  function codeVaovao() {
+    const o = new Uint8Array(18);
+    crypto.getRandomValues(o);
+    return Array.from(o, function (x) { return ('0' + x.toString(16)).slice(-2); }).join('');
+  }
+  function rohyLakozia(uid, ovay) {
+    const ecrire = function () {
+      const code = codeVaovao();
+      return sb().from('hotelerie_lakozia')
+        .upsert({ hotel_id: uid, code: code, updated_at: new Date().toISOString() })
+        .then(function (res) { if (res.error) throw res.error; return code; });
+    };
+    const code = ovay ? ecrire() : sb().from('hotelerie_lakozia').select('code').eq('hotel_id', uid).maybeSingle()
+      .then(function (res) {
+        if (res.error) throw res.error;
+        return res.data && res.data.code ? res.data.code : ecrire();
+      });
+    return code.then(function (c) { return location.origin + '/lakozia.html?id=' + uid + '&k=' + c; });
+  }
+  function blocLakozia() {
+    return '<div class="panel" style="margin-top:1rem;">' +
+      '<div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center; justify-content:space-between;">' +
+        '<strong style="font-size:0.9rem;">👨‍🍳 Lakozia</strong>' +
+        '<div style="display:flex; gap:0.4rem; flex-wrap:wrap;">' +
+          '<button type="button" class="btn btn-sm" id="lakoziaAdikao" style="width:auto;">🔗 Adikao ny rohy</button>' +
+          '<button type="button" class="btn btn-sm" id="lakoziaSokafy" style="width:auto;">↗️ Sokafy</button>' +
+          '<button type="button" class="btn btn-sm" id="lakoziaOvay" style="width:auto;">♻️ Code vaovao</button>' +
+        '</div>' +
+      '</div>' +
+      '<p style="font-size:0.75rem; color:var(--muted); margin:0.5rem 0 0;">Sokafy amin\'ny téléphone na tablette ao an-dakozia ity rohy ity, dia « 📲 Installer » : miseho ao avy hatrany ny commande avy amin\'ny latabatra rehetra (misy feo), ary ny lakozia no manindry « ✅ Vita ». « ♻️ Code vaovao » : tsy mandeha intsony ny rohy taloha.</p>' +
+    '</div>';
+  }
+  function brancherLakozia(zone) {
+    function avecCompte(f) {
+      (compte ? Promise.resolve(compte) : idDuCompte()).then(function (uid) {
+        if (!uid) { alert('Midira ao amin\'ny kaontinao aloha.'); return; }
+        f(uid);
+      });
+    }
+    zone.querySelector('#lakoziaAdikao').addEventListener('click', function (e) {
+      const bouton = e.target;
+      avecCompte(function (uid) {
+        rohyLakozia(uid, false).then(function (l) { copier(l, bouton, '🔗 Adikao ny rohy'); }, function (err) { alert(err.message || err); });
+      });
+    });
+    zone.querySelector('#lakoziaSokafy').addEventListener('click', function () {
+      // La fenêtre s'ouvre tout de suite (sinon le navigateur la bloque),
+      // l'adresse vient après.
+      const w = window.open('', '_blank');
+      avecCompte(function (uid) {
+        rohyLakozia(uid, false).then(function (l) { if (w) w.location.href = l; else location.href = l; },
+          function (err) { if (w) w.close(); alert(err.message || err); });
+      });
+    });
+    zone.querySelector('#lakoziaOvay').addEventListener('click', function (e) {
+      if (!confirm('Hanova ny code ve ? Tsy mandeha intsony ny rohy lakozia taloha : mila omena ny vaovao ny lakozia.')) return;
+      const bouton = e.target;
+      avecCompte(function (uid) {
+        rohyLakozia(uid, true).then(function (l) { copier(l, bouton, '♻️ Code vaovao'); }, function (err) { alert(err.message || err); });
+      });
+    });
+  }
   // ---------- Les latabatra ----------
   // Toutes les latabatra en boutons ; celle qu'on ouvre ne montre plus que
   // ses commandes, et donne son QR.
@@ -659,6 +726,7 @@
         '<p style="font-size:0.75rem; color:var(--muted); margin:0.5rem 0 0;">Ny rohy isaky ny latabatra dia efa misafidy ny latabatra ho an\'ny mpanjifa (🔳 QR eo amin\'ny latabatra tsirairay : printy, dia apetraho eo ambony latabatra). Sokafy amin\'ny téléphone na tablette eo amin\'ilay latabatra, dia « 📲 Installer » : lasa appli « T1 », « T2 »… manokana izy.</p>' +
       '</div>' +
       blocVola() +
+      blocLakozia() +
       blocLatabatra(enAttente) +
       '<div class="panel" style="margin-top:1rem;">' +
         '<div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center; justify-content:space-between;">' +
@@ -734,6 +802,7 @@
       dessinerCommandes();
     });
     zone.querySelector('#commandesHavaozina').addEventListener('click', function () { chargerCommandes(true); });
+    brancherLakozia(zone);
     zone.querySelector('#latabatraTehirizo').addEventListener('click', function () {
       const n = Math.round(Number(zone.querySelector('#latabatraIsa').value));
       if (!(n >= 1 && n <= 500)) { alert('Isa 1 ka hatramin\'ny 500.'); return; }
