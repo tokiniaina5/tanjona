@@ -6,11 +6,14 @@
 <meta name="robots" content="noindex">
 <title>Handoa · Ny asako</title>
 <link rel="icon" href="/icone-192.png">
-<!-- La page du QR de paiement (menu-sakafo.html). Un iPhone refuse d'ouvrir
-     un code USSD (* ou #) depuis un lien ou un QR : Apple l'interdit. Le QR
-     mène donc ici, où le code s'affiche en grand, se copie d'un appui, puis
-     se colle dans « Téléphone ». Sur Android, « 📞 Antsoy » ouvre directement
-     le clavier avec le code. Rien n'est payé ni envoyé depuis cette page. -->
+<!-- La page du QR de paiement (menu-sakafo.html), pour MVola, Orange Money
+     et Airtel Money. Le QR porte : c = le code qui ouvre « envoyer de
+     l'argent » chez l'opérateur (seulement des codes publiés), n = le numéro
+     de l'hôtel, v = la somme, h = l'hôtel, t = le nom du titulaire, et pour
+     MVola k = le code avec numéro et somme dedans (non publié : proposé en
+     plus). Chaque morceau se copie d'un appui ; un iPhone refuse d'ouvrir un
+     code * ou # depuis un lien (Apple l'interdit), Android l'ouvre par
+     « 📞 Antsoy ». Rien n'est payé ni envoyé depuis cette page. -->
 <style>
   :root{ --bg:#f6f8f9; --card:#fff; --text:#1d2a30; --muted:#64757d; --line:#dbe3e6; --accent:#0f8a92; }
   @media (prefers-color-scheme: dark){
@@ -22,82 +25,148 @@
   main{ max-width:480px; margin:0 auto; padding:24px 16px 40px; }
   .carte{ background:var(--card); border:1px solid var(--line); border-radius:16px; padding:1.2rem 1.1rem; }
   h1{ font-size:1.25rem; margin:0 0 0.2rem; }
-  .sous{ color:var(--muted); margin:0 0 1rem; font-size:0.92rem; }
-  .somme{ font-size:2rem; font-weight:800; color:var(--accent); margin:0.2rem 0 0.8rem; }
-  .ligne{ display:flex; justify-content:space-between; gap:0.8rem; padding:0.35rem 0; border-bottom:1px solid var(--line); font-size:0.95rem; }
-  .ligne span{ color:var(--muted); }
-  .code{ margin:1rem 0 0.6rem; padding:0.9rem; border:2px dashed var(--accent); border-radius:12px; text-align:center;
-    font:700 1.35rem/1.3 ui-monospace, "Cascadia Mono", Consolas, monospace; letter-spacing:0.03em; word-break:break-all; user-select:all; }
+  .sous{ color:var(--muted); margin:0 0 0.6rem; font-size:0.92rem; }
+  .somme{ font-size:2rem; font-weight:800; color:var(--accent); margin:0.1rem 0 0.2rem; }
+  .fomba{ font-weight:700; margin:0 0 0.6rem; }
+  .etape{ border-top:1px solid var(--line); padding:0.9rem 0 0.2rem; }
+  .etape h2{ font-size:0.95rem; margin:0 0 0.4rem; display:flex; gap:0.5rem; align-items:center; }
+  .etape h2 b{ display:inline-flex; width:1.5rem; height:1.5rem; border-radius:50%; background:var(--accent); color:var(--card); align-items:center; justify-content:center; font-size:0.85rem; flex:0 0 auto; }
+  .valeur{ display:flex; align-items:center; gap:0.5rem; }
+  .valeur code{ flex:1; padding:0.7rem 0.8rem; border:2px dashed var(--accent); border-radius:12px; text-align:center;
+    font:700 1.3rem/1.3 ui-monospace, "Cascadia Mono", Consolas, monospace; letter-spacing:0.03em; word-break:break-all; user-select:all; }
+  .valeur button{ flex:0 0 auto; width:auto; margin:0; padding:0.7rem 0.8rem; }
   button, .bouton{ display:block; width:100%; text-align:center; font:inherit; font-weight:700; cursor:pointer; text-decoration:none;
-    border-radius:12px; padding:0.85rem 1rem; margin-top:0.6rem; }
+    border-radius:12px; padding:0.8rem 1rem; margin-top:0.6rem; }
   .plein{ background:var(--accent); color:var(--card); border:2px solid var(--accent); }
   .contour{ background:transparent; color:var(--text); border:2px solid var(--text); }
-  ol{ margin:1rem 0 0; padding-left:1.3rem; color:var(--muted); font-size:0.9rem; }
-  ol li{ margin:0.25rem 0; }
+  .note{ color:var(--muted); font-size:0.86rem; margin:0.4rem 0 0; }
+  .haingana{ margin-top:1rem; border:1px solid var(--line); border-radius:12px; padding:0.6rem 0.8rem; }
+  .haingana summary{ cursor:pointer; font-weight:700; font-size:0.92rem; }
   .erreur{ color:#e05a5a; }
 </style>
 </head>
 <body>
 <main>
   <div class="carte" id="carte">
-    <h1 id="titre">💳 Handoa</h1>
+    <h1>💳 Handoa</h1>
     <p class="sous" id="hotely"></p>
     <p class="somme" id="somme"></p>
-    <div class="ligne"><span>Fomba</span><strong id="fomba" translate="no" class="notranslate"></strong></div>
-    <div class="ligne"><span>Laharana</span><strong id="laharana" translate="no" class="notranslate"></strong></div>
-    <div class="code notranslate" id="code" translate="no"></div>
-    <button type="button" class="plein" id="adikao">📋 Adikao ny code</button>
-    <a class="bouton contour" id="antsoy">📞 Antsoy (Android)</a>
-    <ol id="torolalana">
-      <li>Tsindrio ny <strong>📋 Adikao ny code</strong>.</li>
-      <li>Sokafy ny <strong>Téléphone</strong> → <strong>Clavier</strong>.</li>
-      <li>Tsindrio ela ny toerana misy ny laharana → <strong>Coller</strong>.</li>
-      <li>Antsoy, dia ampidiro ny <strong>code miafinao</strong>.</li>
-    </ol>
+    <p class="fomba notranslate" id="fomba" translate="no"></p>
+    <div id="etapes"></div>
   </div>
 </main>
 <script>
 (function () {
   const p = new URLSearchParams(location.search);
-  const code = String(p.get('c') || '');
-  const NOMS = { mvola: 'MVola', orange: 'Orange Money', airtel: 'Airtel Money' };
-  const fomba = NOMS[p.get('f')] || 'Mobile money';
+  const carte = document.getElementById('carte');
+  function el(tag, texte, classe) {
+    const e = document.createElement(tag);
+    if (texte != null) e.textContent = texte;
+    if (classe) e.className = classe;
+    return e;
+  }
   // Un code USSD ne contient que des chiffres, * et # : le reste est refusé,
   // pour qu'un lien trafiqué ne fasse rien composer d'autre.
-  if (!/^[#*0-9]{3,60}$/.test(code)) {
-    document.getElementById('carte').innerHTML = '<p class="erreur">Tsy mety ity rohy ity. Scanneo indray ny QR ao amin\'ny menu.</p>';
+  const USSD_VALIDE = /^[#*0-9]{3,60}$/;
+  const code = String(p.get('c') || '');
+  if (!USSD_VALIDE.test(code)) {
+    carte.innerHTML = '<p class="erreur">Tsy mety ity rohy ity. Scanneo indray ny QR ao amin\'ny menu.</p>';
     return;
   }
+  const NOMS = { mvola: 'MVola', orange: 'Orange Money', airtel: 'Airtel Money' };
+  const f = p.get('f');
+  const nom = NOMS[f] || 'Mobile money';
+  const laharana = String(p.get('n') || '').replace(/[^\d+]/g, '').slice(0, 20);
   const somme = Math.round(Number(p.get('v')) || 0);
-  const hotely = String(p.get('h') || '').slice(0, 60);
+  const tompony = String(p.get('t') || '').slice(0, 40);
+  const feno = String(p.get('k') || '');
+
+  document.getElementById('hotely').textContent = String(p.get('h') || '').slice(0, 60);
   document.getElementById('somme').textContent = somme ? somme.toLocaleString('fr-FR') + ' Ar' : '';
-  document.getElementById('hotely').textContent = hotely;
-  document.getElementById('fomba').textContent = fomba;
-  document.getElementById('laharana').textContent = String(p.get('n') || '').replace(/[^\d+ ]/g, '').slice(0, 20);
-  document.getElementById('code').textContent = code;
-  document.getElementById('antsoy').href = 'tel:' + encodeURIComponent(code);
+  document.getElementById('fomba').textContent = '📱 ' + nom;
 
   const iphone = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  // Sur iPhone, l'appel direct ne marche pas : on cache le bouton.
-  if (iphone) document.getElementById('antsoy').style.display = 'none';
-  else document.getElementById('torolalana').firstElementChild.insertAdjacentHTML('beforebegin',
-    '<li>Android : tsindrio fotsiny ny <strong>📞 Antsoy</strong>. Raha tsy mandeha, araho ireto :</li>');
 
-  const bouton = document.getElementById('adikao');
-  bouton.addEventListener('click', function () {
-    function fait() { bouton.textContent = '✅ Voadika — apetaho ao amin\'ny Téléphone'; }
-    if (navigator.clipboard && window.isSecureContext) {
-      navigator.clipboard.writeText(code).then(fait, vieux);
-    } else vieux();
+  function copier(texte, bouton, libelle) {
+    function fait() {
+      bouton.textContent = '✅ Voadika';
+      setTimeout(function () { bouton.textContent = libelle; }, 1800);
+    }
     function vieux() {
       const t = document.createElement('textarea');
-      t.value = code; t.setAttribute('readonly', ''); t.style.position = 'fixed'; t.style.opacity = '0';
-      document.body.appendChild(t); t.select(); t.setSelectionRange(0, code.length);
-      try { document.execCommand('copy'); fait(); } catch (e) { bouton.textContent = 'Tsindrio ela ilay code ambony dia « Copier »'; }
+      t.value = texte; t.setAttribute('readonly', ''); t.style.position = 'fixed'; t.style.opacity = '0';
+      document.body.appendChild(t); t.select(); t.setSelectionRange(0, texte.length);
+      try { document.execCommand('copy'); fait(); } catch (e) { bouton.textContent = 'Tsindrio ela ilay soratra'; }
       t.remove();
     }
-  });
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(texte).then(fait, vieux);
+    else vieux();
+  }
+  // Une valeur en grand, avec son bouton « Adikao ».
+  function valeur(texte) {
+    const v = el('div', null, 'valeur');
+    const c = el('code', texte);
+    c.setAttribute('translate', 'no'); c.className = 'notranslate';
+    const b = el('button', '📋', 'plein');
+    b.type = 'button';
+    b.setAttribute('aria-label', 'Adikao');
+    b.addEventListener('click', function () { copier(texte, b, '📋'); });
+    v.appendChild(c); v.appendChild(b);
+    return v;
+  }
+  function antsoy(c, libelle, classe) {
+    const a = el('a', libelle, 'bouton ' + classe);
+    a.href = 'tel:' + encodeURIComponent(c);
+    return a;
+  }
+  function etape(n, titre) {
+    const e = el('div', null, 'etape');
+    const h = el('h2');
+    h.appendChild(el('b', String(n)));
+    h.appendChild(document.createTextNode(titre));
+    e.appendChild(h);
+    return e;
+  }
+
+  const z = document.getElementById('etapes');
+  // 1. Le code de l'opérateur.
+  const e1 = etape(1, 'Antsoy ity code ity');
+  e1.appendChild(valeur(code));
+  if (!iphone) e1.appendChild(antsoy(code, '📞 Antsoy ' + code, 'plein'));
+  e1.appendChild(el('p', iphone
+    ? "iPhone : tsindrio ny 📋, sokafy ny Téléphone › Clavier, tsindrio ela › Coller, dia antsoy."
+    : "Raha tsy misokatra ny 📞, tsindrio ny 📋 dia apetaho ao amin'ny Téléphone.", 'note'));
+  if (f === 'airtel') e1.appendChild(el('p', "Ao amin'ny menu Airtel Money, safidio « Mandefa vola » (Transfert).", 'note'));
+  z.appendChild(e1);
+  // 2. Le numéro de l'hôtel.
+  if (laharana) {
+    const e2 = etape(2, "Laharana handefasana");
+    e2.appendChild(valeur(laharana));
+    if (tompony) e2.appendChild(el('p', "Hamarino fa « " + tompony + " » no anarana miseho alohan'ny hanamafisana.", 'note'));
+    z.appendChild(e2);
+  }
+  // 3. La somme, en chiffres seuls (c'est ce que le menu attend).
+  if (somme) {
+    const e3 = etape(laharana ? 3 : 2, 'Vola alefa');
+    e3.appendChild(valeur(String(somme)));
+    z.appendChild(e3);
+  }
+  // 4. Le code secret, que personne d'autre ne voit.
+  const e4 = etape(z.children.length + 1, 'Ampidiro ny code miafinao');
+  e4.appendChild(el('p', "Ao amin'ny téléphone-nao ihany : tsy misy mangataka azy eto. Rehefa lasa ny vola, lazao amin'ny mpandroso sakafo.", 'note'));
+  z.appendChild(e4);
+
+  // MVola : le code avec numéro et somme dedans — plus rapide quand le
+  // téléphone l'accepte, mais non publié par l'opérateur : proposé en plus.
+  if (feno && USSD_VALIDE.test(feno)) {
+    const d = el('details', null, 'haingana');
+    d.appendChild(el('summary', '⚡ Code haingana (efa misy ny laharana sy ny vola)'));
+    d.appendChild(valeur(feno));
+    if (!iphone) d.appendChild(antsoy(feno, '📞 Antsoy ny code haingana', 'contour'));
+    d.appendChild(el('p', "Raha tsy mandeha amin'ny téléphone-nao ity, araho ny dingana 1 – " + z.children.length + " etsy ambony.", 'note'));
+    z.appendChild(d);
+  }
 })();
 </script>
 </body>
