@@ -1292,21 +1292,13 @@
   // montre la marchandise avant de demander un compte. Celui qui n'en veut
   // pas ne s'inscrit pas, et celui qui en veut trouve le bouton.
   //
-  // Le parrainage suit dans « ref » — celui qui partage garde son filleul,
-  // même si le chemin passe maintenant par la boutique — et « a » désigne
-  // l'annonce, pour qu'on tombe dessus et non sur le fil entier.
+  // « a » désigne l'annonce, pour qu'on tombe dessus et non sur le fil entier.
   function lienDeLAnnonce(n){
     if(n.link && /^https?:\/\//i.test(n.link)) return n.link;
     const base = appShareLink();
     let racine = base.split('?')[0].replace(/confirmation\/?$/, '');
     if(!/\/$/.test(racine)) racine += '/';
-    let ref = '';
-    const m = base.match(/[?&]ref=([^&]*)/);
-    if(m) ref = m[1];
-    const bouts = [];
-    if(ref) bouts.push('ref=' + ref);
-    if(n.id) bouts.push('a=' + encodeURIComponent(n.id));
-    return racine + 'botika/' + (bouts.length ? '?' + bouts.join('&') : '');
+    return racine + 'botika/' + (n.id ? '?a=' + encodeURIComponent(n.id) : '');
   }
 
   function sharePost(n){

@@ -273,7 +273,6 @@
             <span style="font-size:0.76rem; color:var(--muted);">Coût du déblocage</span>
             <strong id="unlockWalletCost" style="font-family:var(--font-mono); font-size:1.1rem; color:var(--cyan);">0</strong>
           </div>
-          <button type="button" class="btn btn-primary btn-sm" id="payFromWalletBtn" style="width:100%; margin-top:0.8rem;">💰 Payer avec mon solde et débloquer</button>
 
           <!-- Ou par carte Visa : le numéro se tape chez Papi (carte BRED),
                jamais sur cette page. Le mot de passe sert à se reconnecter,
@@ -610,7 +609,7 @@
     </div>
 
     <!-- Payer en vrai argent, par Papi : l'argent déjà versé s'il suffit, sinon
-         Papi s'ouvre pour la somme qui manque. Les parrainages ne paient plus. -->
+         Papi s'ouvre pour la somme qui manque. -->
     <div style="border:1px solid var(--cyan); border-radius:10px; padding:0.9rem 1rem; margin-bottom:1rem; background:var(--panel-2);">
       <div style="display:flex; justify-content:space-between; align-items:baseline; gap:0.8rem;">
         <strong style="font-size:0.9rem;">📲 Payer par Papi</strong>
@@ -618,7 +617,7 @@
       </div>
       <p style="font-size:0.78rem; color:var(--muted); line-height:1.6; margin:0.5rem 0 0.8rem;">
         MVola, Orange Money, Airtel Money ou carte. L'argent déjà versé par Papi sert d'abord ;
-        l'abonnement démarre dès que Papi confirme. Les parrainages ne paient pas l'abonnement.
+        l'abonnement démarre dès que Papi confirme.
       </p>
       <button type="button" class="btn btn-primary btn-sm" id="paywallWalletBtn" style="width:100%;">📲 Payer par Papi</button>
       <p id="paywallWalletStatus" style="font-size:0.78rem; color:var(--cyan); margin-top:0.6rem; line-height:1.5;"></p>
@@ -2119,34 +2118,6 @@
             <button class="btn btn-amber" id="copyInviteBtn" title="Copier tous les liens de l’application">Copier tout</button>
           </div>
           <p class="local-link-warning" id="localLinkWarning" style="display:none;"></p>
-          <p style="font-size:0.78rem; color:var(--muted); margin-top:0.6rem; line-height:1.5;">
-            Chaque personne qui ouvre l'application via ce lien vous rapporte
-            <strong style="color:var(--text);" id="inviteTarif">1 000 Ar</strong> dans votre
-            <strong style="color:var(--text);">Portefeuille électronique</strong> — de quoi payer
-            l'abonnement quand l'essai s'achève : <strong style="color:var(--text);"><span
-            id="inviteMois">15</span> invitations font le mois</strong>, <span id="inviteAn">150</span>
-            font l'année. Rien ne presse et rien ne se perd : les
-            invitations partagées avant la création du compte rejoignent le portefeuille dès qu'il
-            existe.
-          </p>
-        </div>
-
-        <div class="panel">
-          <h3>Vos parrainages</h3>
-          <div class="line-grid">
-            <div>
-              <div class="plan-note">Personnes ayant utilisé votre lien</div>
-              <div class="plan-price" id="referralCount" style="font-size:1.4rem;">0</div>
-            </div>
-            <div>
-              <div class="plan-note">Gagné par vos invitations</div>
-              <div class="plan-price" id="referralBonusDays" style="font-size:1.4rem; color:var(--cyan);">0 Ar</div>
-            </div>
-            <div>
-              <div class="plan-note">Solde du portefeuille</div>
-              <div class="plan-price" id="referralNextIn" style="font-size:1.4rem;">—</div>
-            </div>
-          </div>
         </div>
 
         <div class="panel">
@@ -2163,9 +2134,7 @@
         <div class="panel">
           <h3>Partager sur les réseaux sociaux</h3>
           <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.8rem; line-height:1.5;">
-            Envoyez votre lien directement sur un réseau social. Dès que votre ami ouvre l'application
-            via ce lien, il est automatiquement compté dans « Vos parrainages » ci-dessus — aucune
-            confirmation manuelle n'est nécessaire de votre part.
+            Envoyez votre lien directement sur un réseau social.
           </p>
           <div class="actions-row" style="flex-wrap:wrap; gap:0.6rem;">
             <button type="button" class="btn" id="shareWhatsappBtn" style="border-color:#25D366; color:#25D366;">WhatsApp</button>
@@ -2502,13 +2471,12 @@
               <div>
                 <div class="plan-note">Solde disponible</div>
                 <div class="plan-price" id="walletBalance" style="font-size:1.4rem; color:var(--cyan);">0 Ar</div>
-                <div class="plan-note" id="walletBalanceCredits" style="margin-top:0.2rem;">—</div>
-                <!-- Ce qui peut sortir : dépôts payés et parrainages (wallet, « retirableFor »). -->
+                <!-- Ce qui peut sortir : dépôts payés (wallet, « retirableFor »). -->
                 <div class="plan-note" id="walletRetirable" style="margin-top:0.2rem;"></div>
               </div>
             </div>
 
-            <!-- La vola tena izy seule (sans parrainage), dans la devise du pays où l'argent doit arriver. -->
+            <!-- La vola tena izy seule, dans la devise du pays où l'argent doit arriver. -->
             <div style="margin-top:1rem; border-top:1px solid var(--line); padding-top:0.9rem;">
               <div class="plan-note" style="margin-bottom:0.5rem;">💰 Vola tena izy — voir dans une autre devise</div>
               <div style="display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center;">
@@ -2576,7 +2544,7 @@
           <div class="panel" id="walletPayoutPanel">
             <h3>💸 Retirer vers mon Mobile Money</h3>
             <p style="font-size:0.82rem; color:var(--muted); line-height:1.6; margin-bottom:1rem;">
-              Votre argent — les dépôts et ce que vos parrainages ont rapporté — part vers votre
+              Votre argent part vers votre
               MVola, Orange Money ou Airtel Money. La somme quitte votre solde dès la demande ; le
               propriétaire l'envoie et vous êtes prévenu. Si elle ne part pas, elle vous est rendue.
             </p>
@@ -2606,13 +2574,12 @@
           <!-- ---- ACHATS INTERNATIONAUX : payés avec la vola tena izy ----
                Le lien de l'entana (Alibaba, AliExpress…), son prix en ariary,
                l'adresse de livraison : le propriétaire l'achète et le fait
-               livrer (fonction wallet, méthode « merchant »). Les parrainages
-               ne paient pas ces achats. -->
+               livrer (fonction wallet, méthode « merchant »). -->
           <div class="panel" id="walletEtrangerPanel">
             <h3>🌍 Hividy entana any ivelany</h3>
             <p style="font-size:0.82rem; color:var(--muted); line-height:1.6; margin-bottom:1rem;">
               Apetaho ny rohin'ilay entana hita tao amin'ny « Achats internationaux ». Ny
-              <strong style="color:var(--text);">vola tena izy</strong> ihany no andoavana azy, fa tsy ny parrainage.
+              <strong style="color:var(--text);">vola tena izy</strong> ihany no andoavana azy.
               Ny tompony no mividy azy ary mampandefa azy any amin'ny adiresinao. Raha tsy vita ny fividianana dia averina ny vola.
             </p>
             <div class="field">
@@ -2716,7 +2683,6 @@
             <h3>💳 Payer l'abonnement par Papi</h3>
             <p style="font-size:0.82rem; color:var(--muted); line-height:1.6; margin-bottom:1.2rem;">
               Réglé avec l'argent versé par Papi ; s'il manque, Papi s'ouvre pour la différence.
-              Les parrainages ne paient pas l'abonnement : ils se retirent vers votre Mobile Money.
             </p>
 
             <h3 style="font-size:0.95rem;">Abonnement</h3>

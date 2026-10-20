@@ -45,16 +45,14 @@
   }
 
   function setupInviteLink(){
-    const sub = ensureInstallDate();
     // « /confirmation » : le mot se lit dans le lien lui-même. Seulement sur
     // Netlify, qui sait servir cette adresse (_redirects) ; une adresse
     // publique réglée ailleurs garde la racine.
     const base = publicBaseUrl();
     const chemin = /^https:\/\/ny-asako\.netlify\.app\/$/i.test(base) ? 'confirmation' : '';
-    const link = base + chemin + '?invite=1&ref=' + encodeURIComponent(sub.id);
+    const link = base + chemin + '?invite=1';
     document.getElementById('inviteLink').value = link;
     renderLocalLinkWarning(link);
-    refreshReferralProgress();
   }
 
   // « Copier tout » : rassemble tous les liens de l'application (invitation,

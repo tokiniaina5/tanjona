@@ -5,8 +5,8 @@
 // calculerait elle-même serait un solde qu'elle pourrait s'inventer.
 //
 // Le solde n'est pas stocké : il se déduit de ce qui est déjà en base —
-// parrainages gagnés, moins les retraits (demandés ou envoyés), moins les
-// déblocages payés avec le portefeuille. Rien à tenir à jour, rien à
+// versements confirmés, ventes et transferts reçus, moins les retraits
+// (demandés ou envoyés), moins les déblocages payés avec le portefeuille. Rien à tenir à jour, rien à
 // désynchroniser, et aucun chiffre à falsifier.
 //
 // Déploiement : voir LISEZ-MOI-SUPABASE.txt, section "Portefeuille".
@@ -28,23 +28,11 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-// Ce que rapporte un parrainage. Une seule définition, côté serveur : si
-// elle vivait dans la page, chacun pourrait décider de sa propre valeur.
-//
-// Deux tarifs. Le propriétaire invite pour faire venir des clients à
-// l'application entière, pas pour se faire un pécule : ses invitations
-// valent davantage. Celles d'un client valent le tarif ordinaire.
-//
-// Ce chiffre-là ne sert QU'À CE QUE LES INVITATIONS RAPPORTENT. Il ne doit
-// jamais servir à chiffrer une dépense — voir « spent » plus bas, qui garde
-// exprès le tarif de base.
-const AR_PER_REFERRAL = Number(Deno.env.get("AR_PER_REFERRAL") ?? "1000");
-const AR_PER_REFERRAL_OWNER = Number(Deno.env.get("AR_PER_REFERRAL_OWNER") ?? "5000");
-
-function tarifParrainage(email: string): number {
-  const proprio = (Deno.env.get("OWNER_EMAIL") ?? "").trim().toLowerCase();
-  return proprio && email === proprio ? AR_PER_REFERRAL_OWNER : AR_PER_REFERRAL;
-}
+// Les déblocages payés avec le portefeuille sont inscrits en crédits ; un
+// crédit vaut mille ariary.
+// Le parrainage est supprimé (20/10/2026) : il ne rapporte plus rien, et ce
+// qu'il avait rapporté ne compte plus dans le solde.
+const AR_PER_CREDIT = 1000;
 const MIN_PAYOUT_AR = Number(Deno.env.get("MIN_PAYOUT_AR") ?? "10000");
 // Frais de retrait, en pourcentage, ajoutés à la somme demandée : la personne
 // reçoit ce qu'elle a demandé, et son solde baisse de la somme + les frais.
@@ -62,11 +50,11 @@ function fraisRetrait(montant: number): number {
 // anciennes sorties « cash », « wallet », « merchant » : leurs lignes
 // passées gardent leur nom à l'affichage, rien de neuf ne s'y ouvre.
 // Depuis le 26/09/2026 au soir, seul le Mobile Money reste ouvert : c'est
-// là que partent les dépôts et les parrainages (Papi n'envoie pas d'argent,
+// là que partent les dépôts (Papi n'envoie pas d'argent,
 // le propriétaire exécute). Wise, Payoneer, Skrill et banque sont fermés.
 // « merchant » (03/10/2026) : un achat dans une boutique à l'étranger
 // (« Achats internationaux »), payé avec la vola tena izy seule — jamais
-// avec les parrainages ni les sommes de l'appli. Le propriétaire l'achète
+// avec les sommes de l'appli. Le propriétaire l'achète
 // depuis le lien et le fait livrer à l'adresse donnée.
 const METHODS = new Set(["mobile", "merchant"]);
 // Les portefeuilles internationaux ne connaissent pas l'ariary.
@@ -114,21 +102,6 @@ async function rateFromAr(currency: string): Promise<number> {
 
 type Admin = ReturnType<typeof createClient>;
 
-// Ce que les parrainages ont rapporté, sur toutes les installations
-// rattachées à ce compte.
-async function gainsParrainage(admin: Admin, email: string, installs?: string[]): Promise<number> {
-  let ids = installs;
-  if (!ids) {
-    const { data: owners } = await admin.from("wallet_owners").select("install_id").eq("email", email);
-    ids = (owners ?? []).map((o: { install_id: string }) => o.install_id);
-  }
-  if (!ids.length) return 0;
-  const { count } = await admin.from("referrals")
-    .select("id", { count: "exact", head: true })
-    .in("inviter_id", ids);
-  return (count ?? 0) * tarifParrainage(email);
-}
-
 // ---- Les achats du fil (supabase-wallet-achats.sql) ----
 // Comme acheteur : ce qui est tenu (« tazonina ») ou déjà passé au vendeur
 // (« voaray ») a quitté le solde ; ce qui a été rendu (« naverina ») y revient.
@@ -164,32 +137,21 @@ function ar(n: number): string {
 
 // ---- Le solde, déduit de la base ----
 async function balanceFor(admin: Admin, email: string): Promise<number> {
-  // 1) ce que les parrainages ont rapporté, sur toutes les installations
-  //    rattachées à ce compte
-  const { data: owners } = await admin.from("wallet_owners")
-    .select("install_id").eq("email", email);
-  const installs = (owners ?? []).map((o: { install_id: string }) => o.install_id);
-
-  const earned = await gainsParrainage(admin, email, installs);
-
-  // 2) ce qui est parti ou est réservé pour partir
+  // 1) ce qui est parti ou est réservé pour partir
   const { data: payouts } = await admin.from("wallet_payouts")
     .select("amount_ar,fee_ar,status").eq("email", email).in("status", ["pending", "sent"]);
   const withdrawn = (payouts ?? []).reduce(
     (sum: number, p: { amount_ar: number; fee_ar: number }) =>
       sum + (Number(p.amount_ar) || 0) + (Number(p.fee_ar) || 0), 0);
 
-  // 3) ce qui a servi à rouvrir un accès. « amount » y est compté en
-  //    crédits, et un crédit vaut AR_PER_REFERRAL — le tarif de BASE, pas
-  //    celui de celui qui regarde. Un déblocage coûte vingt mille ariary à
-  //    tout le monde ; le passer au tarif du propriétaire le ferait coûter
-  //    cent mille au seul qui n'en paie jamais.
+  // 2) ce qui a servi à rouvrir un accès. « amount » y est compté en
+  //    crédits, et un crédit vaut AR_PER_CREDIT.
   const { data: unlocks } = await admin.from("unlock_requests")
     .select("amount").eq("email", email).eq("payment_method", "wallet");
   const spent = (unlocks ?? []).reduce(
-    (sum: number, u: { amount: number }) => sum + (Number(u.amount) || 0) * AR_PER_REFERRAL, 0);
+    (sum: number, u: { amount: number }) => sum + (Number(u.amount) || 0) * AR_PER_CREDIT, 0);
 
-  // 4) ce qui est entré du dehors. Les versements confirmés seulement :
+  // 3) ce qui est entré du dehors. Les versements confirmés seulement :
   //    un versement annoncé et pas encore vérifié ne vaut rien, sans quoi
   //    l'annonce suffirait à dépenser.
   const { data: depots } = await admin.from("wallet_deposits")
@@ -197,13 +159,13 @@ async function balanceFor(admin: Admin, email: string): Promise<number> {
   const deposited = (depots ?? []).reduce(
     (sum: number, d: { amount_ar: number }) => sum + (Number(d.amount_ar) || 0), 0);
 
-  // 5) les achats du fil : payés comme acheteur, reçus comme vendeur.
+  // 4) les achats du fil : payés comme acheteur, reçus comme vendeur.
   const achats = await achatsFor(admin, email);
 
-  // 6) les transferts entre portefeuilles (et, pour le propriétaire, leurs frais).
+  // 5) les transferts entre portefeuilles (et, pour le propriétaire, leurs frais).
   const transferts = await transfertsFor(admin, email);
 
-  return Math.max(0, earned + deposited + achats.recu + transferts.recu -
+  return Math.max(0, deposited + achats.recu + transferts.recu -
     withdrawn - spent - achats.depense - transferts.envoye);
 }
 
@@ -281,17 +243,14 @@ async function cleFor(admin: Admin, email: string): Promise<string | null> {
 // l'application (abonnement, déblocage…), jamais au dehors.
 //
 // Peut sortir : ce qui est vraiment entré (versements payés chez Papi ou reçus
-// en Mobile Money / PayPal) et les parrainages — ceux-là, le propriétaire a
-// décidé (26/09/2026) de les payer en vrai argent, de sa poche. Moins ce qui
-// est déjà sorti vers le dehors, et jamais plus que le solde lui-même.
+// en Mobile Money / PayPal). Moins ce qui est déjà sorti vers le dehors, et jamais plus que le solde lui-même.
 const PROVIDERS_REELS = ["papi", "mvola", "orange", "airtel", "paypal"];
 
 async function retirableFor(admin: Admin, email: string, balance: number): Promise<number> {
   const { data: depots } = await admin.from("wallet_deposits")
     .select("amount_ar").eq("email", email).eq("status", "confirme").in("provider", PROVIDERS_REELS);
   const entre = (depots ?? []).reduce(
-    (sum: number, d: { amount_ar: number }) => sum + (Number(d.amount_ar) || 0), 0) +
-    await gainsParrainage(admin, email);
+    (sum: number, d: { amount_ar: number }) => sum + (Number(d.amount_ar) || 0), 0);
   // Les achats dans l'application (« insite ») ne sortent rien au dehors.
   const { data: sorties } = await admin.from("wallet_payouts")
     .select("amount_ar,fee_ar,kind").eq("email", email).in("status", ["pending", "sent"]);
@@ -308,25 +267,21 @@ async function retirableFor(admin: Admin, email: string, balance: number): Promi
 }
 
 // ---- L'argent vraiment payé qui reste, pour l'abonnement ----
-// Depuis le 26/09/2026, l'abonnement ne se paie plus avec les parrainages :
-// seulement avec de l'argent vraiment entré (dépôts Papi confirmés).
+// L'abonnement se paie seulement avec de l'argent vraiment entré (dépôts Papi confirmés).
 //
 //   dépôts réels
 //   − abonnements déjà payés AVEC cet argent (method « papi » ; les achats
 //     d'avant, réglés avec n'importe quel solde, ne comptent pas contre lui)
-//   − les retraits, pour la part que les parrainages n'ont pas couverte
-//     (un retrait puise d'abord dans les parrainages, qui ne servent qu'à ça)
+//   − les retraits
 // Jamais plus que le solde lui-même.
 async function argentPapiFor(admin: Admin, email: string, balance: number): Promise<number> {
   return (await partsSolde(admin, email, balance)).papi;
 }
 
-// Le solde en trois parts, que la page montre à part :
-//   papi       — l'argent vraiment payé qui reste (voir plus haut) ;
-//   parrainage — les gains de parrainage moins les retraits, qui y puisent
-//                d'abord ;
-//   le reste   — ce que l'application a inscrit d'elle-même, à dépenser ici.
-async function partsSolde(admin: Admin, email: string, balance: number): Promise<{ papi: number; parrainage: number }> {
+// Le solde en deux parts, que la page montre à part :
+//   papi     — l'argent vraiment payé qui reste (voir plus haut) ;
+//   le reste — ce que l'application a inscrit d'elle-même, à dépenser ici.
+async function partsSolde(admin: Admin, email: string, balance: number): Promise<{ papi: number }> {
   const { data: depots } = await admin.from("wallet_deposits")
     .select("amount_ar").eq("email", email).eq("status", "confirme").in("provider", PROVIDERS_REELS);
   const entre = (depots ?? []).reduce(
@@ -348,17 +303,13 @@ async function partsSolde(admin: Admin, email: string, balance: number): Promise
     }
   }
   // Les ventes reçues entrent comme de l'argent payé ; les achats sortent
-  // comme un retrait (d'abord sur les parrainages, comme lui).
+  // comme un retrait.
   const achats = await achatsFor(admin, email);
   retraits += achats.depense;
-  const parrainage = await gainsParrainage(admin, email);
-  // Un transfert reçu est de la vola tena izy ; un transfert envoyé n'en
-  // part que d'elle (jamais des parrainages).
+  // Un transfert reçu est de la vola tena izy ; un transfert envoyé en part.
   const transferts = await transfertsFor(admin, email);
-  const reste = entre + achats.recu + transferts.recu - abonnements - transferts.envoye -
-    Math.max(0, retraits - parrainage);
-  const papi = Math.max(0, Math.min(balance, reste));
-  return { papi, parrainage: Math.max(0, Math.min(balance - papi, parrainage - retraits)) };
+  const reste = entre + achats.recu + transferts.recu - abonnements - transferts.envoye - retraits;
+  return { papi: Math.max(0, Math.min(balance, reste)) };
 }
 
 Deno.serve(async (req: Request) => {
@@ -466,7 +417,7 @@ Deno.serve(async (req: Request) => {
 
     return json({
       idKey, idKeyAuto: estCleAuto(idKey), transferts, transferFeePct: TRANSFER_FEE_PCT,
-      balanceAr: balance, retirableAr: retirable, papiAr: parts.papi, parrainageAr: parts.parrainage, arPerReferral: tarifParrainage(email), minPayoutAr: MIN_PAYOUT_AR, payoutFeePct: PAYOUT_FEE_PCT,
+      balanceAr: balance, retirableAr: retirable, papiAr: parts.papi, minPayoutAr: MIN_PAYOUT_AR, payoutFeePct: PAYOUT_FEE_PCT,
       depositFeePct: DEPOSIT_FEE_PCT,
       // Ce qui marche vraiment sur ce serveur, pour que la page ne propose
       // pas un canal dont les clefs manquent.
@@ -508,7 +459,7 @@ Deno.serve(async (req: Request) => {
     if (montant > reel) {
       return json({
         error: `Tsy ampy ny vola ao amin'ny portefeuille : ${reel.toLocaleString("fr-FR")} Ar ` +
-          `(vola tena naloa sy parrainage), ilaina ${montant.toLocaleString("fr-FR")} Ar. ` +
+          `(vola tena naloa), ilaina ${montant.toLocaleString("fr-FR")} Ar. ` +
           `Ampidiro vola amin'ny Papi na Mobile Money aloha.`,
         disponibleAr: reel, manque: montant - reel,
       }, 400);
@@ -589,13 +540,12 @@ Deno.serve(async (req: Request) => {
     if (!item) return json({ error: "article inconnu" }, 400);
 
     const balance = await balanceFor(admin, email);
-    // Seulement l'argent vraiment payé par Papi : les parrainages ne paient
-    // plus l'abonnement (ils se retirent en Mobile Money).
+    // Seulement l'argent vraiment payé par Papi.
     const papi = await argentPapiFor(admin, email, balance);
     if (item.priceAr > papi) {
       return json({
         error: `Vola avy amin'ny Papi : ${papi.toLocaleString("fr-FR")} Ar, ilaina ` +
-          `${item.priceAr.toLocaleString("fr-FR")} Ar. Tsy aloa amin'ny parrainage intsony ny abonnement : ` +
+          `${item.priceAr.toLocaleString("fr-FR")} Ar. Vola tena izy ihany no andoavana ny abonnement : ` +
           `mandoava amin'ny Papi.`,
         papiAr: papi, manque: item.priceAr - papi,
       }, 400);
@@ -691,7 +641,7 @@ Deno.serve(async (req: Request) => {
       return json({
         error: `Vola tena izy : ${ar(papi)}. Ilaina : ${ar(amount + frais)} ` +
           `(${ar(amount)} + frais ${ar(frais)}, ${TRANSFER_FEE_PCT} %). ` +
-          "Ny vola tena izy ihany no afindra (tsy ny parrainage).",
+          "Ny vola tena izy ihany no afindra.",
       }, 400);
     }
 
@@ -745,7 +695,7 @@ Deno.serve(async (req: Request) => {
       if (amount > papi) {
         return json({
           error: `Vola tena izy : ${ar(papi)}. Ilaina : ${ar(amount)}. ` +
-            "Ny vola tena izy ihany no andoavana ny entana any ivelany (tsy ny parrainage). " +
+            "Ny vola tena izy ihany no andoavana ny entana any ivelany. " +
             "Ampidiro vola amin'ny Mobile Money aloha.",
         }, 400);
       }
@@ -779,12 +729,12 @@ Deno.serve(async (req: Request) => {
 
     const balance = await balanceFor(admin, email);
     const frais = fraisRetrait(amount);
-    // Ce qui sort doit être du vrai argent : pas les parrainages ni les
+    // Ce qui sort doit être du vrai argent : pas les
     // sommes inscrites par l'application (voir retirableFor).
     const retirable = await retirableFor(admin, email, balance);
     if (amount + frais > retirable) {
       return json({
-        error: `Vola azo alaina : ${retirable.toLocaleString("fr-FR")} Ar (ny vola tena naloa sy ny parrainage — ` +
+        error: `Vola azo alaina : ${retirable.toLocaleString("fr-FR")} Ar (ny vola tena naloa — ` +
           `ny vola nampidirin'ny appli ho azy dia ampiasaina ato anatiny ihany). Il faut ` +
           `${(amount + frais).toLocaleString("fr-FR")} Ar (${amount.toLocaleString("fr-FR")} Ar + ` +
           `${frais.toLocaleString("fr-FR")} Ar de frais, ${PAYOUT_FEE_PCT} %).`,

@@ -44,24 +44,16 @@
   // et rien n'est perdu : ce qui a été saisi pendant ces jours-là est rangé sous
   // les mêmes clés que le reste, sur le même navigateur.
   const FREE_ENTRY_DAYS = 7;
-  // ---- CE QUE RAPPORTE UNE INVITATION ----
-  // Chaque personne qui ouvre l'application avec le lien verse 1 000 Ar au
-  // portefeuille de celui qui l'a invitée : quinze invitations font le mois
-  // d'abonnement, cent cinquante font l'année. Le chiffre ne fait pas foi ici —
-  // c'est AR_PER_REFERRAL, dans la fonction « wallet », qui calcule le solde,
-  // parce qu'une page peut être modifiée par celui qui la regarde. Celui-ci ne
-  // sert qu'à écrire des sommes lisibles, et doit lui rester égal.
+  // ---- CE QUE VAUT UN CRÉDIT ----
+  // Le déblocage se compte en crédits ; un crédit vaut 1 000 Ar. Le chiffre ne
+  // fait pas foi ici — c'est AR_PER_CREDIT, dans la fonction « wallet », qui
+  // calcule le solde. Celui-ci ne sert qu'à écrire des sommes lisibles, et
+  // doit lui rester égal.
   const AR_PER_CREDIT = 1000;
 
   function genInstallId(){
     if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
     return 'id-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
-  }
-  function getUrlRef(){
-    try{
-      const params = new URLSearchParams(window.location.search);
-      return params.get('ref') || null;
-    }catch(e){ return null; }
   }
 
   // ---- Codes de déverrouillage individuels (par client) ----
@@ -232,10 +224,7 @@
         plan: null,
         paidUntil: null,
         id: genInstallId(),
-        bonusDays: 0,
-        referralCount: 0,
-        referredBy: getUrlRef(),
-        referralRecorded: false
+        bonusDays: 0
       };
       saveSubscription(sub);
     } else {
@@ -243,9 +232,6 @@
       let changed = false;
       if(!sub.id){ sub.id = genInstallId(); changed = true; }
       if(typeof sub.bonusDays !== 'number'){ sub.bonusDays = 0; changed = true; }
-      if(typeof sub.referralCount !== 'number'){ sub.referralCount = 0; changed = true; }
-      if(sub.referralRecorded === undefined){ sub.referralRecorded = false; changed = true; }
-      if(sub.referredBy === undefined){ sub.referredBy = null; changed = true; }
       if(changed) saveSubscription(sub);
     }
     return sub;
@@ -278,8 +264,8 @@
     return { status: 'expired', daysLeft: 0, bonusDays: bonusDays };
   }
 
-  // Jours restants avant que le compte soit réclamé. Les jours offerts par le
-  // parrainage allongent l'essai, pas cette fenêtre-ci : ils repoussent le
+  // Jours restants avant que le compte soit réclamé. Les jours payés avec le
+  // portefeuille allongent l'essai, pas cette fenêtre-ci : ils repoussent le
   // paiement, pas le moment de se présenter.
   function freeEntryDaysLeft(){
     if(MODE_MPIASA) return 0;
@@ -299,10 +285,6 @@
   //
   // L'employé entré par le lien de son patron ne compte pas : il n'est pas
   // venu au site, il travaille dans celui d'un autre.
-  //
-  // Rien n'est retiré à personne : ce versement et celui du parrainage sont
-  // deux écritures distinctes. Quelqu'un arrivé par un lien d'invitation les
-  // produit toutes les deux.
   let visiteSignalee = null;
   function signalerLaVisite(){
     if(MODE_MPIASA) return;
@@ -318,59 +300,8 @@
       installId: sub.id,
       nom: (currentUser && currentUser.name) || null,
       email: qui || null,
-      invitePar: sub.referredBy || null,
       appareil: typeof shortUserAgent === 'function' ? shortUserAgent(navigator.userAgent) : null
     } }).then(function(){}, function(){});
-  }
-
-  // ---------------- PARRAINAGE (fizarana lien) ----------------
-  // Mandraikitra ny "referral" indray mandeha ihany, rehefa misy appareil vaovao
-  // miditra amin'ny alalan'ny lien misy ?ref=... (tsy manery hiditra amin'ny app).
-  function recordReferralIfNeeded(){
-    const sub = ensureInstallDate();
-    if(!sub.referredBy || sub.referredBy === sub.id || sub.referralRecorded) return;
-    if(!window.__sb){ return; }
-    window.__sb.from('referrals').insert({
-      inviter_id: sub.referredBy,
-      referred_id: sub.id
-    }).then(function(res){
-      if(!res || !res.error){
-        sub.referralRecorded = true;
-        saveSubscription(sub);
-      }
-    }, function(){});
-  }
-
-  // Mandeha mitady any amin'ny Supabase hoe firy ny olona nampiasa ny lien
-  // navoakan'ilay appareil ity. Ny fonction « wallet » no mamadika izany ho
-  // ariary ao amin'ny portefeuille : eto dia isa fotsiny, aseho eo amin'ny
-  // pejy parrainage.
-  function syncReferralBonus(callback){
-    const sub = ensureInstallDate();
-    if(!window.__sb || !sub.id){ if(callback) callback(sub); return; }
-    window.__sb.from('referrals')
-      .select('id', { count: 'exact', head: true })
-      .eq('inviter_id', sub.id)
-      .then(function(res){
-        const count = (res && typeof res.count === 'number') ? res.count : 0;
-        const avant = sub.referralCount || 0;
-        sub.referralCount = count;
-        saveSubscription(sub);
-        // L'argent entrait en silence : le compte montait, et il fallait aller
-        // regarder la page pour s'en apercevoir. Une installation neuve part de
-        // zéro parrainage et de zéro connu — rien ne s'annonce à tort.
-        if(count > avant){
-          const gagnants = count - avant;
-          pushNotification('parrainage',
-            gagnants + ' personne' + (gagnants > 1 ? 's' : '') +
-            ' de plus ' + (gagnants > 1 ? 'ont' : 'a') + ' ouvert l\'application avec votre lien : ' +
-            formatWalletAr(gagnants * AR_PER_CREDIT) + ' dans votre portefeuille.');
-        }
-        if(callback) callback(sub);
-      }, function(){ if(callback) callback(sub); });
-  }
-  function getAvailableCredits(sub){
-    return Math.max(0, (sub.referralCount || 0) - (sub.creditsSpent || 0));
   }
 
   // ---------------- CE QUE DONNE UN ACHAT ----------------
@@ -821,62 +752,6 @@
     ligne.textContent = 'Essai terminé. Un abonnement est nécessaire pour continuer.';
   }
 
-  // La page « Inviter des amis » annonce un tarif et ce qu'il paie. Les deux
-  // changent avec la personne : le propriétaire n'a pas le même que ses
-  // clients, et il ne doit pas lire le leur.
-  function majTarifInvitation(tarif){
-    const par = Number(tarif) || AR_PER_CREDIT;
-    const el = document.getElementById('inviteTarif');
-    if(el) el.textContent = formatWalletAr(par);
-    const mois = document.getElementById('inviteMois');
-    if(mois) mois.textContent = Math.ceil(15000 / par);
-    const an = document.getElementById('inviteAn');
-    if(an) an.textContent = Math.ceil(150000 / par);
-  }
-
-  function refreshReferralProgress(){
-    syncReferralBonus(function(sub){
-      majPageAbonnement();
-      const countEl = document.getElementById('referralCount');
-      const gagneEl = document.getElementById('referralBonusDays');
-      const soldeEl = document.getElementById('referralNextIn');
-      const invitations = sub.referralCount || 0;
-      if(countEl) countEl.textContent = invitations;
-      // Le tarif n'est pas le même pour tout le monde : celui du propriétaire
-      // vaut davantage. C'est le serveur qui le dit — la page ne fait que
-      // l'écrire, et retombe sur le tarif ordinaire tant qu'elle l'ignore.
-      const tarif = (walletState && walletState.arPerReferral) || AR_PER_CREDIT;
-      // Ce que les invitations ont rapporté : le nombre de personnes, au tarif
-      // de l'invitation. C'est un gain cumulé et non un solde — ce qui a déjà
-      // servi à payer n'en est pas retranché.
-      if(gagneEl) gagneEl.textContent = formatWalletAr(invitations * tarif);
-      // Le solde, lui, vient du serveur : lui seul tient compte des versements
-      // et de ce qui a déjà été dépensé. L'appel rattache au passage cette
-      // installation au compte — c'est ce qui fait que les invitations
-      // partagées avant qu'il existe rejoignent le portefeuille.
-      if(soldeEl){
-        if(!currentUser){
-          // Sans compte, il n'y a pas encore de portefeuille où verser. Le
-          // gain, lui, est déjà compté : il attend.
-          soldeEl.textContent = '—';
-        } else {
-          soldeEl.textContent = '…';
-          callWallet({ action: 'state', installId: sub.id }).then(function(state){
-            walletState = state;
-            soldeEl.textContent = formatWalletAr(state.balanceAr);
-            // Le serveur vient de dire le tarif : on réécrit le gain avec, au
-            // cas où l'on avait affiché celui d'avant.
-            if(gagneEl && state.arPerReferral){
-              gagneEl.textContent = formatWalletAr(invitations * state.arPerReferral);
-            }
-            majTarifInvitation(state.arPerReferral);
-          }, function(){ soldeEl.textContent = '—'; });
-        }
-      }
-      renderWallet();
-    });
-  }
-
   // ---------------- PORTEFEUILLE : vérification par correspondance nom/email ----------------
   const WALLET_SESSION_KEY = 'wallet_session_v1';
   let walletSession = null;
@@ -988,23 +863,15 @@
     if(!walletState) return;
     const balanceEl = document.getElementById('walletBalance');
     if(balanceEl) balanceEl.textContent = formatWalletAr(walletState.balanceAr);
-    const creditsEl = document.getElementById('walletBalanceCredits');
-    if(creditsEl){
-      const par = walletState.arPerReferral || 0;
-      creditsEl.textContent = par
-        ? 'soit ' + Math.floor((walletState.balanceAr || 0) / par) + ' parrainage(s) à ' + formatWalletAr(par)
-        : '';
-    }
-    // Ce qui peut sortir pour de bon : l'argent vraiment payé et les
-    // parrainages. Les sommes inscrites par l'application se dépensent ici.
+    // Ce qui peut sortir pour de bon : l'argent vraiment payé. Les sommes
+    // inscrites par l'application se dépensent ici.
     const retirableEl = document.getElementById('walletRetirable');
     if(retirableEl){
       const r = walletState.retirableAr;
-      // Telo samy hafa, asehoy misaraka : vola tena izy (dépôts Papi +
-      // ventes), parrainage, ary ny vola nampidirin'ny appli ho azy.
+      // Roa samy hafa, asehoy misaraka : vola tena izy (dépôts Papi +
+      // ventes), ary ny vola nampidirin'ny appli ho azy.
       const vola = Math.max(0, walletState.papiAr || 0);
-      const parrainage = Math.max(0, walletState.parrainageAr || 0);
-      const appli = Math.max(0, (walletState.balanceAr || 0) - vola - parrainage);
+      const appli = Math.max(0, (walletState.balanceAr || 0) - vola);
       const ligne = function(label, montant, note){
         return '<div style="display:flex; justify-content:space-between; align-items:baseline; gap:0.8rem; padding:0.35rem 0; border-top:1px solid var(--line);">' +
           '<span>' + label + (note ? '<br><span style="font-size:0.72rem;">' + note + '</span>' : '') + '</span>' +
@@ -1013,7 +880,6 @@
       retirableEl.innerHTML = (r === undefined || r === null) ? '' :
         '<div style="margin-top:0.4rem;">' +
         ligne('💰 Vola tena izy', vola, 'Dépôt Papi sy varotra') +
-        ligne('🎁 Parrainage', parrainage) +
         (appli ? ligne('🏷️ Avy amin\'ny appli', appli, 'Ato anatiny ihany (abonnement, déblocage…)') : '') +
         '</div>';
     }
@@ -1051,7 +917,7 @@
   }
 
   // La vola tena izy (argent vraiment payé), dans la devise du pays où
-  // l'argent doit arriver — pas le parrainage ni les sommes de l'appli.
+  // l'argent doit arriver — pas les sommes de l'appli.
   function updateWalletConversion(){
     const select = document.getElementById('walletCurrency');
     const out = document.getElementById('walletConverted');
@@ -1891,7 +1757,7 @@
         const sub = ensureInstallDate();
         let detail = '';
         if(res.days > 0){
-          // Les jours mis de côté par le parrainage s'ajoutent à l'abonnement.
+          // Les jours mis de côté s'ajoutent à l'abonnement.
           const bankedDays = sub.subscriptionCreditDays || 0;
           const days = res.days + bankedDays;
           sub.plan = item === 'sub_year' ? 'annuel' : 'mensuel';
@@ -1935,8 +1801,7 @@
   });
 
   // ---- L'abonnement se paie en vrai argent, par Papi ----
-  // Plus avec les parrainages (ils se retirent en Mobile Money). Si l'argent
-  // déjà versé par Papi suffit, l'abonnement part de là ; sinon on ouvre Papi
+  // Si l'argent déjà versé par Papi suffit, l'abonnement part de là ; sinon on ouvre Papi
   // pour la somme qui manque, et l'abonnement se règle tout seul au retour
   // (papi-paiement.js). Les prix ne sont ici que pour l'affichage : c'est le
   // serveur qui les tient.
@@ -2879,51 +2744,6 @@
       const nameField = document.getElementById('forgotName');
       if(known && !nameField.value) nameField.value = known.name || '';
       renderUnlockWallet();
-    });
-  }
-
-  const payFromWalletBtn = document.getElementById('payFromWalletBtn');
-  if(payFromWalletBtn){
-    payFromWalletBtn.addEventListener('click', function(){
-      const statusEl = document.getElementById('forgotStatus');
-      const name = document.getElementById('forgotName').value.trim();
-      const email = document.getElementById('forgotEmail').value.trim();
-      if(!name || !email){
-        statusEl.textContent = 'Votre nom et votre email sont obligatoires.';
-        return;
-      }
-
-      // Sans le compte enregistré ici, il n'y a rien à rouvrir : le déblocage
-      // vaut pour cet appareil, où les données de l'application se trouvent.
-      const profile = findProfileByEmail(email);
-      if(!profile){
-        statusEl.textContent = 'Aucun compte n\'est enregistré sur cet appareil pour cet email. ' +
-          'Utilisez « Première connexion / autre compte ».';
-        return;
-      }
-
-      const sub = ensureInstallDate();
-      const available = getAvailableCredits(sub);
-      if(available < UNLOCK_COST_CREDITS){
-        const manque = UNLOCK_COST_CREDITS - available;
-        statusEl.textContent = 'Il vous manque ' + (manque * AR_PER_CREDIT).toLocaleString('fr-FR') +
-          ' Ar : vous avez ' + (available * AR_PER_CREDIT).toLocaleString('fr-FR') + ' Ar sur les ' +
-          (UNLOCK_COST_CREDITS * AR_PER_CREDIT).toLocaleString('fr-FR') + ' Ar demandés. ' +
-          'Chaque personne qui ouvre l\'application avec votre lien d\'invitation vous rapporte ' +
-          AR_PER_CREDIT.toLocaleString('fr-FR') + ' Ar.';
-        renderUnlockWallet();
-        return;
-      }
-
-      sub.creditsSpent = (sub.creditsSpent || 0) + UNLOCK_COST_CREDITS;
-      saveSubscription(sub);
-      renderUnlockWallet();
-      recordWalletUnlock(name, email);
-
-      const paye = (UNLOCK_COST_CREDITS * AR_PER_CREDIT).toLocaleString('fr-FR') + ' Ar';
-      statusEl.textContent = paye + ' retirés de votre portefeuille ✓ Accès rétabli.';
-      pushNotification('parrainage', 'Déblocage payé avec ' + paye + ' de votre portefeuille — accès rétabli.');
-      loginFromProfile(profile);
     });
   }
 
@@ -3949,8 +3769,6 @@
   // Un lien de réinitialisation l'emporte sur tout le reste : la personne
   // arrive ici pour changer son mot de passe, pas pour voir l'écran habituel.
   handleAuthLink();
-  // raha nampiasa lien fizarana (?ref=...) ilay mpampiasa vaovao, dia raiketina izany
-  recordReferralIfNeeded();
   initWalletAuth();
 
   document.getElementById('walletSignOutBtn').addEventListener('click', walletSignOut);

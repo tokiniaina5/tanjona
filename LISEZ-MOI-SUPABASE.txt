@@ -638,6 +638,13 @@ TROIS RÈGLES, ÉCRITES DANS LE CODE :
 
 DEUX TARIFS POUR LE PARRAINAGE
 ------------------------------
+SUPPRIMÉ LE 20/10/2026 : le parrainage n’existe plus. Le lien d’invitation
+ne porte plus « ref », rien ne s’inscrit dans « referrals », et la
+fonction wallet ne compte plus les parrainages dans le solde (ni ce qu’ils
+avaient rapporté). AR_PER_REFERRAL et AR_PER_REFERRAL_OWNER ne servent
+plus. La table « referrals » reste en base, intacte, mais n’est plus lue.
+Ce qui suit est l’historique.
+
 Une invitation rapportait 1 000 Ar à tout le monde. Celles du
 propriétaire en rapportent maintenant 5 000 : il invite pour faire
 venir des clients à l'application entière, pas pour se faire un

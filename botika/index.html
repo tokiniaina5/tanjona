@@ -117,13 +117,9 @@
     return (isFinite(v) ? v.toLocaleString('fr-FR') : '0') + ' Ar';
   }
 
-  // Le parrainage voyage avec le lien : celui qui a partagé l'annonce doit
-  // garder son filleul, même si le chemin passe maintenant par la boutique.
-  // « /confirmation » est l'adresse que Ny asako reconnaît (_redirects).
   var params = new URLSearchParams(location.search);
-  var ref = String(params.get('ref') || '').trim();
   var vise = String(params.get('a') || '').trim();
-  var entree = ref ? '/confirmation?invite=1&ref=' + encodeURIComponent(ref) : '/ny-asako.html';
+  var entree = '/ny-asako.html';
   $('bkHiditra').href = entree;
   $('bkHiditra2').href = entree;
 
