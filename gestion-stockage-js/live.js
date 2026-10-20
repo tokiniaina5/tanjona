@@ -230,8 +230,13 @@
   function andalanaMpisoratra(olona, ikona, lohateny){
     return olona.map(function(o, i){
       return '<div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; padding:0.6rem 0; border-bottom:1px solid var(--line);">' +
-        '<div style="min-width:0;"><strong style="font-size:0.85rem;">' + escapeHtml(o.name) + '</strong>' +
-          (o.online ? ' <span style="font-size:0.68rem; color:#25D366;">🟢 Miditra</span>' : '') +
+        '<div style="min-width:0;">' +
+          // Teboka : maitso raha en ligne, volondavenona raha tsy eo.
+          '<span title="' + (o.online ? 'En ligne' : 'Hors ligne') + '" style="display:inline-block; width:9px; height:9px; ' +
+            'border-radius:50%; margin-right:0.4rem; vertical-align:middle; background:' + (o.online ? '#25D366' : '#7c8b92') + ';' +
+            (o.online ? ' box-shadow:0 0 0 2px rgba(37,211,102,0.25);' : '') + '"></span>' +
+          '<strong style="font-size:0.85rem;">' + escapeHtml(o.name) + '</strong>' +
+          (o.online ? ' <span style="font-size:0.68rem; color:#25D366;">En ligne</span>' : '') +
           '<div style="font-size:0.72rem; color:var(--muted); overflow:hidden; text-overflow:ellipsis;">' +
             escapeHtml(o.phone || o.email) + '</div></div>' +
         '<button type="button" class="btn btn-sm" title="' + lohateny + '" data-i="' + i + '" style="flex:none;">' + ikona + '</button>' +
