@@ -1486,3 +1486,20 @@
     if(watchingLive) sendLiveSignal({ kind: 'leave', broadcaster: watchingLive.broadcasterEmail, viewer: myIdentity().email });
   });
 
+
+  // Ny pejy « 📞 Call » dia mety misokatra tsy amin'ny menu (fenêtre averina
+  // avy amin'ny icône, sns) : averina amboarina isaky ny miseho izy, mba
+  // hampiseho ny lisitry ny admin raha vao fantatra fa admin no miditra.
+  (function(){
+    const section = document.getElementById('section-appels');
+    if(!section || !window.MutationObserver) return;
+    let tamin = false;
+    new MutationObserver(function(){
+      const hita = section.classList.contains('active');
+      if(hita && !tamin){
+        renderOnlineClientsForCall();
+        if(typeof renderContactButtons === 'function') renderContactButtons();
+      }
+      tamin = hita;
+    }).observe(section, { attributes: true, attributeFilter: ['class', 'style'] });
+  })();
