@@ -167,8 +167,8 @@
       const phone = (channels.whatsapp || '').replace(/[^\d]/g, '');
       if(phone){
         const wa = 'https://wa.me/' + toInternationalNumber(phone);
-        voice.push({ label: '☎️ Antso an-tariby', color: '#25D366', run: dialNumber(phone) });
-        voice.push({ label: '💬 WhatsApp', color: '#25D366', run: openUrl(wa) });
+        voice.push({ label: '☎️ Antso an-tariby', color: '#25D366', run: dialNumber(phone), appel: true });
+        voice.push({ label: '💬 WhatsApp', color: '#25D366', run: openUrl(wa), appel: true });
         video.push({ label: '💬 WhatsApp', color: '#25D366', run: openUrl(wa) });
       }
 
@@ -178,7 +178,7 @@
       const fb = adresseDeProfil('facebook', channels.facebook);
       const messenger = fb ? facebookToMessenger(fb) : null;
       if(messenger){
-        voice.push({ label: '📘 Messenger', color: '#1877F2', run: openUrl(messenger) });
+        voice.push({ label: '📘 Messenger', color: '#1877F2', run: openUrl(messenger), appel: true });
         video.push({ label: '📘 Messenger', color: '#1877F2', run: openUrl(messenger) });
       }
 
@@ -215,12 +215,12 @@
         // viber://, mailto: : un lien d'application, à ouvrir tel quel — et
         // non un numéro à composer, malgré les chiffres qu'il contient.
         if(/^(viber|mailto|tg|sgnl):/i.test(value)){
-          voice.push({ label: item.name, color: 'var(--cyan)', run: openUrl(value) });
+          voice.push({ label: item.name, color: 'var(--cyan)', run: openUrl(value), appel: !/^mailto:/i.test(value) });
           return;
         }
         const digits = value.replace(/[^\d]/g, '');
         if(digits.length >= 7){
-          voice.push({ label: '☎️ ' + item.name, color: 'var(--cyan)', run: dialNumber(digits) });
+          voice.push({ label: '☎️ ' + item.name, color: 'var(--cyan)', run: dialNumber(digits), appel: true });
           video.push({ label: item.name, color: 'var(--cyan)', run: openUrl('https://wa.me/' + toInternationalNumber(digits)) });
           return;
         }
@@ -278,11 +278,12 @@
         (voice.length || video.length) ? 'none' : 'block';
 
       // Pejy « 📞 Call » : ny canal rehetra eo avy hatrany, tsy misy lisitra
-      // hisafidianana. Ny antso ao anaty appli tsy ampidirina : rohy ihany.
+      // hisafidianana. Izay ahafahana miantso mivantana ihany (appel: true) :
+      // laharana, WhatsApp, Messenger, viber:/tg: — tsy ny profil sy ny mailaka.
       const callRow = document.getElementById('callCanaux');
       if(callRow){
         callRow.innerHTML = '';
-        const liens = voice.filter(function(o){ return o !== inAppVoice; });
+        const liens = voice.filter(function(o){ return o.appel; });
         liens.forEach(function(opt){
           const btn = document.createElement('button');
           btn.type = 'button';
