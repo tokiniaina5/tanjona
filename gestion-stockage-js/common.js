@@ -2273,6 +2273,9 @@
   const loginSub = document.getElementById('loginSub');
 
   function showLoginMode(mode){
+    // D'abord refermer les options : elles rendent le titre d'avant, que la
+    // suite remplace par celui du mode choisi.
+    if(typeof plusOuvert === 'function') plusOuvert(false);
     const quick = mode === 'quick';
     if(quickLoginForm) quickLoginForm.style.display = quick ? 'block' : 'none';
     loginForm.style.display = quick ? 'none' : 'block';
@@ -2294,7 +2297,6 @@
     const forgotWrap = document.getElementById('forgotWrap');
     if(forgotWrap) forgotWrap.style.display = quick ? 'block' : 'none';
     closeHelpBoxes();
-    if(typeof plusOuvert === 'function') plusOuvert(false);
   }
 
   // Les deux dépannages sont indépendants : on n'en ouvre jamais deux à la fois.
@@ -2334,13 +2336,25 @@
   const loginPlusBtn = document.getElementById('loginPlusBtn');
   // Appelée aussi par showLoginMode, parfois avant cette ligne : elle relit
   // le bouton elle-même.
+  // Ouvertes, les options prennent la place de « Bon retour » : le titre
+  // change, le formulaire s'efface, et le bouton ramène à la connexion.
   function plusOuvert(ouvert){
     const ecran = document.getElementById('loginScreen');
+    const etait = !!(ecran && ecran.classList.contains('plus-ouvert'));
     if(ecran) ecran.classList.toggle('plus-ouvert', ouvert);
     const b = document.getElementById('loginPlusBtn');
     if(b){
-      b.textContent = ouvert ? 'Autres options ▴' : 'Autres options ▾';
+      b.textContent = ouvert ? '← Retour à la connexion' : 'Autres options ▾';
       b.setAttribute('aria-expanded', ouvert ? 'true' : 'false');
+    }
+    const titre = document.getElementById('loginTitle');
+    const sous = document.getElementById('loginSub');
+    if(ouvert && !etait){
+      if(titre){ titre.dataset.avant = titre.textContent; titre.textContent = 'Autres options'; }
+      if(sous){ sous.dataset.avant = sous.textContent; sous.textContent = 'Créer un autre compte, retrouver votre mot de passe ou débloquer votre compte.'; }
+    } else if(!ouvert && etait){
+      if(titre && titre.dataset.avant){ titre.textContent = titre.dataset.avant; delete titre.dataset.avant; }
+      if(sous && sous.dataset.avant){ sous.textContent = sous.dataset.avant; delete sous.dataset.avant; }
     }
   }
   if(loginPlusBtn) loginPlusBtn.addEventListener('click', function(){

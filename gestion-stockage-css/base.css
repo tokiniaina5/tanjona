@@ -49,6 +49,8 @@
   }
   /* Autre compte, mot de passe oublié, compte bloqué : derrière « Autres options ». */
   #loginScreen:not(.plus-ouvert) .login-plus{ display:none !important; }
+  /* Ouvertes, elles remplacent le formulaire « Bon retour ». */
+  #loginScreen.plus-ouvert #quickLoginForm > :not(#loginPlusBtn):not(.login-plus){ display:none !important; }
   .login-card{
     width:100%;
     max-width: 380px;
