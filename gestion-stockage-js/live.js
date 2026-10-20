@@ -116,7 +116,68 @@
     presenceChannel.track(Object.assign({}, current, patch, { at: Date.now() }));
   }
 
+  // ---------------- PEJY « 📞 Call » : IREO NANAO INSCRIPTION ----------------
+  // Ho an'ny admin ihany (client_signups : ny tompony ihany no mahavaky azy).
+  // Izay miditra ankehitriny no voalohany, misy 📞 sy 📹 ao anaty appli ;
+  // ny hafa dia azo antsoina amin'ny laharany (tel:) raha nomeny.
+  let mpisoratraCache = null, mpisoratraAt = 0, mpisoratraMaka = false;
+  function renderMpisoratraForCall(){
+    const panel = document.getElementById('callMpisoratraPanel');
+    const list = document.getElementById('callMpisoratra');
+    if(!panel || !list) return;
+    const me = myIdentity();
+    if(!me.isAdmin || !window.__sb){ panel.style.display = 'none'; return; }
+    panel.style.display = '';
+    if(!mpisoratraMaka && (!mpisoratraCache || Date.now() - mpisoratraAt > 60000)){
+      mpisoratraMaka = true;
+      window.__sb.from('client_signups').select('name,email,phone,created_at')
+        .order('created_at', { ascending: false }).limit(1000)
+        .then(function(res){
+          mpisoratraMaka = false;
+          mpisoratraAt = Date.now();
+          // Iray isaky ny email : ny inscription farany no tazonina.
+          const hita = {};
+          mpisoratraCache = ((res && res.data) || []).filter(function(r){
+            const e = String(r.email || '').trim().toLowerCase();
+            if(!e || hita[e] || e === me.email) return false;
+            hita[e] = true;
+            return true;
+          });
+          renderMpisoratraForCall();
+        }, function(){ mpisoratraMaka = false; });
+      if(!mpisoratraCache) return;
+    }
+    const olona = (mpisoratraCache || []).map(function(r){
+      const email = String(r.email).trim().toLowerCase();
+      return { email: email, name: r.name || email, phone: String(r.phone || '').replace(/[^\d]/g, ''), online: !!presenceState[email] };
+    });
+    olona.sort(function(a, b){ return (b.online ? 1 : 0) - (a.online ? 1 : 0); });
+    document.getElementById('callMpisoratraEmpty').style.display = olona.length ? 'none' : 'block';
+    list.innerHTML = olona.map(function(o){
+      return '<div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; padding:0.6rem 0; border-bottom:1px solid var(--line);">' +
+        '<div style="min-width:0;"><strong style="font-size:0.85rem;">' + escapeHtml(o.name) + '</strong>' +
+          (o.online ? ' <span style="font-size:0.68rem; color:#25D366;">🟢 Miditra</span>' : '') +
+          '<div style="font-size:0.72rem; color:var(--muted); overflow:hidden; text-overflow:ellipsis;">' +
+            escapeHtml(o.phone || o.email) + '</div></div>' +
+        '<div style="display:flex; gap:0.4rem; flex:none;">' +
+          (o.online
+            ? '<button type="button" class="btn btn-sm" title="Appel mivantana" data-antso="audio" data-email="' + escapeHtml(o.email) + '" data-name="' + escapeHtml(o.name) + '">📞</button>' +
+              '<button type="button" class="btn btn-sm" title="Antso video" data-antso="video" data-email="' + escapeHtml(o.email) + '" data-name="' + escapeHtml(o.name) + '">📹</button>'
+            : '') +
+          (o.phone
+            ? '<a class="btn btn-sm" title="Antso an-tariby" href="tel:' + (o.phone.charAt(0) === '0' ? o.phone : '+' + o.phone) + '">☎️</a>'
+            : '') +
+        '</div></div>';
+    }).join('');
+    list.querySelectorAll('[data-antso]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        startCall(btn.getAttribute('data-email'), btn.getAttribute('data-name'), btn.getAttribute('data-antso'));
+      });
+    });
+  }
+
   function renderOnlineClientsForCall(){
+    renderMpisoratraForCall();
     const list = document.getElementById('onlineUsersList');
     const emptyHint = document.getElementById('onlineUsersEmpty');
     if(!list) return;
