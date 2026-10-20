@@ -1,6 +1,6 @@
 // La luminosité de la page, réglée comme le volume d'un téléphone : un
 // bouton 🔆 sur le bord droit ouvre une barre verticale qu'on fait glisser ;
-// elle se referme seule. Sert au menu des latabatra (menu-sakafo.html) et à
+// elle se referme seule (5 s sans toucher). Sert au menu des latabatra (menu-sakafo.html) et à
 // la lakozia (lakozia.html).
 //
 // Une page web ne commande pas l'écran lui-même : on assombrit par un voile
@@ -49,13 +49,15 @@
 
   const bouton = document.createElement('button');
   bouton.type = 'button';
-  bouton.className = 'mz-bouton';
+  bouton.className = 'mz-bouton notranslate';
+  bouton.setAttribute('translate', 'no');
   bouton.textContent = '🔆';
   bouton.setAttribute('aria-label', 'Hazavana (luminosité)');
   bouton.title = 'Hazavana';
 
   const panneau = document.createElement('div');
-  panneau.className = 'mz-panneau';
+  panneau.className = 'mz-panneau notranslate';
+  panneau.setAttribute('translate', 'no');
   panneau.hidden = true;
   const icone = document.createElement('span');
   icone.className = 'mz-icone';
@@ -133,7 +135,7 @@
   let minuterie = null;
   function rester() {
     clearTimeout(minuterie);
-    minuterie = setTimeout(fermer, 3000);
+    minuterie = setTimeout(fermer, 5000);
   }
   function ouvrir() { panneau.hidden = false; bouton.hidden = true; piste.focus({ preventScroll: true }); rester(); }
   function fermer() { clearTimeout(minuterie); panneau.hidden = true; bouton.hidden = false; ecrire(valeur); }
@@ -147,7 +149,10 @@
   }
   let glisse = false;
   panneau.addEventListener('pointerdown', function (e) {
-    if (e.target === theme) return;
+    // Le traducteur du navigateur enveloppe le texte des boutons (<font>) :
+    // la cible est alors dedans, et non le bouton lui-même. Sans « contains »,
+    // toucher ☀️/🌙 lançait le glissement, qui avalait le clic.
+    if (theme.contains(e.target)) return;
     glisse = true;
     try { panneau.setPointerCapture(e.pointerId); } catch (x) { }
     depuisPointeur(e);
