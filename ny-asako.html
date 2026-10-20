@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="c0cf14c8">
+<meta name="ny-asako-version" content="b9101698">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -414,6 +414,13 @@
     .guide-tout{ list-style:none; text-align:left; margin:0.6rem 0 0; padding:0.8rem 0.9rem; border:1px solid var(--line); border-radius:12px;
       background:var(--panel-2); font-size:0.85rem; line-height:1.5; color:var(--muted); display:grid; gap:0.45rem; }
     .guide-tout[hidden]{ display:none; }
+    .guide-tout-li{ display:flex; align-items:center; justify-content:space-between; gap:0.6rem; width:100%; padding:0.15rem 0;
+      background:none; border:0; color:inherit; font:inherit; text-align:left; cursor:pointer; }
+    .guide-tout-li:hover b, .guide-tout-li:focus-visible b{ color:var(--cyan); }
+    .guide-tout-va{ color:var(--cyan); font-size:1.3rem; line-height:1; }
+    /* Les pages de chaque partie : une grande image (émoji 3D) en tête. */
+    .guide-ikona{ font-size:4.2rem; line-height:1; margin:0.4rem auto 1.1rem; }
+    .guide-ikona.flotte, .guide-page.guide-entre .guide-ikona{ animation:guideFlotte 2.4s ease-in-out infinite; }
     .guide-tout b{ color:var(--text); font-weight:600; }
     @media (prefers-reduced-motion: reduce){ .guide-tout-btn svg{ animation:none; } }
   </style>
@@ -446,17 +453,17 @@
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
       <ul class="guide-tout" id="guideTout" hidden>
-        <li><b>📦 Stock &amp; Articles</b> — vos marchandises, entrées, sorties, ruptures.</li>
-        <li><b>🧾 Factures &amp; PDF</b> — factures du stock, rangées en PDF à imprimer.</li>
-        <li><b>🛒 Botika</b> — le fil où vous publiez vos produits, avec stories.</li>
-        <li><b>🏨 Ny asako Hôtel</b> — menu sakafo, QR par table, commandes et cuisine.</li>
-        <li><b>💰 Portefeuille</b> — solde en ariary : dépôt Mobile Money, retraits, transferts.</li>
-        <li><b>🔴 Live &amp; 📞 Appels</b> — vendre en direct, appeler un client en audio ou vidéo.</li>
-        <li><b>👷 Mpiasa &amp; 🛵 Livreur</b> — votre équipe, ses heures, ses livraisons.</li>
-        <li><b>📍 Toerana &amp; Maps</b> — votre adresse, l'itinéraire, la position du livreur.</li>
-        <li><b>📒 Notes, 🧮 Calculatrice, 📅 Calendrier, 🕒 Horaire</b> — les outils du bureau.</li>
-        <li><b>✉️ Inviter &amp; ☎️ Contact</b> — partager le site, nous écrire.</li>
-        <li><b>💳 Abonnement, 🖼️ Fond d'écran, 🗑️ Corbeille, ⚙️ Paramètres</b> — votre compte et l'apparence.</li>
+        <li><button type="button" class="guide-tout-li" data-guide-vers="stock"><span><b>📦 Stock &amp; Articles</b> — vos marchandises, entrées, sorties, ruptures.</span><span class="guide-tout-va" aria-hidden="true">›</span></button></li>
+        <li><button type="button" class="guide-tout-li" data-guide-vers="factures"><span><b>🧾 Factures &amp; PDF</b> — factures du stock, rangées en PDF à imprimer.</span><span class="guide-tout-va" aria-hidden="true">›</span></button></li>
+        <li><button type="button" class="guide-tout-li" data-guide-vers="botika"><span><b>🛒 Botika</b> — le fil où vous publiez vos produits, avec stories.</span><span class="guide-tout-va" aria-hidden="true">›</span></button></li>
+        <li><button type="button" class="guide-tout-li" data-guide-vers="hotel"><span><b>🏨 Ny asako Hôtel</b> — menu sakafo, QR par table, commandes et cuisine.</span><span class="guide-tout-va" aria-hidden="true">›</span></button></li>
+        <li><button type="button" class="guide-tout-li" data-guide-vers="wallet"><span><b>💰 Portefeuille</b> — solde en ariary : dépôt Mobile Money, retraits, transferts.</span><span class="guide-tout-va" aria-hidden="true">›</span></button></li>
+        <li><button type="button" class="guide-tout-li" data-guide-vers="live"><span><b>🔴 Live &amp; 📞 Appels</b> — vendre en direct, appeler un client en audio ou vidéo.</span><span class="guide-tout-va" aria-hidden="true">›</span></button></li>
+        <li><button type="button" class="guide-tout-li" data-guide-vers="mpiasa"><span><b>👷 Mpiasa &amp; 🛵 Livreur</b> — votre équipe, ses heures, ses livraisons.</span><span class="guide-tout-va" aria-hidden="true">›</span></button></li>
+        <li><button type="button" class="guide-tout-li" data-guide-vers="toerana"><span><b>📍 Toerana &amp; Maps</b> — votre adresse, l'itinéraire, la position du livreur.</span><span class="guide-tout-va" aria-hidden="true">›</span></button></li>
+        <li><button type="button" class="guide-tout-li" data-guide-vers="outils"><span><b>📒 Notes, 🧮 Calculatrice, 📅 Calendrier, 🕒 Horaire</b> — les outils du bureau.</span><span class="guide-tout-va" aria-hidden="true">›</span></button></li>
+        <li><button type="button" class="guide-tout-li" data-guide-vers="inviter"><span><b>✉️ Inviter &amp; ☎️ Contact</b> — partager le site, nous écrire.</span><span class="guide-tout-va" aria-hidden="true">›</span></button></li>
+        <li><button type="button" class="guide-tout-li" data-guide-vers="compte"><span><b>💳 Abonnement, 🖼️ Fond d'écran, 🗑️ Corbeille, ⚙️ Paramètres</b> — votre compte et l'apparence.</span><span class="guide-tout-va" aria-hidden="true">›</span></button></li>
       </ul>
     </div>
 
@@ -514,7 +521,7 @@
     </div>
 
     <!-- Ny asako Hôtel : une application à part (/hotely), ouverte à tous. -->
-    <div class="guide-page" data-page="4" style="display:none;">
+    <div class="guide-page" data-page="4" data-guide-id="hotel" style="display:none;">
       <svg class="guide-sary" viewBox="0 0 260 120" aria-hidden="true">
         <g class="flotte">
           <rect x="70" y="26" width="120" height="86" rx="6" fill="var(--panel-2)" stroke="var(--cyan)" stroke-width="2"/>
@@ -543,7 +550,98 @@
       <a href="/hotely" id="guideHotelInstaller" style="display:inline-block; margin-top:0.8rem; color:var(--cyan); font-weight:700; text-decoration:none;">📲 Installer Ny asako Hôtel →</a>
     </div>
 
-    <div class="guide-page" data-page="5" style="display:none;">
+    <!-- Une page par partie de Ny asako (la flèche de la 1re page y mène). -->
+    <div class="guide-page" data-page="5" data-guide-id="stock" style="display:none;">
+      <div class="guide-ikona" aria-hidden="true">📦</div>
+      <div class="eyebrow">Stock</div>
+      <h1 style="font-size:1.4rem; margin-bottom:0.9rem;">Stock &amp; Articles</h1>
+      <p class="sub" style="font-size:0.95rem;">
+        Vos <strong style="color:var(--text);">marchandises</strong> en un seul endroit : ce qui entre, ce qui sort, ce qui reste. Une alerte prévient quand un article arrive en <strong style="color:var(--text);">rupture</strong>, et l'historique garde chaque mouvement.
+      </p>
+    </div>
+
+    <div class="guide-page" data-page="6" data-guide-id="factures" style="display:none;">
+      <div class="guide-ikona" aria-hidden="true">🧾</div>
+      <div class="eyebrow">Factures</div>
+      <h1 style="font-size:1.4rem; margin-bottom:0.9rem;">Factures &amp; PDF</h1>
+      <p class="sub" style="font-size:0.95rem;">
+        Choisissez des articles du stock : la <strong style="color:var(--text);">facture</strong> se fait toute seule, avec votre logo et vos informations. Elle se range dans <strong style="color:var(--text);">PDF</strong>, prête à imprimer ou à envoyer.
+      </p>
+    </div>
+
+    <div class="guide-page" data-page="7" data-guide-id="botika" style="display:none;">
+      <div class="guide-ikona" aria-hidden="true">🛒</div>
+      <div class="eyebrow">Botika</div>
+      <h1 style="font-size:1.4rem; margin-bottom:0.9rem;">Votre boutique en ligne</h1>
+      <p class="sub" style="font-size:0.95rem;">
+        Le <strong style="color:var(--text);">fil</strong> où vous publiez vos produits, avec photos, prix et <strong style="color:var(--text);">stories</strong>. Vos clients commandent depuis leur téléphone, même sans compte.
+      </p>
+    </div>
+
+    <div class="guide-page" data-page="8" data-guide-id="wallet" style="display:none;">
+      <div class="guide-ikona" aria-hidden="true">💰</div>
+      <div class="eyebrow">Portefeuille</div>
+      <h1 style="font-size:1.4rem; margin-bottom:0.9rem;">Votre argent en ariary</h1>
+      <p class="sub" style="font-size:0.95rem;">
+        Un <strong style="color:var(--text);">solde</strong> en ariary : déposez par MVola, Orange Money ou Airtel Money, retirez vers votre Mobile Money, et envoyez de l'argent à un autre compte avec son <strong style="color:var(--text);">ID KEY</strong>.
+      </p>
+    </div>
+
+    <div class="guide-page" data-page="9" data-guide-id="live" style="display:none;">
+      <div class="guide-ikona" aria-hidden="true">🔴</div>
+      <div class="eyebrow">Live &amp; Appels</div>
+      <h1 style="font-size:1.4rem; margin-bottom:0.9rem;">Vendre en direct</h1>
+      <p class="sub" style="font-size:0.95rem;">
+        Le <strong style="color:var(--text);">Live</strong> montre vos produits en vidéo à tous ceux qui regardent. Les <strong style="color:var(--text);">appels</strong> audio et vidéo joignent un client sans quitter l'application.
+      </p>
+    </div>
+
+    <div class="guide-page" data-page="10" data-guide-id="mpiasa" style="display:none;">
+      <div class="guide-ikona" aria-hidden="true">👷</div>
+      <div class="eyebrow">Mpiasa &amp; Livreur</div>
+      <h1 style="font-size:1.4rem; margin-bottom:0.9rem;">Votre équipe</h1>
+      <p class="sub" style="font-size:0.95rem;">
+        Chaque <strong style="color:var(--text);">employé</strong> entre par son propre lien : ses heures, ses tâches. Le <strong style="color:var(--text);">livreur</strong> suit ses courses, et vous voyez où il en est.
+      </p>
+    </div>
+
+    <div class="guide-page" data-page="11" data-guide-id="toerana" style="display:none;">
+      <div class="guide-ikona" aria-hidden="true">📍</div>
+      <div class="eyebrow">Toerana &amp; Maps</div>
+      <h1 style="font-size:1.4rem; margin-bottom:0.9rem;">Votre adresse et la carte</h1>
+      <p class="sub" style="font-size:0.95rem;">
+        Votre <strong style="color:var(--text);">adresse</strong> sur la carte, l'itinéraire pour vos clients, et la <strong style="color:var(--text);">position</strong> du livreur pendant la livraison.
+      </p>
+    </div>
+
+    <div class="guide-page" data-page="12" data-guide-id="outils" style="display:none;">
+      <div class="guide-ikona" aria-hidden="true">📒</div>
+      <div class="eyebrow">Bureau</div>
+      <h1 style="font-size:1.4rem; margin-bottom:0.9rem;">Notes, calcul et agenda</h1>
+      <p class="sub" style="font-size:0.95rem;">
+        Les outils de tous les jours : <strong style="color:var(--text);">Notes</strong>, <strong style="color:var(--text);">Calculatrice</strong>, <strong style="color:var(--text);">Calendrier</strong> et <strong style="color:var(--text);">Horaire</strong> de la semaine. Ils restent dans ce navigateur.
+      </p>
+    </div>
+
+    <div class="guide-page" data-page="13" data-guide-id="inviter" style="display:none;">
+      <div class="guide-ikona" aria-hidden="true">✉️</div>
+      <div class="eyebrow">Partager</div>
+      <h1 style="font-size:1.4rem; margin-bottom:0.9rem;">Inviter &amp; Contact</h1>
+      <p class="sub" style="font-size:0.95rem;">
+        <strong style="color:var(--text);">Invitez</strong> vos amis et clients d'un lien, sur WhatsApp, Facebook ou ailleurs. Une question ? <strong style="color:var(--text);">Contact</strong> nous joint directement.
+      </p>
+    </div>
+
+    <div class="guide-page" data-page="14" data-guide-id="compte" style="display:none;">
+      <div class="guide-ikona" aria-hidden="true">⚙️</div>
+      <div class="eyebrow">Votre compte</div>
+      <h1 style="font-size:1.4rem; margin-bottom:0.9rem;">Abonnement, fond d'écran, corbeille</h1>
+      <p class="sub" style="font-size:0.95rem;">
+        L'<strong style="color:var(--text);">Abonnement</strong> et sa date de fin, un <strong style="color:var(--text);">fond d'écran</strong> à votre goût, la <strong style="color:var(--text);">Corbeille</strong> pour reprendre une publication effacée, et vos <strong style="color:var(--text);">Paramètres</strong>.
+      </p>
+    </div>
+
+    <div class="guide-page" data-page="15" style="display:none;">
       <svg class="guide-sary" viewBox="0 0 260 120" aria-hidden="true">
         <line x1="40" y1="55" x2="220" y2="55" stroke="var(--line)" stroke-width="3" stroke-dasharray="6 5"/>
         <g class="tour t1"><circle cx="40" cy="55" r="24" fill="var(--panel-2)" stroke="var(--cyan)" stroke-width="2"/><circle cx="40" cy="48" r="7" fill="var(--cyan)"/><path d="M27 68 a13 11 0 0 1 26 0 Z" fill="var(--cyan)"/></g>
@@ -3442,7 +3540,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=4284c350"></script>
+<script src="gestion-stockage-js/common.js?v=18e50595"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=622d64e8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>

@@ -3647,6 +3647,14 @@
     liste.hidden = !ouvrir;
     guideToutBtn.setAttribute('aria-expanded', ouvrir ? 'true' : 'false');
   });
+  // Chaque ligne de la liste mène à la page de sa partie.
+  document.querySelectorAll('#guideTout [data-guide-vers]').forEach(function(b){
+    b.addEventListener('click', function(){
+      const pages = Array.prototype.slice.call(guidePages());
+      const i = pages.findIndex(function(p){ return p.dataset.guideId === b.dataset.guideVers; });
+      if(i >= 0) showGuidePage(i + 1);
+    });
+  });
   // « Installer Ny asako Hôtel » : sa page /hotely, dans un onglet (ou son
   // adresse à ouvrir dans Chrome, depuis Ny asako déjà installée).
   const guideHotelInstaller = document.getElementById('guideHotelInstaller');
