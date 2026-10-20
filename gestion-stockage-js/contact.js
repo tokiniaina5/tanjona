@@ -276,6 +276,26 @@
 
       document.getElementById('contactButtonsEmptyHint').style.display =
         (voice.length || video.length) ? 'none' : 'block';
+
+      // Pejy « 📞 Call » : ny canal rehetra eo avy hatrany, tsy misy lisitra
+      // hisafidianana. Ny antso ao anaty appli tsy ampidirina : rohy ihany.
+      const callRow = document.getElementById('callCanaux');
+      if(callRow){
+        callRow.innerHTML = '';
+        const liens = voice.filter(function(o){ return o !== inAppVoice; });
+        liens.forEach(function(opt){
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'btn';
+          btn.style.width = 'auto';
+          btn.style.borderColor = opt.color;
+          btn.style.color = opt.color;
+          btn.textContent = opt.label;
+          btn.addEventListener('click', opt.run);
+          callRow.appendChild(btn);
+        });
+        document.getElementById('callCanauxEmpty').style.display = liens.length ? 'none' : 'block';
+      }
     });
   }
 
