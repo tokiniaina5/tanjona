@@ -142,8 +142,8 @@
   .recu-lakozia.miandry{ background:rgba(143,163,170,0.15); color:var(--muted); }
   .recu-lakozia.tonga{ background:rgba(79,216,224,0.15); color:var(--accent); }
   .recu-lakozia.tonga .feo{ display:inline-block; animation:mihetsika 1s ease 3; transform-origin:50% 0; }
-  /* Vita ny sakafo : lehibe, mba ho hita avy lavitra eo amin'ny latabatra. */
-  .recu-lakozia.vita{ background:rgba(47,191,113,0.15); color:#2fbf71; display:flex; justify-content:center; padding:0.7rem 1rem; border-radius:14px; font-size:1.8rem; line-height:1.2; text-align:center; }
+  /* Vita ny sakafo : en grand comme le merci, et le client le ferme (✕). */
+  .recu .recu-lakozia.vita{ position:relative; display:block; margin:0.6rem 0 0; background:rgba(47,191,113,0.15); color:#2fbf71; padding:0.8rem 2.6rem 0.8rem 1rem; border-radius:14px; font-size:1.35rem; line-height:1.3; text-align:center; }
   @keyframes mihetsika{ 20%{ transform:rotate(18deg); } 40%{ transform:rotate(-14deg); } 60%{ transform:rotate(8deg); } 80%{ transform:rotate(-4deg); } }
   .recu-num{ display:block; margin-top:0.4rem; font-size:0.75rem; }
   .recu-fafa{ margin:0.5rem 0 0; padding:0.3rem 0.8rem; font-size:0.82rem; border-color:#e05a5a; color:#e05a5a; }
@@ -827,14 +827,30 @@
       tot.appendChild(el('span', ariary(r.total)));
       c.appendChild(tot);
       // La marque de la cuisine : envoyée, puis 🔔 sonnée en lakozia, puis prête.
-      const lk = r.vita ? el('p', '🍳 Vita ny sakafo', 'recu-lakozia vita')
+      let lk = r.vita ? el('p', '🍳 Vita ny sakafo — enjoy your meal 😋', 'recu-lakozia vita')
         : r.lakozia ? el('p', null, 'recu-lakozia tonga')
         : el('p', '⏳ Mbola alefa any an-dakozia...', 'recu-lakozia miandry');
       if (!r.vita && r.lakozia) {
         lk.appendChild(el('span', '🔔', 'feo'));
         lk.appendChild(document.createTextNode(' Naneno tany an-dakozia'));
       }
-      c.appendChild(lk);
+      if (r.vita) {
+        // Le ✕ ferme l'annonce ; le reçu, lui, reste.
+        if (r.vita_hidy) lk = null;
+        else {
+          const hidy = el('button', '✕', 'recu-ok-hidy');
+          hidy.type = 'button';
+          hidy.title = 'Hidio';
+          hidy.setAttribute('aria-label', 'Hidio');
+          hidy.addEventListener('click', function () {
+            recusEcrire(recusLire().map(function (x) {
+              return x.id === r.id ? Object.assign({}, x, { vita_hidy: true }) : x;
+            }));
+          });
+          lk.appendChild(hidy);
+        }
+      }
+      if (lk) c.appendChild(lk);
       if (r.fandoavana) {
         c.appendChild(sansTraduction(el('p', (r.fandoavana === 'vola' ? NOM_FOMBA.vola : (r.fandoavana === 'visa' ? '💳 ' : '📱 ') + (NOM_FOMBA[r.fandoavana] || '')) +
           (r.ref ? ' · Réf : ' + r.ref : ''), 'recu-fomba')));
