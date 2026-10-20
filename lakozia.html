@@ -128,18 +128,24 @@
     sonner();
   });
   function sonner() {
-    if (navigator.vibrate) navigator.vibrate([300, 150, 300]);
+    if (navigator.vibrate) navigator.vibrate([600, 200, 600, 200, 600, 400, 600, 200, 600, 200, 600]);
     if (!audio) return;
     if (audio.state === 'suspended') audio.resume();
-    [0, 0.25, 0.5].forEach(function (t, i) {
-      const o = audio.createOscillator(), g = audio.createGain();
-      o.frequency.value = i === 2 ? 1320 : 880;
-      g.gain.setValueAtTime(0.0001, audio.currentTime + t);
-      g.gain.exponentialRampToValueAtTime(0.4, audio.currentTime + t + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + t + 0.2);
-      o.connect(g); g.connect(audio.destination);
-      o.start(audio.currentTime + t); o.stop(audio.currentTime + t + 0.22);
-    });
+    // Une cuisine est bruyante : quatre fois « ding-ding-dong », environ
+    // cinq secondes, pour qu'on l'entende par-dessus les casseroles.
+    const debut = audio.currentTime + 0.05;
+    for (let tour = 0; tour < 4; tour++) {
+      [0, 0.4, 0.8].forEach(function (d, i) {
+        const t = debut + tour * 1.4 + d;
+        const o = audio.createOscillator(), g = audio.createGain();
+        o.frequency.value = i === 2 ? 1320 : 880;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.5, t + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + (i === 2 ? 0.55 : 0.35));
+        o.connect(g); g.connect(audio.destination);
+        o.start(t); o.stop(t + (i === 2 ? 0.6 : 0.4));
+      });
+    }
   }
 
   // ---------- L'écran allumé ----------
