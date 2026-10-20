@@ -130,6 +130,13 @@
   .recu p{ margin:0.35rem 0 0; font-size:0.88rem; }
   .recu-ok{ color:#2fbf71; font-weight:700; }
   .recu-attente{ color:#e0a020; font-weight:600; }
+  /* Où en est la commande en cuisine : la marque que la lakozia a sonné. */
+  .recu-lakozia{ display:inline-flex; align-items:center; gap:0.35rem; margin:0.45rem 0 0; padding:0.2rem 0.65rem; border-radius:999px; font-size:0.85rem; font-weight:700; }
+  .recu-lakozia.miandry{ background:rgba(143,163,170,0.15); color:var(--muted); }
+  .recu-lakozia.tonga{ background:rgba(79,216,224,0.15); color:var(--accent); }
+  .recu-lakozia.tonga .feo{ display:inline-block; animation:mihetsika 1s ease 3; transform-origin:50% 0; }
+  .recu-lakozia.vita{ background:rgba(47,191,113,0.15); color:#2fbf71; }
+  @keyframes mihetsika{ 20%{ transform:rotate(18deg); } 40%{ transform:rotate(-14deg); } 60%{ transform:rotate(8deg); } 80%{ transform:rotate(-4deg); } }
   .recu-num{ display:block; margin-top:0.4rem; font-size:0.75rem; }
   .recu-fafa{ margin:0.5rem 0 0; padding:0.3rem 0.8rem; font-size:0.82rem; border-color:#e05a5a; color:#e05a5a; }
   .voaray{ color:var(--accent); font-weight:600; margin:0.5rem 0 0; }
@@ -800,6 +807,15 @@
       tot.appendChild(el('span', 'Total'));
       tot.appendChild(el('span', ariary(r.total)));
       c.appendChild(tot);
+      // La marque de la cuisine : envoyée, puis 🔔 sonnée en lakozia, puis prête.
+      const lk = r.vita ? el('p', '🍳 Vita ny sakafo', 'recu-lakozia vita')
+        : r.lakozia ? el('p', null, 'recu-lakozia tonga')
+        : el('p', '⏳ Mbola alefa any an-dakozia...', 'recu-lakozia miandry');
+      if (!r.vita && r.lakozia) {
+        lk.appendChild(el('span', '🔔', 'feo'));
+        lk.appendChild(document.createTextNode(' Naneno tany an-dakozia'));
+      }
+      c.appendChild(lk);
       if (r.fandoavana) {
         c.appendChild(sansTraduction(el('p', (r.fandoavana === 'vola' ? NOM_FOMBA.vola : (r.fandoavana === 'visa' ? '💳 ' : '📱 ') + (NOM_FOMBA[r.fandoavana] || '')) +
           (r.ref ? ' · Réf : ' + r.ref : ''), 'recu-fomba')));
@@ -829,7 +845,7 @@
   // L'hôtel coche « voaloa » : on le demande pour les reçus qui attendent.
   function recusSata() {
     const l = recusLire();
-    const ids = l.filter(function (r) { return !r.voaloa; }).map(function (r) { return r.id; });
+    const ids = l.filter(function (r) { return !r.voaloa || !r.vita; }).map(function (r) { return r.id; });
     if (!ids.length) return;
     fetch(URL_SB + '/rest/v1/rpc/hotelerie_commande_sata', {
       method: 'POST',
@@ -839,7 +855,10 @@
       let change = false;
       (rangs || []).forEach(function (s) {
         const r = l.find(function (x) { return x.id === s.id; });
-        if (r && s.voaloa && !r.voaloa) { r.voaloa = true; change = true; }
+        if (!r) return;
+        if (s.voaloa && !r.voaloa) { r.voaloa = true; change = true; }
+        if (!!s.lakozia !== !!r.lakozia) { r.lakozia = !!s.lakozia; change = true; }
+        if (!!s.vita !== !!r.vita) { r.vita = !!s.vita; change = true; }
       });
       if (change) recusEcrire(l);
     }).catch(function () { });
@@ -991,6 +1010,12 @@
     charger();
     // Le client garde la page ouverte : elle suit les changements d'elle-même.
     setInterval(function () { if (!document.hidden) charger(); }, 30000);
+    // Un reçu qui attend la cuisine : on regarde plus souvent, pour que
+    // « 🔔 Naneno tany an-dakozia » arrive vite.
+    setInterval(function () {
+      if (document.hidden) return;
+      if (recusLire().some(function (r) { return !r.vita; })) recusSata();
+    }, 8000);
     document.addEventListener('visibilitychange', function () { if (!document.hidden) charger(); });
   } else {
     afficher(depuisLeLien());

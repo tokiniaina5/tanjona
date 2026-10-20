@@ -195,6 +195,7 @@
         if (vaovao.length) sonner();
       }
       connues = ids;
+      direRecues();
       etat.textContent = '🟢 ' + new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       dessiner();
     }).catch(function (e) {
@@ -207,6 +208,22 @@
       }
       etat.textContent = '🔴 Tsy misy connexion — miandry...';
     });
+  }
+
+  // La cuisine dit qu'elle a reçu (et sonné) : le reçu du client, à la
+  // latabatra, affiche alors « 🔔 Tonga tany an-dakozia ». Une seule fois par
+  // commande ; ce qui n'est pas passé sera redit au tour suivant.
+  const dites = {};
+  function direRecues() {
+    const l = commandes.filter(function (c) { return !c.vita && !dites[c.id]; }).map(function (c) { return c.id; });
+    if (!l.length) return;
+    fetch(URL_SB + '/rest/v1/rpc/hotelerie_lakozia_re', {
+      method: 'POST',
+      headers: { apikey: CLE_SB, Authorization: 'Bearer ' + CLE_SB, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hotel: id, code: code, ids: l })
+    }).then(function (r) {
+      if (r.ok) l.forEach(function (x) { dites[x] = true; });
+    }).catch(function () { });
   }
 
   function dessiner() {

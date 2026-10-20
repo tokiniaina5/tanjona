@@ -64,3 +64,39 @@ end;
 $$;
 revoke all on function public.hotelerie_lakozia_vita(uuid, text, uuid, boolean) from public;
 grant execute on function public.hotelerie_lakozia_vita(uuid, text, uuid, boolean) to anon, authenticated;
+
+-- ---------- « Tonga tany an-dakozia » ----------
+-- La page de la cuisine, ouverte, dit avoir reçu les commandes (et sonné) :
+-- lakozia_at. Le reçu du client, à la latabatra, l'affiche (🔔).
+alter table public.hotelerie_commande add column if not exists lakozia_at timestamptz;
+
+create or replace function public.hotelerie_lakozia_re(hotel uuid, code text, ids uuid[])
+returns integer
+language plpgsql volatile security definer set search_path = public
+as $$
+declare n integer;
+begin
+  if not exists (select 1 from public.hotelerie_lakozia l where l.hotel_id = hotel and l.code = hotelerie_lakozia_re.code) then
+    raise exception 'code diso' using errcode = '28000';
+  end if;
+  update public.hotelerie_commande c set lakozia_at = now()
+   where c.id = any (ids[1:200]) and c.hotel_id = hotel and c.lakozia_at is null;
+  get diagnostics n = row_count;
+  return n;
+end;
+$$;
+revoke all on function public.hotelerie_lakozia_re(uuid, text, uuid[]) from public;
+grant execute on function public.hotelerie_lakozia_re(uuid, text, uuid[]) to anon, authenticated;
+
+-- L'état du reçu porte désormais « lakozia » : le type de retour change, la
+-- fonction de supabase-hotelerie-commande.sql est donc remplacée en entier.
+drop function if exists public.hotelerie_commande_sata(uuid[]);
+create function public.hotelerie_commande_sata(ids uuid[])
+returns table (id uuid, vita boolean, voaloa boolean, lakozia boolean)
+language sql stable security definer set search_path = public
+as $$
+  select c.id, c.vita, c.voaloa, c.lakozia_at is not null from public.hotelerie_commande c
+  where c.id = any (ids[1:30]);
+$$;
+revoke all on function public.hotelerie_commande_sata(uuid[]) from public;
+grant execute on function public.hotelerie_commande_sata(uuid[]) to anon, authenticated;
