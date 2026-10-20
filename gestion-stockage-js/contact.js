@@ -304,7 +304,10 @@
               }));
           };
         }
-        if(window.__sb){
+        // Ny admin dia manana ny lisitry ny nanao inscription eo ambony
+        // (📞/📹 isaky ny olona) : tsy averina eto ireo bokotra roa ireo.
+        const meRender = (typeof myIdentity === 'function') ? myIdentity() : { isAdmin: false };
+        if(window.__sb && !meRender.isAdmin){
           liens.push({ label: '📞 Appel mivantana', color: '#25D366', run: antso('audio') });
           liens.push({ label: '📹 Antso video', color: '#1877F2', run: antso('video') });
         }

@@ -7108,7 +7108,7 @@
       if((nav.dataset.section === 'mpiasa' || nav.dataset.section === 'livreur')
          && typeof renderEquipe === 'function') renderEquipe();
       if(nav.dataset.section === 'live') renderLiveList();
-      if(nav.dataset.section === 'appels') renderOnlineClientsForCall();
+      if(nav.dataset.section === 'appels'){ renderOnlineClientsForCall(); renderContactButtons(); }
       if(nav.dataset.section === 'corbeille' && typeof renderCorbeille === 'function') renderCorbeille();
       if(nav.dataset.section === 'toerana' && typeof ouvrirToerana === 'function') ouvrirToerana();
       // ferme le menu mobile après avoir choisi une section

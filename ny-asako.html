@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="0827472c">
+<meta name="ny-asako-version" content="991d4f66">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -2566,22 +2566,23 @@
         <div class="section-head">
           <div>
             <h2>📞 Call</h2>
-            <p>Antso mivantana sy ny rohy rehetra nampidirina. Tsindrio ny iray.</p>
+            <p>Ireo nanao inscription sy ny réseaux sociaux. Tsindrio ny iray hiantsoana.</p>
           </div>
         </div>
 
-            <!-- Les liens de « 🔗 Ajouter les liens », tous à plat : un appui
-                 appelle (contact.js, renderContactButtons). -->
-            <div class="panel" style="margin-top:0;">
-              <div class="actions-row" id="callCanaux" style="flex-direction:column; align-items:stretch; gap:0.5rem;"></div>
-              <p class="empty-hint" id="callCanauxEmpty" style="display:none;">Mbola tsy misy rohy ahafahana miantso mivantana.</p>
-            </div>
-
-            <!-- Admin ihany : ireo nanao inscription, hantsoina (live.js). -->
-            <div class="panel" id="callMpisoratraPanel" style="display:none;">
+            <!-- 1) Admin ihany : ireo nanao inscription, hantsoina (live.js). -->
+            <div class="panel" id="callMpisoratraPanel" style="display:none; margin-top:0;">
               <h3>👥 Ireo nanao inscription</h3>
               <div id="callMpisoratra"></div>
               <p class="empty-hint" id="callMpisoratraEmpty" style="display:none;">Mbola tsy misy nanao inscription.</p>
+            </div>
+
+            <!-- 2) Les liens de « 🔗 Ajouter les liens », tous à plat : un appui
+                 appelle (contact.js, renderContactButtons). -->
+            <div class="panel">
+              <h3>🌐 Réseaux sociaux</h3>
+              <div class="actions-row" id="callCanaux" style="flex-direction:column; align-items:stretch; gap:0.5rem;"></div>
+              <p class="empty-hint" id="callCanauxEmpty" style="display:none;">Mbola tsy misy rohy nampidirina.</p>
             </div>
       </section>
 
@@ -3557,7 +3558,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=5b63c7d9"></script>
+<script src="gestion-stockage-js/common.js?v=7f02105e"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=622d64e8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
@@ -3565,7 +3566,7 @@
 <script src="gestion-stockage-js/factures.js?v=69af0cd7"></script>
 <script src="gestion-stockage-js/factures-modely.js?v=8fbf4a42"></script>
 <script src="gestion-stockage-js/inviter.js?v=fffaed9c"></script>
-<script src="gestion-stockage-js/contact.js?v=6b414068"></script>
+<script src="gestion-stockage-js/contact.js?v=dc2096f2"></script>
 <!-- Montre au client qui vient de s'inscrire, à sa première entrée, tous les
      canaux du propriétaire (contact.js les tient). -->
 <script src="gestion-stockage-js/serasera-voalohany.js?v=0b2800f2"></script>
