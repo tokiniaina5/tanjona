@@ -19,7 +19,33 @@
   'use strict';
 
   var PREFIXE = 'fz:';
-  var MIN_CARACTERES = 50;
+  // Assez long pour être une explication : un paragraphe, ou le sous-titre
+  // d'une page (« Kajy haingana… ») ; une note dans un champ, plus.
+  var MIN_CARACTERES = 25;
+  var MIN_SPAN = 40;
+  // Explications dont le gris vient de la feuille de style et non de
+  // l'attribut style : sous-titres des pages, écrans de connexion, notes des
+  // pages menu sakafo / lakozia / handoa. Gardées seulement si elles sont
+  // vraiment grises (la note d'une commande en lakozia, colorée, reste).
+  var AUSSI = '.section-head p, .login-card > p.sub, .community-sub, .entana-fiche-rappel, ' +
+    '.handoa-note, .handoa-intro, .installer p, p.note';
+  // Un message d'état (liste vide, chargement) n'est pas une explication.
+  var ETAT = /^(Tsy misy|Mbola tsy|Aucun|Aucune|Mamaky|Chargement|Miandry)/i;
+  // Le gris de la page (--muted), tel que le navigateur le calcule.
+  var grisCalcule = null;
+  function gris() {
+    if (grisCalcule === null) {
+      var t = document.createElement('span');
+      t.style.color = 'var(--muted)';
+      document.body.appendChild(t);
+      grisCalcule = getComputedStyle(t).color;
+      t.remove();
+    }
+    return grisCalcule;
+  }
+  // Une explication en <div> ou <span> : seulement du texte, avec au plus du
+  // gras, des liens ou des émojis dedans.
+  var EN_LIGNE = /^(STRONG|B|EM|I|A|BR|SPAN|CODE|SMALL)$/;
   // Ce qui a déjà sa propre présentation reste tel quel.
   var EXCLUS = '#welcomeOverlay, #autoNoticeModal, #fzVisite';
 
@@ -44,13 +70,21 @@
     if (p.id || p.closest(EXCLUS) || p.classList.contains('fz-ao-anaty')) return false;
     var attrs = p.attributes;
     for (var i = 0; i < attrs.length; i++) if (attrs[i].name.indexOf('data-') === 0) return false;
-    var gris = p.style.color === 'var(--muted)' || p.classList.contains('panneau-note');
-    if (!gris) return false;
+    // Ce que les gens publient (fil, aperçu de lien, reçu, tableau, liste)
+    // est du contenu, pas une explication du site.
+    if (p.closest('button, a, table, li, .fb-post, .recu, .bon, .plat, .story-zone')) return false;
+    var enGris = p.style.color === 'var(--muted)' || p.classList.contains('panneau-note') ||
+      (p.matches(AUSSI) && getComputedStyle(p).color === gris());
+    if (!enGris) return false;
     if (p.querySelector('[id], input, select, textarea, button')) return false;
+    if (p.tagName !== 'P') {
+      for (var j = 0; j < p.children.length; j++) if (!EN_LIGNE.test(p.children[j].tagName)) return false;
+    }
     // Déjà caché à l'arrivée : c'est le code qui choisit quand le montrer.
     if (p.style.display === 'none') return false;
     var texte = (p.textContent || '').replace(/\s+/g, ' ').trim();
-    return texte.length >= MIN_CARACTERES ? texte : false;
+    if (ETAT.test(texte)) return false;
+    return texte.length >= (p.tagName === 'SPAN' ? MIN_SPAN : MIN_CARACTERES) ? texte : false;
   }
 
   // L'explication quitte la page : elle ne vit plus que dans la visite.
@@ -64,10 +98,11 @@
     connues.push({ p: p, cache: cache, cle: cle(texte) });
   }
 
+  var CANDIDATS = 'p, div[style*="--muted"], span[style*="--muted"]';
   function parcourir(racine) {
     if (!racine || racine.nodeType !== 1) return;
-    if (racine.tagName === 'P') { retenir(racine); return; }
-    var liste = racine.querySelectorAll('p');
+    if (racine.matches(CANDIDATS)) retenir(racine);
+    var liste = racine.querySelectorAll(CANDIDATS);
     for (var i = 0; i < liste.length; i++) retenir(liste[i]);
   }
 
@@ -82,11 +117,18 @@
   }
 
   function cible(e) {
-    return e.cache.closest('.panel, .login-card, .plan-card, section, [role="dialog"]') || e.cache.parentElement;
+    return e.cache.closest('.panel, .login-card, .plan-card, section, [role="dialog"], .carte, .installer, .etape') || e.cache.parentElement;
   }
   function titre(e, zone) {
     var h = zone && zone.querySelector('h1, h2, h3, h4');
-    var t = h ? h.textContent.replace(/\s+/g, ' ').trim() : '';
+    // Morceau par morceau, séparés d'une espace : « ① Antsoy… » ne doit pas
+    // devenir « 1Antsoy… ».
+    var t = '';
+    if (h) {
+      var w = document.createTreeWalker(h, NodeFilter.SHOW_TEXT);
+      while (w.nextNode()) t += ' ' + w.currentNode.nodeValue;
+      t = t.replace(/\s+/g, ' ').trim();
+    }
     return t && t.length <= 60 ? t : '💡 Fanazavana';
   }
 
