@@ -20,7 +20,7 @@
 <script src="/mazava.js?v=2bcdcfad" defer></script>
 <!-- 🔄 La page se met à jour seule quand une version neuve est en ligne (pejy-version.js) ;
      l'empreinte est écrite par outils/versionner.mjs. -->
-<meta name="pejy-version" content="0367b69b">
+<meta name="pejy-version" content="5e914799">
 <script src="/pejy-version.js?v=97acc3b0" defer></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -46,6 +46,9 @@
   .bon.vita{ border-color:var(--line); opacity:0.6; }
   .bon-tete{ display:flex; justify-content:space-between; align-items:baseline; gap:0.5rem; }
   .bon-table{ font-size:1.8rem; font-weight:800; line-height:1; }
+  .bon-gauche{ display:flex; align-items:center; gap:0.5rem; }
+  .bon .feo-btn{ padding:0.25rem 0.55rem; font-size:1.05rem; line-height:1; border-radius:999px; }
+  .bon .feo-btn.maneno{ background:var(--accent); color:var(--bg); }
   .bon-heure{ text-align:right; color:var(--muted); font-size:0.85rem; }
   .bon-heure strong{ display:block; color:var(--vaovao); font-size:1rem; }
   .bon.vita .bon-heure strong{ color:var(--muted); }
@@ -123,6 +126,7 @@
   // ---------- Le son ----------
   // Un navigateur ne joue rien avant un geste : « 🔔 Alefa ny feo » l'ouvre.
   let audio = null;
+  function audioGeneral() { return audio; }
   const bFeo = document.getElementById('feo');
   bFeo.addEventListener('click', function () {
     if (audio) { audio.close(); audio = null; bFeo.classList.remove('actif'); bFeo.textContent = '🔔 Alefa ny feo'; return; }
@@ -131,8 +135,16 @@
     bFeo.textContent = '🔔 Misy feo';
     sonner();
   });
-  function sonner() {
+  // Le 🔔 d'une carte fait sonner même quand la sonnerie générale est
+  // coupée : c'est un geste, le navigateur l'accepte.
+  let audioCarte = null;
+  function sonner(force) {
     if (navigator.vibrate) navigator.vibrate([600, 200, 600, 200, 600, 400, 600, 200, 600, 200, 600]);
+    let audio = audioGeneral();
+    if (!audio && force) {
+      try { audioCarte = audioCarte || new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
+      audio = audioCarte;
+    }
     if (!audio) return;
     if (audio.state === 'suspended') audio.resume();
     // Une cuisine est bruyante : quatre fois « ding-ding-dong », environ
@@ -260,7 +272,20 @@
   function bon(c) {
     const b = el('div', null, 'bon' + (c.vita ? ' vita' : '') + (neuves[c.id] ? ' vaovao' : ''));
     const tete = el('div', null, 'bon-tete');
-    tete.appendChild(el('span', 'T' + c.latabatra, 'bon-table'));
+    const gauche = el('span', null, 'bon-gauche');
+    gauche.appendChild(el('span', 'T' + c.latabatra, 'bon-table'));
+    // 🔔 : refaire entendre la sonnerie de cette commande.
+    const feo = el('button', '🔔', 'feo-btn');
+    feo.type = 'button';
+    feo.title = 'Avereno ny feo (T' + c.latabatra + ')';
+    feo.setAttribute('aria-label', feo.title);
+    feo.addEventListener('click', function () {
+      sonner(true);
+      feo.classList.add('maneno');
+      setTimeout(function () { feo.classList.remove('maneno'); }, 5500);
+    });
+    gauche.appendChild(feo);
+    tete.appendChild(gauche);
     const h = el('span', null, 'bon-heure');
     h.appendChild(el('strong', depuis(c.created_at)));
     h.appendChild(document.createTextNode('🕒 ' + heure(c.created_at)));
