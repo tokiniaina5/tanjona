@@ -250,9 +250,6 @@
       btn.addEventListener('click', function(){
         const o = olona[Number(btn.getAttribute('data-i'))];
         if(!o) return;
-        // Misokatra avy hatrany ny boaty resaka, tsy misy safidy. Ireo tsy
-        // nanome email ihany (laharana fotsiny) no mbola mahazo WhatsApp/SMS.
-        if(o.email){ sokafyResaka(o.email, o.name); return; }
         const safidy = [];
         if(o.online && o.email){
           safidy.push({ label: '💬 Hafatra mivantana (ao anaty appli)', color: 'var(--cyan)', run: function(){ sokafyResaka(o.email, o.name); } });
