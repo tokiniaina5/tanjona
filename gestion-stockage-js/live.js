@@ -500,17 +500,91 @@
   // Mandeha amin'ny lalana mitovy amin'ny antso (broadcast) : tsy voatahiry
   // ao amin'ny serveur, ka ireo miditra ihany no mahazo azy. Ampy hiresahana
   // amin'ny mpitsidika tsy nanome laharana na email.
-  const resaka = {};   // email → [{ avy: 'izaho'|'izy', soratra, at }]
+  // Ny sary sy ny video dia lehibe loatra ho an'ny broadcast : apetraka ao
+  // amin'ny bucket « resaka-media » (supabase-resaka-media.sql), ary ny
+  // rohiny no alefa.
+  const resaka = {};   // email → [{ avy: 'izaho'|'izy', soratra, media, at }]
   let resakaMisokatra = null;
+  const RESAKA_BUCKET = 'resaka-media';
+  const RESAKA_MEDIA_MAX = 25 * 1024 * 1024;
+  // Ny emoji rehetra : singa web « emoji-picker-element », alaina rehefa
+  // vao ilaina fotsiny.
+  const EMOJI_PICKER_URL = 'https://cdn.jsdelivr.net/npm/emoji-picker-element@1.21.3/index.js';
+  let emojiPickerMaka = null;
 
   function onHafatraTonga(payload){
     const avy = payload.from;
-    if(!avy || !payload.text) return;
-    (resaka[avy] = resaka[avy] || []).push({ avy: 'izy', soratra: String(payload.text), at: Date.now() });
+    if(!avy || (!payload.text && !payload.media)) return;
+    (resaka[avy] = resaka[avy] || []).push({ avy: 'izy', soratra: String(payload.text || ''), media: payload.media || null, at: Date.now() });
+    const fohy = payload.text ? String(payload.text).slice(0, 120)
+      : (payload.media && payload.media.type === 'video' ? '🎬 Video' : '📷 Sary');
     if(typeof playLiveChime === 'function') playLiveChime();
     if(currentUser && typeof pushNotification === 'function') pushNotification('hafatra', '💬 Hafatra avy amin\'i ' + (payload.fromName || avy) + '.');
-    showSystemNotification('💬 ' + (payload.fromName || avy), String(payload.text).slice(0, 120), 'hafatra-' + avy);
+    showSystemNotification('💬 ' + (payload.fromName || avy), fohy, 'hafatra-' + avy);
     sokafyResaka(avy, payload.fromName || avy);
+  }
+
+  function alefaHafatra(soratra, media){
+    if(!resakaMisokatra) return;
+    const me = myIdentity();
+    sendCallSignal({ kind: 'hafatra', from: me.email, fromName: me.name, to: resakaMisokatra.email, text: soratra || '', media: media || null });
+    (resaka[resakaMisokatra.email] = resaka[resakaMisokatra.email] || []).push({ avy: 'izaho', soratra: soratra || '', media: media || null, at: Date.now() });
+    asehoyResaka();
+  }
+
+  function alefaRakitra(fichier){
+    if(!fichier || !resakaMisokatra) return;
+    const video = /^video\//.test(fichier.type);
+    if(!video && !/^image\//.test(fichier.type)){ alert('Sary na video ihany no azo alefa.'); return; }
+    if(fichier.size > RESAKA_MEDIA_MAX){ alert('Lehibe loatra ny rakitra (25 Mo farafahabetsany).'); return; }
+    if(!window.__sb || !window.__sb.storage){ alert('Tsy misy fifandraisana amin\'ny serveur.'); return; }
+    const me = myIdentity();
+    const ext = (fichier.name.split('.').pop() || (video ? 'mp4' : 'jpg')).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 5);
+    const nom = String(me.email).replace(/[^a-z0-9]/gi, '_').slice(0, 40) + '/' + Date.now() + '-' +
+      Math.random().toString(36).slice(2, 8) + '.' + ext;
+    const boaty = document.getElementById('resakaMivantana');
+    const toerana = boaty && boaty.querySelector('[data-mandefa]');
+    if(toerana){ toerana.style.display = 'block'; toerana.textContent = (video ? '🎬' : '📷') + ' Mandefa...'; }
+    window.__sb.storage.from(RESAKA_BUCKET).upload(nom, fichier, { contentType: fichier.type, upsert: false })
+      .then(function(res){
+        if(res && res.error) throw res.error;
+        const url = window.__sb.storage.from(RESAKA_BUCKET).getPublicUrl(nom).data.publicUrl;
+        if(toerana) toerana.style.display = 'none';
+        alefaHafatra('', { url: url, type: video ? 'video' : 'sary' });
+      })
+      .catch(function(err){
+        if(toerana) toerana.style.display = 'none';
+        alert('Tsy lasa ny rakitra : ' + ((err && err.message) || 'erreur'));
+      });
+  }
+
+  function sokafyEmoji(boaty, input){
+    const toerana = boaty.querySelector('[data-emoji]');
+    if(toerana.style.display === 'block'){ toerana.style.display = 'none'; return; }
+    toerana.style.display = 'block';
+    if(toerana.querySelector('emoji-picker')) return;
+    toerana.textContent = 'Maka ny emoji...';
+    emojiPickerMaka = emojiPickerMaka || import(EMOJI_PICKER_URL);
+    emojiPickerMaka.then(function(){
+      toerana.textContent = '';
+      const picker = document.createElement('emoji-picker');
+      picker.classList.add(document.documentElement.classList.contains('light') ? 'light' : 'dark');
+      picker.style.cssText = 'width:100%; height:220px;';
+      picker.addEventListener('emoji-click', function(e){
+        const emoji = e.detail && e.detail.unicode;
+        if(!emoji) return;
+        const debut = input.selectionStart == null ? input.value.length : input.selectionStart;
+        const fin = input.selectionEnd == null ? input.value.length : input.selectionEnd;
+        input.value = input.value.slice(0, debut) + emoji + input.value.slice(fin);
+        const pos = debut + emoji.length;
+        input.focus();
+        try{ input.setSelectionRange(pos, pos); }catch(err){}
+      });
+      toerana.appendChild(picker);
+    }, function(){
+      emojiPickerMaka = null;
+      toerana.textContent = 'Tsy tonga ny emoji (tsy misy réseau ?).';
+    });
   }
 
   function sokafyResaka(email, anarana){
@@ -521,33 +595,61 @@
       boaty = document.createElement('div');
       boaty.id = 'resakaMivantana';
       boaty.className = 'panel';
-      boaty.style.cssText = 'position:fixed; right:12px; bottom:12px; width:min(340px, calc(100vw - 24px)); z-index:9500; ' +
-        'margin:0; display:flex; flex-direction:column; max-height:70vh; box-shadow:0 10px 30px rgba(0,0,0,0.4);';
+      // « resize » : sintonina ny zorony ambany havanana mba hanitarana azy ;
+      // ⤢ kosa manitatra azy indray mitsindry.
+      boaty.style.cssText = 'position:fixed; right:12px; bottom:12px; width:min(360px, calc(100vw - 24px)); ' +
+        'height:min(460px, calc(100vh - 24px)); min-width:260px; min-height:260px; max-width:calc(100vw - 24px); ' +
+        'max-height:calc(100vh - 24px); resize:both; overflow:hidden; z-index:9500; margin:0; display:flex; ' +
+        'flex-direction:column; box-shadow:0 10px 30px rgba(0,0,0,0.4);';
       boaty.innerHTML =
-        '<div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; margin-bottom:0.5rem;">' +
+        '<div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; margin-bottom:0.5rem; flex:none;">' +
           '<strong data-lohateny style="font-size:0.9rem; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></strong>' +
-          '<button type="button" class="btn btn-sm" data-hidio style="width:auto;">✕</button>' +
+          '<span style="display:flex; gap:0.3rem; flex:none;">' +
+            '<button type="button" class="btn btn-sm" data-ngeza title="Angezaina / Ahelezina" style="width:auto;">⤢</button>' +
+            '<button type="button" class="btn btn-sm" data-hidio title="Hidio" style="width:auto;">✕</button>' +
+          '</span>' +
         '</div>' +
-        '<div data-hafatra style="flex:1; overflow-y:auto; font-size:0.82rem; min-height:120px; margin-bottom:0.5rem;"></div>' +
-        '<div style="display:flex; gap:0.4rem;">' +
-          '<input type="text" data-soratra placeholder="Soraty ny hafatra..." style="flex:1; padding:0.5rem 0.7rem; border-radius:8px; ' +
-            'border:1px solid var(--line); background:var(--bg); color:var(--text); font-size:0.82rem;">' +
-          '<button type="button" class="btn btn-sm btn-primary" data-alefa style="width:auto;">Alefa</button>' +
+        '<div data-hafatra style="flex:1; overflow-y:auto; font-size:0.82rem; min-height:40px; margin-bottom:0.5rem;"></div>' +
+        '<div data-mandefa style="display:none; font-size:0.74rem; color:var(--muted); margin-bottom:0.4rem; flex:none;"></div>' +
+        '<div data-emoji style="display:none; margin-bottom:0.5rem; flex:none;"></div>' +
+        '<div style="display:flex; gap:0.35rem; align-items:center; flex:none;">' +
+          '<button type="button" class="btn btn-sm" data-emoji-bokotra title="Emoji" style="width:auto; flex:none;">😊</button>' +
+          '<button type="button" class="btn btn-sm" data-rakitra title="Sary na video" style="width:auto; flex:none;">📎</button>' +
+          '<input type="file" data-rakitra-input accept="image/*,video/*" style="display:none;">' +
+          '<input type="text" data-soratra placeholder="Soraty ny hafatra..." style="flex:1; min-width:0; padding:0.5rem 0.7rem; ' +
+            'border-radius:8px; border:1px solid var(--line); background:var(--bg); color:var(--text); font-size:0.82rem;">' +
+          '<button type="button" class="btn btn-sm btn-primary" data-alefa style="width:auto; flex:none;">Alefa</button>' +
         '</div>';
       document.body.appendChild(boaty);
       boaty.querySelector('[data-hidio]').addEventListener('click', function(){ boaty.style.display = 'none'; resakaMisokatra = null; });
+      let habe = null;
+      boaty.querySelector('[data-ngeza]').addEventListener('click', function(){
+        if(habe){
+          boaty.style.width = habe.w; boaty.style.height = habe.h; habe = null;
+        } else {
+          habe = { w: boaty.style.width, h: boaty.style.height };
+          boaty.style.width = 'calc(100vw - 24px)'; boaty.style.height = 'calc(100vh - 24px)';
+        }
+        const zone = boaty.querySelector('[data-hafatra]');
+        zone.scrollTop = zone.scrollHeight;
+      });
       const input = boaty.querySelector('[data-soratra]');
       function alefa(){
         const soratra = input.value.trim();
-        if(!soratra || !resakaMisokatra) return;
-        const me = myIdentity();
-        sendCallSignal({ kind: 'hafatra', from: me.email, fromName: me.name, to: resakaMisokatra.email, text: soratra });
-        (resaka[resakaMisokatra.email] = resaka[resakaMisokatra.email] || []).push({ avy: 'izaho', soratra: soratra, at: Date.now() });
+        if(!soratra) return;
         input.value = '';
-        asehoyResaka();
+        alefaHafatra(soratra, null);
       }
       boaty.querySelector('[data-alefa]').addEventListener('click', alefa);
       input.addEventListener('keydown', function(e){ if(e.key === 'Enter') alefa(); });
+      boaty.querySelector('[data-emoji-bokotra]').addEventListener('click', function(){ sokafyEmoji(boaty, input); });
+      const fichierInput = boaty.querySelector('[data-rakitra-input]');
+      boaty.querySelector('[data-rakitra]').addEventListener('click', function(){ fichierInput.click(); });
+      fichierInput.addEventListener('change', function(){
+        const f = fichierInput.files && fichierInput.files[0];
+        fichierInput.value = '';
+        alefaRakitra(f);
+      });
     }
     boaty.style.display = 'flex';
     asehoyResaka();
@@ -565,14 +667,27 @@
     zone.innerHTML = lisitra.length
       ? lisitra.map(function(h){
           const izaho = h.avy === 'izaho';
+          let atiny = '';
+          if(h.media && /^https:\/\//.test(h.media.url)){
+            const url = escapeHtml(h.media.url);
+            atiny += h.media.type === 'video'
+              ? '<video src="' + url + '" controls playsinline style="display:block; max-width:100%; max-height:260px; border-radius:8px;"></video>'
+              : '<a href="' + url + '" target="_blank" rel="noopener"><img src="' + url + '" alt="Sary" ' +
+                  'style="display:block; max-width:100%; max-height:260px; border-radius:8px;"></a>';
+          }
+          if(h.soratra) atiny += (atiny ? '<div style="margin-top:0.3rem;">' : '<div>') + escapeHtml(h.soratra) + '</div>';
           return '<div style="display:flex; justify-content:' + (izaho ? 'flex-end' : 'flex-start') + '; margin:0.25rem 0;">' +
-            '<span style="max-width:80%; padding:0.4rem 0.6rem; border-radius:10px; ' +
+            '<span style="max-width:80%; padding:0.4rem 0.6rem; border-radius:10px; overflow-wrap:anywhere; ' +
               (izaho ? 'background:var(--cyan); color:#000;' : 'background:var(--panel-2); color:var(--text);') + '">' +
-              escapeHtml(h.soratra) + '</span></div>';
+              atiny + '</span></div>';
         }).join('')
       : '<p style="color:var(--muted); font-size:0.76rem;">' +
           (online ? 'Soraty ny hafatra voalohany.' : 'Tsy miditra ankehitriny io olona io : tsy ho tonga ny hafatra raha tsy miditra izy.') + '</p>';
     zone.scrollTop = zone.scrollHeight;
+    // Ny sary tara tonga : averina midina any ambany rehefa feno.
+    zone.querySelectorAll('img, video').forEach(function(m){
+      m.addEventListener(m.tagName === 'IMG' ? 'load' : 'loadedmetadata', function(){ zone.scrollTop = zone.scrollHeight; }, { once: true });
+    });
   }
   window.__sokafyResaka = sokafyResaka;
 
