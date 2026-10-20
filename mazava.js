@@ -7,6 +7,10 @@
 // noir (moins de 100 %), et on éclaircit ce qui est dessous par un
 // backdrop-filter (plus de 100 %). Le voile laisse passer les doigts.
 // Le réglage est retenu sur l'appareil, page par page.
+//
+// Sous la barre, ☀️ / 🌙 : le jour (fond clair) ou la nuit (fond sombre).
+// Les deux pages lisent :root[data-theme="light" | "dark"] ; sans choix,
+// chacune garde le sien (le menu suit le téléphone, la lakozia est sombre).
 (function () {
   const MIN = 30, MAX = 150, PAS = 5;
   const cle = 'mazava_' + location.pathname;
@@ -33,6 +37,9 @@
     '.mz-rempli{ position:absolute; left:0; right:0; bottom:0; background:#fff; border-radius:7px; }' +
     '.mz-icone{ font-size:1.25rem; line-height:1; }' +
     '.mz-val{ font:600 0.72rem/1 system-ui, sans-serif; opacity:0.85; }' +
+    '.mz-theme{ width:40px; height:40px; margin:2px 0 0; padding:0; border-radius:50%; border:1px solid rgba(255,255,255,0.3); background:rgba(255,255,255,0.1);' +
+      ' color:#fff; font-size:1.15rem; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; }' +
+    '.mz-theme:focus-visible{ box-shadow:0 0 0 2px #4fd8e0; }' +
     '@media (max-height:420px){ .mz-piste{ height:110px; } }';
   document.head.appendChild(style);
 
@@ -67,6 +74,42 @@
   panneau.appendChild(icone);
   panneau.appendChild(piste);
   panneau.appendChild(val);
+  const theme = document.createElement('button');
+  theme.type = 'button';
+  theme.className = 'mz-theme';
+  panneau.appendChild(theme);
+
+  // ---------- Andro / alina ----------
+  const cleTheme = 'mazava_theme_' + location.pathname;
+  function themeLu() { try { return localStorage.getItem(cleTheme) || ''; } catch (e) { return ''; } }
+  // Le thème qui s'affiche vraiment : choisi, ou celui de la page (lu sur la
+  // couleur du fond, puisque chaque page a le sien par défaut).
+  function themeActuel() {
+    const t = document.documentElement.getAttribute('data-theme');
+    if (t === 'light' || t === 'dark') return t;
+    const m = (getComputedStyle(document.body || document.documentElement).backgroundColor.match(/\d+/g) || [0, 0, 0]).map(Number);
+    return (m[0] * 299 + m[1] * 587 + m[2] * 114) / 1000 > 128 ? 'light' : 'dark';
+  }
+  function poserTheme(t) {
+    if (t) document.documentElement.setAttribute('data-theme', t);
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta && document.body) meta.content = getComputedStyle(document.body).backgroundColor;
+    majTheme();
+  }
+  function majTheme() {
+    const nuit = themeActuel() === 'dark';
+    // Le bouton montre ce qu'on obtient en le touchant.
+    theme.textContent = nuit ? '☀️' : '🌙';
+    theme.setAttribute('aria-label', nuit ? 'Andro (mazava)' : 'Alina (maizina)');
+    theme.title = theme.getAttribute('aria-label');
+  }
+  if (themeLu()) document.documentElement.setAttribute('data-theme', themeLu());
+  theme.addEventListener('click', function () {
+    const t = themeActuel() === 'dark' ? 'light' : 'dark';
+    try { localStorage.setItem(cleTheme, t); } catch (e) { }
+    poserTheme(t);
+    rester();
+  });
 
   let valeur = lire();
   function appliquer(v) {
@@ -104,6 +147,7 @@
   }
   let glisse = false;
   panneau.addEventListener('pointerdown', function (e) {
+    if (e.target === theme) return;
     glisse = true;
     try { panneau.setPointerCapture(e.pointerId); } catch (x) { }
     depuisPointeur(e);
@@ -134,6 +178,7 @@
     document.body.appendChild(voile);
     document.body.appendChild(bouton);
     document.body.appendChild(panneau);
+    poserTheme('');
   }
   if (document.body) poser(); else document.addEventListener('DOMContentLoaded', poser);
 })();
