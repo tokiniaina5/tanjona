@@ -315,7 +315,7 @@
   let recherche = '';
   let enCours = null; // l'id du plat qu'on modifie, ou null pour un nouveau
   let ovayAnarana = false; // le nom de l'hôtel est en train d'être changé
-  let onglet = 'menu'; // 'menu' ou 'commandes'
+  let onglet = 'menu'; // 'menu', 'commandes' ou 'lakozia'
 
   // ---------- Les commandes des clients ----------
   // Elles arrivent de menu-sakafo.html (hotelerie_commande,
@@ -472,7 +472,7 @@
     return code.then(function (c) { return location.origin + '/lakozia.html?id=' + uid + '&k=' + c; });
   }
   function blocLakozia() {
-    return '<div class="panel" style="margin-top:1rem;">' +
+    return '<div class="panel">' +
       '<div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center; justify-content:space-between;">' +
         '<strong style="font-size:0.9rem;">👨‍🍳 Lakozia</strong>' +
         '<div style="display:flex; gap:0.4rem; flex-wrap:wrap;">' +
@@ -849,7 +849,6 @@
         '<p style="font-size:0.75rem; color:var(--muted); margin:0.5rem 0 0;">Ny rohy isaky ny latabatra dia efa misafidy ny latabatra ho an\'ny mpanjifa (🔳 QR eo amin\'ny latabatra tsirairay : printy, dia apetraho eo ambony latabatra). Sokafy amin\'ny téléphone na tablette eo amin\'ilay latabatra, dia « 📲 Installer » : lasa appli « T1 », « T2 »… manokana izy.</p>' +
       '</div>' +
       blocVola() +
-      blocLakozia() +
       blocLatabatra(enAttente) +
       '<div class="panel" style="margin-top:1rem;">' +
         '<div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center; justify-content:space-between;">' +
@@ -929,7 +928,6 @@
       dessinerCommandes();
     });
     zone.querySelector('#commandesHavaozina').addEventListener('click', function () { chargerCommandes(true); });
-    brancherLakozia(zone);
     zone.querySelector('#latabatraTehirizo').addEventListener('click', function () {
       const n = Math.round(Number(zone.querySelector('#latabatraIsa').value));
       if (!(n >= 1 && n <= 500)) { alert('Isa 1 ka hatramin\'ny 500.'); return; }
@@ -1063,7 +1061,15 @@
         '<button type="button" class="dash-tab' + (onglet === 'commandes' ? ' active' : '') + '" data-onglet="commandes" style="width:auto;">🛎️ Commandes' +
           (nbVaovao ? ' <span style="background:#ff6b6b; color:#fff; font-size:0.7rem; font-weight:700; border-radius:999px; padding:0 6px; margin-left:4px;">' + nbVaovao + '</span>' : '') +
         '</button>' +
+        // La cuisine a son onglet, à côté des commandes qu'elle reçoit.
+        '<button type="button" class="dash-tab' + (onglet === 'lakozia' ? ' active' : '') + '" data-onglet="lakozia" style="width:auto;">👨‍🍳 Lakozia</button>' +
       '</div>';
+    if (onglet === 'lakozia') {
+      z.innerHTML = tete + blocLakozia();
+      brancherOnglets(z);
+      brancherLakozia(z);
+      return;
+    }
     if (onglet === 'commandes') {
       z.innerHTML = tete + '<div id="commandesZone"></div>';
       brancherOnglets(z);
