@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="21eb8a0b">
+<meta name="ny-asako-version" content="f5d10757">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -440,7 +440,19 @@
     /* Les pages de chaque partie : une grande image (émoji 3D) en tête. */
     .guide-ikona{ font-size:4.2rem; line-height:1; margin:0.4rem auto 1.1rem; }
     .guide-ikona.flotte, .guide-page.guide-entre .guide-ikona{ animation:guideFlotte 2.4s ease-in-out infinite; }
-    @media (prefers-reduced-motion: reduce){ .guide-tout-btn svg{ animation:none; } }
+    @media (prefers-reduced-motion: reduce){ .guide-tout-btn svg, #guidePartie *{ animation:none !important; } }
+    /* La visite d'une partie (flèche de la liste) : ses propres pages, à la
+       place de celles du guide le temps qu'on la lit (common.js). */
+    .partie-misokatra > .guide-page, .partie-misokatra > #guideDots,
+    .partie-misokatra > #welcomeEnterBtn, .partie-misokatra > #guidePrevBtn{ display:none !important; }
+    #guidePartie[hidden]{ display:none; }
+    #guidePartie .guide-entre{ animation:guideEntre .35s ease-out; }
+    #guidePartie .guide-ikona{ animation:guideFlotte 2.4s ease-in-out infinite; }
+    .gp-dots{ display:flex; justify-content:center; gap:0.4rem; margin:1.4rem 0 1.1rem; }
+    .gp-dots span{ width:8px; height:8px; border-radius:50%; background:var(--line); transition:background .2s, transform .2s; }
+    .gp-dots span.ici{ background:var(--cyan); transform:scale(1.25); }
+    .gp-nav{ display:flex; gap:0.6rem; }
+    .gp-nav .btn{ flex:1; }
   </style>
   <div class="login-card" style="max-width:520px; position:relative; text-align:center; padding:2.6rem 2rem 2rem; margin:auto;">
     <button type="button" id="welcomeClose" aria-label="Fermer" style="position:absolute; top:0.8rem; right:1rem; background:none; border:none; color:var(--muted); font-size:1.6rem; cursor:pointer; line-height:1;">✕</button>
@@ -680,6 +692,9 @@
         <li>Un <strong style="color:var(--text);">mot de passe</strong>, tapé deux fois : il est conservé chiffré sur le serveur (jamais sur l'appareil) et vous connecte depuis n'importe quel téléphone ou ordinateur.</li>
       </ol>
     </div>
+
+    <!-- La visite d'une partie : rempli par common.js (GUIDE_PARTIES). -->
+    <div id="guidePartie" hidden></div>
 
     <div id="guideDots" aria-hidden="true" style="display:flex; justify-content:center; gap:0.4rem; margin:1.6rem 0 1.1rem;"></div>
     <button type="button" class="btn btn-primary" id="welcomeEnterBtn" style="width:100%;">Suivant →</button>
@@ -3593,7 +3608,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=71c9a1c5"></script>
+<script src="gestion-stockage-js/common.js?v=ad8a2e0f"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=622d64e8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>

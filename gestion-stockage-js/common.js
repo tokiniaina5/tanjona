@@ -3560,6 +3560,8 @@
     return document.querySelectorAll('#welcomeOverlay .guide-page');
   }
   function showGuidePage(n){
+    // La visite d'une partie se referme quand le guide reprend.
+    if(typeof hidyNyPartie === 'function') hidyNyPartie();
     const pages = guidePages();
     guidePage = Math.max(1, Math.min(n, pages.length));
     pages.forEach(function(p){
@@ -3726,13 +3728,115 @@
     liste.hidden = !ouvrir;
     guideToutBtn.setAttribute('aria-expanded', ouvrir ? 'true' : 'false');
   });
-  // Chaque ligne de la liste mène à la page de sa partie.
-  document.querySelectorAll('#guideTout [data-guide-vers]').forEach(function(b){
-    b.addEventListener('click', function(){
-      const pages = Array.prototype.slice.call(guidePages());
-      const i = pages.findIndex(function(p){ return p.dataset.guideId === b.dataset.guideVers; });
-      if(i >= 0) showGuidePage(i + 1);
+  // Chaque flèche de la liste ouvre la visite de sa partie : quelques pages
+  // qui expliquent ce qu'on y fait, une chose par page. Elles prennent la
+  // place du guide le temps qu'on les lit ; « Retour à la liste » le rend.
+  const GUIDE_PARTIES = {
+    stock: { ikona: '📦', nom: 'Stock & Articles', pages: [
+      ['➕ Ajouter un article', 'Dans <b>📋 Articles</b>, donnez le <b>nom</b>, le <b>prix</b>, la <b>quantité</b> et, si vous voulez, une photo et une catégorie. L\'article est prêt à être vendu.'],
+      ['🔄 Entrées et sorties', 'Chaque <b>achat</b> fait monter la quantité, chaque <b>vente</b> la fait descendre. L\'<b>historique</b> garde tous les mouvements, avec la date.'],
+      ['⚠️ Ruptures', 'Quand un article arrive à <b>zéro</b>, une alerte vous prévient. Son annonce dans le fil Botika s\'en va toute seule : personne ne commande ce que vous n\'avez plus.']
+    ] },
+    factures: { ikona: '🧾', nom: 'Factures & PDF', pages: [
+      ['🛍️ Choisir les articles', 'Prenez les articles du stock et leur quantité : les prix et le <b>total</b> se calculent tout seuls.'],
+      ['🏷️ Votre en-tête', 'La facture porte votre <b>logo</b>, votre nom, votre <b>NIF</b> et votre <b>STAT</b>, tels que vous les avez mis dans votre profil.'],
+      ['🖨️ PDF', 'Chaque facture se range dans <b>PDF</b> : imprimez-la, ou envoyez-la par WhatsApp ou par email en un toucher.']
+    ] },
+    botika: { ikona: '🛒', nom: 'Botika', pages: [
+      ['📝 Publier', 'Dans le <b>fil</b>, écrivez votre nouvelle, ajoutez des <b>photos</b>, et cochez 🛒 pour vendre un article avec son prix.'],
+      ['🎬 Vidéos et stories', 'Une vidéo se met par son <b>lien</b> (YouTube, Facebook, TikTok…) avec 🎬. Les <b>stories</b> montrent vos nouveautés en haut du fil.'],
+      ['🛍️ Vos clients', 'Ils aiment, commentent, mettent au <b>panier</b> et partagent, depuis leur téléphone, même <b>sans compte</b>.']
+    ] },
+    hotel: { ikona: '🏨', nom: 'Ny asako Hôtel', pages: [
+      ['🍽️ Le menu', 'Vos plats avec leur <b>photo</b> et leur <b>prix</b>, rangés par catégorie, faciles à changer.'],
+      ['📱 Un QR par table', 'Le client scanne le <b>QR</b> de sa table, choisit ses plats et commande : la table est connue d\'avance.'],
+      ['👨‍🍳 Cuisine et paiement', 'La commande arrive en <b>cuisine</b> sur la tablette. Le client paie par <b>Mobile Money</b>. Ny asako Hôtel s\'installe à part, comme une application.']
+    ] },
+    wallet: { ikona: '💰', nom: 'Portefeuille', pages: [
+      ['⬇️ Déposer', 'Mettez de l\'argent sur votre <b>solde</b> par MVola, Orange Money ou Airtel Money.'],
+      ['⬆️ Retirer', 'Renvoyez votre solde vers votre <b>Mobile Money</b>, quand vous voulez.'],
+      ['🔁 Envoyer', 'Envoyez de l\'argent à un autre compte avec son <b>ID KEY</b>. Vos <b>invitations</b> remplissent aussi le portefeuille.']
+    ] },
+    live: { ikona: '🔴', nom: 'Live & Appels', pages: [
+      ['🎥 Lancer un Live', 'Montrez vos produits en <b>vidéo</b>, en direct. Ceux qui sont en ligne sont prévenus et regardent depuis le fil.'],
+      ['📞 Appeler', 'Appels <b>audio</b> et <b>vidéo</b> vers un client, sans quitter l\'application. Le point <b>vert</b> dit qui est en ligne.'],
+      ['💬 Écrire', 'Le <b>message direct</b> : texte, emoji, photos et vidéos, avec vos clients et même avec les visiteurs.']
+    ] },
+    mpiasa: { ikona: '👷', nom: 'Mpiasa & Livreur', pages: [
+      ['👤 Ajouter un employé', 'Donnez son nom : il reçoit son <b>propre lien</b>, et entre sans mot de passe.'],
+      ['🕒 Ses heures et ses tâches', 'L\'employé voit ce qu\'il a à faire et marque ses <b>heures</b>. Vous suivez tout depuis votre compte.'],
+      ['🛵 Le livreur', 'Il suit ses <b>courses</b>, et vous voyez sa <b>position</b> sur la carte pendant la livraison.']
+    ] },
+    toerana: { ikona: '📍', nom: 'Toerana & Maps', pages: [
+      ['🏠 Votre adresse', 'Collez le lien de partage de <b>Google Maps</b>, ou touchez <b>Ma position</b> : votre adresse est sur la carte.'],
+      ['🧭 L\'itinéraire', 'Vos clients ouvrent le <b>trajet</b> jusqu\'à vous : à pied, en voiture, ou en avion pour les plus loin.'],
+      ['🛵 Le livreur sur la carte', 'Pendant une livraison, sa <b>position</b> avance sur la carte, chez vous et chez le client.']
+    ] },
+    outils: { ikona: '📒', nom: 'Bureau', pages: [
+      ['🗒️ Notes', 'Écrivez ce que vous ne voulez pas oublier : une commande, un numéro, une idée.'],
+      ['🧮 Calculatrice', 'Les calculs de tous les jours, sans quitter Ny asako.'],
+      ['📅 Calendrier et horaire', 'Vos rendez-vous dans le <b>calendrier</b>, et l\'<b>horaire</b> de la semaine. Ces outils restent dans ce navigateur.']
+    ] },
+    inviter: { ikona: '✉️', nom: 'Inviter & Contact', pages: [
+      ['📤 Inviter', 'Partagez votre <b>lien</b> sur WhatsApp, Facebook ou ailleurs. Chaque invitation remplit votre <b>portefeuille</b>.'],
+      ['🔗 Vos canaux', 'Dans <b>Ajouter les liens</b>, touchez un logo et écrivez votre nom ou numéro : le lien se fait et s\'enregistre tout seul.'],
+      ['📨 Contact', 'Une question ? <b>Contact</b> nous écrit directement, et <b>Message</b> vous permet d\'écrire à vos inscrits.']
+    ] },
+    compte: { ikona: '⚙️', nom: 'Votre compte', pages: [
+      ['📅 Abonnement', '<b>Mensuel</b> ou <b>annuel</b>, avec sa date de fin toujours visible.'],
+      ['🎨 Fond d\'écran', 'Choisissez le <b>fond</b> et le <b>thème</b> de l\'application, clair ou sombre.'],
+      ['🗑️ Corbeille et paramètres', 'La <b>Corbeille</b> rend une publication effacée. Les <b>Paramètres</b> gardent votre profil, votre logo et vos informations.']
+    ] }
+  };
+  let partieOuverte = null, partiePage = 0;
+  function hidyNyPartie(){
+    const zone = document.getElementById('guidePartie');
+    if(!zone || zone.hidden) return;
+    zone.hidden = true;
+    zone.parentNode.classList.remove('partie-misokatra');
+    partieOuverte = null;
+  }
+  function asehoyNyPartie(cle, n){
+    const partie = GUIDE_PARTIES[cle];
+    const zone = document.getElementById('guidePartie');
+    if(!partie || !zone) return;
+    partieOuverte = cle;
+    partiePage = Math.max(0, Math.min(n, partie.pages.length - 1));
+    const p = partie.pages[partiePage];
+    const farany = partiePage === partie.pages.length - 1;
+    zone.innerHTML =
+      '<div class="guide-entre" style="text-align:center;">' +
+        '<div class="guide-ikona" aria-hidden="true">' + partie.ikona + '</div>' +
+        '<div class="eyebrow">' + partie.nom.replace(/&/g, '&amp;') + ' · ' + (partiePage + 1) + '/' + partie.pages.length + '</div>' +
+        '<h1 style="font-size:1.35rem; margin-bottom:0.9rem;">' + p[0] + '</h1>' +
+        '<p class="sub" style="font-size:0.95rem;">' + p[1] + '</p>' +
+      '</div>' +
+      '<div class="gp-dots" aria-hidden="true">' + partie.pages.map(function(_, i){
+        return '<span' + (i === partiePage ? ' class="ici"' : '') + '></span>'; }).join('') + '</div>' +
+      '<div class="gp-nav">' +
+        '<button type="button" class="btn btn-sm" data-gp="teo"' + (partiePage ? '' : ' style="visibility:hidden;"') + '>← Précédent</button>' +
+        '<button type="button" class="btn btn-primary btn-sm" data-gp="manaraka">' + (farany ? '✓ Terminé' : 'Suivant →') + '</button>' +
+      '</div>' +
+      '<button type="button" class="btn btn-sm" data-gp="lisitra" style="width:100%; margin-top:0.6rem;">☰ Retour à la liste</button>';
+    zone.hidden = false;
+    zone.parentNode.classList.add('partie-misokatra');
+    zone.querySelector('[data-gp="teo"]').addEventListener('click', function(){ asehoyNyPartie(cle, partiePage - 1); });
+    zone.querySelector('[data-gp="manaraka"]').addEventListener('click', function(){
+      if(farany) miverinaAmNyLisitra(); else asehoyNyPartie(cle, partiePage + 1);
     });
+    zone.querySelector('[data-gp="lisitra"]').addEventListener('click', miverinaAmNyLisitra);
+    zone.parentNode.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
+  // On revient à la première page, la liste dépliée, là où on l'avait laissée.
+  function miverinaAmNyLisitra(){
+    hidyNyPartie();
+    showGuidePage(1);
+    const liste = document.getElementById('guideTout');
+    if(liste) liste.hidden = false;
+    if(guideToutBtn) guideToutBtn.setAttribute('aria-expanded', 'true');
+  }
+  document.querySelectorAll('#guideTout [data-guide-vers]').forEach(function(b){
+    b.addEventListener('click', function(){ asehoyNyPartie(b.dataset.guideVers, 0); });
   });
   // « Installer Ny asako Hôtel » : sa page /hotely, dans un onglet (ou son
   // adresse à ouvrir dans Chrome, depuis Ny asako déjà installée).
