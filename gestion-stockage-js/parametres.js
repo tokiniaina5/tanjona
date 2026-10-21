@@ -4709,9 +4709,9 @@
   let pendingNewsImages = [];
   const MAX_NEWS_IMAGES = 6;
   // La vidéo ne se réduit pas dans le navigateur comme une photo : on ne peut
-  // que refuser ce qui est trop lourd. Le bucket refuse la même chose de son
-  // côté — c'est lui qui fait foi, la page ne fait qu'éviter un envoi perdu.
-  const BUCKET_VIDEO = 'annonce-video';
+  // que refuser ce qui est trop lourd. La fonction video-r2 refuse la même
+  // chose de son côté — c'est elle qui fait foi, la page ne fait qu'éviter un
+  // envoi perdu.
   const MAX_VIDEO_MO = 25;
   let videoEnCours = false;
 
@@ -4808,7 +4808,7 @@
     });
   }
 
-  // La vidéo ne voyage pas dans la ligne : elle part au bucket, et l'annonce
+  // La vidéo ne voyage pas dans la ligne : elle part chez Cloudflare R2, et l'annonce
   // ne garde que son adresse. Une seule par annonce — c'est déjà beaucoup à
   // charger pour qui lit le fil sur son téléphone.
   const newsVideoInput = document.getElementById('newsVideo');
@@ -4832,7 +4832,7 @@
           MAX_VIDEO_MO + ' Mo no farany ambony. Fohezo na ahenao ny hatsarany.');
         return;
       }
-      if(!window.__sb || !window.__sb.storage){
+      if(!window.__sb || !window.__sb.functions){
         alert('Tsy tafiditra ny serveur : tsy afaka mandefa video.');
         return;
       }
@@ -4840,9 +4840,6 @@
       renderNewsImagePreviews();
 
       const ext = (String(file.name || '').split('.').pop() || 'mp4').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 5) || 'mp4';
-      const nom = (window.crypto && crypto.randomUUID
-        ? crypto.randomUUID()
-        : Date.now() + '-' + Math.random().toString(36).slice(2)) + '.' + ext;
 
       const fini = function(message){
         videoEnCours = false;
@@ -4850,21 +4847,25 @@
         if(message) alert(message);
       };
 
-      window.__sb.storage.from(BUCKET_VIDEO)
-        .upload(nom, file, { contentType: file.type || 'video/mp4', upsert: false })
-        .then(function(res){
-          if(res && res.error){
-            fini('Tsy lasa ny video : ' + (res.error.message || 'tsy fantatra') +
-              '\n\nRaha « Bucket not found » no hitanao, dia mbola tsy nalefa ny ' +
-              '« supabase-annonce-video.sql ».');
-            return;
+      // Cloudflare R2, et non plus le bucket Supabase : chaque lecture d'une
+      // vidéo y était comptée (« Cached Egress »). La fonction video-r2 rend
+      // une adresse d'envoi signée ; le fichier y part tout droit.
+      const type = file.type && /^video\//.test(file.type) ? file.type : 'video/mp4';
+      window.__sb.functions.invoke('video-r2', { body: { ext: ext, type: type, taille: file.size } })
+        .then(function(r){
+          const d = r && r.data;
+          if(r.error || !d || !d.envoi || !d.url){
+            throw new Error(d && d.error === 'r2_tsy_vonona'
+              ? 'mbola tsy vonona ny toerana hitahirizana video (Cloudflare R2).'
+              : ((d && d.error) || (r.error && r.error.message) || 'tsy fantatra'));
           }
-          const pub = window.__sb.storage.from(BUCKET_VIDEO).getPublicUrl(nom);
-          const url = pub && pub.data && pub.data.publicUrl;
-          if(!url){ fini('Tsy hita ny adiresin\'ny video.'); return; }
-          pendingNewsImages.push(url);
-          fini('');
-        }, function(err){
+          return fetch(d.envoi, { method: 'PUT', headers: { 'Content-Type': d.type }, body: file }).then(function(res){
+            if(!res.ok) throw new Error('R2 ' + res.status);
+            pendingNewsImages.push(d.url);
+            fini('');
+          });
+        })
+        .catch(function(err){
           fini('Tsy lasa ny video : ' + ((err && err.message) || 'réseau'));
         });
     });
