@@ -4845,11 +4845,12 @@
   // 🎬 : le lien d'une vidéo déjà en ligne (YouTube, Facebook, TikTok…). Le
   // billet le garde dans « link » ; le fil en fait un lecteur YouTube, ou la
   // carte du site pour les autres.
-  function raisoRohyVideo(soratra){
-    const rohy = String(soratra || '').trim().split(/\s+/)[0] || '';
-    if(!rohy) return false;
-    if(!/^https?:\/\/[^\s]+\.[^\s]+/i.test(rohy)){
-      alert('Tsy rohy io. Adikao ny rohin\'ny video manontolo (manomboka amin\'ny https://).');
+  // mangina : relu du presse-papiers, un texte qui n'est pas un lien est
+  // ignoré sans rien dire — la personne n'a rien demandé.
+  function raisoRohyVideo(soratra, mangina){
+    const rohy = premierLien(soratra);
+    if(!rohy){
+      if(!mangina && String(soratra || '').trim()) alert('Tsy rohy io. Adikao ny rohin\'ny video manontolo (manomboka amin\'ny https://).');
       return false;
     }
     rohyVideo = rohy;
@@ -4858,26 +4859,85 @@
   }
   // Un champ dans la boîte, et non prompt() : certains navigateurs intégrés
   // (aperçus, applis) ne montrent jamais la fenêtre, et le 🎬 semblait mort.
+  // Pas de bouton OK : un lien collé est pris aussitôt.
   const newsVideoBtn = document.getElementById('newsVideoBtn');
   const newsVideoRohy = document.getElementById('newsVideoRohy');
   const newsVideoRohyInput = document.getElementById('newsVideoRohyInput');
+  // Les réseaux où l'on va chercher la vidéo : le logo l'ouvre, on y copie
+  // le lien, et au retour le presse-papiers est relu.
+  const TAMBAJOTRA_VIDEO = [
+    ['youtube', 'YouTube', 'https://m.youtube.com/'],
+    ['facebook', 'Facebook', 'https://www.facebook.com/watch/'],
+    ['tiktok', 'TikTok', 'https://www.tiktok.com/'],
+    ['instagram', 'Instagram', 'https://www.instagram.com/reels/'],
+    ['x', 'X', 'https://x.com/'],
+    ['threads', 'Threads', 'https://www.threads.net/']
+  ];
+  let miandryRohy = false;
+  function hidioNyRohy(){
+    newsVideoRohyInput.value = '';
+    newsVideoRohy.style.display = 'none';
+    miandryRohy = false;
+  }
+  function ekenaNyRohy(soratra, mangina){
+    if(raisoRohyVideo(soratra, mangina)){ hidioNyRohy(); return true; }
+    return false;
+  }
+  // Lire le presse-papiers demande l'accord du navigateur, et certains le
+  // refusent toujours : on essaie, et l'on se tait si ça ne va pas.
+  function vakioNyClipboard(){
+    if(!navigator.clipboard || !navigator.clipboard.readText) return;
+    navigator.clipboard.readText().then(function(t){
+      if(newsVideoRohy.style.display === 'flex') ekenaNyRohy(t, true);
+    }, function(){});
+  }
+  function asehoyNyLogo(){
+    const zone = document.getElementById('newsVideoLogos');
+    if(!zone || zone.childElementCount) return;
+    const logos = window.__logosReseaux || {};
+    TAMBAJOTRA_VIDEO.forEach(function(t){
+      const l = logos[t[0]];
+      const a = document.createElement('a');
+      a.href = t[2];
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.title = t[1];
+      a.style.cssText = 'display:flex; flex-direction:column; align-items:center; gap:0.25rem; text-decoration:none; color:var(--text);';
+      a.innerHTML = '<span style="display:flex; align-items:center; justify-content:center; width:2.6rem; height:2.6rem; ' +
+        'border-radius:12px; background:' + (l ? l[0] : '#5f6b73') + ';">' +
+        (l ? '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="#fff" d="' + l[1] + '"/></svg>' : '🎬') +
+        '</span><span style="font-size:0.64rem; font-weight:600;">' + t[1] + '</span>';
+      a.addEventListener('click', function(){ miandryRohy = true; });
+      zone.appendChild(a);
+    });
+  }
   if(newsVideoBtn && newsVideoRohy && newsVideoRohyInput){
     newsVideoBtn.addEventListener('click', function(){
       const misokatra = newsVideoRohy.style.display === 'flex';
-      newsVideoRohy.style.display = misokatra ? 'none' : 'flex';
-      if(!misokatra){
-        newsVideoRohyInput.value = rohyVideo || '';
-        newsVideoRohyInput.focus();
-      }
+      if(misokatra){ hidioNyRohy(); return; }
+      newsVideoRohy.style.display = 'flex';
+      asehoyNyLogo();
+      newsVideoRohyInput.value = rohyVideo || '';
+      newsVideoRohyInput.focus();
+      // Un lien déjà copié (depuis YouTube…) entre tout seul.
+      vakioNyClipboard();
     });
-    const ekena = function(){
-      if(raisoRohyVideo(newsVideoRohyInput.value)){
-        newsVideoRohyInput.value = '';
-        newsVideoRohy.style.display = 'none';
-      }
+    // Collé : pris aussitôt. Tapé à la main : pris à Entrée ou en quittant
+    // le champ, pour ne pas saisir un lien à moitié écrit.
+    newsVideoRohyInput.addEventListener('paste', function(){
+      setTimeout(function(){ ekenaNyRohy(newsVideoRohyInput.value); }, 0);
+    });
+    newsVideoRohyInput.addEventListener('change', function(){ ekenaNyRohy(newsVideoRohyInput.value); });
+    newsVideoRohyInput.addEventListener('keydown', function(e){
+      if(e.key === 'Enter'){ e.preventDefault(); ekenaNyRohy(newsVideoRohyInput.value); }
+    });
+    // Retour de YouTube, Facebook… : le lien copié là-bas entre tout seul.
+    const miverina = function(){
+      if(!miandryRohy || document.hidden) return;
+      vakioNyClipboard();
     };
-    document.getElementById('newsVideoRohyOk').addEventListener('click', ekena);
-    newsVideoRohyInput.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); ekena(); } });
+    document.addEventListener('visibilitychange', miverina);
+    window.addEventListener('focus', miverina);
   }
 
   // Le champ du prix n'apparaît que si l'on annonce une marchandise : il n'a
