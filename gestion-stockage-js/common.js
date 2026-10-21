@@ -2636,6 +2636,10 @@
     try { parGoogle = !!localStorage.getItem(GOOGLE_KEY); } catch(e){}
     if((params.error || params.error_code) && parGoogle){
       try { localStorage.removeItem(GOOGLE_KEY); } catch(e){}
+      // Le bouton Google n'est que dans la création de compte : on y revient
+      // pour que l'explication se voie.
+      showLoginMode('full');
+      showLoginStep(1);
       const status = document.getElementById('googleLoginStatus');
       if(status) status.textContent = 'Connexion Google non aboutie : ' +
         (params.error_description || params.error || '').replace(/\+/g, ' ');
@@ -3018,6 +3022,10 @@
     if(submitBtn) submitBtn.textContent = step === LOGIN_STEPS ? 'Se connecter' : 'Suivant →';
     const prevBtn = document.getElementById('loginPrevBtn');
     if(prevBtn) prevBtn.style.display = step > 1 ? 'block' : 'none';
+    // Google à l'entrée de la création de compte seulement : plus loin, on a
+    // déjà choisi l'email.
+    const googleWrap = document.getElementById('googleLoginWrap');
+    if(googleWrap) googleWrap.style.display = step === 1 ? '' : 'none';
     setLoginStatus('');
     const current = loginForm.querySelector('.login-step[data-step="' + step + '"] input');
     if(current && loginScreen.style.display !== 'none') current.focus();
