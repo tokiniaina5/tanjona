@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="44b79960">
+<meta name="ny-asako-version" content="6f33687b">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -2431,8 +2431,9 @@
               <input id="contactWechatInput" type="text" placeholder="ID WeChat">
             </div>
           </div>
-          <button type="button" class="btn btn-primary btn-sm" id="saveContactChannelsBtn" style="width:auto; margin-top:0.8rem;">Enregistrer</button>
-          <span id="contactChannelsStatus" style="font-size:0.78rem; color:var(--muted); margin-left:0.6rem;"></span>
+          <!-- Plus à toucher : chaque case s'enregistre seule (contact.js). Le bouton reste, caché, c'est lui qui envoie. -->
+          <button type="button" class="btn btn-primary btn-sm" id="saveContactChannelsBtn" style="display:none; width:auto; margin-top:0.8rem;">Enregistrer</button>
+          <span id="contactChannelsStatus" style="display:block; font-size:0.78rem; color:var(--muted); margin-top:0.6rem;"></span>
 
           <div style="margin-top:1.2rem; padding-top:1.2rem; border-top:1px solid var(--line);">
             <h3 style="font-size:0.95rem;">Ajouter un autre canal</h3>
@@ -2450,7 +2451,7 @@
                 <input id="newContactUrl" type="text" placeholder="votrenom">
               </div>
             </div>
-            <button type="button" class="btn btn-sm" id="addContactChannelBtn" style="width:auto; margin-top:0.6rem;">Ajouter ce canal</button>
+            <button type="button" class="btn btn-sm" id="addContactChannelBtn" style="display:none; width:auto; margin-top:0.6rem;">Ajouter ce canal</button>
           </div>
         </div>
       </section>
@@ -3601,7 +3602,7 @@
 <script src="gestion-stockage-js/factures.js?v=69af0cd7"></script>
 <script src="gestion-stockage-js/factures-modely.js?v=8fbf4a42"></script>
 <script src="gestion-stockage-js/inviter.js?v=fffaed9c"></script>
-<script src="gestion-stockage-js/contact.js?v=dfe3035c"></script>
+<script src="gestion-stockage-js/contact.js?v=be771c1a"></script>
 <!-- Montre au client qui vient de s'inscrire, à sa première entrée, tous les
      canaux du propriétaire (contact.js les tient). -->
 <script src="gestion-stockage-js/serasera-voalohany.js?v=0b2800f2"></script>

@@ -890,7 +890,20 @@
     });
     // Les valeurs arrivent du serveur un peu après : on les montre alors.
     setTimeout(maj, 1500);
+    // Plus de bouton « Enregistrer » à chercher : la case s'enregistre seule
+    // quand on la quitte, ou aussitôt qu'on y colle un lien.
+    input.addEventListener('change', tehirizoHoAzy);
+    input.addEventListener('paste', function(){ setTimeout(tehirizoHoAzy, 0); });
+    input.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); input.blur(); } });
   });
+  // Un seul envoi pour plusieurs cases touchées coup sur coup.
+  let tehirizoTimer = null;
+  function tehirizoHoAzy(){
+    clearTimeout(tehirizoTimer);
+    tehirizoTimer = setTimeout(function(){
+      if(saveContactChannelsBtn) saveContactChannelsBtn.click();
+    }, 300);
+  }
 
   // Un autre canal : on choisit le réseau, on écrit son nom ou son numéro.
   const RESEAUX_AJOUT = [
@@ -1002,6 +1015,30 @@
       });
     });
   }
+
+  // « Ajouter ce canal » se fait seul, lui aussi : dès que ce qu'on a écrit
+  // donne un lien juste (en quittant la case, à Entrée, ou en collant).
+  // Rien ne part tant qu'il y a un souci : l'avertissement reste sous la case.
+  // Coller puis quitter la case donnerait deux envois du même canal : le
+  // même lien n'est pas repris dans les cinq secondes.
+  let ampianaFarany = { lien: '', at: 0 };
+  function ampioHoAzy(){
+    if(!addContactChannelBtn) return;
+    const r = reseauChoisi();
+    const a = lienAjout();
+    if(a.souci || !a.lien) return;
+    if(r.id === 'autre' && !document.getElementById('newContactName').value.trim()) return;
+    if(ampianaFarany.lien === a.lien && Date.now() - ampianaFarany.at < 5000) return;
+    ampianaFarany = { lien: a.lien, at: Date.now() };
+    addContactChannelBtn.click();
+  }
+  ['newContactUrl', 'newContactName'].forEach(function(id){
+    const input = document.getElementById(id);
+    if(!input) return;
+    input.addEventListener('change', ampioHoAzy);
+    input.addEventListener('paste', function(){ setTimeout(ampioHoAzy, 0); });
+    input.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); ampioHoAzy(); } });
+  });
 
   renderContactButtons();
 
