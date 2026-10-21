@@ -4856,12 +4856,28 @@
     renderNewsImagePreviews();
     return true;
   }
+  // Un champ dans la boîte, et non prompt() : certains navigateurs intégrés
+  // (aperçus, applis) ne montrent jamais la fenêtre, et le 🎬 semblait mort.
   const newsVideoBtn = document.getElementById('newsVideoBtn');
-  if(newsVideoBtn){
+  const newsVideoRohy = document.getElementById('newsVideoRohy');
+  const newsVideoRohyInput = document.getElementById('newsVideoRohyInput');
+  if(newsVideoBtn && newsVideoRohy && newsVideoRohyInput){
     newsVideoBtn.addEventListener('click', function(){
-      const soratra = prompt('Apetaho eto ny rohin\'ny video (YouTube, Facebook, TikTok…) :', rohyVideo || '');
-      if(soratra !== null) raisoRohyVideo(soratra);
+      const misokatra = newsVideoRohy.style.display === 'flex';
+      newsVideoRohy.style.display = misokatra ? 'none' : 'flex';
+      if(!misokatra){
+        newsVideoRohyInput.value = rohyVideo || '';
+        newsVideoRohyInput.focus();
+      }
     });
+    const ekena = function(){
+      if(raisoRohyVideo(newsVideoRohyInput.value)){
+        newsVideoRohyInput.value = '';
+        newsVideoRohy.style.display = 'none';
+      }
+    };
+    document.getElementById('newsVideoRohyOk').addEventListener('click', ekena);
+    newsVideoRohyInput.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); ekena(); } });
   }
 
   // Le champ du prix n'apparaît que si l'on annonce une marchandise : il n'a
@@ -5130,6 +5146,13 @@
     postNewsBtn.addEventListener('click', function(){
       const libre = document.getElementById('newsMessage').value.trim();
       const entana = !!(newsIsGoods && newsIsGoods.checked);
+      // Un lien collé sans avoir touché OK part quand même.
+      const rohyTsyEkena = document.getElementById('newsVideoRohyInput');
+      if(rohyTsyEkena && rohyTsyEkena.value.trim()){
+        if(!raisoRohyVideo(rohyTsyEkena.value)) return;
+        rohyTsyEkena.value = '';
+        document.getElementById('newsVideoRohy').style.display = 'none';
+      }
       if(entana){
         const bilan = cequiManqueALaFiche();
         if(bilan.manque.length){
