@@ -4537,13 +4537,15 @@
               : '<span class="fb-type-badge">⚫ Live tapitra</span>')
             : (type === 'entana' ? '<span class="fb-type-badge entana">🛒 Entana amidy</span>' : '');
           const medias = parseNewsImages(n.image);
-          // « preload=metadata » : de quoi montrer la première image, et rien
-          // de plus. Trente billets qui se chargeraient en entier, c'est le
-          // fil qui ne s'ouvre plus.
+          // « preload=none » : rien ne part avant qu'on appuie sur ▶. Avec
+          // « metadata », Chrome reprenait la vidéo presque entière (≈ 4 Mo) à
+          // chaque fois que le fil se redessinait : 1,3 Go en un jour depuis un
+          // seul ordinateur, et le quota « Cached Egress » de Supabase dépassé
+          // de moitié (octobre 2026).
           const baliseMedia = function(src, style){
             return estVideo(src)
-              ? '<video src="' + escapeHtml(src) + '" controls preload="metadata" playsinline ' +
-                'style="' + style + '"></video>'
+              ? '<video src="' + escapeHtml(src) + '" controls preload="none" playsinline ' +
+                'style="' + style + ' background:#000; min-height:140px;"></video>'
               : '<img src="' + escapeHtml(src) + '" alt="" style="' + style + '">';
           };
           let imagesHtml = '';
