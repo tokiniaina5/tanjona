@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="07e1d14f">
+<meta name="ny-asako-version" content="a42b89cf">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -1229,11 +1229,10 @@
                        pour qui ne voit pas l'image. -->
                   <label for="newsImage" class="composer-icone" title="Sary (maromaro azo alaina)" aria-label="Sary (maromaro azo alaina)">🖼️</label>
                   <input type="file" id="newsImage" accept="image/*" multiple style="display:none;">
-                  <!-- Une seule vidéo, et elle ne voyage pas dans la ligne
-                       comme les photos : elle part au bucket, la ligne garde
-                       son adresse. -->
-                  <label for="newsVideo" class="composer-icone" title="Video (iray, 25 Mo farany ambony)" aria-label="Video (iray, 25 Mo farany ambony)">🎬</label>
-                  <input type="file" id="newsVideo" accept="video/*" style="display:none;">
+                  <!-- La vidéo ne s'envoie plus : on colle son lien (YouTube,
+                       Facebook, TikTok…), et c'est ce site-là qui la sert
+                       (parametres.js). -->
+                  <button type="button" id="newsVideoBtn" class="composer-icone" title="Rohy video (YouTube, Facebook, TikTok…)" aria-label="Rohy video (YouTube, Facebook, TikTok…)" style="padding:0; cursor:pointer; color:inherit;">🎬</button>
                   <label class="composer-icone" id="newsIsGoodsLabel" title="Entana amidy" aria-label="Entana amidy">
                     <input type="checkbox" id="newsIsGoods" class="composer-case"> 🛒
                   </label>
@@ -3601,10 +3600,10 @@
 <script src="gestion-stockage-js/zara-rehetra.js?v=9b9c2469"></script>
 <script src="gestion-stockage-js/live.js?v=b14172f6"></script>
 <script src="gestion-stockage-js/traduction.js?v=8f5605bc"></script>
-<script src="gestion-stockage-js/parametres.js?v=42f59f45"></script>
+<script src="gestion-stockage-js/parametres.js?v=47eb9b23"></script>
 <!-- Le partage reçu du dehors remplit la boîte « Écrire », que parametres.js
      tient : il se charge après elle. -->
-<script src="gestion-stockage-js/zara-miditra.js?v=bfe2ae80"></script>
+<script src="gestion-stockage-js/zara-miditra.js?v=4d5d0264"></script>
 <script src="gestion-stockage-js/identite.js?v=32177fac"></script>
 <script src="gestion-stockage-js/fond.js?v=66e9ffc6"></script>
 <script src="gestion-stockage-js/carte-libre.js?v=da42db8a"></script>

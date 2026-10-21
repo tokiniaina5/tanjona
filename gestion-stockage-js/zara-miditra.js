@@ -150,16 +150,16 @@
     var refuses = fichiers.length - sary.length - video.length;
 
     var posees = deposerDansLeChamp(document.getElementById('newsImage'), sary);
-    // Une seule vidéo par annonce (parametres.js le redit s'il en arrive deux).
-    var posee = deposerDansLeChamp(document.getElementById('newsVideo'), video.slice(0, 1));
+    // Le fil ne prend plus de fichier vidéo, seulement un lien (parametres.js) :
+    // la vidéo partagée doit d'abord être mise en ligne ailleurs.
 
     var mots = [];
     if (texte) mots.push('ny soratra');
     if (posees) mots.push(sary.length > 1 ? sary.length + ' sary' : 'ny sary');
-    if (posee) mots.push('ny video');
-    if (!mots.length) return false;
+    if (!mots.length && !video.length) return false;
 
-    var avis = 'Voaray ' + mots.join(' sy ') + '. Jereo, avy eo tsindrio « Publier ».';
+    var avis = mots.length ? 'Voaray ' + mots.join(' sy ') + '. Jereo, avy eo tsindrio « Publier ».' : '';
+    if (video.length) avis += (avis ? ' ' : '') + '(Tsy alefa eto intsony ny video : apetraho any amin\'ny YouTube na Facebook aloha, dia ampidiro ny rohy amin\'ny 🎬.)';
     if (refuses > 0) avis += ' (Tsy azo raisina ny rakitra ' + refuses + ' hafa.)';
     if (sary.length && !posees) avis += ' (Tsy tafiditra ny sary : ampiasao ny 🖼️.)';
     annoncer(avis, false);

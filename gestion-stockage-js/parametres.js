@@ -3992,6 +3992,14 @@
     return m[0].replace(/[),.;:!?]+$/, '');
   }
 
+  // Le numéro d'une vidéo YouTube (youtube.com/watch?v=, youtu.be/, /shorts/,
+  // /embed/, /live/), ou '' pour tout autre lien.
+  function idYoutube(lien){
+    const m = String(lien || '').match(
+      /^https?:\/\/(?:www\.|m\.|music\.)?(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/i);
+    return m ? m[1] : '';
+  }
+
   // Le nom porte le numéro de ce qu'on garde : un aperçu d'hier n'avait qu'une
   // image, et resterait seul sous le billet une semaine durant. Changer de nom
   // les reprend tous d'un coup.
@@ -4588,6 +4596,15 @@
               ? '<button type="button" class="btn btn-red btn-sm" data-live-join ' +
                 'style="width:auto; margin-top:0.6rem;' + (liveEnCours ? '' : ' display:none;') +
                 '">▶️ Jereo ny Live eto</button>'
+              // Une vidéo YouTube se regarde dans le billet : son image d'abord
+              // (servie par YouTube), et le lecteur seulement à l'appui.
+              : idYoutube(lienDuBillet)
+                ? '<button type="button" data-youtube="' + idYoutube(lienDuBillet) + '" title="Jereo ny video" ' +
+                  'style="position:relative; display:block; width:100%; aspect-ratio:16/9; margin-top:0.6rem; padding:0; ' +
+                  'border:none; border-radius:10px; overflow:hidden; cursor:pointer; background:#000 center/cover no-repeat ' +
+                  'url(https://i.ytimg.com/vi/' + idYoutube(lienDuBillet) + '/hqdefault.jpg);">' +
+                  '<span style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:64px; height:44px; ' +
+                  'border-radius:12px; background:rgba(255,0,0,0.9); color:#fff; font-size:1.3rem; line-height:44px;">▶</span></button>'
               : (lienDuBillet
                 ? '<a href="' + escapeHtml(lienDuBillet) + '" target="_blank" rel="noopener" ' +
                   'data-apercu="' + escapeHtml(lienDuBillet) + '" data-apercu-attendu ' +
@@ -4647,6 +4664,17 @@
             const garde = apercuGarde(lienDuBillet);
             dessinerLApercu(cadreApercu, garde);
             if(garde) cadreApercu.removeAttribute('data-apercu-attendu');
+          }
+          const youtubeEl = div.querySelector('[data-youtube]');
+          if(youtubeEl){
+            youtubeEl.addEventListener('click', function(){
+              const lecteur = document.createElement('iframe');
+              lecteur.src = 'https://www.youtube-nocookie.com/embed/' + youtubeEl.getAttribute('data-youtube') + '?autoplay=1&playsinline=1';
+              lecteur.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+              lecteur.allowFullscreen = true;
+              lecteur.style.cssText = 'display:block; width:100%; aspect-ratio:16/9; margin-top:0.6rem; border:0; border-radius:10px;';
+              youtubeEl.replaceWith(lecteur);
+            });
           }
           const deleteEl = div.querySelector('[data-delete-post]');
           if(deleteEl){
@@ -4708,12 +4736,11 @@
 
   let pendingNewsImages = [];
   const MAX_NEWS_IMAGES = 6;
-  // La vidéo ne se réduit pas dans le navigateur comme une photo : on ne peut
-  // que refuser ce qui est trop lourd. La fonction video-r2 refuse la même
-  // chose de son côté — c'est elle qui fait foi, la page ne fait qu'éviter un
-  // envoi perdu.
-  const MAX_VIDEO_MO = 25;
-  let videoEnCours = false;
+  // La vidéo ne s'envoie plus : on colle son lien (YouTube, Facebook,
+  // TikTok…), et c'est ce site-là qui la sert. Stockées dans Supabase, les
+  // vidéos du fil y étaient comptées à chaque lecture (« Cached Egress ») :
+  // le quota gratuit était dépassé du double en octobre 2026.
+  let rohyVideo = '';
 
   const newsImageInput = document.getElementById('newsImage');
   const newsImagePreviewWrap = document.getElementById('newsImagePreviewWrap');
@@ -4721,7 +4748,7 @@
   function renderNewsImagePreviews(){
     if(!newsImagePreviewWrap) return;
     newsImagePreviewWrap.innerHTML = '';
-    if(!pendingNewsImages.length && !videoEnCours){
+    if(!pendingNewsImages.length && !rohyVideo){
       newsImagePreviewWrap.style.display = 'none';
       return;
     }
@@ -4742,15 +4769,21 @@
         'style="position:absolute; top:-8px; right:-8px; background:#e5484d; color:#fff; border:none; border-radius:50%; width:22px; height:22px; cursor:pointer; line-height:1;">\u2715</button>';
       newsImagePreviewWrap.appendChild(thumb);
     });
-    // L'envoi d'une vidéo prend le temps qu'il prend : sans rien à l'écran,
-    // on croit que le bouton n'a pas répondu et on recommence.
-    if(videoEnCours){
-      const attente = document.createElement('div');
-      attente.style.cssText = 'width:100px; height:100px; border:1px dashed var(--line); border-radius:10px; ' +
-        'display:flex; align-items:center; justify-content:center; text-align:center; ' +
-        'font-size:0.68rem; color:var(--muted); padding:0.3rem; box-sizing:border-box;';
-      attente.textContent = 'Mandefa ny video\u2026';
-      newsImagePreviewWrap.appendChild(attente);
+    // Le lien de la vidéo, avec de quoi le retirer.
+    if(rohyVideo){
+      const rohy = document.createElement('div');
+      rohy.style.cssText = 'position:relative; display:flex; align-items:center; gap:0.4rem; max-width:100%; ' +
+        'border:1px solid var(--line); border-radius:10px; padding:0.45rem 1.6rem 0.45rem 0.6rem; ' +
+        'font-size:0.74rem; color:var(--muted); box-sizing:border-box; overflow:hidden;';
+      rohy.innerHTML = '<span>🎬</span><span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' +
+        escapeHtml(rohyVideo) + '</span>' +
+        '<button type="button" data-rohy title="Esory" style="position:absolute; top:-8px; right:-8px; background:#e5484d; ' +
+        'color:#fff; border:none; border-radius:50%; width:22px; height:22px; cursor:pointer; line-height:1;">\u2715</button>';
+      rohy.querySelector('[data-rohy]').addEventListener('click', function(){
+        rohyVideo = '';
+        renderNewsImagePreviews();
+      });
+      newsImagePreviewWrap.appendChild(rohy);
     }
     newsImagePreviewWrap.querySelectorAll('button[data-idx]').forEach(function(btn){
       btn.addEventListener('click', function(){
@@ -4762,6 +4795,7 @@
 
   function clearNewsImages(){
     pendingNewsImages = [];
+    rohyVideo = '';
     if(newsImageInput) newsImageInput.value = '';
     renderNewsImagePreviews();
   }
@@ -4808,66 +4842,25 @@
     });
   }
 
-  // La vidéo ne voyage pas dans la ligne : elle part chez Cloudflare R2, et l'annonce
-  // ne garde que son adresse. Une seule par annonce — c'est déjà beaucoup à
-  // charger pour qui lit le fil sur son téléphone.
-  const newsVideoInput = document.getElementById('newsVideo');
-  if(newsVideoInput){
-    newsVideoInput.addEventListener('change', function(){
-      const file = (newsVideoInput.files || [])[0];
-      newsVideoInput.value = '';
-      if(!file) return;
-      if(videoEnCours){ alert('Miandrasa : mbola mandeha ny video teo aloha.'); return; }
-      if(pendingNewsImages.some(estVideo)){
-        alert('Video iray ihany isaky ny fanambarana. Esory aloha ilay teo aloha.');
-        return;
-      }
-      if(pendingNewsImages.length >= MAX_NEWS_IMAGES){
-        alert('Feno ' + MAX_NEWS_IMAGES + ' ny isan-tokony.');
-        return;
-      }
-      const mo = file.size / 1048576;
-      if(mo > MAX_VIDEO_MO){
-        alert('Lehibe loatra ny video : ' + mo.toFixed(1) + ' Mo. ' +
-          MAX_VIDEO_MO + ' Mo no farany ambony. Fohezo na ahenao ny hatsarany.');
-        return;
-      }
-      if(!window.__sb || !window.__sb.functions){
-        alert('Tsy tafiditra ny serveur : tsy afaka mandefa video.');
-        return;
-      }
-      videoEnCours = true;
-      renderNewsImagePreviews();
-
-      const ext = (String(file.name || '').split('.').pop() || 'mp4').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 5) || 'mp4';
-
-      const fini = function(message){
-        videoEnCours = false;
-        renderNewsImagePreviews();
-        if(message) alert(message);
-      };
-
-      // Cloudflare R2, et non plus le bucket Supabase : chaque lecture d'une
-      // vidéo y était comptée (« Cached Egress »). La fonction video-r2 rend
-      // une adresse d'envoi signée ; le fichier y part tout droit.
-      const type = file.type && /^video\//.test(file.type) ? file.type : 'video/mp4';
-      window.__sb.functions.invoke('video-r2', { body: { ext: ext, type: type, taille: file.size } })
-        .then(function(r){
-          const d = r && r.data;
-          if(r.error || !d || !d.envoi || !d.url){
-            throw new Error(d && d.error === 'r2_tsy_vonona'
-              ? 'mbola tsy vonona ny toerana hitahirizana video (Cloudflare R2).'
-              : ((d && d.error) || (r.error && r.error.message) || 'tsy fantatra'));
-          }
-          return fetch(d.envoi, { method: 'PUT', headers: { 'Content-Type': d.type }, body: file }).then(function(res){
-            if(!res.ok) throw new Error('R2 ' + res.status);
-            pendingNewsImages.push(d.url);
-            fini('');
-          });
-        })
-        .catch(function(err){
-          fini('Tsy lasa ny video : ' + ((err && err.message) || 'réseau'));
-        });
+  // 🎬 : le lien d'une vidéo déjà en ligne (YouTube, Facebook, TikTok…). Le
+  // billet le garde dans « link » ; le fil en fait un lecteur YouTube, ou la
+  // carte du site pour les autres.
+  function raisoRohyVideo(soratra){
+    const rohy = String(soratra || '').trim().split(/\s+/)[0] || '';
+    if(!rohy) return false;
+    if(!/^https?:\/\/[^\s]+\.[^\s]+/i.test(rohy)){
+      alert('Tsy rohy io. Adikao ny rohin\'ny video manontolo (manomboka amin\'ny https://).');
+      return false;
+    }
+    rohyVideo = rohy;
+    renderNewsImagePreviews();
+    return true;
+  }
+  const newsVideoBtn = document.getElementById('newsVideoBtn');
+  if(newsVideoBtn){
+    newsVideoBtn.addEventListener('click', function(){
+      const soratra = prompt('Apetaho eto ny rohin\'ny video (YouTube, Facebook, TikTok…) :', rohyVideo || '');
+      if(soratra !== null) raisoRohyVideo(soratra);
     });
   }
 
@@ -5137,8 +5130,6 @@
     postNewsBtn.addEventListener('click', function(){
       const libre = document.getElementById('newsMessage').value.trim();
       const entana = !!(newsIsGoods && newsIsGoods.checked);
-      // Publier maintenant, c'est publier sans la vidéo qui est en route.
-      if(videoEnCours){ alert('Miandrasa kely : mbola mandeha ny video.'); return; }
       if(entana){
         const bilan = cequiManqueALaFiche();
         if(bilan.manque.length){
@@ -5150,7 +5141,7 @@
       // L'annonce d'un article : ce que la personne a écrit en tête, puis la
       // fiche. Une nouvelle ordinaire reste ce qu'on a tapé.
       const message = entana ? [libre, texteDeLaFiche()].filter(Boolean).join('\n\n') : libre;
-      if(!message && !pendingNewsImages.length){ alert('Soraty ny vaovao na alao sary aloha.'); return; }
+      if(!message && !pendingNewsImages.length && !rohyVideo){ alert('Soraty ny vaovao na alao sary aloha.'); return; }
       if(!window.__sb){ alert('Tsy misy fifandraisana amin\'ny serveur.'); return; }
       const article = entana ? articleChoisi() : null;
       const prixAnnonce = (entana && newsPrice && Number(newsPrice.value) > 0) ? Number(newsPrice.value) : null;
@@ -5166,7 +5157,7 @@
       // maison, lui, est déjà posé sur le site : rien à recopier ni à réduire.
       (maison ? Promise.resolve(MARQUE_LOGO) : vignette(currentUser && currentUser.logo)).then(function(photo){
       const billet = {
-        client_name: clientName, network: 'Autre', message: message, link: '',
+        client_name: clientName, network: 'Autre', message: message, link: rohyVideo,
         // Une annonce marquée « entana amidy » porte son prix, et c'est elle
         // qui fera apparaître le bouton Acheter chez les autres. Corrigé ici,
         // il devient aussi celui du stock (plus bas).
