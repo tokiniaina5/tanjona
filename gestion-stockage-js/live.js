@@ -651,6 +651,9 @@
           '<input type="text" data-anarana-input maxlength="40" placeholder="Iza no anaranao ?" style="flex:1; min-width:0; ' +
             'padding:0.4rem 0.6rem; border-radius:8px; border:1px solid var(--line); background:var(--bg); color:var(--text); font-size:0.8rem;">' +
           '<button type="button" class="btn btn-sm" data-anarana-ok style="width:auto; flex:none;">OK</button>' +
+          // Na ny kaonty Google : ny anarana sy ny email avy amin'i Google.
+          '<button type="button" class="btn btn-sm" data-google title="Hiditra amin\'ny Google" style="width:auto; flex:none; ' +
+            'background:#fff; color:#1f1f1f; border-color:#dadce0; font-weight:700;">G</button>' +
         '</div>' +
         '<div data-hafatra style="flex:1; overflow-y:auto; font-size:0.82rem; min-height:40px; margin-bottom:0.5rem;"></div>' +
         '<div data-mandefa style="display:none; font-size:0.74rem; color:var(--muted); margin-bottom:0.4rem; flex:none;"></div>' +
@@ -695,6 +698,9 @@
         input.focus();
       }
       boaty.querySelector('[data-anarana-ok]').addEventListener('click', tehirizoAnarana);
+      boaty.querySelector('[data-google]').addEventListener('click', function(){
+        if(typeof window.__fidiranaGoogle === 'function') window.__fidiranaGoogle();
+      });
       anaranaInput.addEventListener('keydown', function(e){ if(e.key === 'Enter') tehirizoAnarana(); });
       boaty.querySelector('[data-emoji-bokotra]').addEventListener('click', function(){ sokafyEmoji(boaty, input); });
       const fichierInput = boaty.querySelector('[data-rakitra-input]');

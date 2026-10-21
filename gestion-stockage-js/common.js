@@ -2161,7 +2161,8 @@
     const email = (user && user.email) || '';
     const local = findProfileByEmail(email) || {};
     return {
-      name: meta.name || local.name || email.split('@')[0],
+      // full_name : le nom donné par Google.
+      name: meta.name || meta.full_name || local.name || email.split('@')[0],
       email: email,
       phone: meta.phone || local.phone || '',
       // Le logo suit le compte : sans la copie du serveur, une facture éditée
@@ -2550,6 +2551,8 @@
     loginForm.style.display = 'none';
     const forgotWrap = document.getElementById('forgotWrap');
     if(forgotWrap) forgotWrap.style.display = 'none';
+    const googleWrap = document.getElementById('googleLoginWrap');
+    if(googleWrap) googleWrap.style.display = 'none';
     const box = document.getElementById('recoveryBox');
     if(box) box.style.display = 'block';
     if(loginTitle) loginTitle.textContent = 'Nouveau code';
@@ -2626,6 +2629,19 @@
 
   function handleAuthLink(){
     const params = authLinkParams();
+
+    // Refus au retour de Google (annulé, adresse de retour non autorisée…) :
+    // ce n'est pas un lien email, on le dit sous le bouton Google.
+    let parGoogle = false;
+    try { parGoogle = !!localStorage.getItem(GOOGLE_KEY); } catch(e){}
+    if((params.error || params.error_code) && parGoogle){
+      try { localStorage.removeItem(GOOGLE_KEY); } catch(e){}
+      const status = document.getElementById('googleLoginStatus');
+      if(status) status.textContent = 'Connexion Google non aboutie : ' +
+        (params.error_description || params.error || '').replace(/\+/g, ' ');
+      history.replaceState(null, '', window.location.pathname);
+      return;
+    }
 
     if(params.error || params.error_code){
       authLinkTookOver = true;
@@ -2841,6 +2857,47 @@
     loginFromProfile(profile);
   };
 
+
+  // ---------------- CONNEXION / INSCRIPTION PAR GOOGLE ----------------
+  // Le nom et l'email viennent du compte Google : rien à taper. On part chez
+  // Google, qui renvoie ici avec la session ; le démarrage (getSession, plus
+  // bas) ouvre alors l'application. La marque dit au retour que c'est Google
+  // qui a été demandé, pour noter un compte neuf et expliquer un refus.
+  const GOOGLE_KEY = 'stockmanager_fidirana_google';
+  function fidiranaGoogle(){
+    const auth = sbAuth();
+    const status = document.getElementById('googleLoginStatus');
+    if(!auth || !auth.signInWithOAuth){
+      if(status) status.textContent = 'Serveur injoignable : vérifiez votre réseau.';
+      else alert('Serveur injoignable : vérifiez votre réseau.');
+      return;
+    }
+    try { localStorage.setItem(GOOGLE_KEY, String(Date.now())); } catch(e){}
+    if(status) status.textContent = 'Ouverture de Google…';
+    auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin + window.location.pathname, queryParams: { prompt: 'select_account' } }
+    }).then(function(res){
+      if(res && res.error && status) status.textContent = authErrorText(res.error);
+    }, function(){ if(status) status.textContent = 'Connexion impossible : vérifiez votre réseau.'; });
+  }
+  window.__fidiranaGoogle = fidiranaGoogle;
+  const googleLoginBtn = document.getElementById('googleLoginBtn');
+  if(googleLoginBtn) googleLoginBtn.addEventListener('click', fidiranaGoogle);
+
+  // Retour de Google : un compte créé il y a quelques minutes est une
+  // inscription — elle part chez le propriétaire comme les autres.
+  function apresGoogle(user){
+    let marque = null;
+    try { marque = localStorage.getItem(GOOGLE_KEY); localStorage.removeItem(GOOGLE_KEY); } catch(e){}
+    if(!marque || !user) return;
+    const provider = (user.app_metadata && user.app_metadata.provider) || '';
+    const cree = Date.parse(user.created_at || '') || 0;
+    if(provider === 'google' && Date.now() - cree < 15 * 60 * 1000){
+      const meta = user.user_metadata || {};
+      recordNewSignup(meta.full_name || meta.name || String(user.email).split('@')[0], user.email, '');
+    }
+  }
 
   let quickLoginBusy = false;
   let quickAutoTimer = null;
@@ -3812,6 +3869,7 @@
         if(session && session.user){
           const notice = document.getElementById('autoNoticeModal');
           if(notice) notice.style.display = 'none';
+          apresGoogle(session.user);
           openAppForAuthUser(session.user, { restoreView: true });
         } else {
           entrerSansCompte();
