@@ -15,9 +15,40 @@
     }
     return mpitsidikaId;
   }
+  // Ny anarana nomen'ny mpitsidika ny tenany (ao amin'ny boaty resaka), voatahiry
+  // ao amin'ity fitaovana ity.
+  const ANARANA_MPITSIDIKA = 'anaranaMpitsidika';
+  function anaranaMpitsidika(){
+    try{ return (localStorage.getItem(ANARANA_MPITSIDIKA) || '').trim(); }catch(e){ return ''; }
+  }
+  // « Android · Chrome » : mba hahafantarana ny mpitsidika tsy nanome anarana.
+  function fitaovanaFohy(){
+    const ua = navigator.userAgent || '';
+    const os = /Android/i.test(ua) ? 'Android' : /iPhone/i.test(ua) ? 'iPhone' : /iPad/i.test(ua) ? 'iPad'
+      : /Windows/i.test(ua) ? 'Windows' : /Mac OS/i.test(ua) ? 'Mac' : /Linux/i.test(ua) ? 'Linux' : '';
+    const nav = /SamsungBrowser/i.test(ua) ? 'Samsung Internet' : /OPR\/|Opera/i.test(ua) ? 'Opera'
+      : /Edg\//i.test(ua) ? 'Edge' : /FBAN|FBAV/i.test(ua) ? 'Facebook' : /Firefox|FxiOS/i.test(ua) ? 'Firefox'
+      : /Chrome|CriOS/i.test(ua) ? 'Chrome' : /Safari/i.test(ua) ? 'Safari' : '';
+    return [os, nav].filter(Boolean).join(' · ');
+  }
+  // Ny anarana asehon'ny admin ho an'ny olona iray miditra (presence).
+  function anaranaAseho(email, p){
+    p = p || presenceState[email] || {};
+    if(String(email).indexOf('mpitsidika-') !== 0) return p.name || email;
+    return p.name && p.name !== 'Mpitsidika' ? p.name : 'Mpitsidika ' + String(email).slice(11, 15);
+  }
+  // « Mpitsidika · Android · Chrome · #abcd » : ambanin'ny anarana.
+  function mombaOlona(email){
+    const p = presenceState[email] || {};
+    const mpitsidika = String(email).indexOf('mpitsidika-') === 0;
+    // Ny admin ihany no mahita ny email.
+    const adiresy = mpitsidika ? 'Mpitsidika (tsy nanao inscription)' : (myIdentity().isAdmin ? email : '');
+    return [adiresy, p.fitaovana,
+      mpitsidika ? '#' + String(email).slice(11, 15) : ''].filter(Boolean).join(' · ');
+  }
   function myIdentity(){
     const email = (currentUser && currentUser.email) ? currentUser.email.trim().toLowerCase() : idMpitsidika();
-    const name = (currentUser && currentUser.name) || (currentUser ? 'Utilisateur' : 'Mpitsidika');
+    const name = (currentUser && currentUser.name) || (currentUser ? 'Utilisateur' : (anaranaMpitsidika() || 'Mpitsidika'));
     const isAdmin = !!(currentUser && currentUser.email && currentUser.email.trim().toLowerCase() === OWNER_EMAIL.toLowerCase());
     return { email: email, name: name, isAdmin: isAdmin };
   }
@@ -112,6 +143,8 @@
       if(typeof updateOwnerPresenceLabel === 'function') updateOwnerPresenceLabel();
       // Ceux qui sont là : anneau violet sur leur story, vert sur leurs billets (parametres.js).
       if(typeof window.__storiesEnLigne === 'function') window.__storiesEnLigne();
+      // Ny anarana nomen'ny mpitsidika dia miseho avy hatrany ao amin'ny resaka.
+      if(resakaMisokatra) asehoyResaka();
     });
     presenceChannel.subscribe(function(status){
       if(status === 'SUBSCRIBED'){
@@ -120,9 +153,9 @@
         const auth = window.__sb.auth;
         (auth && auth.getSession ? auth.getSession() : Promise.resolve(null)).then(function(r){
           const uid = r && r.data && r.data.session && r.data.session.user ? r.data.session.user.id : null;
-          presenceChannel.track({ name: me.name, isAdmin: me.isAdmin, live: false, uid: uid, at: Date.now() });
+          presenceChannel.track({ name: me.name, isAdmin: me.isAdmin, live: false, uid: uid, fitaovana: fitaovanaFohy(), at: Date.now() });
         }, function(){
-          presenceChannel.track({ name: me.name, isAdmin: me.isAdmin, live: false, at: Date.now() });
+          presenceChannel.track({ name: me.name, isAdmin: me.isAdmin, live: false, fitaovana: fitaovanaFohy(), at: Date.now() });
         });
       }
     });
@@ -131,7 +164,7 @@
   function updateMyPresence(patch){
     if(!presenceChannel) return;
     const me = myIdentity();
-    const current = presenceState[me.email] || { name: me.name, isAdmin: me.isAdmin, live: false };
+    const current = presenceState[me.email] || { name: me.name, isAdmin: me.isAdmin, live: false, fitaovana: fitaovanaFohy() };
     presenceChannel.track(Object.assign({}, current, patch, { at: Date.now() }));
   }
 
@@ -200,7 +233,7 @@
     const olona = Object.keys(presenceState).filter(function(k){ return k !== me.email; }).map(function(k){
       const p = presenceState[k] || {};
       const mpitsidika = k.indexOf('mpitsidika-') === 0;
-      return { email: k, name: mpitsidika ? '👤 Mpitsidika ' + k.slice(11, 15) : (p.name || k),
+      return { email: k, name: (mpitsidika ? '👤 ' : '') + anaranaAseho(k, p),
         phone: '', online: true, mpitsidika: mpitsidika };
     });
     [['callMitsidika', '☎️', 'Antso', function(o){
@@ -215,7 +248,7 @@
       if(!list) return;
       document.getElementById(c[0] + 'Empty').style.display = olona.length ? 'none' : 'block';
       list.innerHTML = andalanaMpisoratra(olona.map(function(o){
-        return Object.assign({}, o, { email: o.mpitsidika ? 'Tsy nanao inscription' : o.email });
+        return Object.assign({}, o, { email: mombaOlona(o.email) });
       }), c[1], c[2]);
       list.querySelectorAll('[data-i]').forEach(function(btn){
         btn.addEventListener('click', function(){
@@ -515,6 +548,7 @@
   function onHafatraTonga(payload){
     const avy = payload.from;
     if(!avy || (!payload.text && !payload.media)) return;
+    if(presenceState[avy]) payload.fromName = anaranaAseho(avy);
     (resaka[avy] = resaka[avy] || []).push({ avy: 'izy', soratra: String(payload.text || ''), media: payload.media || null, at: Date.now() });
     const fohy = payload.text ? String(payload.text).slice(0, 120)
       : (payload.media && payload.media.type === 'video' ? '🎬 Video' : '📷 Sary');
@@ -603,11 +637,20 @@
         'flex-direction:column; box-shadow:0 10px 30px rgba(0,0,0,0.4);';
       boaty.innerHTML =
         '<div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; margin-bottom:0.5rem; flex:none;">' +
-          '<strong data-lohateny style="font-size:0.9rem; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></strong>' +
+          '<div style="min-width:0;">' +
+            '<strong data-lohateny style="display:block; font-size:0.9rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></strong>' +
+            '<div data-momba style="font-size:0.7rem; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></div>' +
+          '</div>' +
           '<span style="display:flex; gap:0.3rem; flex:none;">' +
             '<button type="button" class="btn btn-sm" data-ngeza title="Angezaina / Ahelezina" style="width:auto;">⤢</button>' +
             '<button type="button" class="btn btn-sm" data-hidio title="Hidio" style="width:auto;">✕</button>' +
           '</span>' +
+        '</div>' +
+        // Mpitsidika tsy niditra : manome ny anarany mba ho fantatry ny admin.
+        '<div data-anarana style="display:none; gap:0.35rem; align-items:center; margin-bottom:0.5rem; flex:none;">' +
+          '<input type="text" data-anarana-input maxlength="40" placeholder="Iza no anaranao ?" style="flex:1; min-width:0; ' +
+            'padding:0.4rem 0.6rem; border-radius:8px; border:1px solid var(--line); background:var(--bg); color:var(--text); font-size:0.8rem;">' +
+          '<button type="button" class="btn btn-sm" data-anarana-ok style="width:auto; flex:none;">OK</button>' +
         '</div>' +
         '<div data-hafatra style="flex:1; overflow-y:auto; font-size:0.82rem; min-height:40px; margin-bottom:0.5rem;"></div>' +
         '<div data-mandefa style="display:none; font-size:0.74rem; color:var(--muted); margin-bottom:0.4rem; flex:none;"></div>' +
@@ -642,6 +685,17 @@
       }
       boaty.querySelector('[data-alefa]').addEventListener('click', alefa);
       input.addEventListener('keydown', function(e){ if(e.key === 'Enter') alefa(); });
+      const anaranaInput = boaty.querySelector('[data-anarana-input]');
+      function tehirizoAnarana(){
+        const anarana = anaranaInput.value.trim().slice(0, 40);
+        if(!anarana){ anaranaInput.focus(); return; }
+        try{ localStorage.setItem(ANARANA_MPITSIDIKA, anarana); }catch(e){}
+        updateMyPresence({ name: anarana });
+        asehoyResaka();
+        input.focus();
+      }
+      boaty.querySelector('[data-anarana-ok]').addEventListener('click', tehirizoAnarana);
+      anaranaInput.addEventListener('keydown', function(e){ if(e.key === 'Enter') tehirizoAnarana(); });
       boaty.querySelector('[data-emoji-bokotra]').addEventListener('click', function(){ sokafyEmoji(boaty, input); });
       const fichierInput = boaty.querySelector('[data-rakitra-input]');
       boaty.querySelector('[data-rakitra]').addEventListener('click', function(){ fichierInput.click(); });
@@ -661,7 +715,11 @@
     const boaty = document.getElementById('resakaMivantana');
     if(!boaty || !resakaMisokatra) return;
     const online = !!presenceState[resakaMisokatra.email];
-    boaty.querySelector('[data-lohateny]').textContent = '💬 ' + resakaMisokatra.anarana + (online ? ' 🟢' : ' ⚪');
+    const email = resakaMisokatra.email;
+    const anarana = presenceState[email] ? anaranaAseho(email) : resakaMisokatra.anarana;
+    boaty.querySelector('[data-lohateny]').textContent = '💬 ' + anarana + (online ? ' 🟢' : ' ⚪');
+    boaty.querySelector('[data-momba]').textContent = mombaOlona(email);
+    boaty.querySelector('[data-anarana]').style.display = !currentUser && !anaranaMpitsidika() ? 'flex' : 'none';
     const lisitra = resaka[resakaMisokatra.email] || [];
     const zone = boaty.querySelector('[data-hafatra]');
     zone.innerHTML = lisitra.length
