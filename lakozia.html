@@ -20,7 +20,7 @@
 <script src="/mazava.js?v=2bcdcfad" defer></script>
 <!-- 🔄 La page se met à jour seule quand une version neuve est en ligne (pejy-version.js) ;
      l'empreinte est écrite par outils/versionner.mjs. -->
-<meta name="pejy-version" content="39f7be96">
+<meta name="pejy-version" content="2a3438d8">
 <script src="/pejy-version.js?v=97acc3b0" defer></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -85,6 +85,10 @@
   .robot-code{ display:flex; flex-direction:column; gap:0.3rem; font-size:0.85rem; color:var(--muted); font-weight:600; }
   .robot-code input{ font:inherit; font-size:1rem; font-weight:400; color:var(--text); background:var(--card); border:1px solid var(--line); border-radius:10px; padding:0.6rem 0.75rem; }
   .robot-code input:focus{ outline:2px solid var(--accent); outline-offset:1px; }
+  .robot-code-ligne{ display:flex; gap:0.5rem; }
+  .robot-code-ligne input{ flex:1 1 auto; min-width:0; }
+  .robot-save{ flex:0 0 auto; font-weight:700; }
+  .livreur-ampio:disabled{ opacity:0.45; cursor:not-allowed; }
   .robot-etat{ margin:0; font-size:0.85rem; color:var(--accent); }
   .robot-etat:empty{ display:none; }
   .robot-etat.diso{ color:#e05a5a; }
@@ -394,19 +398,37 @@
     champ.maxLength = 32;
     champ.placeholder = 'Ex : 1234';
     champ.value = retenuLire('robot_code') || '';
-    champ.addEventListener('input', function () { retenuEcrire('robot_code', champ.value.trim()); });
-    champBloc.appendChild(champ);
+    // Le code ne compte qu'une fois enregistré (💾 Save) : c'est lui qui rend
+    // « Go to the table » utilisable.
+    const ligneCode = el('div', null, 'robot-code-ligne');
+    ligneCode.appendChild(champ);
+    const tahiry = el('button', '💾 Save', 'robot-save');
+    tahiry.type = 'button';
+    tahiry.setAttribute('translate', 'no');
+    ligneCode.appendChild(tahiry);
+    champBloc.appendChild(ligneCode);
     boite.appendChild(champBloc);
     const robotEtat = el('p', null, 'robot-etat');
     boite.appendChild(robotEtat);
+    function majBouton() {
+      const ok = !!(retenuLire('robot_code') || '');
+      ampio.disabled = !ok;
+      ampio.title = ok ? '' : "Soraty ny code an'ny robot, dia tsindrio 💾 Save.";
+    }
+    majBouton();
+    function tehirizo() {
+      const v = champ.value.trim();
+      retenuEcrire('robot_code', v);
+      robotEtat.classList.toggle('diso', !v);
+      robotEtat.textContent = v ? '✅ Voatahiry ny code.' : "Soraty aloha ny code an'ny robot.";
+      majBouton();
+      if (!v) champ.focus();
+    }
+    tahiry.addEventListener('click', tehirizo);
+    champ.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') tehirizo(); });
     ampio.addEventListener('click', function () {
-      const codeRobot = champ.value.trim();
-      if (!codeRobot) {
-        robotEtat.textContent = "Soraty aloha ny code an'ny robot.";
-        robotEtat.classList.add('diso');
-        champ.focus();
-        return;
-      }
+      const codeRobot = retenuLire('robot_code') || '';
+      if (!codeRobot) { majBouton(); return; }
       robotEtat.classList.remove('diso');
       retenuEcrire('robot_baiko', JSON.stringify({ latabatra: c.latabatra, commande: c.id, code: codeRobot, at: new Date().toISOString() }));
       robotEtat.textContent = '🤖 Voaray : T' + c.latabatra + ' (code ' + codeRobot + '). Mbola amboarina ny robot, ka tsy mandeha aloha izy.';
