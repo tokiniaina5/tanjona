@@ -591,12 +591,20 @@
   // Où joindre le mpiasa dans le site, s'il y est en ce moment (présence de
   // live.js) : son compte Ny asako, ou la page de son lien (vue-mpiasa.js,
   // la même adresse qu'equipe.js appelle).
+  // La page du lien passe d'abord : c'est elle que le mpiasa a ouverte. Son
+  // email ne compte que s'il n'est pas le nôtre — noté par erreur dans
+  // 👷 Mpiasa, il faisait écrire et sonner chez soi-même.
+  function lienMpiasa(m) { return 'mpiasa-' + m.id + '@ny-asako.invalid'; }
+  function emailMpiasa(m) {
+    const email = String(m.email || '').trim().toLowerCase();
+    const moi = typeof currentUser !== 'undefined' && currentUser && currentUser.email ? String(currentUser.email).trim().toLowerCase() : '';
+    return email && email !== moi ? email : '';
+  }
   function adresseMpiasa(m) {
     if (typeof presenceState === 'undefined') return '';
-    const email = String(m.email || '').trim().toLowerCase();
-    if (email && presenceState[email]) return email;
-    const lien = 'mpiasa-' + m.id + '@ny-asako.invalid';
-    return presenceState[lien] ? lien : '';
+    if (presenceState[lienMpiasa(m)]) return lienMpiasa(m);
+    const email = emailMpiasa(m);
+    return email && presenceState[email] ? email : '';
   }
   function chiffres(t) { return String(t || '').replace(/[^\d+]/g, ''); }
   function antsoyMpiasa(m) {
@@ -605,21 +613,22 @@
     // Pas là : ses appareils abonnés reçoivent « 📞 Antso avy amin'i … »
     // (live.js, fonction « push »), sur son compte comme sur la page de son lien.
     if (typeof alefaPush === 'function') {
-      const email = String(m.email || '').trim().toLowerCase();
+      const email = emailMpiasa(m);
       if (email) alefaPush(email, 'antso', { callType: 'audio' });
-      alefaPush('mpiasa-' + m.id + '@ny-asako.invalid', 'antso', { callType: 'audio' });
+      alefaPush(lienMpiasa(m), 'antso', { callType: 'audio' });
     }
     const finday = chiffres(m.telephone);
     if (finday.replace(/\D/g, '').length >= 9) { location.href = 'tel:' + finday; return; }
     alert('Tsy misokatra ny Ny asako-n\'i ' + (m.nom || 'ilay mpiasa') + ' amin\'izao : nalefa any aminy ny notification « 📞 Antso », hiantso anao izy rehefa mahita azy.');
   }
+  // Pas là : vers son compte s'il en a un, sinon vers la page de son lien —
+  // le hafatra y part en notification (live.js, alefaPush).
   function hafatraMpiasa(m) {
-    const email = String(m.email || '').trim().toLowerCase();
-    const adresse = adresseMpiasa(m) || email;
-    if (adresse && typeof window.__sokafyResaka === 'function') { window.__sokafyResaka(adresse, m.nom || 'Mpiasa'); return; }
+    const adresse = adresseMpiasa(m) || emailMpiasa(m) || lienMpiasa(m);
+    if (typeof window.__sokafyResaka === 'function') { window.__sokafyResaka(adresse, m.nom || 'Mpiasa'); return; }
     const finday = chiffres(m.telephone);
     if (finday.replace(/\D/g, '').length >= 9) { location.href = 'sms:' + finday; return; }
-    alert('Tsy misy email na laharana marina ho an\'i ' + (m.nom || 'ilay mpiasa') + ' : ampio ao amin\'ny 👷 Mpiasa.');
+    alert('Tsy azo alefa ny hafatra ho an\'i ' + (m.nom || 'ilay mpiasa') + ' amin\'izao.');
   }
   function dessinerMpiasa() {
     const z = document.getElementById('lakoziaMpiasa');

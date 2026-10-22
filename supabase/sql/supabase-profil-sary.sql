@@ -39,7 +39,7 @@ as $$
     or (e.telephone is not null and p.finday is not null
         and length(regexp_replace(p.finday, '\D', '', 'g')) >= 9
         and right(regexp_replace(e.telephone, '\D', '', 'g'), 9) = right(regexp_replace(p.finday, '\D', '', 'g'), 9))
-  where e.owner_email = lower(auth.jwt() ->> 'email')
+  where e.owner_email = lower(auth.jwt() ->> 'email') and p.email <> e.owner_email
   order by e.id, (e.email is not null and lower(trim(e.email)) = p.email) desc, p.updated_at desc;
 $$;
 revoke all on function public.equipe_sary_profil() from public;
