@@ -4902,11 +4902,10 @@
       a.target = '_blank';
       a.rel = 'noopener';
       a.title = t[1];
-      a.style.cssText = 'display:flex; flex-direction:column; align-items:center; gap:0.25rem; text-decoration:none; color:var(--text);';
-      a.innerHTML = '<span style="display:flex; align-items:center; justify-content:center; width:2.6rem; height:2.6rem; ' +
-        'border-radius:12px; background:' + (l ? l[0] : '#5f6b73') + ';">' +
+      a.className = 'logo-reseau';
+      a.innerHTML = '<span class="logo-reseau-icone" style="background:' + (l ? l[0] : '#5f6b73') + ';">' +
         (l ? '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="#fff" d="' + l[1] + '"/></svg>' : '🎬') +
-        '</span><span style="font-size:0.64rem; font-weight:600;">' + t[1] + '</span>';
+        '</span><span class="logo-reseau-nom">' + t[1] + '</span>';
       a.addEventListener('click', function(){ miandryRohy = true; });
       zone.appendChild(a);
     });

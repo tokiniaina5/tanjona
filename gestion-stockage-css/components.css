@@ -210,6 +210,35 @@
     cursor:pointer;
   }
   .composer-icone:hover{ border-color: var(--cyan); }
+  /* Les six réseaux de 🎬 : six colonnes égales dans un cadre, pour que les
+     noms longs (Instagram, Facebook) n'écartent plus leurs voisins. */
+  #newsVideoLogos{
+    display:grid; grid-template-columns:repeat(6, 1fr); gap:0.4rem;
+    padding:0.6rem 0.4rem;
+    border:1px solid var(--line); border-radius:12px;
+    background: var(--panel-2);
+  }
+  .logo-reseau{
+    display:flex; flex-direction:column; align-items:center; gap:0.3rem;
+    min-width:0; padding:0.3rem 0; border-radius:10px;
+    text-decoration:none; color:var(--text);
+    transition: background .15s, transform .15s;
+  }
+  .logo-reseau:hover{ background: rgba(79,216,224,0.10); transform: translateY(-2px); }
+  .logo-reseau-icone{
+    display:flex; align-items:center; justify-content:center;
+    width:2.5rem; height:2.5rem; border-radius:12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+  }
+  .logo-reseau-nom{
+    max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    font-size:0.62rem; font-weight:600;
+  }
+  /* Sur un téléphone étroit, six colonnes coupaient les noms : deux rangées de trois. */
+  @media (max-width: 420px){
+    #newsVideoLogos{ grid-template-columns:repeat(3, 1fr); row-gap:0.6rem; }
+  }
+  #newsVideoRohyToro{ text-align:center; }
   /* La case reste dans la page — c'est elle que le reste du code interroge —
      mais ne se montre plus : l'icône dit déjà tout. */
   .composer-case{ position:absolute; opacity:0; width:0; height:0; margin:0; pointer-events:none; }
