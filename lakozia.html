@@ -20,7 +20,7 @@
 <script src="/mazava.js?v=2bcdcfad" defer></script>
 <!-- 🔄 La page se met à jour seule quand une version neuve est en ligne (pejy-version.js) ;
      l'empreinte est écrite par outils/versionner.mjs. -->
-<meta name="pejy-version" content="b1070b62">
+<meta name="pejy-version" content="21ca682d">
 <script src="/pejy-version.js?v=97acc3b0" defer></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -317,7 +317,8 @@
     });
     b.appendChild(ul);
     if (c.fanamarihana) b.appendChild(el('p', '📝 ' + c.fanamarihana, 'note'));
-    if (!c.vita && livreurs.length) b.appendChild(blocLivreurs(c));
+    // Dans tous les bons : vita, c'est justement l'heure où le plat part.
+    b.appendChild(blocLivreurs(c));
     const v = el('button', c.vita ? '↩️ Tsy mbola vita' : '✅ Vita', 'vita-btn');
     v.type = 'button';
     v.addEventListener('click', function () { marquer(c, v); });
@@ -330,6 +331,11 @@
   function blocLivreurs(c) {
     const bloc = el('div', null, 'bon-livreurs');
     bloc.appendChild(el('div', '🛵 Livreur', 'bon-livreurs-titre'));
+    // Aucun livreur : la place est dite, pour qu'on sache où il paraîtra.
+    if (!livreurs.length) {
+      bloc.appendChild(el('span', "Mbola tsy misy : ampidiro ao amin'ny Ny asako › 🛵 Livreur.", 'livreur-tel'));
+      return bloc;
+    }
     const soratra = 'T' + c.latabatra + ' : ' + (c.plats || []).map(function (p) { return (Number(p.isa) || 0) + ' × ' + p.anarana; }).join(', ') +
       (c.fanamarihana ? ' (' + c.fanamarihana + ')' : '');
     livreurs.forEach(function (x) {
