@@ -16,7 +16,7 @@
 <script src="/mazava.js?v=2bcdcfad" defer></script>
 <!-- 🔄 La page se met à jour seule quand une version neuve est en ligne (pejy-version.js) ;
      l'empreinte est écrite par outils/versionner.mjs. -->
-<meta name="pejy-version" content="1686ac46">
+<meta name="pejy-version" content="fcf61d42">
 <script src="/pejy-version.js?v=97acc3b0" defer></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -959,7 +959,12 @@
         if (!r) return;
         if (s.voaloa && !r.voaloa) { r.voaloa = true; change = true; }
         if (!!s.lakozia !== !!r.lakozia) { r.lakozia = !!s.lakozia; change = true; }
-        if (!!s.vita !== !!r.vita) { r.vita = !!s.vita; change = true; }
+        if (!!s.vita !== !!r.vita) {
+          // « ✅ Done » en cuisine : la latabatra sonne en même temps que
+          // « 🍳 Vita ny sakafo » prend l'écran.
+          if (s.vita && (!latabatraChoisie || Number(r.latabatra) === latabatraChoisie)) antsoFeo();
+          r.vita = !!s.vita; change = true;
+        }
         // Le 🔔 de la cuisine : une date neuve sonne ici. Un appel déjà vieux
         // (reçu ouvert après coup) ne fait que se noter.
         if (s.antso && s.antso !== r.antso) {
