@@ -20,7 +20,7 @@
 <script src="/mazava.js?v=2bcdcfad" defer></script>
 <!-- 🔄 La page se met à jour seule quand une version neuve est en ligne (pejy-version.js) ;
      l'empreinte est écrite par outils/versionner.mjs. -->
-<meta name="pejy-version" content="03b8c5d1">
+<meta name="pejy-version" content="805f6f27">
 <script src="/pejy-version.js?v=97acc3b0" defer></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -55,7 +55,10 @@
   ul{ list-style:none; margin:0.7rem 0 0; padding:0; flex:1; }
   li{ font-size:1.15rem; padding:0.3rem 0; border-bottom:1px solid var(--line); }
   li b{ display:inline-block; min-width:2.4rem; color:var(--accent); }
-  .note{ margin:0.6rem 0 0; padding:0.4rem 0.6rem; border-radius:8px; background:rgba(255,176,32,0.12); font-size:0.95rem; }
+  /* Ce que le client demande (« sans piment »…) : à ne pas manquer, même de
+     loin — grand, gras, sur fond orange vif. */
+  .note{ margin:0.6rem 0 0; padding:0.6rem 0.75rem; border-radius:10px; border:2px solid var(--vaovao); border-left-width:6px; background:rgba(255,176,32,0.22); color:var(--text); font-size:1.1rem; font-weight:700; line-height:1.35; }
+  :root[data-theme="light"] .note{ background:#fff1d6; }
   .bon .vita-btn{ margin-top:0.8rem; width:100%; padding:0.7rem; font-size:1.05rem; font-weight:700; background:var(--ok); border-color:var(--ok); color:#fff; }
   .bon.vita .vita-btn{ background:transparent; color:var(--muted); border-color:var(--line); font-weight:400; font-size:0.9rem; padding:0.4rem; }
   .vide{ color:var(--muted); background:var(--card); border:1px dashed var(--line); border-radius:12px; padding:1.4rem; text-align:center; }
