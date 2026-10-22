@@ -20,7 +20,7 @@
 <script src="/mazava.js?v=2bcdcfad" defer></script>
 <!-- 🔄 La page se met à jour seule quand une version neuve est en ligne (pejy-version.js) ;
      l'empreinte est écrite par outils/versionner.mjs. -->
-<meta name="pejy-version" content="2a3438d8">
+<meta name="pejy-version" content="9187fee4">
 <script src="/pejy-version.js?v=97acc3b0" defer></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -381,25 +381,24 @@
     const soratra = 'T' + c.latabatra + ' : ' + (c.plats || []).map(function (p) { return (Number(p.isa) || 0) + ' × ' + p.anarana; }).join(', ') +
       (c.fanamarihana ? ' (' + c.fanamarihana + ')' : '');
     boite.appendChild(el('p', soratra, 'livreur-commande'));
-    // « Go to the table » envoie le robot à la latabatra ; sous lui, le code
-    // du robot, retenu sur la tablette. Le robot n'est pas encore construit :
-    // l'ordre est noté (dernier envoi gardé), rien ne part encore.
+    // « Go to the table » envoie le robot à la latabatra ; sous lui, le lien
+    // du robot (son adresse web), retenu sur la tablette une fois enregistré.
+    // Le bouton ouvre ce lien avec la latabatra et la commande dans l'adresse
+    // (?latabatra=…&commande=…), ce que le robot lira quand il sera construit.
     const ampio = el('button', '🍽️ Go to the table', 'livreur-ampio');
     ampio.type = 'button';
     // Écrit en anglais, et laissé tel quel par les traducteurs (translate="no").
     ampio.setAttribute('translate', 'no');
     boite.appendChild(ampio);
     const champBloc = el('label', null, 'robot-code');
-    champBloc.appendChild(el('span', "🤖 Code an'ny robot"));
+    champBloc.appendChild(el('span', "🤖 Rohy an'ny robot"));
     const champ = el('input');
-    champ.type = 'text';
-    champ.inputMode = 'numeric';
+    champ.type = 'url';
+    champ.inputMode = 'url';
     champ.autocomplete = 'off';
-    champ.maxLength = 32;
-    champ.placeholder = 'Ex : 1234';
-    champ.value = retenuLire('robot_code') || '';
-    // Le code ne compte qu'une fois enregistré (💾 Save) : c'est lui qui rend
-    // « Go to the table » utilisable.
+    champ.maxLength = 500;
+    champ.placeholder = 'https://…';
+    champ.value = retenuLire('robot_rohy') || '';
     const ligneCode = el('div', null, 'robot-code-ligne');
     ligneCode.appendChild(champ);
     const tahiry = el('button', '💾 Save', 'robot-save');
@@ -410,28 +409,44 @@
     boite.appendChild(champBloc);
     const robotEtat = el('p', null, 'robot-etat');
     boite.appendChild(robotEtat);
+    // Un lien web, et rien d'autre : pas de « javascript: » ni d'adresse locale.
+    function rohyMety(v) {
+      try { const u = new URL(v); return /^https?:$/.test(u.protocol) ? u.href : ''; } catch (e) { return ''; }
+    }
     function majBouton() {
-      const ok = !!(retenuLire('robot_code') || '');
+      const ok = !!rohyMety(retenuLire('robot_rohy') || '');
       ampio.disabled = !ok;
-      ampio.title = ok ? '' : "Soraty ny code an'ny robot, dia tsindrio 💾 Save.";
+      ampio.title = ok ? '' : "Apetaho ny rohy an'ny robot, dia tsindrio 💾 Save.";
     }
     majBouton();
     function tehirizo() {
-      const v = champ.value.trim();
-      retenuEcrire('robot_code', v);
-      robotEtat.classList.toggle('diso', !v);
-      robotEtat.textContent = v ? '✅ Voatahiry ny code.' : "Soraty aloha ny code an'ny robot.";
+      let v = champ.value.trim();
+      if (v && !/^https?:\/\//i.test(v)) v = 'https://' + v;
+      const rohy = v ? rohyMety(v) : '';
+      if (v && !rohy) {
+        robotEtat.classList.add('diso');
+        robotEtat.textContent = 'Tsy rohy mety io (ohatra : https://robot.example.mg).';
+        champ.focus();
+        return;
+      }
+      retenuEcrire('robot_rohy', rohy);
+      champ.value = rohy;
+      robotEtat.classList.toggle('diso', !rohy);
+      robotEtat.textContent = rohy ? '✅ Voatahiry ny rohy.' : "Apetaho aloha ny rohy an'ny robot.";
       majBouton();
-      if (!v) champ.focus();
+      if (!rohy) champ.focus();
     }
     tahiry.addEventListener('click', tehirizo);
     champ.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') tehirizo(); });
     ampio.addEventListener('click', function () {
-      const codeRobot = retenuLire('robot_code') || '';
-      if (!codeRobot) { majBouton(); return; }
+      const rohy = rohyMety(retenuLire('robot_rohy') || '');
+      if (!rohy) { majBouton(); return; }
+      const u = new URL(rohy);
+      u.searchParams.set('latabatra', String(c.latabatra));
+      u.searchParams.set('commande', String(c.id));
       robotEtat.classList.remove('diso');
-      retenuEcrire('robot_baiko', JSON.stringify({ latabatra: c.latabatra, commande: c.id, code: codeRobot, at: new Date().toISOString() }));
-      robotEtat.textContent = '🤖 Voaray : T' + c.latabatra + ' (code ' + codeRobot + '). Mbola amboarina ny robot, ka tsy mandeha aloha izy.';
+      robotEtat.textContent = '🤖 Nalefa any amin\'ny robot : T' + c.latabatra + '.';
+      window.open(u.href, '_blank', 'noopener');
     });
     livreurs.forEach(function (x) {
       const ligne = el('div', null, 'livreur');
