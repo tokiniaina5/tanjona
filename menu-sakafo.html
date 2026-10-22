@@ -16,7 +16,7 @@
 <script src="/mazava.js?v=2bcdcfad" defer></script>
 <!-- 🔄 La page se met à jour seule quand une version neuve est en ligne (pejy-version.js) ;
      l'empreinte est écrite par outils/versionner.mjs. -->
-<meta name="pejy-version" content="010c9961">
+<meta name="pejy-version" content="ffdd867a">
 <script src="/pejy-version.js?v=97acc3b0" defer></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -830,7 +830,11 @@
     let l = [];
     try { l = JSON.parse(retenuLire(CLE_RECU)) || []; } catch (e) { }
     const hier = Date.now() - 24 * 3600 * 1000;
-    return (Array.isArray(l) ? l : []).filter(function (r) { return r && r.id && r.at > hier; });
+    // Une commande finie — servie, payée, et ses deux écrans (« Vita »,
+    // « Mankasitraka ») fermés — quitte la table : le client suivant, assis
+    // au même endroit, ne voit pas ce que le précédent a pris ni payé.
+    const vitaTanteraka = function (r) { return r.vita && r.vita_hidy && r.voaloa && r.fisaorana_hidy && r.robot !== 'mandeha'; };
+    return (Array.isArray(l) ? l : []).filter(function (r) { return r && r.id && r.at > hier && !vitaTanteraka(r); });
   }
   function recusEcrire(l) { retenuEcrire(CLE_RECU, JSON.stringify(l.slice(0, 30))); dessinerRecus(); }
   function recuAjouter(r) { recusEcrire([r].concat(recusLire())); }
