@@ -42,7 +42,8 @@
     }
     Promise.all([
       window.__sb.from('contact_channels').select('*').eq('id', 1).maybeSingle(),
-      window.__sb.from('contact_extra_channels').select('id,name,url').order('created_at', { ascending: true })
+      // user_id vide = les canaux de l'admin ; les autres sont à leur compte.
+      window.__sb.from('contact_extra_channels').select('id,name,url').is('user_id', null).order('created_at', { ascending: true })
     ]).then(function(results){
       const chRes = results[0], exRes = results[1];
       const channels = (chRes && chRes.data) ? chRes.data : loadContactChannelsLocal();
@@ -52,6 +53,39 @@
       callback(channels, extra);
     }, function(){
       callback(loadContactChannelsLocal(), loadContactExtraLocal());
+    });
+  }
+
+  // « 🔗 Ajouter les liens » est à tous depuis le 22/10/2026 : l'admin tient
+  // la ligne id = 1 (celle que les clients voient dans « Message »), chaque
+  // autre compte la sienne dans kaonty_rohy, et ses canaux ajoutés portent
+  // son user_id (supabase-rohy-kaonty.sql).
+  function estAdminRohy(){
+    return !!(typeof currentUser !== 'undefined' && currentUser && currentUser.email &&
+      typeof isOwnerEmail === 'function' && isOwnerEmail(currentUser.email));
+  }
+  function monUid(){
+    const sb = window.__sb;
+    if(!sb || !sb.auth || !sb.auth.getSession) return Promise.resolve('');
+    return sb.auth.getSession().then(function(r){
+      const u = r && r.data && r.data.session && r.data.session.user;
+      return u ? u.id : '';
+    }, function(){ return ''; });
+  }
+  function fetchMesCanaux(callback){
+    const admin = estAdminRohy();
+    // Une réponse arrivée après un changement de compte n'est plus la bonne.
+    const rendre = function(ch, ex){ if(admin === estAdminRohy()) callback(ch, ex); };
+    if(admin){ fetchContactChannels(rendre); return; }
+    if(!window.__sb){ rendre({}, []); return; }
+    monUid().then(function(uid){
+      if(!uid){ rendre({}, []); return; }
+      Promise.all([
+        window.__sb.from('kaonty_rohy').select('*').eq('user_id', uid).maybeSingle(),
+        window.__sb.from('contact_extra_channels').select('id,name,url').eq('user_id', uid).order('created_at', { ascending: true })
+      ]).then(function(res){
+        rendre((res[0] && res[0].data) || {}, (res[1] && res[1].data) || []);
+      }, function(){ rendre({}, []); });
     });
   }
 
@@ -579,7 +613,7 @@
   }
 
   function loadContactAdminForm(){
-    fetchContactChannels(function(channels, extra){
+    fetchMesCanaux(function(channels, extra){
       CONTACT_FIELD_MAP.forEach(function(field){
         const input = document.getElementById(field.inputId);
         if(input) input.value = channels[field.key] || '';
@@ -619,12 +653,13 @@
         status.textContent = '⚠️ Rien n\'est enregistré — ' + soucis.join(' · ');
         return;
       }
-      const channels = { id: 1 };
+      const admin = estAdminRohy();
+      const channels = admin ? { id: 1 } : { updated_at: new Date().toISOString() };
       CONTACT_FIELD_MAP.forEach(function(field){
         const input = document.getElementById(field.inputId);
         channels[field.key] = input ? input.value.trim() : '';
       });
-      saveContactChannelsLocal(channels);
+      if(admin) saveContactChannelsLocal(channels);
       if(!window.__sb){
         renderContactButtons();
         status.textContent = 'Enregistré localement (pas de connexion serveur) — vos clients ne le verront pas.';
@@ -633,17 +668,22 @@
       // Supabase dia MANDEHA tsara (resolve) na dia tsy nahomby aza ny fanoratana :
       // ao amin'ny res.error no misy ny fahadisoana. Tsy maintsy jerena izany, raha
       // tsy izany dia milaza "Enregistré ✓" nefa tsy tafiditra na inona na inona.
-      window.__sb.from('contact_channels').upsert(channels).then(function(res){
-        renderContactButtons();
-        if(res && res.error){
-          status.textContent = "Échec de l'enregistrement serveur : " + (res.error.message || 'erreur inconnue');
-          return;
-        }
-        status.textContent = 'Enregistré ✓ Visible par tous vos clients.';
-        afficherLesEnregistres();
-      }, function(err){
+      const echec = function(err){
         renderContactButtons();
         status.textContent = "Échec de l'enregistrement serveur : " + ((err && err.message) || 'réessayez');
+      };
+      monUid().then(function(uid){
+        if(!admin && !uid){ status.textContent = 'Connectez-vous pour enregistrer vos liens.'; return; }
+        if(!admin) channels.user_id = uid;
+        window.__sb.from(admin ? 'contact_channels' : 'kaonty_rohy').upsert(channels).then(function(res){
+          renderContactButtons();
+          if(res && res.error){
+            status.textContent = "Échec de l'enregistrement serveur : " + (res.error.message || 'erreur inconnue');
+            return;
+          }
+          status.textContent = admin ? 'Enregistré ✓ Visible par tous vos clients.' : 'Enregistré ✓';
+          afficherLesEnregistres();
+        }, echec);
       });
     });
   }
@@ -730,26 +770,32 @@
     if(!confirm('Fafana ve ny ' + nom + ' ? Tsy hitan\'ny client intsony izy.')) return;
     const champ = CONTACT_FIELD_MAP.find(function(f){ return f.key === cle; });
     const input = champ && document.getElementById(champ.inputId);
+    const admin = estAdminRohy();
     const fini = function(){
       if(input){ input.value = ''; input.dispatchEvent(new Event('input')); }
-      const local = loadContactChannelsLocal(); local[cle] = ''; saveContactChannelsLocal(local);
+      if(admin){ const local = loadContactChannelsLocal(); local[cle] = ''; saveContactChannelsLocal(local); }
       if(caseOuverte === cle) ouvrirLaCase(cle);
       afficherLesEnregistres();
       renderContactButtons();
     };
     if(!window.__sb){ fini(); return; }
     const modif = {}; modif[cle] = '';
-    window.__sb.from('contact_channels').update(modif).eq('id', 1).select('id').then(function(res){
-      if(res && res.error){ alert('Tsy voafafa : ' + (res.error.message || 'erreur')); return; }
-      fini();
-    }, function(err){ alert('Tsy voafafa : ' + ((err && err.message) || 'réessayez')); });
+    monUid().then(function(uid){
+      const requete = admin
+        ? window.__sb.from('contact_channels').update(modif).eq('id', 1)
+        : window.__sb.from('kaonty_rohy').update(modif).eq('user_id', uid);
+      requete.select().then(function(res){
+        if(res && res.error){ alert('Tsy voafafa : ' + (res.error.message || 'erreur')); return; }
+        fini();
+      }, function(err){ alert('Tsy voafafa : ' + ((err && err.message) || 'réessayez')); });
+    });
   }
   function fafanaCanal(id, nom){
     if(!window.__sb || !id) return;
     if(!confirm('Fafana ve ny canal « ' + nom + ' » ? Tsy hitan\'ny client intsony izy.')) return;
     window.__sb.from('contact_extra_channels').delete().eq('id', id).select('id').then(function(res){
       if(res && res.error){ alert('Tsy voafafa : ' + (res.error.message || 'erreur')); return; }
-      if(!res || !res.data || !res.data.length){ alert('Tsy voafafa : ny admin ihany no afaka mamafa.'); return; }
+      if(!res || !res.data || !res.data.length){ alert('Tsy voafafa : ny tompony ihany no afaka mamafa.'); return; }
       afficherLesEnregistres();
       renderContactButtons();
     }, function(err){ alert('Tsy voafafa : ' + ((err && err.message) || 'réessayez')); });
@@ -762,7 +808,7 @@
   function afficherLesEnregistres(){
     const zone = document.getElementById('contactEnregistres');
     if(!zone) return;
-    fetchContactChannels(function(channels, extra){
+    fetchMesCanaux(function(channels, extra){
       const lignes = [];
       // Les réseaux des cases, tous : un logo pâle est un réseau pas encore
       // rempli — on le touche pour l'ajouter.
@@ -827,6 +873,15 @@
     if(input) input.focus();
   }
   afficherLesEnregistres();
+  // Le compte n'est connu qu'après la connexion : parametres.js redemande
+  // alors les canaux de celui-ci (renderLogins).
+  window.__rohyVaozina = function(){
+    caseOuverte = '';
+    const grille = document.getElementById('contactChamps');
+    if(grille) grille.style.display = 'none';
+    loadContactAdminForm();
+    afficherLesEnregistres();
+  };
 
   // ---------------- LE LIEN SE FAIT TOUT SEUL ----------------
   // On écrit son nom ou son numéro ; l'adresse se construit, et se montre
@@ -1000,18 +1055,22 @@
         majAjout();
         return;
       }
-      window.__sb.from('contact_extra_channels').insert({ name: name, url: url }).then(function(res){
-        if(res && res.error){
-          alert("Échec de l'enregistrement du canal sur le serveur : " + (res.error.message || 'erreur inconnue'));
-          return;
-        }
-        renderContactButtons();
-        afficherLesEnregistres();
-        document.getElementById('newContactName').value = '';
-        document.getElementById('newContactUrl').value = '';
-        majAjout();
-      }, function(err){
-        alert("Échec de l'enregistrement du canal sur le serveur : " + ((err && err.message) || 'réessayez'));
+      const admin = estAdminRohy();
+      monUid().then(function(uid){
+        if(!admin && !uid){ alert('Connectez-vous pour ajouter vos liens.'); return; }
+        window.__sb.from('contact_extra_channels').insert({ name: name, url: url, user_id: admin ? null : uid }).then(function(res){
+          if(res && res.error){
+            alert("Échec de l'enregistrement du canal sur le serveur : " + (res.error.message || 'erreur inconnue'));
+            return;
+          }
+          renderContactButtons();
+          afficherLesEnregistres();
+          document.getElementById('newContactName').value = '';
+          document.getElementById('newContactUrl').value = '';
+          majAjout();
+        }, function(err){
+          alert("Échec de l'enregistrement du canal sur le serveur : " + ((err && err.message) || 'réessayez'));
+        });
       });
     });
   }

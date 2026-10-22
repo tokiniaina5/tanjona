@@ -25,7 +25,9 @@
     // (components.css). isOwnerEmail refuse aussi l'employé entré par son lien.
     document.documentElement.classList.toggle('est-proprietaire',
       !!(currentUser && currentUser.email && isOwnerEmail(currentUser.email)));
-    document.getElementById('contactAdminPanel').style.display = isAdmin ? 'block' : 'none';
+    // « 🔗 Ajouter les liens » : à tous depuis le 22/10/2026, chacun ses canaux.
+    document.getElementById('contactAdminPanel').style.display = currentUser ? 'block' : 'none';
+    if(typeof window.__rohyVaozina === 'function') window.__rohyVaozina();
     document.getElementById('unlockRequestsPanel').style.display = isAdmin ? 'block' : 'none';
     document.getElementById('signupsPanel').style.display = isAdmin ? 'block' : 'none';
     if(isAdmin){ renderSiteVisits(); renderClientCodesAdmin(); renderUnlockRequests(); renderSignups(); }

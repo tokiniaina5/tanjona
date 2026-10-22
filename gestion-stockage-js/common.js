@@ -6759,12 +6759,12 @@
     // et l'on prendrait ce filtre pour une interdiction. La règle est redite.
     // Ny asako Hôtel (/hotely) : la recherche ne propose que ce que son menu
     // montre (components.css tient la même liste).
-    const HOTEL_GARDEES = ['hotelerie', 'wallet', 'mpiasa', 'livreur', 'toerana', 'abonnement', 'fond', 'corbeille', 'connexions', 'menuTheme', 'notifToggle'];
+    const HOTEL_GARDEES = ['hotelerie', 'contact', 'wallet', 'mpiasa', 'livreur', 'toerana', 'abonnement', 'fond', 'corbeille', 'connexions', 'menuTheme', 'notifToggle'];
     function entreeOuverte(el){
       if(el.id === 'navStock') return false;
       if(document.documentElement.classList.contains('app-hotely') &&
          HOTEL_GARDEES.indexOf(el.dataset.section || el.id) < 0) return false;
-      if(el.id === 'navAdmin' || el.dataset.section === 'photocopie' || el.dataset.section === 'contact'){
+      if(el.id === 'navAdmin' || el.dataset.section === 'photocopie'){
         return !!(currentUser && currentUser.email && isOwnerEmail(currentUser.email));
       }
       if(el.classList.contains('seulement-mpiasa')) return document.body.classList.contains('mode-mpiasa');

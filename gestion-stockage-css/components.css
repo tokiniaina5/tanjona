@@ -53,11 +53,7 @@
      y tient son propre menu (hotelerie_menu.user_id = auth.uid()). */
   /* Multi-service (photocopie.js) : à l’admin seul. */
   html:not(.est-proprietaire):not(.fokontany) .nav-item[data-section="photocopie"],
-  /* « Nous contacter » ne garde que la configuration des canaux : les
-     clients passent par « 🎧 Service client ». */
-  html:not(.est-proprietaire):not(.fokontany) .nav-item[data-section="contact"],
-  html:not(.est-proprietaire):not(.fokontany) [data-epingle="section:contact"],
-  html:not(.est-proprietaire):not(.fokontany) #section-contact,
+  /* « 🔗 Ajouter les liens » est à tous depuis le 22/10/2026 (contact.js). */
   html:not(.est-proprietaire):not(.fokontany) [data-epingle="section:photocopie"],
   html:not(.est-proprietaire):not(.fokontany) #section-photocopie{ display:none !important; }
   /* Dans Ny asako Hôtel (/hotely), le menu ne garde que l'Hôtel et ce qui
@@ -65,9 +61,9 @@
      livreur, toerana, abonnement, fond d'écran, corbeille, paramètres.
      Le reste — stock, botika, factures… — appartient à Ny asako. La liste
      est redite dans common.js (HOTEL_GARDEES) pour la recherche du menu. */
-  html.app-hotely #navList > .nav-item:not([data-section="hotelerie"]):not([data-section="wallet"]):not([data-section="mpiasa"]):not([data-section="livreur"]):not([data-section="toerana"]):not([data-section="abonnement"]):not([data-section="fond"]):not([data-section="corbeille"]):not([data-section="connexions"]),
+  html.app-hotely #navList > .nav-item:not([data-section="hotelerie"]):not([data-section="contact"]):not([data-section="wallet"]):not([data-section="mpiasa"]):not([data-section="livreur"]):not([data-section="toerana"]):not([data-section="abonnement"]):not([data-section="fond"]):not([data-section="corbeille"]):not([data-section="connexions"]),
   html.app-hotely #navList > .nav-action:not(#menuTheme):not(#notifToggle),
-  html.app-hotely #stockMainTabs [data-epingle]:not([data-epingle="section:hotelerie"]):not([data-epingle="section:wallet"]):not([data-epingle="section:mpiasa"]):not([data-epingle="section:livreur"]):not([data-epingle="section:toerana"]):not([data-epingle="section:abonnement"]):not([data-epingle="section:fond"]):not([data-epingle="section:corbeille"]):not([data-epingle="section:connexions"]):not([data-epingle="id:menuTheme"]):not([data-epingle="id:notifToggle"]),
+  html.app-hotely #stockMainTabs [data-epingle]:not([data-epingle="section:hotelerie"]):not([data-epingle="section:contact"]):not([data-epingle="section:wallet"]):not([data-epingle="section:mpiasa"]):not([data-epingle="section:livreur"]):not([data-epingle="section:toerana"]):not([data-epingle="section:abonnement"]):not([data-epingle="section:fond"]):not([data-epingle="section:corbeille"]):not([data-epingle="section:connexions"]):not([data-epingle="id:menuTheme"]):not([data-epingle="id:notifToggle"]),
   html.app-hotely #barComposer,
   html.app-hotely #barAccueil,
   /* … ni la Botika, ni le Stock : ils sont à Ny asako. */
