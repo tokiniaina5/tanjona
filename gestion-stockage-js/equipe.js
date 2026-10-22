@@ -1634,6 +1634,7 @@
     const client = sb();
     const email = monEmail();
     if (!client || !email) return;
+    chargerCommandesPersonne(client, id);
     client.from('stock_mpiasa').select('articles,mouvements,maj')
       .eq('owner_email', email).eq('equipe_id', id).maybeSingle()
       .then(function (res) {
@@ -1644,6 +1645,62 @@
       }, function () {
         dessinerTableauPersonne(null, 'Tsy tafita ny fangatahana.');
       });
+  }
+
+  // ---------- Les commandes des latabatra ----------
+  // Celles de l'Hôtellerie (hotelerie_commande) des dernières 24 h : ce que le
+  // mpiasa a à servir. Lues pour le compte du patron, qui en est l'hôtel.
+  function chargerCommandesPersonne(client, id) {
+    const zone = document.getElementById('personneCommandes');
+    if (!zone) return;
+    // Un livreur ne sert pas les latabatra.
+    if (personneOuverte && personneOuverte.role === 'livreur') { zone.innerHTML = ''; return; }
+    zone.innerHTML = '<p style="font-size:0.8rem; color:var(--muted); margin:0 0 0.9rem;">Miandry ny commande…</p>';
+    client.auth.getSession().then(function (r) {
+      const uid = r && r.data && r.data.session ? r.data.session.user.id : null;
+      if (!uid) throw new Error('Midira aloha.');
+      return client.from('hotelerie_commande').select('id,latabatra,plats,fanamarihana,vita,voaloa,created_at')
+        .eq('hotel_id', uid).gte('created_at', new Date(Date.now() - 24 * 3600 * 1000).toISOString())
+        .order('created_at', { ascending: true }).limit(200);
+    }).then(function (res) {
+      if (!personneOuverte || personneOuverte.id !== id) return;
+      if (res.error) throw new Error(res.error.message);
+      zone.innerHTML = htmlCommandesLatabatra(res.data || []);
+    }).catch(function (e) {
+      if (!personneOuverte || personneOuverte.id !== id) return;
+      zone.innerHTML = '<p style="font-size:0.8rem; color:var(--muted); margin:0 0 0.9rem;">Tsy azo ny commande : ' + html((e && e.message) || e) + '</p>';
+    });
+  }
+  function htmlCommandesLatabatra(l) {
+    const miandry = l.filter(function (c) { return !c.vita; });
+    const vita = l.filter(function (c) { return c.vita; }).reverse().slice(0, 12);
+    const ora = function (iso) { return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); };
+    const bon = function (c) {
+      return '<div style="border:2px solid ' + (c.vita ? 'var(--line)' : 'var(--amber)') + '; border-radius:12px; padding:0.7rem 0.8rem; background:var(--panel-2);' + (c.vita ? ' opacity:0.7;' : '') + '">' +
+        '<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem;">' +
+          '<strong style="font-size:1.4rem; line-height:1;">T' + html(c.latabatra) + '</strong>' +
+          '<span style="text-align:right; font-size:0.75rem; color:var(--muted);">' +
+            (c.vita ? '' : '<strong style="display:block; color:var(--amber); font-size:0.85rem;">' + html(depuis(c.created_at)) + '</strong>') +
+            '🕒 ' + ora(c.created_at) +
+          '</span>' +
+        '</div>' +
+        '<ul style="list-style:none; margin:0.5rem 0 0; padding:0;">' +
+          (c.plats || []).map(function (p) {
+            return '<li style="padding:0.15rem 0;"><b style="color:var(--cyan);">' + (Number(p.isa) || 0) + ' ×</b> ' + html(p.anarana) + '</li>';
+          }).join('') +
+        '</ul>' +
+        (c.fanamarihana ? '<p style="margin:0.45rem 0 0; padding:0.35rem 0.55rem; border-radius:8px; background:rgba(224,160,32,0.12); font-size:0.82rem;">📝 ' + html(c.fanamarihana) + '</p>' : '') +
+        '<p style="margin:0.45rem 0 0; font-size:0.75rem; color:' + (c.voaloa ? '#6ee7b7' : 'var(--muted)') + ';">' + (c.voaloa ? '💰 Voaloa' : '💳 Tsy mbola voaloa') + '</p>' +
+      '</div>';
+    };
+    const grille = function (x) {
+      return '<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:0.7rem;">' + x.map(bon).join('') + '</div>';
+    };
+    return '<div style="margin:0 0 1rem;">' +
+      '<h4 style="margin:0 0 0.5rem;">⏳ Commande miandry (' + miandry.length + ')</h4>' +
+      (miandry.length ? grille(miandry) : '<p style="font-size:0.85rem; color:var(--muted); margin:0;">Tsy misy commande miandry izao. 👌</p>') +
+      (vita.length ? '<h4 style="margin:1rem 0 0.5rem;">✅ Vita farany</h4>' + grille(vita) : '') +
+    '</div>';
   }
 
   const TYPES_MOUVEMENT = {
@@ -1681,10 +1738,13 @@
       return;
     }
     if (!ligne) {
-      if (maj) maj.textContent = 'Mbola tsy nanokatra ny rohiny izy : rehefa manokatra azy, dia hiseho eto ny stock-ny.';
+      // Pas de stock à lui : le tableau de bord, ce sont alors les commandes
+      // des latabatra, au-dessus. Rien à dire de plus.
+      if (maj) { maj.textContent = ''; maj.style.display = 'none'; }
       boite.innerHTML = '';
       return;
     }
+    if (maj) maj.style.display = '';
 
     if (maj) {
       maj.textContent = 'Nohavaozina : ' + new Date(ligne.maj).toLocaleString('fr-FR') +

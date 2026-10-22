@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="03e11f68">
+<meta name="ny-asako-version" content="33ead2dd">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -3279,6 +3279,9 @@
              fenêtre du patron — pas dans la page du livreur. -->
         <div class="panel" id="personneTableauPanel" style="margin-top:1rem;">
           <div class="panneau-titre">Tableau de bord</div>
+          <!-- Les commandes des latabatra (Hôtellerie), que le mpiasa sert :
+               equipe.js les remplit. -->
+          <div id="personneCommandes"></div>
           <!-- Le stock que la personne tient depuis son lien, tel que son
                application l'a envoyé en dernier : equipe.js le remplit. -->
           <p id="personneStockMaj" style="font-size:0.8rem; color:var(--muted); line-height:1.6; margin:0 0 0.9rem;">—</p>
@@ -3630,7 +3633,7 @@
 <script src="gestion-stockage-js/identite.js?v=32177fac"></script>
 <script src="gestion-stockage-js/fond.js?v=66e9ffc6"></script>
 <script src="gestion-stockage-js/carte-libre.js?v=da42db8a"></script>
-<script src="gestion-stockage-js/equipe.js?v=61bf8b37"></script>
+<script src="gestion-stockage-js/equipe.js?v=d58c7e81"></script>
 <script src="gestion-stockage-js/vue-mpiasa.js?v=1e6cfbec"></script>
 <script src="gestion-stockage-js/vue-suivi.js?v=978e31e5"></script>
 <script src="gestion-stockage-js/hotelerie.js?v=92608bc5"></script>
