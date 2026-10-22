@@ -136,6 +136,10 @@ order by table_name;
 -- de position Google Maps, WhatsApp…), gardé avec la personne.
 alter table public.equipe add column if not exists lien text;
 
+-- La photo de la personne (bucket hotelerie-sary, dossier du patron) : posée
+-- depuis 👷 Mpiasa, montrée aussi dans Hôtellerie › Lakozia.
+alter table public.equipe add column if not exists sary text;
+
 -- 03/10/2026 : un lien donné au client pour voir son livreur (partage de
 -- position Google Maps, WhatsApp…), saisi par le patron sur la course ; la
 -- fonction « suivi » le rend à la page du client.

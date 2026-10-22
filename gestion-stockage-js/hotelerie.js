@@ -193,6 +193,31 @@
     const chemin = cheminSary(adresse);
     if (chemin && sb()) sb().storage.from(BUCKET_SARY).remove([chemin]).catch(function () { });
   }
+  // La photo d'un mpiasa, choisie depuis 👷 Mpiasa (equipe.js) : même
+  // réduction, même bucket, carrée et petite (un visage, pas un plat).
+  window.__saryMpiasa = {
+    safidio: function (fin) {
+      const champ = document.createElement('input');
+      champ.type = 'file';
+      champ.accept = ACCEPT_SARY;
+      champ.addEventListener('change', function () { if (champ.files && champ.files[0]) fin(champ.files[0]); });
+      ouvrirFichier(champ);
+    },
+    alefa: function (mpiasaId, fichier) {
+      return idDuCompte().then(function (uid) {
+        if (!uid) throw new Error('Midira ao amin\'ny kaontinao aloha.');
+        return reduireSary(fichier, 320, 0.8).then(function (r) {
+          const nom = uid + '/mpiasa-' + mpiasaId + '-' + Date.now().toString(36) + '.jpg';
+          return sb().storage.from(BUCKET_SARY).upload(nom, r.blob, { contentType: 'image/jpeg', upsert: true })
+            .then(function (res) {
+              if (res.error) throw new Error(res.error.message);
+              return sb().storage.from(BUCKET_SARY).getPublicUrl(nom).data.publicUrl;
+            });
+        });
+      });
+    },
+    fafao: effacerSary
+  };
 
   function direEnLigne(t) {
     etatEnLigne = t;
@@ -497,7 +522,7 @@
       const u = r && r.data && r.data.session ? r.data.session.user : null;
       const email = u && u.email ? String(u.email).trim().toLowerCase() : '';
       if (!email) { etatMpiasa = 'Midira ao amin\'ny kaontinao mba hahitana ny mpiasa.'; dessinerMpiasa(); return; }
-      return c.from('equipe').select('id,nom,telephone,ora_andrasana').eq('owner_email', email).eq('role', 'mpiasa')
+      return c.from('equipe').select('id,nom,telephone,ora_andrasana,sary').eq('owner_email', email).eq('role', 'mpiasa')
         .order('created_at', { ascending: true }).then(function (res) {
           if (res.error) { etatMpiasa = '⚠️ ' + res.error.message; dessinerMpiasa(); return; }
           mpiasaLakozia = res.data || [];
@@ -513,20 +538,44 @@
     else if (!l.length) corps = '<p style="font-size:0.85rem; color:var(--muted); margin:0;">Mbola tsy misy mpiasa voasoratra ao amin\'ny 👷 Mpiasa.</p>';
     else corps = '<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:0.6rem;">' +
       l.map(function (m) {
-        const details = [m.telephone ? '📞 ' + html(m.telephone) : '', m.ora_andrasana ? '🕒 ' + html(m.ora_andrasana) + ' h/andro' : ''].filter(Boolean).join(' · ');
-        return '<div style="display:flex; align-items:center; gap:0.6rem; padding:0.6rem 0.7rem; border:1px solid var(--line); border-radius:12px; background:var(--panel-2);">' +
-          '<span style="flex:0 0 auto; display:flex; align-items:center; justify-content:center; width:2.2rem; height:2.2rem; border-radius:50%; background:rgba(79,216,224,0.15); font-size:1.1rem;">👷</span>' +
-          '<span style="min-width:0;">' +
-            '<strong style="display:block; font-size:0.9rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + html(m.nom) + '</strong>' +
-            (details ? '<small style="color:var(--muted);">' + details + '</small>' : '') +
-          '</span>' +
+        const details = [m.telephone ? html(m.telephone) : '', m.ora_andrasana ? '🕒 ' + html(m.ora_andrasana) + ' h/andro' : ''].filter(Boolean).join(' · ');
+        const sary = /^https:\/\//.test(m.sary || '')
+          ? '<img src="' + html(m.sary) + '" alt="" style="width:100%; height:100%; object-fit:cover; display:block;">'
+          : '👷';
+        // Antsoy / Hafatra : le téléphone de l'appareil, ou WhatsApp.
+        const finday = String(m.telephone || '').replace(/[^\d+]/g, '');
+        const wa = whatsappDe(finday);
+        const bouton = 'display:inline-flex; align-items:center; justify-content:center; gap:0.3rem; flex:1 1 0; min-height:2.2rem; padding:0 0.5rem; border-radius:8px; border:1px solid var(--line); background:var(--panel); color:var(--text); font-size:0.78rem; font-weight:600; text-decoration:none; white-space:nowrap;';
+        const actions = finday
+          ? '<div style="display:flex; gap:0.4rem; margin-top:0.6rem;">' +
+              '<a href="tel:' + html(finday) + '" style="' + bouton + '" title="Antsoy i ' + html(m.nom) + '">📞 Antsoy</a>' +
+              '<a href="sms:' + html(finday) + '" style="' + bouton + '" title="SMS ho an\'i ' + html(m.nom) + '">💬 SMS</a>' +
+              (wa ? '<a href="https://wa.me/' + wa + '" target="_blank" rel="noopener" style="' + bouton + ' color:#25d366;" title="WhatsApp ho an\'i ' + html(m.nom) + '">🟢 WhatsApp</a>' : '') +
+            '</div>'
+          : '<p style="margin:0.6rem 0 0; font-size:0.72rem; color:var(--muted);">Tsy misy laharana : ampio ao amin\'ny 👷 Mpiasa.</p>';
+        return '<div style="padding:0.7rem; border:1px solid var(--line); border-radius:12px; background:var(--panel-2);">' +
+          '<div style="display:flex; align-items:center; gap:0.7rem;">' +
+            '<span style="flex:0 0 auto; display:flex; align-items:center; justify-content:center; width:3.4rem; height:3.4rem; border-radius:50%; overflow:hidden; background:rgba(79,216,224,0.15); font-size:1.6rem;">' + sary + '</span>' +
+            '<span style="min-width:0;">' +
+              '<strong style="display:block; font-size:0.95rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + html(m.nom) + '</strong>' +
+              (details ? '<small style="color:var(--muted);">' + details + '</small>' : '') +
+            '</span>' +
+          '</div>' +
+          actions +
         '</div>';
       }).join('') + '</div>';
     return '<div class="panel" style="margin-top:1rem;">' +
       '<h4 style="margin:0 0 0.2rem;">👷 Ny mpiasa (' + l.length + ')</h4>' +
-      '<p style="font-size:0.75rem; color:var(--muted); margin:0 0 0.8rem;">Jerena fotsiny : ao amin\'ny 👷 Mpiasa no anampiana sy anovana azy.</p>' +
+      '<p style="font-size:0.75rem; color:var(--muted); margin:0 0 0.8rem;">Ao amin\'ny 👷 Mpiasa no anampiana azy sy ametrahana ny sariny.</p>' +
       corps +
     '</div>';
+  }
+  // WhatsApp veut le numéro international, sans « + » : 034 12 345 67 à
+  // Madagascar devient 261341234567.
+  function whatsappDe(finday) {
+    let n = String(finday || '').replace(/\D/g, '');
+    if (/^0\d{9}$/.test(n)) n = '261' + n.slice(1);
+    return n.length >= 10 ? n : '';
   }
   function dessinerMpiasa() {
     const z = document.getElementById('lakoziaMpiasa');

@@ -491,7 +491,12 @@
       div.style.cssText = 'border:1px solid var(--line); border-radius:8px; padding:0.7rem 0.9rem; margin-bottom:0.6rem; font-size:0.82rem; line-height:1.6;';
       const role = ROLES[p.role] || p.role;
       const auTravail = !!ouverts[p.id];
+      // La photo, à gauche : celle posée par « 📷 Sary », sinon 👷.
+      const sary = /^https:\/\//.test(p.sary || '')
+        ? '<img src="' + html(p.sary) + '" alt="" style="width:100%; height:100%; object-fit:cover; display:block;">'
+        : '👷';
       div.innerHTML =
+        '<span style="float:left; display:flex; align-items:center; justify-content:center; width:3rem; height:3rem; margin:0 0.7rem 0.3rem 0; border-radius:50%; overflow:hidden; background:rgba(79,216,224,0.15); font-size:1.4rem;">' + sary + '</span>' +
         '<strong style="color:var(--text);">' + html(p.nom) + '</strong>' +
         ' · <span style="color:var(--muted);">' + html(role) + '</span>' +
         (auTravail ? ' · <span style="color:var(--cyan);">eo am-piasana</span>' : '') +
@@ -501,7 +506,7 @@
         (p.email ? '<br><span style="color:var(--muted);">' + html(p.email) + '</span>' : '');
 
       const actions = document.createElement('div');
-      actions.style.cssText = 'display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.6rem;';
+      actions.style.cssText = 'clear:both; display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.6rem;';
 
       const ouvrir = document.createElement('button');
       ouvrir.type = 'button';
@@ -603,6 +608,32 @@
         chercher.title = 'Angataho avy hatrany ny toerana misy azy';
         chercher.addEventListener('click', function () { tadiavo([p.id], chercher); });
         actions.appendChild(chercher);
+      }
+
+      // 📷 Sary : la photo choisie part dans le bucket de l'Hôtellerie
+      // (hotelerie.js, window.__saryMpiasa), l'ancienne est effacée.
+      if (window.__saryMpiasa) {
+        const saryBtn = document.createElement('button');
+        saryBtn.type = 'button';
+        saryBtn.className = 'btn btn-sm';
+        saryBtn.textContent = '📷 Sary';
+        saryBtn.title = 'Ametraho ny sarin\'i ' + (p.nom || 'ilay olona');
+        saryBtn.addEventListener('click', function () {
+          window.__saryMpiasa.safidio(function (fichier) {
+            saryBtn.disabled = true;
+            saryBtn.textContent = '⏳';
+            window.__saryMpiasa.alefa(p.id, fichier).then(function (adresse) {
+              const taloha = p.sary;
+              majPersonne(p.id, { sary: adresse }, saryBtn);
+              if (taloha) window.__saryMpiasa.fafao(taloha);
+            }, function (err) {
+              saryBtn.disabled = false;
+              saryBtn.textContent = '📷 Sary';
+              direPartout('Tsy lasa ny sary : ' + ((err && err.message) || err), true);
+            });
+          });
+        });
+        actions.appendChild(saryBtn);
       }
 
       const bascule = document.createElement('button');
