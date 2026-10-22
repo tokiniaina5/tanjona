@@ -2065,11 +2065,8 @@
   // il la retrouve dans Paramètres > « Nouvelles inscriptions » et dans son
   // admin du site. Le client, lui, entre directement, sans rien attendre.
   function recordNewSignup(name, email, phone){
-    // C'est ici, et nulle part ailleurs, qu'on sait qu'un compte est neuf.
-    // La marque dit à serasera-voalohany.js de montrer à ce client-là, à son
-    // entrée, par où joindre le propriétaire. Elle est posée avant tout appel
-    // au serveur : sans réseau, le compte est neuf quand même.
-    try { localStorage.setItem('stockmanager_client_nouveau', normEmail(email)); } catch(e){}
+    // Plus de panneau « Tongasoa ! » avec les canaux de l'admin (22/10/2026) :
+    // chaque compte a désormais les siens (« 🔗 Ajouter les liens »).
     if(!window.__sb) return;
     const row = { name: name, email: normEmail(email), phone: phone || '' };
     try{
