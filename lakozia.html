@@ -20,7 +20,7 @@
 <script src="/mazava.js?v=2bcdcfad" defer></script>
 <!-- 🔄 La page se met à jour seule quand une version neuve est en ligne (pejy-version.js) ;
      l'empreinte est écrite par outils/versionner.mjs. -->
-<meta name="pejy-version" content="8aed8f1d">
+<meta name="pejy-version" content="e91af849">
 <script src="/pejy-version.js?v=97acc3b0" defer></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -397,9 +397,41 @@
     const e = document.getElementById('livreurPejy');
     if (e) fermerLivreurs();
   }
-  if (params.get('robot') === 'tafaverina') finRobot();
+  // Le robot est presque rentré : on compte 5 secondes, puis il ne clignote
+  // plus. Il le dit en ouvrant lakozia.html?robot=akaiky (ou =tafaverina).
+  const ISA_AKAIKY = 5;
+  function segondraSisa(d) {
+    if (!d || !d.akaiky_at) return null;
+    return Math.max(0, ISA_AKAIKY - Math.floor((Date.now() - new Date(d.akaiky_at).getTime()) / 1000));
+  }
+  function robotAkaiky() {
+    const d = diaRobot();
+    if (!d) return;
+    if (!d.akaiky_at) { d.akaiky_at = new Date().toISOString(); retenuEcrire('robot_dia', JSON.stringify(d)); }
+    tsingerinaAkaiky();
+  }
+  let akaikyMinitra = null;
+  function tsingerinaAkaiky() {
+    clearInterval(akaikyMinitra);
+    function tick() {
+      const d = diaRobot();
+      const sisa = segondraSisa(d);
+      if (sisa === null) { clearInterval(akaikyMinitra); return; }
+      if (sisa <= 0) { clearInterval(akaikyMinitra); finRobot(); return; }
+      signature = '';
+      dessiner();
+      const s = document.getElementById('robotSoratra');
+      if (s) s.textContent = '📍 Efa akaiky ny lakozia ny robot : mijanona afaka ' + sisa + ' s';
+    }
+    tick();
+    akaikyMinitra = setInterval(tick, 1000);
+  }
+  if (params.get('robot') === 'akaiky' || params.get('robot') === 'tafaverina') robotAkaiky();
+  else if (segondraSisa(diaRobot()) !== null) tsingerinaAkaiky();
   window.addEventListener('storage', function (ev) {
-    if (ev.key === 'lakozia_robot_dia') { signature = ''; dessiner(); }
+    if (ev.key !== 'lakozia_robot_dia') return;
+    if (segondraSisa(diaRobot()) !== null) tsingerinaAkaiky();
+    signature = ''; dessiner();
   });
   // Après chaque pas du trajet : la page du robot et le bon se redessinent.
   function majDia(c) {
@@ -410,8 +442,10 @@
   function blocLivreurs(c) {
     const dia = diaRobot();
     const enRoute = dia && dia.commande === c.id;
+    const sisa = enRoute ? segondraSisa(dia) : null;
     const b = el('button', enRoute
-      ? (c.robot === 'miverina' ? '🤖 Miverina avy amin\'ny T' + c.latabatra + '…' : '🤖 Mandeha any amin\'ny T' + c.latabatra + '…')
+      ? (sisa !== null ? '🤖 Efa akaiky… ' + sisa
+        : c.robot === 'miverina' ? '🤖 Miverina avy amin\'ny T' + c.latabatra + '…' : '🤖 Mandeha any amin\'ny T' + c.latabatra + '…')
       : '🛵 Livreur' + (livreurs.length ? ' (' + livreurs.length + ')' : ''), 'livreur-ouvrir' + (enRoute ? ' mipipika' : ''));
     b.type = 'button';
     b.addEventListener('click', function () { ouvrirLivreurs(c); });
@@ -544,9 +578,13 @@
     robot.appendChild(el('span', '🤖', 'livreur-sary'));
     const robotNom = el('span', null, 'livreur-nom');
     robotNom.appendChild(el('strong', 'Livreur robot'));
-    robotNom.appendChild(el('small', !dia ? 'Mbola amboarina — ho avy tsy ho ela'
+    const sisaRobot = segondraSisa(dia);
+    const robotSoratra = el('small', !dia ? 'Mbola amboarina — ho avy tsy ho ela'
+      : sisaRobot !== null ? '📍 Efa akaiky ny lakozia ny robot : mijanona afaka ' + sisaRobot + ' s'
       : (robotMiverina(dia.commande) ? '↩️ Voaray ny sakafo tao amin\'ny T' + dia.latabatra + ' : miverina ny robot…'
-        : '🍽️ Mitondra ny sakafo any amin\'ny T' + dia.latabatra + ', dia miverina…')));
+        : '🍽️ Mitondra ny sakafo any amin\'ny T' + dia.latabatra + ', dia miverina…'));
+    robotSoratra.id = 'robotSoratra';
+    robotNom.appendChild(robotSoratra);
     robot.appendChild(robotNom);
     robot.appendChild(el('span', dia ? '🤖 Mandeha' : '🔧 Mbola amboarina', 'robot-marika'));
     boite.appendChild(robot);
