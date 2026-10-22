@@ -63,7 +63,60 @@
   function ensureNotificationPermission(){
     if(!('Notification' in window)) return;
     if(Notification.permission !== 'default') return;
-    try { Notification.requestPermission(); } catch(e){}
+    try {
+      const p = Notification.requestPermission();
+      if(p && p.then) p.then(function(r){ if(r === 'granted') abonnerPush(); });
+    } catch(e){}
+  }
+
+  // ---------------- NOTIFICATIONS POUSSÉES (app fermée) ----------------
+  // Le direct (broadcast) ne touche que les pages ouvertes. Pour le reste,
+  // l'appareil s'abonne au Web Push, et chaque hafatra ou antso demande à la
+  // fonction « push » (supabase/functions/push) d'avertir le destinataire.
+  const VAPID_PUBLIC = 'BKQHRaDMPMHyaYYmKOEuidYVUofz2DowNmdYYw_Eef7f0l9980rKCbcPqskLbJr20fu0eI9kpXReq_8HZF0sfTM';
+  function jetonMpiasa(){ return typeof window.__mpiasaJeton === 'function' ? window.__mpiasaJeton() : ''; }
+  // Un visiteur sans compte ni lien ne peut ni recevoir ni envoyer.
+  function pushPossible(){
+    if(!window.__sb || !window.__sb.functions) return false;
+    return !!jetonMpiasa() || !!(currentUser && currentUser.email && !/\.invalid$/i.test(currentUser.email));
+  }
+  function appelPush(corps){
+    const jeton = jetonMpiasa();
+    if(jeton) corps.jeton = jeton;
+    // La page d'un lien passe avec la clé publique (comme vue-mpiasa.js) :
+    // une session ouverte dans ce navigateur serait celle d'un autre.
+    const cle = window.__sb.supabaseKey;
+    const opts = { body: corps };
+    if(jeton && cle) opts.headers = { Authorization: 'Bearer ' + cle };
+    return window.__sb.functions.invoke('push', opts);
+  }
+  function cleVapid(){
+    const b = VAPID_PUBLIC.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - VAPID_PUBLIC.length % 4) % 4);
+    const s = atob(b);
+    const u = new Uint8Array(s.length);
+    for(let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i);
+    return u;
+  }
+  let pushAbonne = '';
+  function abonnerPush(){
+    if(!pushPossible() || !('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    if(!('Notification' in window) || Notification.permission !== 'granted') return;
+    const qui = jetonMpiasa() || currentUser.email;
+    if(pushAbonne === qui) return;
+    pushAbonne = qui;
+    navigator.serviceWorker.ready.then(function(reg){
+      return reg.pushManager.getSubscription().then(function(s){
+        return s || reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: cleVapid() });
+      });
+    }).then(function(s){
+      const j = s.toJSON();
+      return appelPush({ action: 'misoratra', endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth,
+        pejy: location.pathname + location.search });
+    }).then(function(r){ if(r && r.error) pushAbonne = ''; }, function(){ pushAbonne = ''; });
+  }
+  function alefaPush(to, kind, extra){
+    if(!to || !pushPossible()) return;
+    appelPush(Object.assign({ action: 'alefa', to: to, kind: kind }, extra || {})).then(function(){}, function(){});
   }
 
   function askNotificationPermissionOnFirstClick(){
@@ -129,6 +182,7 @@
     if(presenceChannel) return;
     presenceKey = me.email;
     askNotificationPermissionOnFirstClick();
+    abonnerPush();
     presenceChannel = window.__sb.channel('presence-tanjona', { config: { presence: { key: me.email } } });
     presenceChannel.on('presence', { event: 'sync' }, function(){
       const state = presenceChannel.presenceState();
@@ -291,6 +345,7 @@
         alefa: function(t){
           const me = myIdentity();
           sendCallSignal({ kind: 'hafatra', from: me.email, fromName: me.name, to: o.email, text: t });
+          alefaPush(o.email, 'hafatra', { text: t });
           (resaka[o.email] = resaka[o.email] || []).push({ avy: 'izaho', soratra: t, at: Date.now() });
           return true;
         } });
@@ -503,6 +558,7 @@
       showOutgoingCallUI();
       pc.createOffer().then(function(offer){ return pc.setLocalDescription(offer); }).then(function(){
         sendCallSignal({ kind: 'ring', roomId: roomId, from: me.email, fromName: me.name, to: targetEmail, callType: callType, sdp: pc.localDescription });
+        alefaPush(targetEmail, 'antso', { callType: callType });
       });
       activeCall.timeoutId = setTimeout(function(){
         if(activeCall && activeCall.roomId === roomId && activeCall.status === 'ringing'){
@@ -562,6 +618,7 @@
     if(!resakaMisokatra) return;
     const me = myIdentity();
     sendCallSignal({ kind: 'hafatra', from: me.email, fromName: me.name, to: resakaMisokatra.email, text: soratra || '', media: media || null });
+    alefaPush(resakaMisokatra.email, 'hafatra', { text: soratra || (media ? (media.type === 'video' ? '🎬 Video' : '📷 Sary') : '') });
     (resaka[resakaMisokatra.email] = resaka[resakaMisokatra.email] || []).push({ avy: 'izaho', soratra: soratra || '', media: media || null, at: Date.now() });
     asehoyResaka();
   }

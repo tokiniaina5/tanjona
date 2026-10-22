@@ -178,6 +178,8 @@
     entre = true;
     openApp();
     ouvrirSurLAccueil();
+    // Le jeton est là : l'appareil peut s'abonner aux notifications (live.js).
+    if (typeof abonnerPush === 'function') abonnerPush();
     // La carte de « Ny momba ahy » se mesure quand la page paraît : cachée,
     // elle n'avait pas de taille, et n'aurait rempli qu'un coin.
     const moi = document.getElementById('navMoi');
@@ -705,6 +707,9 @@
   // L'employé n'a pas de compte : elles passent par la fonction « mpiasa », et
   // c'est le jeton qui dit de qui elles viennent et pour quelle boutique.
   let monId = null;
+  // Les notifications poussées (live.js, fonction « push ») : c'est le jeton
+  // qui dit à qui elles reviennent, et qui signe celles qu'on envoie.
+  window.__mpiasaJeton = function () { return entre ? jeton : ''; };
   window.__mpiasaNotif = {
     // Pour reconnaître les siennes quand elles reviennent du serveur.
     get id() { return monId; },

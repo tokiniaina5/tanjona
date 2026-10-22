@@ -602,9 +602,16 @@
   function antsoyMpiasa(m) {
     const adresse = adresseMpiasa(m);
     if (adresse && typeof startCall === 'function') { startCall(adresse, m.nom || 'Mpiasa', 'audio'); return; }
+    // Pas là : ses appareils abonnés reçoivent « 📞 Antso avy amin'i … »
+    // (live.js, fonction « push »), sur son compte comme sur la page de son lien.
+    if (typeof alefaPush === 'function') {
+      const email = String(m.email || '').trim().toLowerCase();
+      if (email) alefaPush(email, 'antso', { callType: 'audio' });
+      alefaPush('mpiasa-' + m.id + '@ny-asako.invalid', 'antso', { callType: 'audio' });
+    }
     const finday = chiffres(m.telephone);
     if (finday.replace(/\D/g, '').length >= 9) { location.href = 'tel:' + finday; return; }
-    alert('Tsy misokatra ny Ny asako-n\'i ' + (m.nom || 'ilay mpiasa') + ' amin\'izao, ary tsy misy laharana marina ho azy (ampio ao amin\'ny 👷 Mpiasa).');
+    alert('Tsy misokatra ny Ny asako-n\'i ' + (m.nom || 'ilay mpiasa') + ' amin\'izao : nalefa any aminy ny notification « 📞 Antso », hiantso anao izy rehefa mahita azy.');
   }
   function hafatraMpiasa(m) {
     const email = String(m.email || '').trim().toLowerCase();
