@@ -522,7 +522,7 @@
       const u = r && r.data && r.data.session ? r.data.session.user : null;
       const email = u && u.email ? String(u.email).trim().toLowerCase() : '';
       if (!email) { etatMpiasa = 'Midira ao amin\'ny kaontinao mba hahitana ny mpiasa.'; dessinerMpiasa(); return; }
-      return c.from('equipe').select('id,nom,telephone,ora_andrasana,sary').eq('owner_email', email).eq('role', 'mpiasa')
+      return c.from('equipe').select('id,nom,telephone,email,ora_andrasana,sary').eq('owner_email', email).eq('role', 'mpiasa')
         .order('created_at', { ascending: true }).then(function (res) {
           if (res.error) { etatMpiasa = '⚠️ ' + res.error.message; dessinerMpiasa(); return; }
           mpiasaLakozia = res.data || [];
@@ -553,17 +553,17 @@
         const sary = src
           ? '<img src="' + html(src) + '" alt="" style="width:100%; height:100%; object-fit:cover; display:block;">'
           : '👷';
-        // Antsoy / Hafatra : le téléphone de l'appareil, ou WhatsApp.
-        const finday = String(m.telephone || '').replace(/[^\d+]/g, '');
-        const wa = whatsappDe(finday);
-        const bouton = 'display:inline-flex; align-items:center; justify-content:center; gap:0.3rem; flex:1 1 0; min-height:2.2rem; padding:0 0.5rem; border-radius:8px; border:1px solid var(--line); background:var(--panel); color:var(--text); font-size:0.78rem; font-weight:600; text-decoration:none; white-space:nowrap;';
-        const actions = finday
-          ? '<div style="display:flex; gap:0.4rem; margin-top:0.6rem;">' +
-              '<a href="tel:' + html(finday) + '" style="' + bouton + '" title="Antsoy i ' + html(m.nom) + '">📞 Antsoy</a>' +
-              '<a href="sms:' + html(finday) + '" style="' + bouton + '" title="SMS ho an\'i ' + html(m.nom) + '">💬 SMS</a>' +
-              (wa ? '<a href="https://wa.me/' + wa + '" target="_blank" rel="noopener" style="' + bouton + ' color:#25d366;" title="WhatsApp ho an\'i ' + html(m.nom) + '">🟢 WhatsApp</a>' : '') +
-            '</div>'
-          : '<p style="margin:0.6rem 0 0; font-size:0.72rem; color:var(--muted);">Tsy misy laharana : ampio ao amin\'ny 👷 Mpiasa.</p>';
+        // Antsoy / Hafatra passent par le site (live.js) ; le téléphone de
+        // l'appareil ne sert qu'à défaut. WhatsApp, lui, a son numéro.
+        const wa = whatsappDe(m.telephone);
+        const enLigne = !!adresseMpiasa(m);
+        const bouton = 'display:inline-flex; align-items:center; justify-content:center; gap:0.3rem; flex:1 1 0; min-height:2.2rem; padding:0 0.5rem; border-radius:8px; border:1px solid var(--line); background:var(--panel); color:var(--text); font-size:0.78rem; font-weight:600; text-decoration:none; white-space:nowrap; cursor:pointer; font-family:inherit;';
+        const point = enLigne ? ' <span style="color:#2e7d32;">●</span>' : '';
+        const actions = '<div style="display:flex; gap:0.4rem; margin-top:0.6rem;">' +
+            '<button type="button" data-mpiasa-antso="' + html(m.id) + '" style="' + bouton + '" title="Antsoy i ' + html(m.nom) + '">📞 Antsoy' + point + '</button>' +
+            '<button type="button" data-mpiasa-hafatra="' + html(m.id) + '" style="' + bouton + '" title="Hafatra ho an\'i ' + html(m.nom) + '">💬 Hafatra</button>' +
+            (wa ? '<a href="https://wa.me/' + wa + '" target="_blank" rel="noopener" style="' + bouton + ' color:#25d366;" title="WhatsApp ho an\'i ' + html(m.nom) + '">🟢 WhatsApp</a>' : '') +
+          '</div>';
         return '<div style="padding:0.7rem; border:1px solid var(--line); border-radius:12px; background:var(--panel-2);">' +
           '<div style="display:flex; align-items:center; gap:0.7rem;">' +
             '<span style="flex:0 0 auto; display:flex; align-items:center; justify-content:center; width:3.4rem; height:3.4rem; border-radius:50%; overflow:hidden; background:rgba(79,216,224,0.15); font-size:1.6rem;">' + sary + '</span>' +
@@ -588,9 +588,43 @@
     if (/^0\d{9}$/.test(n)) n = '261' + n.slice(1);
     return n.length >= 10 ? n : '';
   }
+  // Où joindre le mpiasa dans le site, s'il y est en ce moment (présence de
+  // live.js) : son compte Ny asako, ou la page de son lien (vue-mpiasa.js,
+  // la même adresse qu'equipe.js appelle).
+  function adresseMpiasa(m) {
+    if (typeof presenceState === 'undefined') return '';
+    const email = String(m.email || '').trim().toLowerCase();
+    if (email && presenceState[email]) return email;
+    const lien = 'mpiasa-' + m.id + '@ny-asako.invalid';
+    return presenceState[lien] ? lien : '';
+  }
+  function chiffres(t) { return String(t || '').replace(/[^\d+]/g, ''); }
+  function antsoyMpiasa(m) {
+    const adresse = adresseMpiasa(m);
+    if (adresse && typeof startCall === 'function') { startCall(adresse, m.nom || 'Mpiasa', 'audio'); return; }
+    const finday = chiffres(m.telephone);
+    if (finday.replace(/\D/g, '').length >= 9) { location.href = 'tel:' + finday; return; }
+    alert('Tsy misokatra ny Ny asako-n\'i ' + (m.nom || 'ilay mpiasa') + ' amin\'izao, ary tsy misy laharana marina ho azy (ampio ao amin\'ny 👷 Mpiasa).');
+  }
+  function hafatraMpiasa(m) {
+    const email = String(m.email || '').trim().toLowerCase();
+    const adresse = adresseMpiasa(m) || email;
+    if (adresse && typeof window.__sokafyResaka === 'function') { window.__sokafyResaka(adresse, m.nom || 'Mpiasa'); return; }
+    const finday = chiffres(m.telephone);
+    if (finday.replace(/\D/g, '').length >= 9) { location.href = 'sms:' + finday; return; }
+    alert('Tsy misy email na laharana marina ho an\'i ' + (m.nom || 'ilay mpiasa') + ' : ampio ao amin\'ny 👷 Mpiasa.');
+  }
   function dessinerMpiasa() {
     const z = document.getElementById('lakoziaMpiasa');
-    if (z) z.innerHTML = vueMpiasa();
+    if (!z) return;
+    z.innerHTML = vueMpiasa();
+    const par = function (id) { return mpiasaLakozia.find(function (m) { return String(m.id) === id; }); };
+    z.querySelectorAll('[data-mpiasa-antso]').forEach(function (b) {
+      b.addEventListener('click', function () { const m = par(b.dataset.mpiasaAntso); if (m) antsoyMpiasa(m); });
+    });
+    z.querySelectorAll('[data-mpiasa-hafatra]').forEach(function (b) {
+      b.addEventListener('click', function () { const m = par(b.dataset.mpiasaHafatra); if (m) hafatraMpiasa(m); });
+    });
   }
   function brancherLakozia(zone) {
     function avecCompte(f) {
