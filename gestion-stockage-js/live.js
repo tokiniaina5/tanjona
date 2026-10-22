@@ -182,10 +182,133 @@
     o.connect(g); g.connect(ctx.destination);
     o.start(t); o.stop(t + duree + 0.05);
   }
-  // 💬 Un hafatra : « ding-dong » montant, deux fois.
+  // ---- Le son choisi par l'utilisateur ----
+  // 🔔 Feo (page 📞 Call) : un fichier audio pour les hafatra, un pour les
+  // antso. Gardé dans l'appareil (IndexedDB : trop lourd pour localStorage),
+  // jamais envoyé. Sans fichier, les sons faits ici (feoNote) restent.
+  const FEO_KARAZANA = { hafatra: '💬 Hafatra', antso: '📞 Antso' };
+  const FEO_MAX = 5 * 1024 * 1024;
+  const feoManokana = { hafatra: null, antso: null }; // { url, anarana }
+  function feoDb(){
+    return new Promise(function(ok, ko){
+      if(!window.indexedDB) return ko(new Error('indexedDB'));
+      const r = indexedDB.open('nyasako-feo', 1);
+      r.onupgradeneeded = function(){ r.result.createObjectStore('feo'); };
+      r.onsuccess = function(){ ok(r.result); };
+      r.onerror = function(){ ko(r.error); };
+    });
+  }
+  function feoTahiry(k, v){
+    return feoDb().then(function(db){
+      return new Promise(function(ok, ko){
+        const tx = db.transaction('feo', 'readwrite');
+        if(v) tx.objectStore('feo').put(v, k); else tx.objectStore('feo').delete(k);
+        tx.oncomplete = function(){ ok(); };
+        tx.onerror = function(){ ko(tx.error); };
+      });
+    });
+  }
+  function feoVakio(k){
+    return feoDb().then(function(db){
+      return new Promise(function(ok){
+        const r = db.transaction('feo').objectStore('feo').get(k);
+        r.onsuccess = function(){ ok(r.result || null); };
+        r.onerror = function(){ ok(null); };
+      });
+    });
+  }
+  function feoApetraka(k, v){
+    if(feoManokana[k]) URL.revokeObjectURL(feoManokana[k].url);
+    feoManokana[k] = v && v.blob ? { url: URL.createObjectURL(v.blob), anarana: v.anarana || 'feo' } : null;
+  }
+  Object.keys(FEO_KARAZANA).forEach(function(k){
+    feoVakio(k).then(function(v){ feoApetraka(k, v); asehoyFeoSafidy(); }, function(){});
+  });
+  // Joue le fichier choisi. Le navigateur peut le refuser (pas encore de
+  // toucher sur la page) : on retombe alors sur le son fait ici.
+  let feoMandeha = null;
+  function feoAlefa(k, miverina, raha_tsy_mety){
+    const f = feoManokana[k];
+    if(!f){ raha_tsy_mety(); return; }
+    feoAtsahatra();
+    const a = new Audio(f.url);
+    a.loop = !!miverina;
+    feoMandeha = a;
+    const p = a.play();
+    if(p && p.catch) p.catch(function(){ if(feoMandeha === a) feoMandeha = null; raha_tsy_mety(); });
+    // Un hafatra ne sonne pas plus de huit secondes, même long.
+    if(!miverina) setTimeout(function(){ if(feoMandeha === a){ a.pause(); feoMandeha = null; } }, 8000);
+  }
+  function feoAtsahatra(){
+    if(feoMandeha){ try{ feoMandeha.pause(); }catch(e){} feoMandeha = null; }
+  }
+  function asehoyFeoSafidy(){
+    const zone = document.getElementById('feoSafidy');
+    if(!zone) return;
+    zone.innerHTML = '';
+    Object.keys(FEO_KARAZANA).forEach(function(k){
+      const f = feoManokana[k];
+      const ligne = document.createElement('div');
+      ligne.style.cssText = 'display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; padding:0.55rem 0.7rem; border:1px solid var(--line); border-radius:10px;';
+      const nom = document.createElement('div');
+      nom.style.cssText = 'flex:1 1 140px; min-width:0;';
+      nom.innerHTML = '<strong style="display:block; font-size:0.88rem;">' + FEO_KARAZANA[k] + '</strong>' +
+        '<small style="color:var(--muted); display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></small>';
+      nom.querySelector('small').textContent = f ? '🎵 ' + f.anarana : 'Feo ao anaty Ny asako';
+      ligne.appendChild(nom);
+      const bouton = function(texte, titre, fin){
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'btn btn-sm';
+        b.style.width = 'auto';
+        b.textContent = texte;
+        b.title = titre;
+        b.addEventListener('click', fin);
+        ligne.appendChild(b);
+        return b;
+      };
+      bouton('📂 Hampiditra', 'Fidio ny feo ho an\'ny ' + FEO_KARAZANA[k], function(){
+        const champ = document.createElement('input');
+        champ.type = 'file';
+        champ.accept = 'audio/*,.mp3,.m4a,.aac,.ogg,.oga,.wav,.opus,.webm';
+        champ.style.cssText = 'position:fixed; left:-9999px;';
+        document.body.appendChild(champ);
+        champ.addEventListener('change', function(){
+          const fichier = champ.files && champ.files[0];
+          champ.remove();
+          if(!fichier) return;
+          if(fichier.size > FEO_MAX){ alert('Lehibe loatra ilay feo (5 Mo farafahabetsany).'); return; }
+          const v = { blob: fichier, anarana: fichier.name };
+          feoTahiry(k, v).then(function(){ feoApetraka(k, v); asehoyFeoSafidy(); feoAlefa(k, false, function(){}); },
+            function(){ alert('Tsy voatahiry ilay feo amin\'ity fitaovana ity.'); });
+        });
+        champ.click();
+      });
+      bouton('▶️', 'Henoy', function(){
+        feoVohay();
+        if(k === 'antso'){
+          if(ringtoneInterval || feoMandeha){ stopRingtone(); return; }
+          playRingtone();
+          setTimeout(stopRingtone, 6000);
+        } else feoHafatra();
+      });
+      if(f) bouton('✕', 'Esory ity feo ity', function(){
+        feoTahiry(k, null).then(function(){ feoApetraka(k, null); asehoyFeoSafidy(); }, function(){});
+      });
+      zone.appendChild(ligne);
+    });
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', asehoyFeoSafidy);
+  else asehoyFeoSafidy();
+
+  // 💬 Un hafatra : le son choisi, sinon « ding-dong » montant, deux fois.
   function feoHafatra(){
     feoVohay();
     if(navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    if(feoManokana.hafatra){ feoAlefa('hafatra', false, feoHafatraVita); return; }
+    feoHafatraVita();
+  }
+  function feoHafatraVita(){
     if(!feoCtx) return;
     [[784, 0], [1175, 0.16], [784, 0.6], [1175, 0.76]].forEach(function(n){ feoNote(n[0], n[1], 0.45, 0.45); });
   }
@@ -531,6 +654,17 @@
   function playRingtone(){
     stopRingtone();
     feoVohay();
+    // Le son choisi dans 🔔 Feo, en boucle ; la vibration bat à côté.
+    if(feoManokana.antso){
+      feoAlefa('antso', true, sonnerieFaite);
+      if(navigator.vibrate) navigator.vibrate([400, 200, 400]);
+      ringtoneInterval = setInterval(function(){ if(navigator.vibrate) navigator.vibrate([400, 200, 400]); }, 2200);
+      return;
+    }
+    sonnerieFaite();
+  }
+  function sonnerieFaite(){
+    if(ringtoneInterval){ clearInterval(ringtoneInterval); ringtoneInterval = null; }
     function sonne(){
       if(navigator.vibrate) navigator.vibrate([400, 200, 400]);
       if(!feoCtx) return;
@@ -544,6 +678,7 @@
   }
   function stopRingtone(){
     if(ringtoneInterval){ clearInterval(ringtoneInterval); ringtoneInterval = null; }
+    feoAtsahatra();
     if(navigator.vibrate) navigator.vibrate(0);
   }
 

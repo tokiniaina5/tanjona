@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="8d58bcb4">
+<meta name="ny-asako-version" content="f7b13f09">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -2634,6 +2634,14 @@
               <div class="actions-row" id="callCanaux" style="flex-direction:column; align-items:stretch; gap:0.5rem;"></div>
               <p class="empty-hint" id="callCanauxEmpty" style="display:none;">Mbola tsy misy rohy nampidirina.</p>
             </div>
+
+            <!-- 3) Le son des hafatra et des antso : un fichier choisi ici, gardé
+                 sur l'appareil (live.js, « Le son »). -->
+            <div class="panel" id="feoPanel">
+              <h3>🔔 Feo</h3>
+              <p style="font-size:0.78rem; color:var(--muted); margin:0 0 0.8rem;">Ampidiro ny feo tianao (mp3, m4a, ogg, wav…) ho an'ny hafatra sy ny antso. Eto amin'ity fitaovana ity no voatahiry izy.</p>
+              <div id="feoSafidy" style="display:flex; flex-direction:column; gap:0.6rem;"></div>
+            </div>
       </section>
 
       <!-- ---- PORTEFEUILLE ---- -->
@@ -3624,7 +3632,7 @@
      canaux du propriétaire (contact.js les tient). -->
 <script src="gestion-stockage-js/serasera-voalohany.js?v=0b2800f2"></script>
 <script src="gestion-stockage-js/zara-rehetra.js?v=9b9c2469"></script>
-<script src="gestion-stockage-js/live.js?v=7f88fddc"></script>
+<script src="gestion-stockage-js/live.js?v=adb7eff5"></script>
 <script src="gestion-stockage-js/traduction.js?v=8f5605bc"></script>
 <script src="gestion-stockage-js/parametres.js?v=83d1bfb9"></script>
 <!-- Le partage reçu du dehors remplit la boîte « Écrire », que parametres.js
