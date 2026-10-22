@@ -20,7 +20,7 @@
 <script src="/mazava.js?v=2bcdcfad" defer></script>
 <!-- 🔄 La page se met à jour seule quand une version neuve est en ligne (pejy-version.js) ;
      l'empreinte est écrite par outils/versionner.mjs. -->
-<meta name="pejy-version" content="01422638">
+<meta name="pejy-version" content="6367484a">
 <script src="/pejy-version.js?v=97acc3b0" defer></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -278,13 +278,14 @@
     const tete = el('div', null, 'bon-tete');
     const gauche = el('span', null, 'bon-gauche');
     gauche.appendChild(el('span', 'T' + c.latabatra, 'bon-table'));
-    // 🔔 : refaire entendre la sonnerie de cette commande.
+    // 🔔 : refaire entendre la sonnerie de cette commande, ici et à la latabatra.
     const feo = el('button', '🔔', 'feo-btn');
     feo.type = 'button';
-    feo.title = 'Avereno ny feo (T' + c.latabatra + ')';
+    feo.title = 'Ampanenoina ny T' + c.latabatra;
     feo.setAttribute('aria-label', feo.title);
     feo.addEventListener('click', function () {
       sonner(true);
+      antsoy(c);
       feo.classList.add('maneno');
       setTimeout(function () { feo.classList.remove('maneno'); }, 5500);
     });
@@ -309,6 +310,19 @@
     v.addEventListener('click', function () { marquer(c, v); });
     b.appendChild(v);
     return b;
+  }
+
+  // Le reçu de la latabatra voit antso_at changer et sonne à son tour.
+  function antsoy(c) {
+    fetch(URL_SB + '/rest/v1/rpc/hotelerie_lakozia_antso', {
+      method: 'POST',
+      headers: { apikey: CLE_SB, Authorization: 'Bearer ' + CLE_SB, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hotel: id, code: code, commande: c.id })
+    }).then(function (r) {
+      if (!r.ok) throw new Error(String(r.status));
+    }).catch(function () {
+      etat.textContent = '🔴 Tsy tonga tany amin\'ny T' + c.latabatra + ' ny feo — avereno';
+    });
   }
 
   function marquer(c, v) {

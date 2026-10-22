@@ -88,14 +88,37 @@ $$;
 revoke all on function public.hotelerie_lakozia_re(uuid, text, uuid[]) from public;
 grant execute on function public.hotelerie_lakozia_re(uuid, text, uuid[]) to anon, authenticated;
 
--- L'état du reçu porte désormais « lakozia » : le type de retour change, la
--- fonction de supabase-hotelerie-commande.sql est donc remplacée en entier.
+-- ---------- Le 🔔 de la cuisine sonne à la latabatra ----------
+-- Chaque appui sur le 🔔 d'un bon date antso_at ; le reçu du client voit la
+-- date changer et sonne à son tour.
+alter table public.hotelerie_commande add column if not exists antso_at timestamptz;
+
+create or replace function public.hotelerie_lakozia_antso(hotel uuid, code text, commande uuid)
+returns integer
+language plpgsql volatile security definer set search_path = public
+as $$
+declare n integer;
+begin
+  if not exists (select 1 from public.hotelerie_lakozia l where l.hotel_id = hotel and l.code = hotelerie_lakozia_antso.code) then
+    raise exception 'code diso' using errcode = '28000';
+  end if;
+  update public.hotelerie_commande c set antso_at = now()
+   where c.id = commande and c.hotel_id = hotel;
+  get diagnostics n = row_count;
+  return n;
+end;
+$$;
+revoke all on function public.hotelerie_lakozia_antso(uuid, text, uuid) from public;
+grant execute on function public.hotelerie_lakozia_antso(uuid, text, uuid) to anon, authenticated;
+
+-- L'état du reçu porte désormais « lakozia » et « antso » : le type de retour
+-- change, la fonction de supabase-hotelerie-commande.sql est donc remplacée en entier.
 drop function if exists public.hotelerie_commande_sata(uuid[]);
 create function public.hotelerie_commande_sata(ids uuid[])
-returns table (id uuid, vita boolean, voaloa boolean, lakozia boolean)
+returns table (id uuid, vita boolean, voaloa boolean, lakozia boolean, antso timestamptz)
 language sql stable security definer set search_path = public
 as $$
-  select c.id, c.vita, c.voaloa, c.lakozia_at is not null from public.hotelerie_commande c
+  select c.id, c.vita, c.voaloa, c.lakozia_at is not null, c.antso_at from public.hotelerie_commande c
   where c.id = any (ids[1:30]);
 $$;
 revoke all on function public.hotelerie_commande_sata(uuid[]) from public;

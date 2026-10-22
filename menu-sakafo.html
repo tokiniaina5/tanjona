@@ -16,7 +16,7 @@
 <script src="/mazava.js?v=2bcdcfad" defer></script>
 <!-- 🔄 La page se met à jour seule quand une version neuve est en ligne (pejy-version.js) ;
      l'empreinte est écrite par outils/versionner.mjs. -->
-<meta name="pejy-version" content="98f4b505">
+<meta name="pejy-version" content="1686ac46">
 <script src="/pejy-version.js?v=97acc3b0" defer></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -148,6 +148,11 @@
   .misy-sary .ecran-hidy{ z-index:1; background:rgba(0,0,0,0.55); color:#fff; }
   .ecran-hafatra span{ font-size:clamp(1.5rem, 6vw, 3.2rem); line-height:1.2; font-weight:700; }
   .ecran-hidy{ position:absolute; top:0.7rem; right:0.7rem; width:3.2rem; height:3.2rem; margin:0; padding:0; border:0; border-radius:50%; background:rgba(47,191,113,0.25); color:#2fbf71; font-size:1.7rem; font-weight:700; line-height:3.2rem; cursor:pointer; }
+  /* Le 🔔 de la cuisine, sonné à la latabatra : par-dessus tout, en orange. */
+  #antsoEcran{ position:fixed; inset:0; z-index:1001; display:flex; background:var(--bg); padding:16px; }
+  .ecran-hafatra.antso{ background:rgba(224,160,32,0.18); color:#e0a020; }
+  .ecran-hafatra.antso .ecran-hidy{ background:rgba(224,160,32,0.28); color:#e0a020; }
+  .ecran-hafatra.antso .feo{ display:inline-block; animation:mihetsika 1s ease 5; transform-origin:50% 0; }
   .recu-attente{ color:#e0a020; font-weight:600; }
   /* Où en est la commande en cuisine : la marque que la lakozia a sonné. */
   .recu-lakozia{ display:inline-flex; align-items:center; gap:0.35rem; margin:0.45rem 0 0; padding:0.2rem 0.65rem; border-radius:999px; font-size:0.85rem; font-weight:700; }
@@ -955,9 +960,74 @@
         if (s.voaloa && !r.voaloa) { r.voaloa = true; change = true; }
         if (!!s.lakozia !== !!r.lakozia) { r.lakozia = !!s.lakozia; change = true; }
         if (!!s.vita !== !!r.vita) { r.vita = !!s.vita; change = true; }
+        // Le 🔔 de la cuisine : une date neuve sonne ici. Un appel déjà vieux
+        // (reçu ouvert après coup) ne fait que se noter.
+        if (s.antso && s.antso !== r.antso) {
+          if (Date.now() - new Date(s.antso).getTime() < 3 * 60000) antsoAseho(r);
+          r.antso = s.antso; change = true;
+        }
       });
       if (change) recusEcrire(l);
     }).catch(function () { });
+  }
+
+  // ---------- Le 🔔 de la cuisine ----------
+  // Un navigateur ne joue rien avant un geste : le premier toucher de la page
+  // (choisir un plat, commander) ouvre le son pour la suite.
+  let audioAntso = null;
+  function ouvrirSon() {
+    if (audioAntso) { if (audioAntso.state === 'suspended') audioAntso.resume(); return; }
+    try { audioAntso = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { }
+  }
+  document.addEventListener('pointerdown', ouvrirSon, true);
+  document.addEventListener('keydown', ouvrirSon, true);
+  function antsoFeo() {
+    if (navigator.vibrate) navigator.vibrate([400, 150, 400, 150, 400]);
+    const a = audioAntso;
+    if (!a) return;
+    if (a.state === 'suspended') a.resume();
+    // Le même « ding-ding-dong » que la cuisine, deux fois : à table, c'est assez.
+    const debut = a.currentTime + 0.05;
+    for (let tour = 0; tour < 2; tour++) {
+      [0, 0.4, 0.8].forEach(function (d, i) {
+        const t = debut + tour * 1.4 + d;
+        const o = a.createOscillator(), g = a.createGain();
+        o.frequency.value = i === 2 ? 1320 : 880;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.4, t + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + (i === 2 ? 0.55 : 0.35));
+        o.connect(g); g.connect(a.destination);
+        o.start(t); o.stop(t + (i === 2 ? 0.6 : 0.4));
+      });
+    }
+  }
+  // Seulement pour la latabatra de ce reçu : T2 n'a pas à sonner pour T1.
+  let antsoMinitra = null;
+  function antsoAseho(r) {
+    if (latabatraChoisie && Number(r.latabatra) !== latabatraChoisie) return;
+    antsoFeo();
+    let e = document.getElementById('antsoEcran');
+    if (!e) { e = el('div'); e.id = 'antsoEcran'; document.body.appendChild(e); }
+    const b = el('div', null, 'ecran-hafatra antso');
+    const titre = el('strong');
+    titre.appendChild(el('span', '🔔', 'feo'));
+    titre.appendChild(document.createTextNode(' T' + r.latabatra));
+    b.appendChild(titre);
+    b.appendChild(el('span', 'Miantso anao ny lakozia'));
+    const hidy = el('button', '✕', 'ecran-hidy');
+    hidy.type = 'button';
+    hidy.title = 'Hidio';
+    hidy.setAttribute('aria-label', 'Hidio');
+    hidy.addEventListener('click', antsoHidio);
+    b.appendChild(hidy);
+    e.replaceChildren(b);
+    clearTimeout(antsoMinitra);
+    antsoMinitra = setTimeout(antsoHidio, 20000);
+  }
+  function antsoHidio() {
+    clearTimeout(antsoMinitra);
+    const e = document.getElementById('antsoEcran');
+    if (e) e.remove();
   }
 
   function charger() {
