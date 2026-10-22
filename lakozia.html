@@ -20,7 +20,7 @@
 <script src="/mazava.js?v=2bcdcfad" defer></script>
 <!-- 🔄 La page se met à jour seule quand une version neuve est en ligne (pejy-version.js) ;
      l'empreinte est écrite par outils/versionner.mjs. -->
-<meta name="pejy-version" content="8378cfdb">
+<meta name="pejy-version" content="6ac51583">
 <script src="/pejy-version.js?v=97acc3b0" defer></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -80,6 +80,7 @@
   .livreur-btns{ display:flex; gap:0.4rem; flex-wrap:wrap; margin-left:auto; }
   .livreur-btns a{ display:inline-flex; align-items:center; gap:0.3rem; min-height:2.4rem; padding:0 0.8rem; border:1px solid var(--line); border-radius:8px; color:var(--text); text-decoration:none; font-weight:600; font-size:0.85rem; }
   .livreur-btns a.wa{ color:#25d366; }
+  .livreur-ampio{ display:flex; align-items:center; justify-content:center; min-height:3rem; border:1px solid var(--accent); border-radius:12px; color:var(--accent); text-decoration:none; font-weight:700; font-size:1rem; }
 </style>
 <!-- Les émojis dessinés en 3D (emoji-3d.js). -->
 <!-- Les explications en visite guidée (fanazavana.js). -->
@@ -368,8 +369,14 @@
     const soratra = 'T' + c.latabatra + ' : ' + (c.plats || []).map(function (p) { return (Number(p.isa) || 0) + ' × ' + p.anarana; }).join(', ') +
       (c.fanamarihana ? ' (' + c.fanamarihana + ')' : '');
     boite.appendChild(el('p', soratra, 'livreur-commande'));
+    // Aucun livreur : un seul bouton, qui ouvre 🛵 Livreur dans Ny asako
+    // (common.js, « ?pejy= »), là où l'hôtel les inscrit.
     if (!livreurs.length) {
-      boite.appendChild(el('p', "Mbola tsy misy livreur : ampidiro ao amin'ny Ny asako › 🛵 Livreur, dia hiseho eto izy.", 'vide'));
+      const ampio = el('a', '➕ Hampiditra livreur', 'livreur-ampio');
+      ampio.href = '/ny-asako.html?pejy=livreur';
+      ampio.target = '_blank';
+      ampio.rel = 'noopener';
+      boite.appendChild(ampio);
     }
     livreurs.forEach(function (x) {
       const ligne = el('div', null, 'livreur');

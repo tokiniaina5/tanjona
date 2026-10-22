@@ -702,6 +702,13 @@
     // Rohy misy "?live=" na "?call=" : mifandray avy hatrany, tsy mila mitety
     // ny appli ny mpanjifa — ny fanokafana ny rohy no ampy.
     if(typeof runPendingLinkAction === 'function') runPendingLinkAction();
+    // « ?pejy=livreur » : ouvrir tout de suite cette page du menu (le bouton
+    // « ➕ Hampiditra livreur » de lakozia.html y mène). Une seule fois.
+    try{
+      const pejy = new URLSearchParams(location.search).get('pejy');
+      const nav = pejy && /^[a-z]+$/.test(pejy) && document.querySelector('.nav-item[data-section="' + pejy + '"]');
+      if(nav && !openApp.pejyVita){ openApp.pejyVita = true; setTimeout(function(){ nav.click(); }, 0); }
+    }catch(e){}
     // étape 2 : pièce d'identité, réclamée tant qu'elle n'est pas renseignée
     // L'employé, le patron le connaît déjà : c'est lui qui l'a inscrit.
     if(!MODE_MPIASA && typeof requireIdentity === 'function') requireIdentity();
