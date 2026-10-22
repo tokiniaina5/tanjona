@@ -16,7 +16,7 @@
 <script src="/mazava.js?v=2bcdcfad" defer></script>
 <!-- 🔄 La page se met à jour seule quand une version neuve est en ligne (pejy-version.js) ;
      l'empreinte est écrite par outils/versionner.mjs. -->
-<meta name="pejy-version" content="fcf61d42">
+<meta name="pejy-version" content="010c9961">
 <script src="/pejy-version.js?v=97acc3b0" defer></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -148,6 +148,17 @@
   .misy-sary .ecran-hidy{ z-index:1; background:rgba(0,0,0,0.55); color:#fff; }
   .ecran-hafatra span{ font-size:clamp(1.5rem, 6vw, 3.2rem); line-height:1.2; font-weight:700; }
   .ecran-hidy{ position:absolute; top:0.7rem; right:0.7rem; width:3.2rem; height:3.2rem; margin:0; padding:0; border:0; border-radius:50%; background:rgba(47,191,113,0.25); color:#2fbf71; font-size:1.7rem; font-weight:700; line-height:3.2rem; cursor:pointer; }
+  /* 🤖 Le robot en route vers la table : un bandeau en bas, par-dessus tout,
+     qui clignote jusqu'à « ✅ Voaray ». */
+  #robotEcran{ position:fixed; left:12px; right:12px; bottom:max(12px, env(safe-area-inset-bottom)); z-index:1002; display:flex; justify-content:center; pointer-events:none; }
+  .robot-bandeau{ pointer-events:auto; display:flex; align-items:center; gap:0.8rem; width:min(560px, 100%); padding:0.8rem 1rem; border-radius:16px; border:3px solid #22e07a; background:var(--bg); box-shadow:0 8px 28px rgba(0,0,0,0.35); animation:robot-mipipika 0.9s steps(2, jump-none) infinite; }
+  @keyframes robot-mipipika{ 0%{ border-color:#22e07a; box-shadow:0 0 0 4px rgba(34,224,122,0.45), 0 8px 28px rgba(0,0,0,0.35); } 100%{ border-color:transparent; box-shadow:0 8px 28px rgba(0,0,0,0.35); } }
+  @media (prefers-reduced-motion: reduce){ .robot-bandeau{ animation:none; } }
+  .robot-ikona{ font-size:2.2rem; line-height:1; }
+  .robot-soratra{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:0.15rem; }
+  .robot-soratra strong{ font-size:1.05rem; }
+  .robot-soratra span{ color:var(--muted); font-size:0.85rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .robot-voaray{ flex:0 0 auto; margin:0; padding:0.6rem 0.9rem; border:0; border-radius:10px; background:#1e9e5a; color:#fff; font-weight:700; font-size:0.95rem; cursor:pointer; }
   /* Le 🔔 de la cuisine, sonné à la latabatra : par-dessus tout, en orange. */
   #antsoEcran{ position:fixed; inset:0; z-index:1001; display:flex; background:var(--bg); padding:16px; }
   .ecran-hafatra.antso{ background:rgba(224,160,32,0.18); color:#e0a020; }
@@ -832,6 +843,7 @@
     z.replaceChildren();
     // Ce qui doit occuper l'écran (vita, voaloa), le temps que le client le ferme.
     const ecran = [];
+    dessinerRobot(l);
     if (!l.length) { dessinerEcran(ecran); return; }
     z.appendChild(el('h2', '🧾 Ny reçu-nao'));
     l.forEach(function (r) {
@@ -946,7 +958,7 @@
   // L'hôtel coche « voaloa » : on le demande pour les reçus qui attendent.
   function recusSata() {
     const l = recusLire();
-    const ids = l.filter(function (r) { return !r.voaloa || !r.vita; }).map(function (r) { return r.id; });
+    const ids = l.filter(function (r) { return !r.voaloa || !r.vita || r.robot; }).map(function (r) { return r.id; });
     if (!ids.length) return;
     fetch(URL_SB + '/rest/v1/rpc/hotelerie_commande_sata', {
       method: 'POST',
@@ -967,6 +979,8 @@
         }
         // Le 🔔 de la cuisine : une date neuve sonne ici. Un appel déjà vieux
         // (reçu ouvert après coup) ne fait que se noter.
+        // 🤖 Le robot en route vers cette table (« Go to the table » en cuisine).
+        if ((s.robot || null) !== (r.robot || null)) { r.robot = s.robot || null; change = true; }
         if (s.antso && s.antso !== r.antso) {
           if (Date.now() - new Date(s.antso).getTime() < 3 * 60000) antsoAseho(r);
           r.antso = s.antso; change = true;
@@ -974,6 +988,43 @@
       });
       if (change) recusEcrire(l);
     }).catch(function () { });
+  }
+
+  // ---------- 🤖 Le robot qui apporte le plat ----------
+  // La cuisine a touché « Go to the table » : un bandeau clignote, par-dessus
+  // tout, jusqu'à ce que le robot reparte — le client touche « ✅ Voaray »
+  // (hotelerie_robot_voaray), et la cuisine le voit revenir.
+  function dessinerRobot(l) {
+    const r = l.find(function (x) { return x.robot === 'mandeha'; });
+    let e = document.getElementById('robotEcran');
+    if (!r) { if (e) e.remove(); return; }
+    if (e && e.dataset.commande === String(r.id)) return;
+    if (!e) { e = el('div'); e.id = 'robotEcran'; document.body.appendChild(e); }
+    e.dataset.commande = String(r.id);
+    const b = el('div', null, 'robot-bandeau');
+    b.appendChild(el('span', '🤖', 'robot-ikona'));
+    const t = el('div', null, 'robot-soratra');
+    t.appendChild(el('strong', 'Ho avy ny robot mitondra ny sakafonao'));
+    t.appendChild(el('span', 'T' + r.latabatra + ' · ' + (r.plats || []).map(function (p) { return (Number(p.isa) || 0) + ' × ' + p.anarana; }).join(', ')));
+    b.appendChild(t);
+    const ok = el('button', '✅ Voaray', 'robot-voaray');
+    ok.type = 'button';
+    ok.addEventListener('click', function () {
+      ok.disabled = true;
+      fetch(URL_SB + '/rest/v1/rpc/hotelerie_robot_voaray', {
+        method: 'POST',
+        headers: { apikey: CLE_SB, Authorization: 'Bearer ' + CLE_SB, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ commande: r.id })
+      }).then(function (res) {
+        if (!res.ok) throw new Error(String(res.status));
+        recusEcrire(recusLire().map(function (x) { return x.id === r.id ? Object.assign({}, x, { robot: 'miverina' }) : x; }));
+      }).catch(function () {
+        ok.disabled = false;
+        alert('Tsy lasa : jereo ny connexion, dia avereno.');
+      });
+    });
+    b.appendChild(ok);
+    e.replaceChildren(b);
   }
 
   // ---------- Le 🔔 de la cuisine ----------
@@ -1185,7 +1236,7 @@
     // « 🔔 Naneno tany an-dakozia » arrive vite.
     setInterval(function () {
       if (document.hidden) return;
-      if (recusLire().some(function (r) { return !r.vita; })) recusSata();
+      if (recusLire().some(function (r) { return !r.vita || r.robot === 'mandeha'; })) recusSata();
     }, 8000);
     document.addEventListener('visibilitychange', function () { if (!document.hidden) charger(); });
   } else {

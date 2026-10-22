@@ -20,7 +20,7 @@
 <script src="/mazava.js?v=2bcdcfad" defer></script>
 <!-- 🔄 La page se met à jour seule quand une version neuve est en ligne (pejy-version.js) ;
      l'empreinte est écrite par outils/versionner.mjs. -->
-<meta name="pejy-version" content="805f6f27">
+<meta name="pejy-version" content="8aed8f1d">
 <script src="/pejy-version.js?v=97acc3b0" defer></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -369,11 +369,28 @@
     try {
       const d = JSON.parse(retenuLire('robot_dia') || 'null');
       if (!d || !d.commande) return null;
-      if (Date.now() - new Date(d.at).getTime() > DIA_MAX) { retenuEcrire('robot_dia', ''); return null; }
+      if (Date.now() - new Date(d.at).getTime() > DIA_MAX) { retenuEcrire('robot_dia', ''); robotServeur(d.commande, null); return null; }
       return d;
     } catch (e) { return null; }
   }
+  // Le serveur garde l'état du trajet (hotelerie_lakozia_robot) : c'est lui
+  // qui fait clignoter la latabatra (menu-sakafo.html).
+  function robotServeur(commande, sata) {
+    if (!id || !code || !commande) return;
+    fetch(URL_SB + '/rest/v1/rpc/hotelerie_lakozia_robot', {
+      method: 'POST',
+      headers: { apikey: CLE_SB, Authorization: 'Bearer ' + CLE_SB, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hotel: id, code: code, commande: commande, sata: sata })
+    }).catch(function () { });
+  }
+  // Le client a touché « ✅ Voaray » : le robot a quitté la table et revient.
+  function robotMiverina(commande) {
+    const c = commandes.find(function (x) { return x.id === commande; });
+    return !!(c && c.robot === 'miverina');
+  }
   function finRobot() {
+    const d = diaRobot();
+    if (d) robotServeur(d.commande, null);
     retenuEcrire('robot_dia', '');
     signature = '';
     dessiner();
@@ -394,7 +411,7 @@
     const dia = diaRobot();
     const enRoute = dia && dia.commande === c.id;
     const b = el('button', enRoute
-      ? '🤖 Mandeha any amin\'ny T' + c.latabatra + '…'
+      ? (c.robot === 'miverina' ? '🤖 Miverina avy amin\'ny T' + c.latabatra + '…' : '🤖 Mandeha any amin\'ny T' + c.latabatra + '…')
       : '🛵 Livreur' + (livreurs.length ? ' (' + livreurs.length + ')' : ''), 'livreur-ouvrir' + (enRoute ? ' mipipika' : ''));
     b.type = 'button';
     b.addEventListener('click', function () { ouvrirLivreurs(c); });
@@ -483,7 +500,11 @@
     tahiry.addEventListener('click', tehirizo);
     champ.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') tehirizo(); });
     ampio.addEventListener('click', function () {
+      // Un trajet déjà en cours pour une autre commande : celui-là est fini.
+      const avant = diaRobot();
+      if (avant && avant.commande !== c.id) robotServeur(avant.commande, null);
       retenuEcrire('robot_dia', JSON.stringify({ latabatra: c.latabatra, commande: c.id, at: new Date().toISOString() }));
+      robotServeur(c.id, 'mandeha');
       const rohy = rohyMety(retenuLire('robot_rohy') || '');
       if (rohy) {
         const u = new URL(rohy);
@@ -523,7 +544,9 @@
     robot.appendChild(el('span', '🤖', 'livreur-sary'));
     const robotNom = el('span', null, 'livreur-nom');
     robotNom.appendChild(el('strong', 'Livreur robot'));
-    robotNom.appendChild(el('small', dia ? '🍽️ Mitondra ny sakafo any amin\'ny T' + dia.latabatra + ', dia miverina…' : 'Mbola amboarina — ho avy tsy ho ela'));
+    robotNom.appendChild(el('small', !dia ? 'Mbola amboarina — ho avy tsy ho ela'
+      : (robotMiverina(dia.commande) ? '↩️ Voaray ny sakafo tao amin\'ny T' + dia.latabatra + ' : miverina ny robot…'
+        : '🍽️ Mitondra ny sakafo any amin\'ny T' + dia.latabatra + ', dia miverina…')));
     robot.appendChild(robotNom);
     robot.appendChild(el('span', dia ? '🤖 Mandeha' : '🔧 Mbola amboarina', 'robot-marika'));
     boite.appendChild(robot);
