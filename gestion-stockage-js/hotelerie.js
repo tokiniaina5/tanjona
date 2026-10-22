@@ -522,7 +522,7 @@
       const u = r && r.data && r.data.session ? r.data.session.user : null;
       const email = u && u.email ? String(u.email).trim().toLowerCase() : '';
       if (!email) { etatMpiasa = 'Midira ao amin\'ny kaontinao mba hahitana ny mpiasa.'; dessinerMpiasa(); return; }
-      return c.from('equipe').select('id,nom,telephone,email,ora_andrasana,sary').eq('owner_email', email).eq('role', 'mpiasa')
+      return c.from('equipe').select('id,nom,role,telephone,email,ora_andrasana,sary').eq('owner_email', email).in('role', ['mpiasa', 'livreur'])
         .order('created_at', { ascending: true }).then(function (res) {
           if (res.error) { etatMpiasa = '⚠️ ' + res.error.message; dessinerMpiasa(); return; }
           mpiasaLakozia = res.data || [];
@@ -540,11 +540,19 @@
         });
     }).catch(function () { etatMpiasa = '⚠️ Tsy azo ny mpiasa (connexion ?).'; dessinerMpiasa(); });
   }
-  function vueMpiasa() {
-    const l = mpiasaLakozia;
+  // Les mpiasa, puis les livreurs (🛵 Livreur) : chacun son panneau, la même
+  // ligne et les mêmes boutons.
+  const SOKAJY_EKIPA = {
+    mpiasa: { lohateny: '👷 Ny mpiasa', pejy: '👷 Mpiasa', tsisy: 'mpiasa' },
+    livreur: { lohateny: '🛵 Ny livreur', pejy: '🛵 Livreur', tsisy: 'livreur' }
+  };
+  function vueEkipa() { return vueMpiasa('mpiasa') + vueMpiasa('livreur'); }
+  function vueMpiasa(role) {
+    const s = SOKAJY_EKIPA[role];
+    const l = mpiasaLakozia.filter(function (m) { return (m.role || 'mpiasa') === role; });
     let corps;
     if (etatMpiasa) corps = '<p style="font-size:0.82rem; color:var(--muted); margin:0;">' + html(etatMpiasa) + '</p>';
-    else if (!l.length) corps = '<p style="font-size:0.85rem; color:var(--muted); margin:0;">Mbola tsy misy mpiasa voasoratra ao amin\'ny 👷 Mpiasa.</p>';
+    else if (!l.length) corps = '<p style="font-size:0.85rem; color:var(--muted); margin:0;">Mbola tsy misy ' + s.tsisy + ' voasoratra ao amin\'ny ' + s.pejy + '.</p>';
     // Une ligne par mpiasa, l'un sous l'autre : la photo et le nom à gauche,
     // les boutons à droite (dessous sur un écran étroit).
     else corps = '<div style="display:flex; flex-direction:column; gap:0.5rem;">' +
@@ -554,7 +562,7 @@
           : (/^https:\/\//.test(m.sary || '') ? m.sary : '');
         const sary = src
           ? '<img src="' + html(src) + '" alt="" style="width:100%; height:100%; object-fit:cover; display:block;">'
-          : '👷';
+          : (role === 'livreur' ? '🛵' : '👷');
         // Antsoy / Hafatra passent par le site (live.js) ; le téléphone de
         // l'appareil ne sert qu'à défaut. WhatsApp, lui, a son numéro.
         const wa = whatsappDe(m.telephone);
@@ -578,8 +586,8 @@
         '</div>';
       }).join('') + '</div>';
     return '<div class="panel" style="margin-top:1rem;">' +
-      '<h4 style="margin:0 0 0.2rem;">👷 Ny mpiasa (' + l.length + ')</h4>' +
-      '<p style="font-size:0.75rem; color:var(--muted); margin:0 0 0.8rem;">Ao amin\'ny 👷 Mpiasa no anampiana azy sy ametrahana ny sariny.</p>' +
+      '<h4 style="margin:0 0 0.2rem;">' + s.lohateny + ' (' + l.length + ')</h4>' +
+      '<p style="font-size:0.75rem; color:var(--muted); margin:0 0 0.8rem;">Ao amin\'ny ' + s.pejy + ' no anampiana azy sy ametrahana ny sariny.</p>' +
       corps +
     '</div>';
   }
@@ -635,7 +643,7 @@
   function dessinerMpiasa() {
     const z = document.getElementById('lakoziaMpiasa');
     if (!z) return;
-    z.innerHTML = vueMpiasa();
+    z.innerHTML = vueEkipa();
     const par = function (id) { return mpiasaLakozia.find(function (m) { return String(m.id) === id; }); };
     z.querySelectorAll('[data-mpiasa-antso]').forEach(function (b) {
       b.addEventListener('click', function () { const m = par(b.dataset.mpiasaAntso); if (m) antsoyMpiasa(m); });
@@ -1225,7 +1233,7 @@
         '<button type="button" class="dash-tab' + (onglet === 'lakozia' ? ' active' : '') + '" data-onglet="lakozia" style="width:auto;">👨‍🍳 Lakozia</button>' +
       '</div>';
     if (onglet === 'lakozia') {
-      z.innerHTML = tete + blocLakozia() + '<div id="lakoziaMpiasa">' + vueMpiasa() + '</div>';
+      z.innerHTML = tete + blocLakozia() + '<div id="lakoziaMpiasa">' + vueEkipa() + '</div>';
       brancherOnglets(z);
       brancherLakozia(z);
       return;
