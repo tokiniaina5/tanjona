@@ -1635,6 +1635,9 @@
     const email = monEmail();
     if (!client || !email) return;
     chargerCommandesPersonne(client, id);
+    // Le tableau de bord d'un mpiasa, ce sont les commandes des latabatra :
+    // son stock (articles, hetsika…) n'y est plus montré.
+    if (personneOuverte && personneOuverte.role !== 'livreur') { dessinerTableauPersonne(null); return; }
     client.from('stock_mpiasa').select('articles,mouvements,maj')
       .eq('owner_email', email).eq('equipe_id', id).maybeSingle()
       .then(function (res) {
