@@ -604,6 +604,22 @@
       return JSON.parse(v) || null;
     }catch(e){ return null; }
   }
+  // La fenêtre porte le nom du compte ouvert, et non plus « Tanjona » : avec
+  // un compte par fenêtre, c'est à son titre qu'on les reconnaît. L'employé
+  // garde le sien (vue-mpiasa.js).
+  function porterLeNomDuCompte(){
+    if(MODE_MPIASA) return;
+    const base = document.documentElement.classList.contains('app-hotely') ? 'Ny asako Hôtel' : 'Ny asako';
+    const nom = currentUser && currentUser.name ? String(currentUser.name).trim() : '';
+    document.title = nom ? base + ' — ' + nom : base;
+  }
+  (function(){
+    const el = document.getElementById('currentUserName');
+    if(el && window.MutationObserver){
+      new MutationObserver(porterLeNomDuCompte).observe(el, { childList: true, characterData: true, subtree: true });
+    }
+  })();
+
   function clearSession(){
     let ici = null;
     try{ ici = JSON.parse(sessionStorage.getItem(STORAGE_SESSION)); }catch(e){}
@@ -2225,7 +2241,7 @@
     const auth = sbAuth();
     if(auth) auth.signOut().then(function(){}, function(){});
     clearSession();
-    currentUser = null;
+    currentUser = null; porterLeNomDuCompte();
     appScreen.style.display = 'none';
     paywallScreen.style.display = 'none';
     loginScreen.style.display = 'flex';
@@ -3937,7 +3953,7 @@
     var authOut = sbAuth();
     if(authOut) authOut.signOut().then(function(){}, function(){});
     clearSession();
-    currentUser = null;
+    currentUser = null; porterLeNomDuCompte();
     appScreen.style.display = 'none';
     loginScreen.style.display = 'flex';
     loginForm.reset();
@@ -3950,7 +3966,7 @@
 
   document.getElementById('paywallLogoutBtn').addEventListener('click', function(){
     clearSession();
-    currentUser = null;
+    currentUser = null; porterLeNomDuCompte();
     paywallScreen.style.display = 'none';
     loginScreen.style.display = 'flex';
     loginForm.reset();

@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="12af3cdd">
+<meta name="ny-asako-version" content="394b4322">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -28,6 +28,15 @@
       var j = new URLSearchParams(location.search).get('mpiasa');
       var t = j && localStorage.getItem('nyasako_titre_' + j.slice(0, 16));
       if (t) document.title = t;
+      // Sinon le nom du compte de cette fenêtre (common.js, porterLeNomDuCompte).
+      if (!j) {
+        var s = null;
+        try { s = sessionStorage.getItem('stockmanager_session'); } catch(e){}
+        if (s == null) s = localStorage.getItem('stockmanager_session');
+        var nom = s && (JSON.parse(s) || {}).name;
+        var base = /^\/hotely\/?$/.test(location.pathname) ? 'Ny asako Hôtel' : 'Ny asako';
+        document.title = nom ? base + ' — ' + String(nom).trim() : base;
+      }
     } catch(e){}
   })();
 </script>
@@ -43,7 +52,7 @@
     if(!/^\/hotely\/?$/.test(location.pathname)) return;
     if(location.pathname === '/hotely/'){ location.replace('/hotely' + location.search + location.hash); return; }
     document.documentElement.classList.add('app-hotely');
-    document.title = 'Ny asako Hôtel';
+    if(!/^Ny asako Hôtel/.test(document.title)) document.title = 'Ny asako Hôtel';
     // L'Hôtel s'installe sous son propre nom, pour tout le monde.
     var m = document.querySelector('link[rel="manifest"]');
     if(m) m.href = '/hotely.webmanifest';
@@ -3634,7 +3643,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=32423fbf"></script>
+<script src="gestion-stockage-js/common.js?v=ed87e66e"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=622d64e8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
