@@ -9,7 +9,7 @@
 // Le nom porte l'empreinte du dernier envoi : outils/versionner.mjs le réécrit.
 // Chaque mise en ligne repart donc d'un cache neuf, et l'ancien est effacé —
 // sans quoi les fichiers de toutes les versions passées s'y empileraient.
-const CACHE = 'nyasako-195b6f0c';
+const CACHE = 'nyasako-6af3e430';
 
 // Le partage reçu des autres applications (manifest.webmanifest, « share_target »).
 // Le téléphone ouvre cette adresse en POST, avec le texte et les fichiers
@@ -267,7 +267,9 @@ self.addEventListener('push', function(e){
       const visible = fenetres.some(function(f){ return memeOrigine(f.url) && f.visibilityState === 'visible'; });
       if(visible) return;
       return self.registration.showNotification(d.title || 'Ny asako', {
-        body: d.body || '', tag: d.tag || 'nyasako', renotify: true, lang: 'mg',
+        // App fermée, aucune page ne peut jouer de son : c'est celui du
+        // téléphone qui sonne (silent: false), avec la vibration.
+        body: d.body || '', tag: d.tag || 'nyasako', renotify: true, silent: false, lang: 'mg',
         icon: '/icone-192.png', badge: '/icone-192.png',
         requireInteraction: d.kind === 'antso',
         vibrate: d.kind === 'antso' ? [600, 200, 600, 200, 600, 200, 600] : [300, 120, 300],

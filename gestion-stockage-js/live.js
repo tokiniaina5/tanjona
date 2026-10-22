@@ -153,6 +153,43 @@
     }
   }
 
+  // ---------------- LE SON ----------------
+  // Un navigateur garde muet un son lancé sans geste de la main : un
+  // AudioContext créé à l'arrivée d'un hafatra naissait « suspended », et
+  // rien ne sortait. Un seul contexte, ouvert au premier toucher de la page,
+  // sert ensuite à tous les sons qui arrivent seuls.
+  let feoCtx = null;
+  function feoVohay(){
+    try{
+      if(!feoCtx) feoCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if(feoCtx.state === 'suspended') feoCtx.resume();
+    }catch(e){}
+  }
+  ['pointerdown', 'keydown', 'touchstart'].forEach(function(ev){
+    document.addEventListener(ev, feoVohay, { capture: true, passive: true });
+  });
+  // Une note, avec attaque et extinction : un son de cloche plutôt qu'un bip.
+  function feoNote(freq, debut, duree, fort){
+    const ctx = feoCtx;
+    if(!ctx) return;
+    const t = ctx.currentTime + debut;
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(fort, t + 0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + duree);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(t); o.stop(t + duree + 0.05);
+  }
+  // 💬 Un hafatra : « ding-dong » montant, deux fois.
+  function feoHafatra(){
+    feoVohay();
+    if(navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    if(!feoCtx) return;
+    [[784, 0], [1175, 0.16], [784, 0.6], [1175, 0.76]].forEach(function(n){ feoNote(n[0], n[1], 0.45, 0.45); });
+  }
+
   // Feo fohy manaitra rehefa misy Live manomboka (tsy toy ny ringtone miverimberina).
   function playLiveChime(){
     try{
@@ -488,28 +525,26 @@
   }
 
   // ---------------- SONNERIE ----------------
-  let ringtoneInterval = null, ringtoneCtx = null;
+  // Une vraie sonnerie de téléphone : deux trilles rapides, puis un silence,
+  // sur le contexte ouvert au premier toucher (feoVohay), et qui vibre.
+  let ringtoneInterval = null;
   function playRingtone(){
     stopRingtone();
-    try{
-      ringtoneCtx = new (window.AudioContext || window.webkitAudioContext)();
-      function beep(){
-        if(!ringtoneCtx) return;
-        const osc = ringtoneCtx.createOscillator();
-        const gain = ringtoneCtx.createGain();
-        osc.frequency.value = 880;
-        gain.gain.value = 0.15;
-        osc.connect(gain).connect(ringtoneCtx.destination);
-        osc.start();
-        osc.stop(ringtoneCtx.currentTime + 0.35);
+    feoVohay();
+    function sonne(){
+      if(navigator.vibrate) navigator.vibrate([400, 200, 400]);
+      if(!feoCtx) return;
+      for(let i = 0; i < 10; i++){
+        feoNote(i % 2 ? 1046 : 1318, i * 0.05, 0.06, 0.4);
+        feoNote(i % 2 ? 1046 : 1318, 0.45 + i * 0.05, 0.06, 0.4);
       }
-      beep();
-      ringtoneInterval = setInterval(beep, 1200);
-    }catch(e){}
+    }
+    sonne();
+    ringtoneInterval = setInterval(sonne, 2200);
   }
   function stopRingtone(){
     if(ringtoneInterval){ clearInterval(ringtoneInterval); ringtoneInterval = null; }
-    if(ringtoneCtx){ try{ ringtoneCtx.close(); }catch(e){} ringtoneCtx = null; }
+    if(navigator.vibrate) navigator.vibrate(0);
   }
 
   // ---------------- APPELS 1-À-1 (WebRTC + signal via Supabase Realtime) ----------------
@@ -608,7 +643,7 @@
     (resaka[avy] = resaka[avy] || []).push({ avy: 'izy', soratra: String(payload.text || ''), media: payload.media || null, at: Date.now() });
     const fohy = payload.text ? String(payload.text).slice(0, 120)
       : (payload.media && payload.media.type === 'video' ? '🎬 Video' : '📷 Sary');
-    if(typeof playLiveChime === 'function') playLiveChime();
+    feoHafatra();
     if(currentUser && typeof pushNotification === 'function') pushNotification('hafatra', '💬 Hafatra avy amin\'i ' + (payload.fromName || avy) + '.');
     showSystemNotification('💬 ' + (payload.fromName || avy), fohy, 'hafatra-' + avy);
     sokafyResaka(avy, payload.fromName || avy);
