@@ -54,6 +54,11 @@
   /* Multi-service (photocopie.js) : à l’admin seul. */
   html:not(.est-proprietaire):not(.fokontany) .nav-item[data-section="photocopie"],
   /* « 🔗 Ajouter les liens » est à tous depuis le 22/10/2026 (contact.js). */
+  /* Dans le menu de Ny asako, l'Hôtellerie et son installation sont à
+     l'admin seul (22/10/2026) ; l'application /hotely reste à tous. */
+  html:not(.est-proprietaire):not(.fokontany):not(.app-hotely) .nav-item[data-section="hotelerie"],
+  html:not(.est-proprietaire):not(.fokontany):not(.app-hotely) [data-epingle="section:hotelerie"],
+  html:not(.est-proprietaire):not(.fokontany) #menuInstallHotel,
   html:not(.est-proprietaire):not(.fokontany) [data-epingle="section:photocopie"],
   html:not(.est-proprietaire):not(.fokontany) #section-photocopie{ display:none !important; }
   /* Dans Ny asako Hôtel (/hotely), le menu ne garde que l'Hôtel et ce qui

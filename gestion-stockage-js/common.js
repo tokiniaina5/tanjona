@@ -6761,7 +6761,10 @@
       if(el.id === 'navStock') return false;
       if(document.documentElement.classList.contains('app-hotely') &&
          HOTEL_GARDEES.indexOf(el.dataset.section || el.id) < 0) return false;
-      if(el.id === 'navAdmin' || el.dataset.section === 'photocopie'){
+      // L'Hôtellerie : à l'admin dans Ny asako, à tous dans /hotely.
+      const hotelHorsHotely = el.id === 'menuInstallHotel' ||
+        (el.dataset.section === 'hotelerie' && !document.documentElement.classList.contains('app-hotely'));
+      if(el.id === 'navAdmin' || el.dataset.section === 'photocopie' || hotelHorsHotely){
         return !!(currentUser && currentUser.email && isOwnerEmail(currentUser.email));
       }
       if(el.classList.contains('seulement-mpiasa')) return document.body.classList.contains('mode-mpiasa');
