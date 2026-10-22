@@ -111,6 +111,33 @@ $$;
 revoke all on function public.hotelerie_lakozia_antso(uuid, text, uuid) from public;
 grant execute on function public.hotelerie_lakozia_antso(uuid, text, uuid) to anon, authenticated;
 
+-- ---------- Les livreurs, pour la cuisine ----------
+-- La lakozia voit les livreurs de l'hôtel (🛵 Livreur) pour les appeler
+-- quand un plat part : nom, numéro, photo. Ni email, ni jeton, ni le reste.
+-- La photo : celle de l'inscription (profil_sary), sinon celle de 📷 Sary.
+create or replace function public.hotelerie_lakozia_livreur(hotel uuid, code text)
+returns table (id uuid, nom text, telephone text, sary text)
+language plpgsql stable security definer set search_path = public
+as $$
+declare tompony text;
+begin
+  if not exists (select 1 from public.hotelerie_lakozia l where l.hotel_id = hotel and l.code = hotelerie_lakozia_livreur.code) then
+    raise exception 'code diso' using errcode = '28000';
+  end if;
+  select lower(trim(u.email)) into tompony from auth.users u where u.id = hotel;
+  return query
+    select e.id, e.nom, e.telephone,
+      coalesce((select p.sary from public.profil_sary p
+                 where e.email is not null and p.email = lower(trim(e.email)) and p.email <> tompony limit 1), e.sary)
+    from public.equipe e
+    where e.owner_email = tompony and e.role = 'livreur' and coalesce(e.actif, true)
+    order by e.created_at asc
+    limit 50;
+end;
+$$;
+revoke all on function public.hotelerie_lakozia_livreur(uuid, text) from public;
+grant execute on function public.hotelerie_lakozia_livreur(uuid, text) to anon, authenticated;
+
 -- L'état du reçu porte désormais « lakozia » et « antso » : le type de retour
 -- change, la fonction de supabase-hotelerie-commande.sql est donc remplacée en entier.
 drop function if exists public.hotelerie_commande_sata(uuid[]);

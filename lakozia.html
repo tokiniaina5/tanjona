@@ -20,7 +20,7 @@
 <script src="/mazava.js?v=2bcdcfad" defer></script>
 <!-- 🔄 La page se met à jour seule quand une version neuve est en ligne (pejy-version.js) ;
      l'empreinte est écrite par outils/versionner.mjs. -->
-<meta name="pejy-version" content="6367484a">
+<meta name="pejy-version" content="2367f9ab">
 <script src="/pejy-version.js?v=97acc3b0" defer></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -62,6 +62,18 @@
   .erreur{ border-color:#e05a5a; color:#e05a5a; }
   .installer{ display:none; align-items:center; justify-content:space-between; gap:0.6rem; flex-wrap:wrap; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:0.6rem 0.8rem; margin:0 0 1rem; }
   .installer p{ margin:0; font-size:0.85rem; color:var(--muted); flex:1 1 200px; }
+  /* Les livreurs de l'hôtel, sous les bons : un par ligne, pour les appeler
+     quand un plat part. */
+  .livreurs{ display:flex; flex-direction:column; gap:0.5rem; }
+  .livreur{ display:flex; align-items:center; flex-wrap:wrap; gap:0.6rem 0.8rem; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:0.6rem 0.7rem; }
+  .livreur-moi{ display:flex; align-items:center; gap:0.7rem; flex:1 1 200px; min-width:0; }
+  .livreur-sary{ flex:0 0 auto; display:flex; align-items:center; justify-content:center; width:3rem; height:3rem; border-radius:50%; overflow:hidden; background:rgba(79,216,224,0.15); font-size:1.5rem; }
+  .livreur-sary img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .livreur-nom{ display:block; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .livreur-tel{ color:var(--muted); font-size:0.85rem; }
+  .livreur-btns{ display:flex; gap:0.4rem; flex-wrap:wrap; margin-left:auto; }
+  .livreur-btns a{ display:inline-flex; align-items:center; gap:0.3rem; min-height:2.3rem; padding:0 0.8rem; border:1px solid var(--line); border-radius:8px; color:var(--text); text-decoration:none; font-weight:600; font-size:0.85rem; }
+  .livreur-btns a.wa{ color:#25d366; }
 </style>
 <!-- Les émojis dessinés en 3D (emoji-3d.js). -->
 <!-- Les explications en visite guidée (fanazavana.js). -->
@@ -87,6 +99,7 @@
   </div>
   <div id="miandry"></div>
   <div id="vitaZone"></div>
+  <div id="livreurZone"></div>
 </main>
 <script>
 (function () {
@@ -374,6 +387,68 @@
       boiteInst.style.display = 'flex';
     }
   })();
+
+  // ---------- Les livreurs ----------
+  // Ceux de 🛵 Livreur (hotelerie_lakozia_livreur, supabase-hotelerie-lakozia.sql),
+  // avec de quoi les appeler depuis la tablette : son téléphone, ses SMS,
+  // WhatsApp. Relus chaque minute — ils changent peu.
+  const zoneLivreur = document.getElementById('livreurZone');
+  let sigLivreur = '';
+  function whatsappDe(t) {
+    let n = String(t || '').replace(/\D/g, '');
+    if (/^0\d{9}$/.test(n)) n = '261' + n.slice(1);
+    return n.length >= 10 ? n : '';
+  }
+  function chargerLivreurs() {
+    if (!id || !code) return;
+    fetch(URL_SB + '/rest/v1/rpc/hotelerie_lakozia_livreur', {
+      method: 'POST',
+      headers: { apikey: CLE_SB, Authorization: 'Bearer ' + CLE_SB, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hotel: id, code: code }), cache: 'no-store'
+    }).then(function (r) { return r.ok ? r.json() : null; }).then(function (l) {
+      if (!Array.isArray(l)) return;
+      const sig = JSON.stringify(l);
+      if (sig === sigLivreur) return;
+      sigLivreur = sig;
+      dessinerLivreurs(l);
+    }).catch(function () { });
+  }
+  function dessinerLivreurs(l) {
+    zoneLivreur.replaceChildren(el('h2', '🛵 Livreur (' + l.length + ')'));
+    if (!l.length) {
+      zoneLivreur.appendChild(el('p', "Mbola tsy misy livreur : ny hotely no mampiditra azy ao amin'ny 🛵 Livreur.", 'vide'));
+      return;
+    }
+    const liste = el('div', null, 'livreurs');
+    l.forEach(function (x) {
+      const ligne = el('div', null, 'livreur');
+      const moi = el('div', null, 'livreur-moi');
+      const sary = el('span', null, 'livreur-sary');
+      if (/^(https:\/\/|data:image\/jpeg;base64,)/.test(x.sary || '')) { const i = el('img'); i.src = x.sary; i.alt = ''; sary.appendChild(i); }
+      else sary.textContent = '🛵';
+      moi.appendChild(sary);
+      const texte = el('span');
+      texte.style.minWidth = '0';
+      texte.appendChild(el('span', x.nom || 'Livreur', 'livreur-nom'));
+      if (x.telephone) texte.appendChild(el('span', x.telephone, 'livreur-tel'));
+      moi.appendChild(texte);
+      ligne.appendChild(moi);
+      const finday = String(x.telephone || '').replace(/[^\d+]/g, '');
+      if (finday.replace(/\D/g, '').length >= 9) {
+        const btns = el('div', null, 'livreur-btns');
+        const lien = function (href, t, classe) { const a = el('a', t, classe); a.href = href; btns.appendChild(a); return a; };
+        lien('tel:' + finday, '📞 Antsoy');
+        lien('sms:' + finday, '💬 SMS');
+        const wa = whatsappDe(finday);
+        if (wa) { const a = lien('https://wa.me/' + wa, '🟢 WhatsApp', 'wa'); a.target = '_blank'; a.rel = 'noopener'; }
+        ligne.appendChild(btns);
+      }
+      liste.appendChild(ligne);
+    });
+    zoneLivreur.appendChild(liste);
+  }
+  chargerLivreurs();
+  setInterval(function () { if (!document.hidden) chargerLivreurs(); }, 60000);
 
   charger();
   // La cuisine regarde l'écran de loin : on relit souvent.
