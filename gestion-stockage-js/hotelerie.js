@@ -528,6 +528,15 @@
           mpiasaLakozia = res.data || [];
           etatMpiasa = '';
           dessinerMpiasa();
+          // La photo de leur inscription (supabase-profil-sary.sql) passe
+          // avant celle posée à la main par « 📷 Sary ».
+          return c.rpc('equipe_sary_profil').then(function (r2) {
+            if (r2.error || !r2.data) return;
+            const parId = {};
+            r2.data.forEach(function (x) { parId[x.equipe_id] = x.sary; });
+            mpiasaLakozia.forEach(function (m) { if (parId[m.id]) m.saryProfil = parId[m.id]; });
+            dessinerMpiasa();
+          });
         });
     }).catch(function () { etatMpiasa = '⚠️ Tsy azo ny mpiasa (connexion ?).'; dessinerMpiasa(); });
   }
@@ -539,8 +548,10 @@
     else corps = '<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:0.6rem;">' +
       l.map(function (m) {
         const details = [m.telephone ? html(m.telephone) : '', m.ora_andrasana ? '🕒 ' + html(m.ora_andrasana) + ' h/andro' : ''].filter(Boolean).join(' · ');
-        const sary = /^https:\/\//.test(m.sary || '')
-          ? '<img src="' + html(m.sary) + '" alt="" style="width:100%; height:100%; object-fit:cover; display:block;">'
+        const src = /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(m.saryProfil || '') ? m.saryProfil
+          : (/^https:\/\//.test(m.sary || '') ? m.sary : '');
+        const sary = src
+          ? '<img src="' + html(src) + '" alt="" style="width:100%; height:100%; object-fit:cover; display:block;">'
           : '👷';
         // Antsoy / Hafatra : le téléphone de l'appareil, ou WhatsApp.
         const finday = String(m.telephone || '').replace(/[^\d+]/g, '');

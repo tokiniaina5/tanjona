@@ -5401,7 +5401,34 @@
       }, function(){ return false; });
   };
 
+  // La photo de l'inscription reste sur l'appareil : on en dépose une vignette
+  // dans profil_sary (supabase/sql/supabase-profil-sary.sql), pour que le
+  // patron la voie dans 👷 Mpiasa et Hôtellerie › Lakozia. Une seule fois par
+  // photo : la même vignette n'est pas renvoyée à chaque ouverture.
+  let maPhotoEnvoyee = false;
+  function envoyerMaPhoto(){
+    if(maPhotoEnvoyee || jeSuisLaMaison()) return;
+    const u = currentUser;
+    if(!u || !u.email || !u.logo || !window.__sb) return;
+    maPhotoEnvoyee = true;
+    vignette(u.logo).then(function(sary){
+      if(!sary) return;
+      const email = String(u.email).trim().toLowerCase();
+      const cle = 'profil_sary_' + email;
+      let deja = null;
+      try{ deja = localStorage.getItem(cle); }catch(e){}
+      const empreinte = sary.length + ':' + sary.slice(-40);
+      if(deja === empreinte) return;
+      window.__sb.from('profil_sary').upsert({ email: email, finday: u.phone || null, sary: sary, updated_at: new Date().toISOString() })
+        .then(function(res){
+          if(res && res.error){ maPhotoEnvoyee = false; return; }
+          try{ localStorage.setItem(cle, empreinte); }catch(e){}
+        }, function(){ maPhotoEnvoyee = false; });
+    });
+  }
+
   function renderCommunityPanel(){
+    envoyerMaPhoto();
     const avatar = document.getElementById('composerAvatar');
     if(avatar){
       // Le rond du composeur montre qui va signer : le logo de la maison

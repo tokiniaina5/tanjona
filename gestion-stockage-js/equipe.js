@@ -449,6 +449,14 @@
       ((res[2] && res[2].data) || []).forEach(function (o) { ouverts[o.equipe_id] = o; });
       dernierDeChacun((res[3] && res[3].data) || []);
       dessinerEquipe();
+      // La photo de leur inscription (supabase-profil-sary.sql), qui passe
+      // avant celle de « 📷 Sary ».
+      client.rpc('equipe_sary_profil').then(function (r) {
+        if (!r || r.error || !r.data || !r.data.length) return;
+        saryProfil = {};
+        r.data.forEach(function (x) { saryProfil[x.equipe_id] = x.sary; });
+        METIERS.forEach(dessinerMetier);
+      }, function () { });
       dessinerCarte();
       remplirLivreurs();
       dessinerLivraisons();
@@ -472,6 +480,7 @@
   }
 
   // ---------- Le registre ----------
+  let saryProfil = {}; // equipe.id → vignette de la photo d'inscription
   function dessinerEquipe() {
     METIERS.forEach(dessinerMetier);
   }
@@ -491,9 +500,13 @@
       div.style.cssText = 'border:1px solid var(--line); border-radius:8px; padding:0.7rem 0.9rem; margin-bottom:0.6rem; font-size:0.82rem; line-height:1.6;';
       const role = ROLES[p.role] || p.role;
       const auTravail = !!ouverts[p.id];
-      // La photo, à gauche : celle posée par « 📷 Sary », sinon 👷.
-      const sary = /^https:\/\//.test(p.sary || '')
-        ? '<img src="' + html(p.sary) + '" alt="" style="width:100%; height:100%; object-fit:cover; display:block;">'
+      // La photo, à gauche : celle de l'inscription, sinon celle posée par
+      // « 📷 Sary », sinon 👷.
+      const profil = saryProfil[p.id];
+      const src = /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(profil || '') ? profil
+        : (/^https:\/\//.test(p.sary || '') ? p.sary : '');
+      const sary = src
+        ? '<img src="' + html(src) + '" alt="" style="width:100%; height:100%; object-fit:cover; display:block;">'
         : '👷';
       div.innerHTML =
         '<span style="float:left; display:flex; align-items:center; justify-content:center; width:3rem; height:3rem; margin:0 0.7rem 0.3rem 0; border-radius:50%; overflow:hidden; background:rgba(79,216,224,0.15); font-size:1.4rem;">' + sary + '</span>' +
