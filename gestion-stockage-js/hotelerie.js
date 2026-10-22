@@ -545,7 +545,9 @@
     let corps;
     if (etatMpiasa) corps = '<p style="font-size:0.82rem; color:var(--muted); margin:0;">' + html(etatMpiasa) + '</p>';
     else if (!l.length) corps = '<p style="font-size:0.85rem; color:var(--muted); margin:0;">Mbola tsy misy mpiasa voasoratra ao amin\'ny 👷 Mpiasa.</p>';
-    else corps = '<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:0.6rem;">' +
+    // Une ligne par mpiasa, l'un sous l'autre : la photo et le nom à gauche,
+    // les boutons à droite (dessous sur un écran étroit).
+    else corps = '<div style="display:flex; flex-direction:column; gap:0.5rem;">' +
       l.map(function (m) {
         const details = [m.telephone ? html(m.telephone) : '', m.ora_andrasana ? '🕒 ' + html(m.ora_andrasana) + ' h/andro' : ''].filter(Boolean).join(' · ');
         const src = /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(m.saryProfil || '') ? m.saryProfil
@@ -557,15 +559,15 @@
         // l'appareil ne sert qu'à défaut. WhatsApp, lui, a son numéro.
         const wa = whatsappDe(m.telephone);
         const enLigne = !!adresseMpiasa(m);
-        const bouton = 'display:inline-flex; align-items:center; justify-content:center; gap:0.3rem; flex:1 1 0; min-height:2.2rem; padding:0 0.5rem; border-radius:8px; border:1px solid var(--line); background:var(--panel); color:var(--text); font-size:0.78rem; font-weight:600; text-decoration:none; white-space:nowrap; cursor:pointer; font-family:inherit;';
+        const bouton = 'display:inline-flex; align-items:center; justify-content:center; gap:0.3rem; flex:0 0 auto; min-height:2.2rem; padding:0 0.7rem; border-radius:8px; border:1px solid var(--line); background:var(--panel); color:var(--text); font-size:0.78rem; font-weight:600; text-decoration:none; white-space:nowrap; cursor:pointer; font-family:inherit;';
         const point = enLigne ? ' <span style="color:#2e7d32;">●</span>' : '';
-        const actions = '<div style="display:flex; gap:0.4rem; margin-top:0.6rem;">' +
+        const actions = '<div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-left:auto;">' +
             '<button type="button" data-mpiasa-antso="' + html(m.id) + '" style="' + bouton + '" title="Antsoy i ' + html(m.nom) + '">📞 Antsoy' + point + '</button>' +
             '<button type="button" data-mpiasa-hafatra="' + html(m.id) + '" style="' + bouton + '" title="Hafatra ho an\'i ' + html(m.nom) + '">💬 Hafatra</button>' +
             (wa ? '<a href="https://wa.me/' + wa + '" target="_blank" rel="noopener" style="' + bouton + ' color:#25d366;" title="WhatsApp ho an\'i ' + html(m.nom) + '">🟢 WhatsApp</a>' : '') +
           '</div>';
-        return '<div style="padding:0.7rem; border:1px solid var(--line); border-radius:12px; background:var(--panel-2);">' +
-          '<div style="display:flex; align-items:center; gap:0.7rem;">' +
+        return '<div style="display:flex; align-items:center; flex-wrap:wrap; gap:0.6rem 0.8rem; padding:0.6rem 0.7rem; border:1px solid var(--line); border-radius:12px; background:var(--panel-2);">' +
+          '<div style="display:flex; align-items:center; gap:0.7rem; flex:1 1 200px; min-width:0;">' +
             '<span style="flex:0 0 auto; display:flex; align-items:center; justify-content:center; width:3.4rem; height:3.4rem; border-radius:50%; overflow:hidden; background:rgba(79,216,224,0.15); font-size:1.6rem;">' + sary + '</span>' +
             '<span style="min-width:0;">' +
               '<strong style="display:block; font-size:0.95rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + html(m.nom) + '</strong>' +
