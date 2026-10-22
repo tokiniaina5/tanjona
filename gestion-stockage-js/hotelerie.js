@@ -1046,7 +1046,8 @@
               // apparaît dessous) ; « ↩️ Averina » la rend pendant 5 s.
               return '<div data-glisse="' + c.id + '" style="position:relative; margin-top:0.6rem; border-radius:8px; overflow:hidden; background:var(--red);' + (c.vita ? ' opacity:0.8;' : '') + '">' +
                 '<span data-glisse-fond style="position:absolute; top:50%; transform:translateY(-50%); left:1rem; color:#fff; font-weight:700; font-size:0.9rem; pointer-events:none;">🗑️ Esorina</span>' +
-                '<div data-glisse-carte style="position:relative; padding:0.6rem 0.7rem; border-radius:8px; border:1px solid var(--line); background:var(--panel); touch-action:pan-y;' + (c.vita ? ' border-color:#3ecf8e;' : '') + '">' +
+                // Vita mais pas encore payé : le cadre vert clignote jusqu'à « Voaloa ».
+                '<div data-glisse-carte' + (c.vita && !c.voaloa ? ' class="hotely-tsy-voaloa"' : '') + ' style="position:relative; padding:0.6rem 0.7rem; border-radius:8px; border:1px solid var(--line); background:var(--panel); touch-action:pan-y;' + (c.vita ? ' border-color:#3ecf8e;' : '') + '">' +
                 '<div style="display:flex; justify-content:space-between; gap:0.5rem; font-size:0.75rem; color:var(--muted);">' +
                   '<span>🕒 ' + heure(c.created_at) + '</span>' +
                   (c.vita ? '<span style="color:#3ecf8e; font-weight:700;">✅ Vita</span>' : '<span>⏳ Miandry</span>') +
