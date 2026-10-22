@@ -1058,9 +1058,14 @@
                     '<span style="white-space:nowrap;">' + ariary((Number(p.isa) || 0) * (Number(p.vidiny) || 0)) + '</span></div>';
                 }).join('') +
                 (c.fanamarihana ? '<p data-fz-tsia style="font-size:0.8rem; margin:0.35rem 0 0; color:var(--muted);">📝 ' + html(c.fanamarihana) + '</p>' : '') +
-                '<p style="font-size:0.8rem; margin:0.35rem 0 0;">' + html(NOM_FOMBA[c.fandoavana] || '💳 Tsy voalaza ny fandoavana') +
-                  (c.fandoavana_ref ? ' · Réf : <strong>' + html(c.fandoavana_ref) + '</strong>' : '') +
-                  ' · ' + (c.voaloa ? '<span style="color:#3ecf8e; font-weight:700;">💰 Voaloa</span>' : '<span style="color:#ffb020;">⏳ Tsy mbola voaloa</span>') + '</p>' +
+                // Pas encore payé : le moyen de paiement devient un grand bouton
+                // vert plein ; le toucher, c'est « Voaloa », et il s'en va.
+                (c.voaloa ? '' :
+                  '<button type="button" class="hotely-mandoa" data-commande="voaloa" data-id="' + c.id + '" title="Tsindrio rehefa voaray ny vola">' +
+                    '<span>' + html(NOM_FOMBA[c.fandoavana] || '💳 Tsy voalaza ny fandoavana') +
+                      (c.fandoavana_ref ? ' · Réf : <strong>' + html(c.fandoavana_ref) + '</strong>' : '') + '</span>' +
+                    '<small>Tsindrio rehefa voaray ny vola</small>' +
+                  '</button>') +
                 '<div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-top:0.5rem;">' +
                   '<strong style="font-size:0.88rem;">Total : ' + ariary(totalDe(c)) + '</strong>' +
                   '<div style="display:flex; gap:0.35rem; flex-wrap:wrap;">' +

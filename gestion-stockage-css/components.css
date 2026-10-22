@@ -248,6 +248,17 @@
     0%{ border-color:#22e07a; box-shadow:inset 0 0 0 4px #22e07a, inset 0 0 18px rgba(34,224,122,0.55); background-image:linear-gradient(rgba(34,224,122,0.18), rgba(34,224,122,0.18)); }
     100%{ border-color:var(--line); box-shadow:inset 0 0 0 4px rgba(34,224,122,0); background-image:none; }
   }
+  /* Le moyen de paiement d'une commande pas encore payée : un bouton vert
+     plein, sur toute la largeur. Touché, la commande est voaloa et il part. */
+  .hotely-mandoa{
+    display:flex; flex-direction:column; align-items:center; gap:0.15rem;
+    width:100%; margin:0.5rem 0 0; padding:0.6rem 0.8rem;
+    border:0; border-radius:10px; background:#1e9e5a; color:#fff;
+    font:inherit; font-size:0.92rem; font-weight:700; cursor:pointer;
+  }
+  .hotely-mandoa small{ font-size:0.72rem; font-weight:500; opacity:0.9; }
+  .hotely-mandoa:hover{ background:#178a4d; }
+  .hotely-mandoa:disabled{ opacity:0.6; cursor:wait; }
   @media (prefers-reduced-motion: reduce){
     .hotely-tsy-voaloa{ animation:none; box-shadow:inset 0 0 0 4px #22e07a; background-image:linear-gradient(rgba(34,224,122,0.12), rgba(34,224,122,0.12)); }
   }
