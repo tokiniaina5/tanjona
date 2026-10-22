@@ -1,4 +1,41 @@
 (function(){
+  // Le rangement de la session, fenêtre par fenêtre (voir plus bas).
+  function fenetreAPart(){
+    var ss, ls;
+    try { ss = window.sessionStorage; ls = window.localStorage; ss.getItem('x'); } catch(e){ return null; }
+    var SORTI = '-nivoaka';
+    function uid(v){ try { var s = JSON.parse(v); return (s && s.user && s.user.id) || ''; } catch(e){ return ''; } }
+    function expire(v){ try { return (JSON.parse(v) || {}).expires_at || 0; } catch(e){ return 0; } }
+    return {
+      getItem: function(k){
+        var s = ss.getItem(k), l = ls.getItem(k);
+        if(s == null){
+          // Déconnectée ici : elle ne reprend pas le compte d'une autre fenêtre.
+          if(ss.getItem(k + SORTI)) return null;
+          // Fenêtre neuve : elle prend le dernier compte, et le garde.
+          if(l != null) ss.setItem(k, l);
+          return l;
+        }
+        // Même compte ailleurs, avec un jeton plus récent : on le reprend.
+        // Le vieux jeton, réutilisé, ferait fermer la session des deux côtés.
+        if(l != null && uid(s) && uid(l) === uid(s) && expire(l) > expire(s)){ ss.setItem(k, l); return l; }
+        return s;
+      },
+      setItem: function(k, v){
+        ss.removeItem(k + SORTI);
+        ss.setItem(k, v);
+        ls.setItem(k, v);
+      },
+      removeItem: function(k){
+        var s = ss.getItem(k), l = ls.getItem(k);
+        ss.removeItem(k);
+        ss.setItem(k + SORTI, '1');
+        // Le dernier compte reste pour les autres fenêtres s'il n'est pas celui-ci.
+        if(l != null && (s == null || uid(l) === uid(s))) ls.removeItem(k);
+      }
+    };
+  }
+
   var SUPABASE_URL = 'https://ezpsapvthujkhttbfhlr.supabase.co';
   var SUPABASE_KEY = 'sb_publishable_7YAttwKbsmxJUxn9IwR86g_9_h4ZThk';
 
@@ -30,7 +67,27 @@
       options = { auth: { storageKey: appAPart[1] === 'commun' ? 'sb-nyasako-commun-app' : 'sb-nyasako-fokontany-app' } };
     }
   } catch(e){}
-  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, options);
+
+  // Chaque fenêtre garde son compte (22/10/2026). Ouvrir un autre compte
+  // dans une deuxième fenêtre faisait basculer la première : la session
+  // n'existait qu'une fois, dans localStorage. Elle vit maintenant dans la
+  // fenêtre (sessionStorage) ; localStorage n'en garde que la dernière,
+  // pour qu'une fenêtre neuve s'ouvre sur un compte connu.
+  var stockage = fenetreAPart();
+  if(stockage){
+    options.auth = options.auth || {};
+    options.auth.storage = stockage;
+  }
+  // Et la bibliothèque ne prévient plus les autres fenêtres d'une connexion
+  // (BroadcastChannel) : elles passeraient sur le compte qu'on vient d'ouvrir.
+  var BC = window.BroadcastChannel;
+  var sb;
+  try {
+    if(stockage) window.BroadcastChannel = undefined;
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, options);
+  } finally {
+    window.BroadcastChannel = BC;
+  }
   window.__sb = sb;
 
   // Même raison pour l'événement : il peut partir avant que common.js n'ait pu

@@ -582,15 +582,36 @@
   const STORAGE_SESSION = 'stockmanager_session';
   const STORAGE_LAST_VIEW = 'stockmanager_last_view';
 
+  // Chaque fenêtre garde son compte, comme la session Supabase
+  // (supabase-init.js) : sessionStorage pour la fenêtre, localStorage pour le
+  // dernier compte ouvert, que prend une fenêtre neuve.
+  const SESSION_NIVOAKA = STORAGE_SESSION + '_nivoaka';
   function saveSession(){
-    try{ localStorage.setItem(STORAGE_SESSION, JSON.stringify(currentUser)); }catch(e){}
+    const v = JSON.stringify(currentUser);
+    try{ sessionStorage.removeItem(SESSION_NIVOAKA); sessionStorage.setItem(STORAGE_SESSION, v); }catch(e){}
+    try{ localStorage.setItem(STORAGE_SESSION, v); }catch(e){}
   }
   function loadSession(){
-    try{ return JSON.parse(localStorage.getItem(STORAGE_SESSION)) || null; }catch(e){ return null; }
+    try{
+      let v = null;
+      try{
+        v = sessionStorage.getItem(STORAGE_SESSION);
+        if(v == null && !sessionStorage.getItem(SESSION_NIVOAKA)){
+          v = localStorage.getItem(STORAGE_SESSION);
+          if(v != null) sessionStorage.setItem(STORAGE_SESSION, v);
+        }
+      }catch(e){ v = localStorage.getItem(STORAGE_SESSION); }
+      return JSON.parse(v) || null;
+    }catch(e){ return null; }
   }
   function clearSession(){
+    let ici = null;
+    try{ ici = JSON.parse(sessionStorage.getItem(STORAGE_SESSION)); }catch(e){}
+    try{ sessionStorage.removeItem(STORAGE_SESSION); sessionStorage.setItem(SESSION_NIVOAKA, '1'); }catch(e){}
     try{
-      localStorage.removeItem(STORAGE_SESSION);
+      // Le dernier compte reste pour les autres fenêtres s'il n'est pas celui-ci.
+      const la = JSON.parse(localStorage.getItem(STORAGE_SESSION));
+      if(!la || !ici || normEmail(la.email) === normEmail(ici.email)) localStorage.removeItem(STORAGE_SESSION);
       localStorage.removeItem(STORAGE_LAST_VIEW);
     }catch(e){}
   }
