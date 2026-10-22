@@ -20,7 +20,7 @@
 <script src="/mazava.js?v=2bcdcfad" defer></script>
 <!-- 🔄 La page se met à jour seule quand une version neuve est en ligne (pejy-version.js) ;
      l'empreinte est écrite par outils/versionner.mjs. -->
-<meta name="pejy-version" content="9187fee4">
+<meta name="pejy-version" content="1b29cad7">
 <script src="/pejy-version.js?v=97acc3b0" defer></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -81,6 +81,13 @@
   .livreur-btns a{ display:inline-flex; align-items:center; gap:0.3rem; min-height:2.4rem; padding:0 0.8rem; border:1px solid var(--line); border-radius:8px; color:var(--text); text-decoration:none; font-weight:600; font-size:0.85rem; }
   .livreur-btns a.wa{ color:#25d366; }
   .livreur.robot{ opacity:0.6; border-style:dashed; }
+  /* En route : le robot (et le bouton de son bon) clignote. */
+  .livreur.robot.mipipika{ opacity:1; border-style:solid; border-color:var(--vaovao); }
+  .mipipika{ animation:mipipika 1s ease-in-out infinite; }
+  @keyframes mipipika{ 50%{ opacity:0.35; } }
+  @media (prefers-reduced-motion: reduce){ .mipipika{ animation:none; outline:2px solid var(--vaovao); } }
+  .livreur-ouvrir.mipipika{ border-color:var(--vaovao); color:var(--vaovao); }
+  .robot-dingana{ margin-left:auto; font-weight:700; border-color:var(--vaovao); color:var(--vaovao); }
   .robot-marika{ margin-left:auto; padding:0.25rem 0.6rem; border-radius:999px; background:rgba(255,176,32,0.15); color:var(--vaovao); font-size:0.78rem; font-weight:700; white-space:nowrap; }
   .robot-code{ display:flex; flex-direction:column; gap:0.3rem; font-size:0.85rem; color:var(--muted); font-weight:600; }
   .robot-code input{ font:inherit; font-size:1rem; font-weight:400; color:var(--text); background:var(--card); border:1px solid var(--line); border-radius:10px; padding:0.6rem 0.75rem; }
@@ -351,8 +358,23 @@
   // Les livreurs, depuis le bon : un bouton « 🛵 Livreur » ouvre leur page,
   // par-dessus la cuisine, avec son ✕. On y appelle celui qui part avec ce
   // plat ; le SMS et WhatsApp emportent déjà la commande (table, plats, note).
+  // Le trajet du robot en cours (« Go to the table ») : { latabatra, commande,
+  // dingana: 'mandeha' (vers la table) | 'miverina' (retour) }, ou rien.
+  function diaRobot() {
+    try { const d = JSON.parse(retenuLire('robot_dia') || 'null'); return d && d.commande && d.dingana ? d : null; } catch (e) { return null; }
+  }
+  // Après chaque pas du trajet : la page du robot et le bon se redessinent.
+  function majDia(c) {
+    signature = '';
+    dessiner();
+    if (document.getElementById('livreurPejy')) ouvrirLivreurs(c);
+  }
   function blocLivreurs(c) {
-    const b = el('button', '🛵 Livreur' + (livreurs.length ? ' (' + livreurs.length + ')' : ''), 'livreur-ouvrir');
+    const dia = diaRobot();
+    const enRoute = dia && dia.commande === c.id;
+    const b = el('button', enRoute
+      ? (dia.dingana === 'mandeha' ? '🤖 Mankany amin\'ny T' + c.latabatra + '…' : '🤖 Miverina…')
+      : '🛵 Livreur' + (livreurs.length ? ' (' + livreurs.length + ')' : ''), 'livreur-ouvrir' + (enRoute ? ' mipipika' : ''));
     b.type = 'button';
     b.addEventListener('click', function () { ouvrirLivreurs(c); });
     return b;
@@ -444,9 +466,9 @@
       const u = new URL(rohy);
       u.searchParams.set('latabatra', String(c.latabatra));
       u.searchParams.set('commande', String(c.id));
-      robotEtat.classList.remove('diso');
-      robotEtat.textContent = '🤖 Nalefa any amin\'ny robot : T' + c.latabatra + '.';
+      retenuEcrire('robot_dia', JSON.stringify({ latabatra: c.latabatra, commande: c.id, dingana: 'mandeha', at: new Date().toISOString() }));
       window.open(u.href, '_blank', 'noopener');
+      majDia(c);
     });
     livreurs.forEach(function (x) {
       const ligne = el('div', null, 'livreur');
@@ -470,16 +492,29 @@
       } else ligne.appendChild(el('span', 'tsy misy laharana', 'livreur-tel'));
       boite.appendChild(ligne);
     });
-    // 🤖 Le livreur robot : sa place est prise, il n'est pas encore construit.
-    // Rien ne se touche tant qu'il ne roule pas.
-    const robot = el('div', null, 'livreur robot');
-    robot.setAttribute('aria-disabled', 'true');
+    // 🤖 Le livreur robot. Au repos : « Mbola amboarina ». En route (après
+    // « Go to the table ») : il clignote jusqu'à la latabatra, puis encore
+    // pendant le retour. Tant que le robot ne dit rien lui-même, c'est la
+    // cuisine qui marque « 📍 Tonga » puis « 🏠 Tafaverina ».
+    const dia = diaRobot();
+    const robot = el('div', null, 'livreur robot' + (dia ? ' mipipika' : ''));
     robot.appendChild(el('span', '🤖', 'livreur-sary'));
     const robotNom = el('span', null, 'livreur-nom');
     robotNom.appendChild(el('strong', 'Livreur robot'));
-    robotNom.appendChild(el('small', 'Mbola amboarina — ho avy tsy ho ela'));
+    robotNom.appendChild(el('small', !dia ? 'Mbola amboarina — ho avy tsy ho ela'
+      : (dia.dingana === 'mandeha' ? '🍽️ Mankany amin\'ny T' + dia.latabatra + '…' : '↩️ Miverina avy amin\'ny T' + dia.latabatra + '…')));
     robot.appendChild(robotNom);
-    robot.appendChild(el('span', '🔧 Mbola amboarina', 'robot-marika'));
+    if (!dia) robot.appendChild(el('span', '🔧 Mbola amboarina', 'robot-marika'));
+    else {
+      const manaraka = el('button', dia.dingana === 'mandeha' ? '📍 Tonga' : '🏠 Tafaverina', 'robot-dingana');
+      manaraka.type = 'button';
+      manaraka.addEventListener('click', function () {
+        if (dia.dingana === 'mandeha') { dia.dingana = 'miverina'; retenuEcrire('robot_dia', JSON.stringify(dia)); }
+        else retenuEcrire('robot_dia', '');
+        majDia(c);
+      });
+      robot.appendChild(manaraka);
+    }
     boite.appendChild(robot);
     fond.appendChild(boite);
     document.body.appendChild(fond);
