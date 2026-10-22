@@ -20,7 +20,7 @@
 <script src="/mazava.js?v=2bcdcfad" defer></script>
 <!-- 🔄 La page se met à jour seule quand une version neuve est en ligne (pejy-version.js) ;
      l'empreinte est écrite par outils/versionner.mjs. -->
-<meta name="pejy-version" content="21ca682d">
+<meta name="pejy-version" content="8378cfdb">
 <script src="/pejy-version.js?v=97acc3b0" defer></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -62,17 +62,24 @@
   .erreur{ border-color:#e05a5a; color:#e05a5a; }
   .installer{ display:none; align-items:center; justify-content:space-between; gap:0.6rem; flex-wrap:wrap; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:0.6rem 0.8rem; margin:0 0 1rem; }
   .installer p{ margin:0; font-size:0.85rem; color:var(--muted); flex:1 1 200px; }
-  /* Les livreurs de l'hôtel, dans chaque bon qui attend : un par ligne, pour
-     appeler celui qui part avec ce plat. */
-  .bon-livreurs{ display:flex; flex-direction:column; gap:0.35rem; margin:0 0 0.7rem; padding-top:0.55rem; border-top:1px solid var(--line); }
-  .bon-livreurs-titre{ font-size:0.78rem; font-weight:700; color:var(--muted); }
-  .livreur{ display:flex; align-items:center; gap:0.5rem; }
-  .livreur-sary{ flex:0 0 auto; display:flex; align-items:center; justify-content:center; width:2rem; height:2rem; border-radius:50%; overflow:hidden; background:rgba(79,216,224,0.15); font-size:1rem; }
+  /* Les livreurs : un bouton dans chaque bon, qui ouvre leur page par-dessus
+     la cuisine (✕ pour la fermer). */
+  .livreur-ouvrir{ display:block; width:100%; margin:0 0 0.6rem; padding:0.45rem; font-weight:600; }
+  .livreur-pejy{ position:fixed; inset:0; z-index:50; display:flex; align-items:flex-start; justify-content:center; padding:max(16px, env(safe-area-inset-top)) 16px 16px; background:rgba(0,0,0,0.55); overflow-y:auto; }
+  .livreur-boite{ width:min(560px, 100%); background:var(--bg); border:1px solid var(--line); border-radius:16px; padding:1rem; display:flex; flex-direction:column; gap:0.6rem; }
+  .livreur-tete{ display:flex; align-items:center; justify-content:space-between; gap:0.6rem; }
+  .livreur-tete h2{ margin:0; color:var(--text); font-size:1.15rem; }
+  .livreur-hidy{ width:2.6rem; height:2.6rem; padding:0; border-radius:50%; font-size:1.2rem; font-weight:700; line-height:1; }
+  .livreur-commande{ margin:0; padding:0.5rem 0.7rem; border-radius:10px; background:var(--card); color:var(--muted); font-size:0.9rem; }
+  .livreur{ display:flex; align-items:center; flex-wrap:wrap; gap:0.6rem 0.8rem; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:0.6rem 0.7rem; }
+  .livreur-sary{ flex:0 0 auto; display:flex; align-items:center; justify-content:center; width:3rem; height:3rem; border-radius:50%; overflow:hidden; background:rgba(79,216,224,0.15); font-size:1.5rem; }
   .livreur-sary img{ width:100%; height:100%; object-fit:cover; display:block; }
-  .livreur-nom{ flex:1 1 auto; min-width:0; font-weight:600; font-size:0.9rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .livreur-tel{ color:var(--muted); font-size:0.75rem; }
-  .livreur-btns{ display:flex; gap:0.3rem; flex:0 0 auto; }
-  .livreur-btns a{ display:inline-flex; align-items:center; justify-content:center; width:2.2rem; height:2.2rem; border:1px solid var(--line); border-radius:8px; text-decoration:none; font-size:1rem; }
+  .livreur-nom{ flex:1 1 140px; min-width:0; display:flex; flex-direction:column; }
+  .livreur-nom strong{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .livreur-nom small, .livreur-tel{ color:var(--muted); font-size:0.8rem; }
+  .livreur-btns{ display:flex; gap:0.4rem; flex-wrap:wrap; margin-left:auto; }
+  .livreur-btns a{ display:inline-flex; align-items:center; gap:0.3rem; min-height:2.4rem; padding:0 0.8rem; border:1px solid var(--line); border-radius:8px; color:var(--text); text-decoration:none; font-weight:600; font-size:0.85rem; }
+  .livreur-btns a.wa{ color:#25d366; }
 </style>
 <!-- Les émojis dessinés en 3D (emoji-3d.js). -->
 <!-- Les explications en visite guidée (fanazavana.js). -->
@@ -328,41 +335,68 @@
 
   // Les livreurs, dans le bon : on appelle celui qui part avec ce plat. Le
   // SMS et WhatsApp emportent déjà la commande (table, plats, note).
+  // Les livreurs, depuis le bon : un bouton « 🛵 Livreur » ouvre leur page,
+  // par-dessus la cuisine, avec son ✕. On y appelle celui qui part avec ce
+  // plat ; le SMS et WhatsApp emportent déjà la commande (table, plats, note).
   function blocLivreurs(c) {
-    const bloc = el('div', null, 'bon-livreurs');
-    bloc.appendChild(el('div', '🛵 Livreur', 'bon-livreurs-titre'));
-    // Aucun livreur : la place est dite, pour qu'on sache où il paraîtra.
-    if (!livreurs.length) {
-      bloc.appendChild(el('span', "Mbola tsy misy : ampidiro ao amin'ny Ny asako › 🛵 Livreur.", 'livreur-tel'));
-      return bloc;
-    }
+    const b = el('button', '🛵 Livreur' + (livreurs.length ? ' (' + livreurs.length + ')' : ''), 'livreur-ouvrir');
+    b.type = 'button';
+    b.addEventListener('click', function () { ouvrirLivreurs(c); });
+    return b;
+  }
+  function fermerLivreurs() {
+    const e = document.getElementById('livreurPejy');
+    if (e) e.remove();
+    document.removeEventListener('keydown', echapLivreurs);
+  }
+  function echapLivreurs(ev) { if (ev.key === 'Escape') fermerLivreurs(); }
+  function ouvrirLivreurs(c) {
+    fermerLivreurs();
+    const fond = el('div', null, 'livreur-pejy');
+    fond.id = 'livreurPejy';
+    fond.addEventListener('click', function (ev) { if (ev.target === fond) fermerLivreurs(); });
+    const boite = el('div', null, 'livreur-boite');
+    const tete = el('div', null, 'livreur-tete');
+    tete.appendChild(el('h2', '🛵 Livreur · T' + c.latabatra));
+    const x = el('button', '✕', 'livreur-hidy');
+    x.type = 'button';
+    x.title = 'Hidio';
+    x.setAttribute('aria-label', 'Hidio');
+    x.addEventListener('click', fermerLivreurs);
+    tete.appendChild(x);
+    boite.appendChild(tete);
     const soratra = 'T' + c.latabatra + ' : ' + (c.plats || []).map(function (p) { return (Number(p.isa) || 0) + ' × ' + p.anarana; }).join(', ') +
       (c.fanamarihana ? ' (' + c.fanamarihana + ')' : '');
+    boite.appendChild(el('p', soratra, 'livreur-commande'));
+    if (!livreurs.length) {
+      boite.appendChild(el('p', "Mbola tsy misy livreur : ampidiro ao amin'ny Ny asako › 🛵 Livreur, dia hiseho eto izy.", 'vide'));
+    }
     livreurs.forEach(function (x) {
       const ligne = el('div', null, 'livreur');
       const sary = el('span', null, 'livreur-sary');
       if (/^(https:\/\/|data:image\/jpeg;base64,)/.test(x.sary || '')) { const i = el('img'); i.src = x.sary; i.alt = ''; sary.appendChild(i); }
       else sary.textContent = '🛵';
       ligne.appendChild(sary);
-      ligne.appendChild(el('span', x.nom || 'Livreur', 'livreur-nom'));
+      const nom = el('span', null, 'livreur-nom');
+      nom.appendChild(el('strong', x.nom || 'Livreur'));
+      if (x.telephone) nom.appendChild(el('small', x.telephone));
+      ligne.appendChild(nom);
       const finday = String(x.telephone || '').replace(/[^\d+]/g, '');
       if (finday.replace(/\D/g, '').length >= 9) {
         const btns = el('span', null, 'livreur-btns');
-        const lien = function (href, t, titre, classe) {
-          const a = el('a', t, classe); a.href = href; a.title = titre; a.setAttribute('aria-label', titre); btns.appendChild(a); return a;
-        };
-        lien('tel:' + finday, '📞', 'Antsoy i ' + (x.nom || 'livreur'));
-        lien('sms:' + finday + '?body=' + encodeURIComponent(soratra), '💬', 'SMS ho an\'i ' + (x.nom || 'livreur'));
+        const lien = function (href, t, classe) { const a = el('a', t, classe); a.href = href; btns.appendChild(a); return a; };
+        lien('tel:' + finday, '📞 Antsoy');
+        lien('sms:' + finday + '?body=' + encodeURIComponent(soratra), '💬 SMS');
         const wa = whatsappDe(finday);
-        if (wa) {
-          const a = lien('https://wa.me/' + wa + '?text=' + encodeURIComponent(soratra), '🟢', 'WhatsApp ho an\'i ' + (x.nom || 'livreur'), 'wa');
-          a.target = '_blank'; a.rel = 'noopener';
-        }
+        if (wa) { const a = lien('https://wa.me/' + wa + '?text=' + encodeURIComponent(soratra), '🟢 WhatsApp', 'wa'); a.target = '_blank'; a.rel = 'noopener'; }
         ligne.appendChild(btns);
       } else ligne.appendChild(el('span', 'tsy misy laharana', 'livreur-tel'));
-      bloc.appendChild(ligne);
+      boite.appendChild(ligne);
     });
-    return bloc;
+    fond.appendChild(boite);
+    document.body.appendChild(fond);
+    document.addEventListener('keydown', echapLivreurs);
+    x.focus();
   }
 
   // Le reçu de la latabatra voit antso_at changer et sonne à son tour.
