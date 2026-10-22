@@ -20,7 +20,7 @@
 <script src="/mazava.js?v=2bcdcfad" defer></script>
 <!-- 🔄 La page se met à jour seule quand une version neuve est en ligne (pejy-version.js) ;
      l'empreinte est écrite par outils/versionner.mjs. -->
-<meta name="pejy-version" content="6ac51583">
+<meta name="pejy-version" content="ecf99be8">
 <script src="/pejy-version.js?v=97acc3b0" defer></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -80,6 +80,8 @@
   .livreur-btns{ display:flex; gap:0.4rem; flex-wrap:wrap; margin-left:auto; }
   .livreur-btns a{ display:inline-flex; align-items:center; gap:0.3rem; min-height:2.4rem; padding:0 0.8rem; border:1px solid var(--line); border-radius:8px; color:var(--text); text-decoration:none; font-weight:600; font-size:0.85rem; }
   .livreur-btns a.wa{ color:#25d366; }
+  .livreur.robot{ opacity:0.6; border-style:dashed; }
+  .robot-marika{ margin-left:auto; padding:0.25rem 0.6rem; border-radius:999px; background:rgba(255,176,32,0.15); color:var(--vaovao); font-size:0.78rem; font-weight:700; white-space:nowrap; }
   .livreur-ampio{ display:flex; align-items:center; justify-content:center; min-height:3rem; border:1px solid var(--accent); border-radius:12px; color:var(--accent); text-decoration:none; font-weight:700; font-size:1rem; }
 </style>
 <!-- Les émojis dessinés en 3D (emoji-3d.js). -->
@@ -400,6 +402,17 @@
       } else ligne.appendChild(el('span', 'tsy misy laharana', 'livreur-tel'));
       boite.appendChild(ligne);
     });
+    // 🤖 Le livreur robot : sa place est prise, il n'est pas encore construit.
+    // Rien ne se touche tant qu'il ne roule pas.
+    const robot = el('div', null, 'livreur robot');
+    robot.setAttribute('aria-disabled', 'true');
+    robot.appendChild(el('span', '🤖', 'livreur-sary'));
+    const robotNom = el('span', null, 'livreur-nom');
+    robotNom.appendChild(el('strong', 'Livreur robot'));
+    robotNom.appendChild(el('small', 'Mbola amboarina — ho avy tsy ho ela'));
+    robot.appendChild(robotNom);
+    robot.appendChild(el('span', '🔧 Mbola amboarina', 'robot-marika'));
+    boite.appendChild(robot);
     fond.appendChild(boite);
     document.body.appendChild(fond);
     document.addEventListener('keydown', echapLivreurs);
