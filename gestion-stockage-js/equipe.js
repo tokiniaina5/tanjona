@@ -1635,9 +1635,10 @@
     const email = monEmail();
     if (!client || !email) return;
     chargerCommandesPersonne(client, id);
-    // Le tableau de bord d'un mpiasa, ce sont les commandes des latabatra :
-    // son stock (articles, hetsika…) n'y est plus montré.
-    if (personneOuverte && personneOuverte.role !== 'livreur') { dessinerTableauPersonne(null); return; }
+    // Le tableau de bord d'un mpiasa comme d'un livreur, ce sont les
+    // commandes des latabatra, sans plus : leur stock (articles, hetsika…)
+    // n'y est plus montré.
+    if (personneOuverte) { dessinerTableauPersonne(null); return; }
     client.from('stock_mpiasa').select('articles,mouvements,maj')
       .eq('owner_email', email).eq('equipe_id', id).maybeSingle()
       .then(function (res) {
@@ -1656,8 +1657,6 @@
   function chargerCommandesPersonne(client, id) {
     const zone = document.getElementById('personneCommandes');
     if (!zone) return;
-    // Un livreur ne sert pas les latabatra.
-    if (personneOuverte && personneOuverte.role === 'livreur') { zone.innerHTML = ''; return; }
     zone.innerHTML = '<p style="font-size:0.8rem; color:var(--muted); margin:0 0 0.9rem;">Miandry ny commande…</p>';
     client.auth.getSession().then(function (r) {
       const uid = r && r.data && r.data.session ? r.data.session.user.id : null;
