@@ -358,8 +358,14 @@
       });
     }).then(function () {
       if (onglet === 'commandes' && change) dessinerCommandes();
+      // La vue de la lakozia suit aussi le temps écoulé : redessinée à chaque tour.
+      if (onglet === 'lakozia') dessinerVueLakozia();
       majBadge();
-    }, function () { etatCommandes = '⚠️ Tsy azo ny commande (connexion ?).'; if (onglet === 'commandes') dessinerCommandes(); });
+    }, function () {
+      etatCommandes = '⚠️ Tsy azo ny commande (connexion ?).';
+      if (onglet === 'commandes') dessinerCommandes();
+      if (onglet === 'lakozia') dessinerVueLakozia();
+    });
   }
   let dejaCharge = false;
   function majBadge() {
@@ -375,7 +381,7 @@
         if (onglet === b.dataset.onglet) return;
         onglet = b.dataset.onglet;
         rendre();
-        if (onglet === 'commandes') chargerCommandes();
+        if (onglet === 'commandes' || onglet === 'lakozia') chargerCommandes();
       });
     });
     brancherTete(z);
@@ -483,6 +489,50 @@
       '</div>' +
       '<p style="font-size:0.75rem; color:var(--muted); margin:0.5rem 0 0;">Sokafy amin\'ny téléphone na tablette ao an-dakozia ity rohy ity, dia « 📲 Installer » : miseho ao avy hatrany ny commande avy amin\'ny latabatra rehetra (misy feo), ary ny lakozia no manindry « ✅ Vita ». « ♻️ Code vaovao » : tsy mandeha intsony ny rohy taloha.</p>' +
     '</div>';
+  }
+  // Ce que voit la cuisine sur lakozia.html, ici pour l'hôtel : à regarder
+  // seulement, sans « ✅ Vita » ni 🔔 (c'est la lakozia qui les touche).
+  function vueLakozia() {
+    const hier = Date.now() - 24 * 3600 * 1000;
+    const jour = commandes.filter(function (c) { return new Date(c.created_at).getTime() > hier; });
+    const miandry = jour.filter(function (c) { return !c.vita; }).reverse();
+    const vita = jour.filter(function (c) { return c.vita; }).slice(0, 12);
+    function depuis(iso) {
+      const m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+      return m < 1 ? 'izao' : (m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + (m % 60) + ' min');
+    }
+    function bon(c) {
+      return '<div style="border:2px solid ' + (c.vita ? 'var(--line)' : '#e0a020') + '; border-radius:12px; padding:0.7rem 0.8rem; background:var(--panel-2);' + (c.vita ? ' opacity:0.7;' : '') + '">' +
+        '<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem;">' +
+          '<strong style="font-size:1.4rem; line-height:1;">T' + html(c.latabatra) + '</strong>' +
+          '<span style="text-align:right; font-size:0.75rem; color:var(--muted);">' +
+            (c.vita ? '' : '<strong style="display:block; color:#e0a020; font-size:0.85rem;">' + depuis(c.created_at) + '</strong>') +
+            '🕒 ' + new Date(c.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) +
+          '</span>' +
+        '</div>' +
+        '<ul style="list-style:none; margin:0.5rem 0 0; padding:0;">' +
+          (c.plats || []).map(function (p) {
+            return '<li style="padding:0.15rem 0;"><b style="color:var(--cyan);">' + (Number(p.isa) || 0) + ' ×</b> ' + html(p.anarana) + '</li>';
+          }).join('') +
+        '</ul>' +
+        (c.fanamarihana ? '<p style="margin:0.45rem 0 0; padding:0.35rem 0.55rem; border-radius:8px; background:rgba(224,160,32,0.12); font-size:0.82rem;">📝 ' + html(c.fanamarihana) + '</p>' : '') +
+      '</div>';
+    }
+    const grille = function (l) {
+      return '<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:0.7rem;">' + l.map(bon).join('') + '</div>';
+    };
+    return '<div class="panel" style="margin-top:1rem;">' +
+      '<h4 style="margin:0 0 0.2rem;">👀 Izay hitan\'ny lakozia</h4>' +
+      '<p style="font-size:0.75rem; color:var(--muted); margin:0 0 0.8rem;">Jerena fotsiny : ny lakozia no manindry « ✅ Vita » sy 🔔.</p>' +
+      (etatCommandes ? '<p style="font-size:0.82rem; color:var(--muted);">' + html(etatCommandes) + '</p>' : '') +
+      '<h5 style="margin:0 0 0.5rem;">⏳ Miandry (' + miandry.length + ')</h5>' +
+      (miandry.length ? grille(miandry) : '<p style="font-size:0.85rem; color:var(--muted); margin:0;">Tsy misy commande miandry izao. 👌</p>') +
+      (vita.length ? '<h5 style="margin:1rem 0 0.5rem;">✅ Vita farany</h5>' + grille(vita) : '') +
+    '</div>';
+  }
+  function dessinerVueLakozia() {
+    const z = document.getElementById('lakoziaVue');
+    if (z) z.innerHTML = vueLakozia();
   }
   function brancherLakozia(zone) {
     function avecCompte(f) {
@@ -1065,7 +1115,7 @@
         '<button type="button" class="dash-tab' + (onglet === 'lakozia' ? ' active' : '') + '" data-onglet="lakozia" style="width:auto;">👨‍🍳 Lakozia</button>' +
       '</div>';
     if (onglet === 'lakozia') {
-      z.innerHTML = tete + blocLakozia();
+      z.innerHTML = tete + blocLakozia() + '<div id="lakoziaVue">' + vueLakozia() + '</div>';
       brancherOnglets(z);
       brancherLakozia(z);
       return;
