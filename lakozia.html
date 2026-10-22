@@ -20,7 +20,7 @@
 <script src="/mazava.js?v=2bcdcfad" defer></script>
 <!-- 🔄 La page se met à jour seule quand une version neuve est en ligne (pejy-version.js) ;
      l'empreinte est écrite par outils/versionner.mjs. -->
-<meta name="pejy-version" content="2367f9ab">
+<meta name="pejy-version" content="b1070b62">
 <script src="/pejy-version.js?v=97acc3b0" defer></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -62,18 +62,17 @@
   .erreur{ border-color:#e05a5a; color:#e05a5a; }
   .installer{ display:none; align-items:center; justify-content:space-between; gap:0.6rem; flex-wrap:wrap; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:0.6rem 0.8rem; margin:0 0 1rem; }
   .installer p{ margin:0; font-size:0.85rem; color:var(--muted); flex:1 1 200px; }
-  /* Les livreurs de l'hôtel, sous les bons : un par ligne, pour les appeler
-     quand un plat part. */
-  .livreurs{ display:flex; flex-direction:column; gap:0.5rem; }
-  .livreur{ display:flex; align-items:center; flex-wrap:wrap; gap:0.6rem 0.8rem; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:0.6rem 0.7rem; }
-  .livreur-moi{ display:flex; align-items:center; gap:0.7rem; flex:1 1 200px; min-width:0; }
-  .livreur-sary{ flex:0 0 auto; display:flex; align-items:center; justify-content:center; width:3rem; height:3rem; border-radius:50%; overflow:hidden; background:rgba(79,216,224,0.15); font-size:1.5rem; }
+  /* Les livreurs de l'hôtel, dans chaque bon qui attend : un par ligne, pour
+     appeler celui qui part avec ce plat. */
+  .bon-livreurs{ display:flex; flex-direction:column; gap:0.35rem; margin:0 0 0.7rem; padding-top:0.55rem; border-top:1px solid var(--line); }
+  .bon-livreurs-titre{ font-size:0.78rem; font-weight:700; color:var(--muted); }
+  .livreur{ display:flex; align-items:center; gap:0.5rem; }
+  .livreur-sary{ flex:0 0 auto; display:flex; align-items:center; justify-content:center; width:2rem; height:2rem; border-radius:50%; overflow:hidden; background:rgba(79,216,224,0.15); font-size:1rem; }
   .livreur-sary img{ width:100%; height:100%; object-fit:cover; display:block; }
-  .livreur-nom{ display:block; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .livreur-tel{ color:var(--muted); font-size:0.85rem; }
-  .livreur-btns{ display:flex; gap:0.4rem; flex-wrap:wrap; margin-left:auto; }
-  .livreur-btns a{ display:inline-flex; align-items:center; gap:0.3rem; min-height:2.3rem; padding:0 0.8rem; border:1px solid var(--line); border-radius:8px; color:var(--text); text-decoration:none; font-weight:600; font-size:0.85rem; }
-  .livreur-btns a.wa{ color:#25d366; }
+  .livreur-nom{ flex:1 1 auto; min-width:0; font-weight:600; font-size:0.9rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .livreur-tel{ color:var(--muted); font-size:0.75rem; }
+  .livreur-btns{ display:flex; gap:0.3rem; flex:0 0 auto; }
+  .livreur-btns a{ display:inline-flex; align-items:center; justify-content:center; width:2.2rem; height:2.2rem; border:1px solid var(--line); border-radius:8px; text-decoration:none; font-size:1rem; }
 </style>
 <!-- Les émojis dessinés en 3D (emoji-3d.js). -->
 <!-- Les explications en visite guidée (fanazavana.js). -->
@@ -99,7 +98,6 @@
   </div>
   <div id="miandry"></div>
   <div id="vitaZone"></div>
-  <div id="livreurZone"></div>
 </main>
 <script>
 (function () {
@@ -128,6 +126,7 @@
   const zoneVita = document.getElementById('vitaZone');
 
   let commandes = [];
+  let livreurs = []; // ceux de 🛵 Livreur, posés dans chaque bon qui attend
   let connues = null; // les ids déjà vus : ce qui n'y est pas est neuf
   let neuves = {};
   let signature = '';
@@ -318,11 +317,46 @@
     });
     b.appendChild(ul);
     if (c.fanamarihana) b.appendChild(el('p', '📝 ' + c.fanamarihana, 'note'));
+    if (!c.vita && livreurs.length) b.appendChild(blocLivreurs(c));
     const v = el('button', c.vita ? '↩️ Tsy mbola vita' : '✅ Vita', 'vita-btn');
     v.type = 'button';
     v.addEventListener('click', function () { marquer(c, v); });
     b.appendChild(v);
     return b;
+  }
+
+  // Les livreurs, dans le bon : on appelle celui qui part avec ce plat. Le
+  // SMS et WhatsApp emportent déjà la commande (table, plats, note).
+  function blocLivreurs(c) {
+    const bloc = el('div', null, 'bon-livreurs');
+    bloc.appendChild(el('div', '🛵 Livreur', 'bon-livreurs-titre'));
+    const soratra = 'T' + c.latabatra + ' : ' + (c.plats || []).map(function (p) { return (Number(p.isa) || 0) + ' × ' + p.anarana; }).join(', ') +
+      (c.fanamarihana ? ' (' + c.fanamarihana + ')' : '');
+    livreurs.forEach(function (x) {
+      const ligne = el('div', null, 'livreur');
+      const sary = el('span', null, 'livreur-sary');
+      if (/^(https:\/\/|data:image\/jpeg;base64,)/.test(x.sary || '')) { const i = el('img'); i.src = x.sary; i.alt = ''; sary.appendChild(i); }
+      else sary.textContent = '🛵';
+      ligne.appendChild(sary);
+      ligne.appendChild(el('span', x.nom || 'Livreur', 'livreur-nom'));
+      const finday = String(x.telephone || '').replace(/[^\d+]/g, '');
+      if (finday.replace(/\D/g, '').length >= 9) {
+        const btns = el('span', null, 'livreur-btns');
+        const lien = function (href, t, titre, classe) {
+          const a = el('a', t, classe); a.href = href; a.title = titre; a.setAttribute('aria-label', titre); btns.appendChild(a); return a;
+        };
+        lien('tel:' + finday, '📞', 'Antsoy i ' + (x.nom || 'livreur'));
+        lien('sms:' + finday + '?body=' + encodeURIComponent(soratra), '💬', 'SMS ho an\'i ' + (x.nom || 'livreur'));
+        const wa = whatsappDe(finday);
+        if (wa) {
+          const a = lien('https://wa.me/' + wa + '?text=' + encodeURIComponent(soratra), '🟢', 'WhatsApp ho an\'i ' + (x.nom || 'livreur'), 'wa');
+          a.target = '_blank'; a.rel = 'noopener';
+        }
+        ligne.appendChild(btns);
+      } else ligne.appendChild(el('span', 'tsy misy laharana', 'livreur-tel'));
+      bloc.appendChild(ligne);
+    });
+    return bloc;
   }
 
   // Le reçu de la latabatra voit antso_at changer et sonne à son tour.
@@ -390,9 +424,8 @@
 
   // ---------- Les livreurs ----------
   // Ceux de 🛵 Livreur (hotelerie_lakozia_livreur, supabase-hotelerie-lakozia.sql),
-  // avec de quoi les appeler depuis la tablette : son téléphone, ses SMS,
-  // WhatsApp. Relus chaque minute — ils changent peu.
-  const zoneLivreur = document.getElementById('livreurZone');
+  // montrés dans chaque bon qui attend (blocLivreurs). Relus chaque minute —
+  // ils changent peu.
   let sigLivreur = '';
   function whatsappDe(t) {
     let n = String(t || '').replace(/\D/g, '');
@@ -410,42 +443,10 @@
       const sig = JSON.stringify(l);
       if (sig === sigLivreur) return;
       sigLivreur = sig;
-      dessinerLivreurs(l);
+      livreurs = l;
+      signature = '';
+      dessiner();
     }).catch(function () { });
-  }
-  function dessinerLivreurs(l) {
-    zoneLivreur.replaceChildren(el('h2', '🛵 Livreur (' + l.length + ')'));
-    if (!l.length) {
-      zoneLivreur.appendChild(el('p', "Mbola tsy misy livreur : ny hotely no mampiditra azy ao amin'ny 🛵 Livreur.", 'vide'));
-      return;
-    }
-    const liste = el('div', null, 'livreurs');
-    l.forEach(function (x) {
-      const ligne = el('div', null, 'livreur');
-      const moi = el('div', null, 'livreur-moi');
-      const sary = el('span', null, 'livreur-sary');
-      if (/^(https:\/\/|data:image\/jpeg;base64,)/.test(x.sary || '')) { const i = el('img'); i.src = x.sary; i.alt = ''; sary.appendChild(i); }
-      else sary.textContent = '🛵';
-      moi.appendChild(sary);
-      const texte = el('span');
-      texte.style.minWidth = '0';
-      texte.appendChild(el('span', x.nom || 'Livreur', 'livreur-nom'));
-      if (x.telephone) texte.appendChild(el('span', x.telephone, 'livreur-tel'));
-      moi.appendChild(texte);
-      ligne.appendChild(moi);
-      const finday = String(x.telephone || '').replace(/[^\d+]/g, '');
-      if (finday.replace(/\D/g, '').length >= 9) {
-        const btns = el('div', null, 'livreur-btns');
-        const lien = function (href, t, classe) { const a = el('a', t, classe); a.href = href; btns.appendChild(a); return a; };
-        lien('tel:' + finday, '📞 Antsoy');
-        lien('sms:' + finday, '💬 SMS');
-        const wa = whatsappDe(finday);
-        if (wa) { const a = lien('https://wa.me/' + wa, '🟢 WhatsApp', 'wa'); a.target = '_blank'; a.rel = 'noopener'; }
-        ligne.appendChild(btns);
-      }
-      liste.appendChild(ligne);
-    });
-    zoneLivreur.appendChild(liste);
   }
   chargerLivreurs();
   setInterval(function () { if (!document.hidden) chargerLivreurs(); }, 60000);
