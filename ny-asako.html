@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="f7b13f09">
+<meta name="ny-asako-version" content="21b6cfcd">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -1041,6 +1041,7 @@
         <div class="nav-item" data-section="contact">🔗 Ajouter les liens</div>
         <div class="nav-item" data-section="live">🔴 Live direct</div>
         <div class="nav-item" data-section="appels">📞 Call</div>
+        <div class="nav-item" data-section="feo">🔔 Feo</div>
         <div class="nav-item" data-section="wallet">💰 Portefeuille</div>
         <div class="nav-item" data-section="mpiasa">👷 Mpiasa</div>
         <div class="nav-item" data-section="livreur">🛵 Livreur</div>
@@ -2634,14 +2635,21 @@
               <div class="actions-row" id="callCanaux" style="flex-direction:column; align-items:stretch; gap:0.5rem;"></div>
               <p class="empty-hint" id="callCanauxEmpty" style="display:none;">Mbola tsy misy rohy nampidirina.</p>
             </div>
+      </section>
 
-            <!-- 3) Le son des hafatra et des antso : un fichier choisi ici, gardé
-                 sur l'appareil (live.js, « Le son »). -->
-            <div class="panel" id="feoPanel">
-              <h3>🔔 Feo</h3>
-              <p style="font-size:0.78rem; color:var(--muted); margin:0 0 0.8rem;">Ampidiro ny feo tianao (mp3, m4a, ogg, wav…) ho an'ny hafatra sy ny antso. Eto amin'ity fitaovana ity no voatahiry izy.</p>
-              <div id="feoSafidy" style="display:flex; flex-direction:column; gap:0.6rem;"></div>
-            </div>
+      <!-- ---- FEO ---- -->
+      <!-- Le son des hafatra et des antso : un fichier choisi ici, gardé sur
+           l'appareil (live.js, « Le son »). -->
+      <section class="section" id="section-feo">
+        <div class="section-head">
+          <div>
+            <h2>🔔 Feo</h2>
+            <p>Ampidiro ny feo tianao (mp3, m4a, ogg, wav…) ho an'ny hafatra sy ny antso. Eto amin'ity fitaovana ity no voatahiry izy.</p>
+          </div>
+        </div>
+        <div class="panel" id="feoPanel">
+          <div id="feoSafidy" style="display:flex; flex-direction:column; gap:0.6rem;"></div>
+        </div>
       </section>
 
       <!-- ---- PORTEFEUILLE ---- -->
@@ -3619,7 +3627,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=ad8a2e0f"></script>
+<script src="gestion-stockage-js/common.js?v=83211a13"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=622d64e8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
