@@ -20,7 +20,7 @@
 <script src="/mazava.js?v=2bcdcfad" defer></script>
 <!-- 🔄 La page se met à jour seule quand une version neuve est en ligne (pejy-version.js) ;
      l'empreinte est écrite par outils/versionner.mjs. -->
-<meta name="pejy-version" content="a9738290">
+<meta name="pejy-version" content="03b8c5d1">
 <script src="/pejy-version.js?v=97acc3b0" defer></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -453,10 +453,11 @@
     function rohyMety(v) {
       try { const u = new URL(v); return /^https?:$/.test(u.protocol) ? u.href : ''; } catch (e) { return ''; }
     }
+    // « Go to the table » marche toujours : le robot clignote. Le lien, s'il
+    // est enregistré, est ouvert en plus ; sans lui, rien d'autre ne part.
     function majBouton() {
-      const ok = !!rohyMety(retenuLire('robot_rohy') || '');
-      ampio.disabled = !ok;
-      ampio.title = ok ? '' : "Apetaho ny rohy an'ny robot, dia tsindrio 💾 Save.";
+      ampio.disabled = false;
+      ampio.title = rohyMety(retenuLire('robot_rohy') || '') ? '' : "Tsy misy rohy an'ny robot : mipipika fotsiny izy.";
     }
     majBouton();
     function tehirizo() {
@@ -479,13 +480,14 @@
     tahiry.addEventListener('click', tehirizo);
     champ.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') tehirizo(); });
     ampio.addEventListener('click', function () {
-      const rohy = rohyMety(retenuLire('robot_rohy') || '');
-      if (!rohy) { majBouton(); return; }
-      const u = new URL(rohy);
-      u.searchParams.set('latabatra', String(c.latabatra));
-      u.searchParams.set('commande', String(c.id));
       retenuEcrire('robot_dia', JSON.stringify({ latabatra: c.latabatra, commande: c.id, at: new Date().toISOString() }));
-      window.open(u.href, '_blank', 'noopener');
+      const rohy = rohyMety(retenuLire('robot_rohy') || '');
+      if (rohy) {
+        const u = new URL(rohy);
+        u.searchParams.set('latabatra', String(c.latabatra));
+        u.searchParams.set('commande', String(c.id));
+        window.open(u.href, '_blank', 'noopener');
+      }
       majDia(c);
     });
     livreurs.forEach(function (x) {
