@@ -20,7 +20,7 @@
 <script src="/mazava.js?v=2bcdcfad" defer></script>
 <!-- 🔄 La page se met à jour seule quand une version neuve est en ligne (pejy-version.js) ;
      l'empreinte est écrite par outils/versionner.mjs. -->
-<meta name="pejy-version" content="ecf99be8">
+<meta name="pejy-version" content="a2c61308">
 <script src="/pejy-version.js?v=97acc3b0" defer></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -374,7 +374,9 @@
     // Aucun livreur : un seul bouton, qui ouvre 🛵 Livreur dans Ny asako
     // (common.js, « ?pejy= »), là où l'hôtel les inscrit.
     if (!livreurs.length) {
-      const ampio = el('a', '➕ Hampiditra livreur', 'livreur-ampio');
+      // Écrit en anglais, et laissé tel quel par les traducteurs (translate="no").
+      const ampio = el('a', '🍽️ Go to the table', 'livreur-ampio');
+      ampio.setAttribute('translate', 'no');
       ampio.href = '/ny-asako.html?pejy=livreur';
       ampio.target = '_blank';
       ampio.rel = 'noopener';
