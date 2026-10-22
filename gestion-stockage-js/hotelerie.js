@@ -1044,7 +1044,7 @@
             liste.map(function (c) {
               // Glisser la carte à gauche ou à droite l'efface (le fond rouge
               // apparaît dessous) ; « ↩️ Averina » la rend pendant 5 s.
-              return '<div data-glisse="' + c.id + '" style="position:relative; margin-top:0.6rem; border-radius:8px; overflow:hidden; background:var(--red);' + (c.vita ? ' opacity:0.8;' : '') + '">' +
+              return '<div data-glisse="' + c.id + '" style="position:relative; margin-top:0.6rem; border-radius:8px; overflow:hidden; background:var(--red);' + (c.vita && c.voaloa ? ' opacity:0.8;' : '') + '">' +
                 '<span data-glisse-fond style="position:absolute; top:50%; transform:translateY(-50%); left:1rem; color:#fff; font-weight:700; font-size:0.9rem; pointer-events:none;">🗑️ Esorina</span>' +
                 // Vita mais pas encore payé : le cadre vert clignote jusqu'à « Voaloa ».
                 '<div data-glisse-carte' + (c.vita && !c.voaloa ? ' class="hotely-tsy-voaloa"' : '') + ' style="position:relative; padding:0.6rem 0.7rem; border-radius:8px; border:1px solid var(--line); background:var(--panel); touch-action:pan-y;' + (c.vita ? ' border-color:#3ecf8e;' : '') + '">' +

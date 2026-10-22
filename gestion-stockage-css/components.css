@@ -241,13 +241,15 @@
   #newsVideoRohyToro{ text-align:center; }
   /* Hôtellerie › Commandes : une commande vita pas encore payée — son cadre
      vert clignote jusqu'à ce qu'on touche « Voaloa » (hotelerie.js). */
-  .hotely-tsy-voaloa{ animation: hotely-mipipika 1.1s ease-in-out infinite; }
+  /* Bien visible : cadre épais vert vif, fond qui s'allume, net (steps) plutôt
+     qu'un fondu qu'on remarque à peine. */
+  .hotely-tsy-voaloa{ animation: hotely-mipipika 0.9s steps(2, jump-none) infinite; }
   @keyframes hotely-mipipika{
-    0%, 100%{ border-color:#3ecf8e; box-shadow:inset 0 0 0 2px rgba(62,207,142,0.7); }
-    50%{ border-color:transparent; box-shadow:inset 0 0 0 2px rgba(62,207,142,0); }
+    0%{ border-color:#22e07a; box-shadow:inset 0 0 0 4px #22e07a, inset 0 0 18px rgba(34,224,122,0.55); background-image:linear-gradient(rgba(34,224,122,0.18), rgba(34,224,122,0.18)); }
+    100%{ border-color:var(--line); box-shadow:inset 0 0 0 4px rgba(34,224,122,0); background-image:none; }
   }
   @media (prefers-reduced-motion: reduce){
-    .hotely-tsy-voaloa{ animation:none; box-shadow:inset 0 0 0 2px #3ecf8e; }
+    .hotely-tsy-voaloa{ animation:none; box-shadow:inset 0 0 0 4px #22e07a; background-image:linear-gradient(rgba(34,224,122,0.12), rgba(34,224,122,0.12)); }
   }
   /* La case reste dans la page — c'est elle que le reste du code interroge —
      mais ne se montre plus : l'icône dit déjà tout. */
