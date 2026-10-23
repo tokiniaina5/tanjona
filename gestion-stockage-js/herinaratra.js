@@ -144,20 +144,46 @@
             '<button type="submit" class="btn btn-primary">Hidio</button>'
           : '<input type="password" class="ecran-hidy-teny" data-teny="1" placeholder="Tenimiafina" autocomplete="current-password" required>' +
             '<button type="submit" class="btn btn-primary">Sokafy</button>' +
-            (mode === 'kody' ? '<button type="button" class="ecran-hidy-hadino" data-hadino>Hadinoko ny tenimiafina</button>' : '')) +
+            '<div class="ecran-hidy-rohy">' +
+              '<button type="button" class="ecran-hidy-hadino" data-hadino>Hadinoko ny tenimiafina</button>' +
+              '<button type="button" class="ecran-hidy-hadino" data-vaovao>Hamorona kaonty</button>' +
+            '</div>') +
         ligneErreur;
       var premier = formulaire.querySelector('[data-teny="1"]');
       if(premier) setTimeout(function(){ premier.focus(); }, 50);
       var hadino = formulaire.querySelector('[data-hadino]');
       if(hadino) hadino.addEventListener('click', function(){
-        // Le mot oublié ne se retrouve pas : il n'est écrit nulle part. On
-        // sort du compte, et l'écran se libère avec lui.
-        if(!confirm('Hivoaka ianao, ary hofafana ny tenimiafin\'ity écran ity. Tohizana ?')) return;
-        try{ localStorage.removeItem(CLE_KODY); }catch(e){}
-        sokafy();
-        var sortie = document.getElementById('logoutBtn');
-        if(sortie) sortie.click();
+        if(mode === 'kody'){
+          // Le mot oublié ne se retrouve pas : il n'est écrit nulle part. On
+          // sort du compte, et l'écran se libère avec lui.
+          if(!confirm('Hivoaka ianao, ary hofafana ny tenimiafin\'ity écran ity. Tohizana ?')) return;
+          try{ localStorage.removeItem(CLE_KODY); }catch(e){}
+          hivoaka();
+          return;
+        }
+        // Avec un compte : on sort, et la page de connexion s'ouvre sur
+        // « Mot de passe oublié ? », l'email déjà écrit, pour recevoir le code.
+        if(!confirm('Hivoaka ianao, ary handefasana code amin\'ny ' + email + ' hanovana ny tenimiafina. Tohizana ?')) return;
+        hivoaka();
+        var champ = document.getElementById('quickEmail');
+        if(champ) champ.value = email;
+        var reset = document.getElementById('resetToggleBtn');
+        if(reset) reset.click();
       });
+      var vaovao = formulaire.querySelector('[data-vaovao]');
+      if(vaovao) vaovao.addEventListener('click', function(){
+        if(!confirm('Hivoaka ianao mba hamoronana kaonty vaovao. Tohizana ?')) return;
+        hivoaka();
+        var full = document.getElementById('showFullLoginBtn');
+        if(full) full.click();
+        var prenom = document.getElementById('loginFirstName');
+        if(prenom) prenom.focus();
+      });
+    }
+    function hivoaka(){
+      sokafy();
+      var sortie = document.getElementById('logoutBtn');
+      if(sortie) sortie.click();
     }
     dessiner();
     formulaire.addEventListener('submit', function(e){
