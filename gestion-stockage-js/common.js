@@ -4932,7 +4932,8 @@
             mettreDevant(s);
           }
         }
-        const cache = !vu || (s.el.id === 'dash-accueil' && pageDevant);
+        // En rangée, chacune garde ses boutons : elles sont côte à côte.
+        const cache = !vu || (s.el.id === 'dash-accueil' && pageDevant && !laharana);
         s.calque.hidden = cache;
         if(cache) return;
         const r = s.el.getBoundingClientRect();
@@ -4945,6 +4946,9 @@
         const z = parseInt(s.el.style.zIndex || getComputedStyle(s.el).zIndex, 10);
         s.calque.style.zIndex = (isFinite(z) ? z : 120) + 1;
       });
+      // Une fenêtre fermée à sa croix pendant la rangée : les autres se
+      // resserrent.
+      if(laharana && laharana.liste.some(function(x){ return !visible(x.el); })) poserLaharana();
     }
 
     // Déplacer : la fenêtre suit le doigt, sans changer de taille, et sans
@@ -5055,6 +5059,8 @@
       s.el.style.touchAction = 'pan-y pinch-zoom';
       s.el.addEventListener('pointerdown', function(e){
         if(e.pointerType === 'mouse' || !e.isPrimary) return;
+        // En rangée, glisser fait défiler la rangée (plus bas).
+        if(laharana) return;
         if(aSonPropreGeste(e.target)) return;
         g = { x: e.clientX, y: e.clientY, id: e.pointerId, pris: false, dx: 0 };
       });
@@ -5240,42 +5246,135 @@
     new MutationObserver(function(){ replacerLesPages(); })
       .observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
-    // 🗂️ Alamino : les fenêtres ouvertes se rangent en cascade, de la plus
-    // ancienne à la plus récente, chacune décalée pour qu'on voie le haut de
-    // toutes (23/10/2026). La taille et la place sont retenues comme si on les
-    // avait posées à la main.
+    // 🗂️ Alamino : les fenêtres ouvertes se mettent côte à côte, en une
+    // rangée qu'on fait glisser à gauche et à droite, comme les applications
+    // récentes d'un téléphone (23/10/2026). Toucher l'une la rouvre en grand,
+    // à sa taille d'avant ; toucher à côté les remet toutes où elles étaient.
+    // Rien n'est retenu : la rangée n'est qu'un coup d'œil.
     function ouvertes(){
       const vues = suivis.filter(function(x){ return estFenetre(x) && visible(x.el); });
       // Dans l'ordre où elles sont empilées ; celles jamais touchées d'abord.
       return vues.sort(function(a, b){ return ordre.indexOf(a) - ordre.indexOf(b); });
     }
-    function alaminoFenetres(){
-      const liste = ouvertes();
-      if(!liste.length) return;
+    let laharana = null;
+    const ECART = 16;
+    function carte(){
       const z = ecran();
       const bande = bandeUtile();
-      const pas = Math.min(32, Math.floor((z.w - 2 * MARGE - MIN_L) / Math.max(1, liste.length - 1)));
-      const decal = Math.max(0, pas) * (liste.length - 1);
-      const w = Math.max(MIN_L, Math.min(900, z.w - 2 * MARGE - decal));
-      const h = Math.max(MIN_H, bande.bas - bande.haut - 2 * MARGE - decal);
-      const tailles = lire(), places = lirePlaces();
-      liste.forEach(function(s, i){
-        if(s.agrandie) marquerAgrandie(s, false);
-        glisser(s, 0);
-        const l = z.x + MARGE + Math.max(0, pas) * i + Math.max(0, (z.w - 2 * MARGE - decal - w) / 2);
-        const t = bande.haut + MARGE + Math.max(0, pas) * i;
-        figer(s.el, { left: Math.round(l), top: Math.round(t), width: Math.round(w), height: Math.round(h) });
-        tailles[s.el.id] = { l: Math.round(w), h: Math.round(h) };
-        places[s.el.id] = { x: Math.round(l), y: Math.round(t) };
-        mettreDevant(s);
+      return {
+        w: Math.round(Math.max(MIN_L, Math.min(380, z.w * 0.72))),
+        h: Math.round(Math.max(MIN_H, bande.bas - bande.haut - 2 * MARGE)),
+        haut: bande.haut + MARGE, z: z
+      };
+    }
+    function borneDecalage(){
+      const c = carte();
+      const total = laharana.liste.length * c.w + (laharana.liste.length - 1) * ECART;
+      const place = c.z.w - 2 * MARGE;
+      // Moins larges que l'écran : centrées, sans glisser.
+      if(total <= place) return { min: (place - total) / 2, max: (place - total) / 2 };
+      return { min: place - total, max: 0 };
+    }
+    function poserLaharana(){
+      if(!laharana) return;
+      laharana.liste = laharana.liste.filter(function(s){ return visible(s.el); });
+      if(!laharana.liste.length){ quitterLaharana(null); return; }
+      const c = carte();
+      const b = borneDecalage();
+      laharana.decalage = Math.max(b.min, Math.min(b.max, laharana.decalage));
+      laharana.liste.forEach(function(s, i){
+        figer(s.el, {
+          left: Math.round(c.z.x + MARGE + laharana.decalage + i * (c.w + ECART)),
+          top: Math.round(c.haut), width: c.w, height: c.h
+        });
       });
-      ecrire(tailles);
-      ecrirePlaces(places);
       synchroniser();
     }
+    function alaminoFenetres(){
+      if(laharana){ poserLaharana(); return; }
+      const liste = ouvertes();
+      if(!liste.length) return;
+      laharana = { liste: liste, decalage: 0, avant: new Map() };
+      liste.forEach(function(s){
+        if(s.agrandie) marquerAgrandie(s, false);
+        glisser(s, 0);
+        const r = s.el.getBoundingClientRect();
+        laharana.avant.set(s, { left: r.left, top: r.top, width: r.width, height: r.height });
+      });
+      // La plus récente au bout de la rangée, et la rangée glissée jusqu'à elle.
+      laharana.decalage = borneDecalage().min;
+      const fond = document.createElement('div');
+      fond.className = 'laharana-fond';
+      document.body.appendChild(fond);
+      laharana.fond = fond;
+      document.body.classList.add('fenetres-laharana');
+      poserLaharana();
+    }
+    function quitterLaharana(choisie){
+      if(!laharana) return;
+      const l = laharana;
+      laharana = null;
+      document.body.classList.remove('fenetres-laharana');
+      if(l.fond) l.fond.remove();
+      l.avant.forEach(function(r, s){
+        if(!visible(s.el)) return;
+        figer(s.el, { left: Math.round(r.left), top: Math.round(r.top), width: Math.round(r.width), height: Math.round(r.height) });
+      });
+      if(choisie && visible(choisie.el)) mettreDevant(choisie);
+      replacerLesPages();
+    }
+    // Glisser la rangée, du doigt ou à la souris, n'importe où sur elle ; un
+    // appui sans glisser choisit la fenêtre touchée.
+    let geste = null;
+    document.addEventListener('pointerdown', function(e){
+      if(!laharana || !e.isPrimary) return;
+      // Les boutons ─ □ ✕ des fenêtres gardent leur rôle.
+      if(e.target.closest && e.target.closest('.fenetre-boutons')) return;
+      const s = laharana.liste.find(function(x){ return x.el.contains(e.target); }) || null;
+      const surFond = e.target === laharana.fond;
+      if(!s && !surFond) return;
+      geste = { x: e.clientX, depart: laharana.decalage, s: s, bouge: false };
+      e.preventDefault();
+    }, true);
+    document.addEventListener('pointermove', function(e){
+      if(!geste || !laharana) return;
+      const dx = e.clientX - geste.x;
+      if(!geste.bouge && Math.abs(dx) < 8) return;
+      geste.bouge = true;
+      laharana.decalage = geste.depart + dx;
+      poserLaharana();
+    }, true);
+    document.addEventListener('pointerup', function(){
+      if(!geste) return;
+      const g = geste;
+      geste = null;
+      if(!laharana || g.bouge) return;
+      quitterLaharana(g.s);
+    }, true);
+    document.addEventListener('pointercancel', function(){ geste = null; }, true);
+    // Le clic qui suit n'ouvre rien dans la fenêtre touchée.
+    document.addEventListener('click', function(e){
+      if(!laharana) return;
+      if(e.target.closest && e.target.closest('.fenetre-boutons')) return;
+      if(laharana.fond === e.target || laharana.liste.some(function(x){ return x.el.contains(e.target); })){
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }, true);
+    // La molette fait défiler la rangée, et Échap la referme.
+    document.addEventListener('wheel', function(e){
+      if(!laharana) return;
+      e.preventDefault();
+      laharana.decalage -= (Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY);
+      poserLaharana();
+    }, { passive: false, capture: true });
+    document.addEventListener('keydown', function(e){
+      if(laharana && e.key === 'Escape') quitterLaharana(null);
+    });
     // ✖ Hidio daholo : chacune se ferme comme à sa croix. Les pages d'abord,
     // l'Accueil en dernier : fermer la dernière page rouvrirait le fil.
     function hidioDaholo(){
+      quitterLaharana(null);
       ouvertes().filter(function(s){ return s.el.id !== 'dash-accueil'; })
         .forEach(function(s){ glisser(s, 0); fermerFenetre(s.el); });
       const accueil = document.getElementById('dash-accueil');
@@ -5297,6 +5396,8 @@
     // L'écran change de taille : une fenêtre à qui personne n'a donné de
     // taille reprend celle d'ouverture, les autres se rentrent dans le cadre.
     function replacerLesPages(){
+      // En rangée, c'est elle qui place les fenêtres.
+      if(laharana){ poserLaharana(); return; }
       const tailles = lire();
       const places = lirePlaces();
       suivis.forEach(function(s){

@@ -145,7 +145,10 @@
       'Call': { mg: 'Antso' },
       'Portefeuille': { mg: 'Kitapom-bola' },
       'Livreur': { mg: 'Mpanatitra' },
-      "Fond d'écran": { mg: 'Sary ambadika' }
+      "Fond d'écran": { mg: 'Sary ambadika' },
+      // Les deux boutons des fenêtres : « Hidio » sortait « Verrouillez ».
+      'Alamino': { fr: 'Aligner', en: 'Line up', es: 'Alinear', pt: 'Alinhar', de: 'Aufreihen', it: 'Allinea' },
+      'Hidio daholo': { fr: 'Tout fermer', en: 'Close all', es: 'Cerrar todo', pt: 'Fechar tudo', de: 'Alle schließen', it: 'Chiudi tutto' }
     };
     Object.keys(VOAFARITRA).forEach(function(k){
       const t = VOAFARITRA[k][teny] || VOAFARITRA[k]['*'];

@@ -1273,6 +1273,22 @@
       inset -1px 0 0 rgba(255,255,255,0.07),
       0 12px 36px rgba(0,0,0,0.5) !important;
   }
+  /* 🗂️ Alamino : les fenêtres côte à côte sur un voile sombre. Le voile
+     reçoit les gestes entre elles ; ni coins ni ruban, la rangée se fait
+     glisser tout entière. */
+  .laharana-fond{
+    position: fixed; inset: 0; z-index: 94;
+    background: rgba(0,0,0,0.45);
+    touch-action: none;
+  }
+  body.fenetres-laharana .poignee,
+  body.fenetres-laharana .poignee-deplacer{ display: none; }
+  body.fenetres-laharana .fenetre-page,
+  body.fenetres-laharana #fbComposer,
+  body.fenetres-laharana #notifPanel,
+  body.fenetres-laharana #marketPanel,
+  body.fenetres-laharana #livraisonPanel{ cursor: pointer; touch-action: none; }
+
   /* « Écrire » a la taille d'une page : il en prend aussi la courbe. */
   #fbComposer.composer-flottant{ border-radius: 28px !important; }
   /* La marge intérieure s'élargit, pour que rien ne se loge dans la courbe. */
