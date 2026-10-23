@@ -1024,21 +1024,30 @@
   // ---------------- FAMAFANA HAFATRA ----------------
   // Ny hafatra iray (✕) na ny resaka manontolo (🗑️) : voafafa eto sy any
   // amin'ilay olona koa (raha miditra izy), satria tsy voatahiry any amin'ny
-  // serveur ireo hafatra ireo.
+  // serveur ireo hafatra ireo. Ny hafatra voafafa dia tsy manjavona fotsiny :
+  // « 🗑️ Voafafa ity hafatra ity » no mijanona amin'ny toerany, mba ho
+  // fantatry ny roa tonta. Ny ✕ amin'io soratra io kosa dia manala azy eto
+  // ihany.
   function idHafatra(){ return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+  function mariho(lisitra, ids){
+    lisitra.forEach(function(h){
+      if(ids.indexOf(h.id) < 0) return;
+      h.voafafa = true; h.soratra = ''; h.media = null;
+    });
+  }
   function fafaoHafatra(email, ids){
     const me = myIdentity();
     const daholo = !ids;
     if(daholo) resaka[email] = [];
-    else resaka[email] = (resaka[email] || []).filter(function(h){ return ids.indexOf(h.id) < 0; });
+    else mariho(resaka[email] || [], ids);
     sendCallSignal({ kind: 'hafatra-fafana', from: me.email, to: email, ids: ids || null, daholo: daholo });
     asehoyResaka();
   }
   function onHafatraFafana(payload){
     const avy = payload.from;
     if(!avy || !resaka[avy]) return;
-    if(payload.daholo) resaka[avy] = [];
-    else if(Array.isArray(payload.ids)) resaka[avy] = resaka[avy].filter(function(h){ return payload.ids.indexOf(h.id) < 0; });
+    if(payload.daholo) resaka[avy] = [{ id: idHafatra(), avy: 'izy', voafafa: 'daholo', at: Date.now() }];
+    else if(Array.isArray(payload.ids)) mariho(resaka[avy], payload.ids);
     if(resakaMisokatra && resakaMisokatra.email === avy) asehoyResaka();
   }
 
@@ -1155,7 +1164,15 @@
       boaty.querySelector('[data-hafatra]').addEventListener('click', function(e){
         const b = e.target.closest('[data-fafao]');
         if(!b || !resakaMisokatra) return;
-        fafaoHafatra(resakaMisokatra.email, [b.getAttribute('data-fafao')]);
+        const email = resakaMisokatra.email, id = b.getAttribute('data-fafao');
+        const h = (resaka[email] || []).filter(function(x){ return x.id === id; })[0];
+        // Efa voafafa : ny soratra « Voafafa » ihany no esorina, eto.
+        if(h && h.voafafa){
+          resaka[email] = resaka[email].filter(function(x){ return x.id !== id; });
+          asehoyResaka();
+          return;
+        }
+        fafaoHafatra(email, [id]);
       });
       let habe = null;
       boaty.querySelector('[data-ngeza]').addEventListener('click', function(){
@@ -1220,6 +1237,19 @@
     zone.innerHTML = lisitra.length
       ? lisitra.map(function(h){
           const izaho = h.avy === 'izaho';
+          if(!h.id) h.id = idHafatra();
+          if(h.voafafa){
+            const soratra = h.voafafa === 'daholo' ? '🗑️ Nofafany daholo ny hafatra teo aloha'
+              : izaho ? '🗑️ Nofafanao ity hafatra ity' : '🗑️ Voafafa ity hafatra ity';
+            const esory = '<button type="button" data-fafao="' + escapeHtml(h.id) + '" title="Esory" style="flex:none; ' +
+              'border:none; background:none; color:var(--muted); cursor:pointer; font-size:0.8rem; padding:0 0.3rem;">✕</button>';
+            return '<div style="display:flex; align-items:center; justify-content:' +
+              (h.voafafa === 'daholo' ? 'center' : izaho ? 'flex-end' : 'flex-start') + '; margin:0.25rem 0;">' +
+              (izaho ? esory : '') +
+              '<span style="max-width:80%; padding:0.35rem 0.6rem; border-radius:10px; border:1px dashed var(--line); ' +
+                'color:var(--muted); font-style:italic; font-size:0.76rem;">' + soratra + '</span>' +
+              (izaho ? '' : esory) + '</div>';
+          }
           let atiny = '';
           if(h.media && /^https:\/\//.test(h.media.url)){
             const url = escapeHtml(h.media.url);
@@ -1229,7 +1259,6 @@
                   'style="display:block; max-width:100%; max-height:260px; border-radius:8px;"></a>';
           }
           if(h.soratra) atiny += (atiny ? '<div style="margin-top:0.3rem;">' : '<div>') + escapeHtml(h.soratra) + '</div>';
-          if(!h.id) h.id = idHafatra();
           const fafao = '<button type="button" data-fafao="' + escapeHtml(h.id) + '" title="Fafana" style="flex:none; ' +
             'border:none; background:none; color:var(--muted); cursor:pointer; font-size:0.8rem; padding:0 0.3rem;">✕</button>';
           return '<div style="display:flex; align-items:center; justify-content:' + (izaho ? 'flex-end' : 'flex-start') + '; margin:0.25rem 0;">' +
