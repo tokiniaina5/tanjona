@@ -504,15 +504,19 @@
   // ikona : soratra, na fonction(o) (ohatra ⏳ raha miandry fanekena).
   function andalanaMpisoratra(olona, ikona, lohateny){
     return olona.map(function(o, i){
+      // Hafatra tsy mbola voavaky : isa mena eo amin'ny bokotra, ary soratra.
+      const vaovao = tsyVoavaky[o.cle || o.email] || 0;
       return '<div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; padding:0.6rem 0; border-bottom:1px solid var(--line);">' +
         '<div style="display:flex; align-items:center; gap:0.6rem; min-width:0;">' + avatarOlona(o) +
         '<div style="min-width:0;">' +
           '<strong style="font-size:0.85rem;">' + escapeHtml(o.name) + '</strong>' +
           (o.online ? ' <span style="font-size:0.68rem; color:#25D366;">En ligne</span>' : '') +
+          (vaovao ? '<div style="font-size:0.72rem; color:#e5484d; font-weight:700;">💬 ' + vaovao + ' hafatra tsy mbola voavaky</div>' : '') +
           '<div style="font-size:0.72rem; color:var(--muted); overflow:hidden; text-overflow:ellipsis;">' +
             escapeHtml(o.phone || o.email) + '</div></div></div>' +
-        '<button type="button" class="btn btn-sm" title="' + lohateny + '" data-i="' + i + '" style="flex:none;">' +
-          (typeof ikona === 'function' ? ikona(o) : ikona) + '</button>' +
+        '<button type="button" class="btn btn-sm" title="' + lohateny + '" data-i="' + i + '" style="flex:none; position:relative;">' +
+          (typeof ikona === 'function' ? ikona(o) : ikona) +
+          (vaovao ? '<span class="hafatra-isa-bokotra">' + (vaovao > 9 ? '9+' : vaovao) + '</span>' : '') + '</button>' +
         '</div>';
     }).join('');
   }
@@ -1023,8 +1027,43 @@
     feoHafatra();
     if(currentUser && typeof pushNotification === 'function') pushNotification('hafatra', '💬 Hafatra avy amin\'i ' + (payload.fromName || avy) + '.');
     showSystemNotification('💬 ' + (payload.fromName || avy), fohy, 'hafatra-' + avy);
-    sokafyResaka(avy, payload.fromName || avy);
+    // Resaka hafa no misokatra : tsy halaina ny toerany ; ny isa no milaza.
+    if(!resakaMisokatra || resakaMisokatra.email === avy || !resakaHitaIzao(resakaMisokatra.email)){
+      sokafyResaka(avy, payload.fromName || avy);
+    }
+    if(!resakaHitaIzao(avy)){
+      tsyVoavaky[avy] = (tsyVoavaky[avy] || 0) + 1;
+      asehoyIsaHafatra();
+      asehoyIndrayLisitra();
+    }
   }
+
+  // ---------------- HAFATRA TSY MBOLA VOAVAKY ----------------
+  // Isaky ny olona : ny hafatra tonga raha tsy hita teo imason'ny olona ilay
+  // resaka (resaka hafa misokatra, fenêtre tsy eo aloha). Ny isan'izy rehetra
+  // dia eo amin'ny « 💬 Message » (menu sy rangée) ; ny an'ny tsirairay eo
+  // amin'ny bokotra ao amin'ny lisitra. Voavaky rehefa hita ilay resaka.
+  const tsyVoavaky = {};   // email → isa
+  function resakaHitaIzao(email){
+    const boaty = document.getElementById('resakaMivantana');
+    return !!(resakaMisokatra && resakaMisokatra.email === email && boaty &&
+      boaty.style.display !== 'none' && !document.hidden);
+  }
+  function asehoyIsaHafatra(){
+    const total = Object.keys(tsyVoavaky).reduce(function(s, k){ return s + tsyVoavaky[k]; }, 0);
+    // Attribut lu par le CSS (::after), et non un <span> : la rangée recopie
+    // le texte de l'entrée du menu pour en faire son icône.
+    document.querySelectorAll('#navList .nav-item[data-section="serviceclient"], [data-epingle="section:serviceclient"]')
+      .forEach(function(el){
+        if(total) el.setAttribute('data-isa-hafatra', total > 9 ? '9+' : String(total));
+        else el.removeAttribute('data-isa-hafatra');
+      });
+  }
+  // L'icône de la rangée peut être recréée (épinglée plus tard) : on repose.
+  setInterval(asehoyIsaHafatra, 2000);
+  document.addEventListener('visibilitychange', function(){
+    if(!document.hidden && resakaMisokatra) asehoyResaka();
+  });
 
   function alefaHafatra(soratra, media){
     if(!resakaMisokatra) return;
@@ -1289,6 +1328,12 @@
     zone.querySelectorAll('img, video').forEach(function(m){
       m.addEventListener(m.tagName === 'IMG' ? 'load' : 'loadedmetadata', function(){ zone.scrollTop = zone.scrollHeight; }, { once: true });
     });
+    // Hita ilay resaka : voavaky daholo ny hafatra.
+    if(tsyVoavaky[email] && resakaHitaIzao(email)){
+      delete tsyVoavaky[email];
+      asehoyIsaHafatra();
+      asehoyIndrayLisitra();
+    }
   }
   window.__sokafyResaka = sokafyResaka;
 

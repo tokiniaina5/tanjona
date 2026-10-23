@@ -1871,3 +1871,32 @@ body:not(.appli-ouverte) .story-bureau{ display:none !important; }
   box-shadow:0 0 0 2px var(--panel);
   pointer-events:none;
 }
+
+/* 💬 Message : combien de hafatra ne sont pas encore lus (live.js,
+   asehoyIsaHafatra). Lu dans un attribut, pour que l'icône recopiée dans la
+   rangée ne prenne pas le chiffre dans son texte. */
+#navList .nav-item[data-isa-hafatra]::after{
+  content: attr(data-isa-hafatra);
+  display:inline-block; margin-left:0.45rem; vertical-align:middle;
+  min-width:18px; height:18px; padding:0 5px; box-sizing:border-box;
+  border-radius:999px; background:#e5484d; color:#fff;
+  font-size:0.66rem; font-weight:800; line-height:18px; text-align:center;
+}
+#stockMainTabs .bar-icone[data-isa-hafatra]{ position:relative; }
+#stockMainTabs .bar-icone[data-isa-hafatra]::after{
+  content: attr(data-isa-hafatra);
+  position:absolute; top:2px; right:2px; z-index:1;
+  min-width:15px; height:15px; padding:0 3px; box-sizing:border-box;
+  border-radius:999px; background:#e5484d; color:#fff;
+  font-size:0.6rem; font-weight:800; line-height:15px; text-align:center;
+  box-shadow:0 0 0 2px var(--panel);
+  pointer-events:none;
+}
+/* Le même chiffre sur le bouton d'une personne, dans les listes. */
+.hafatra-isa-bokotra{
+  position:absolute; top:-6px; right:-6px;
+  min-width:16px; height:16px; padding:0 4px; box-sizing:border-box;
+  border-radius:999px; background:#e5484d; color:#fff;
+  font-size:0.62rem; font-weight:800; line-height:16px; text-align:center;
+  pointer-events:none;
+}
