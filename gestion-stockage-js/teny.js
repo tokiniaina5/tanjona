@@ -100,9 +100,52 @@
     document.documentElement.lang = teny;
 
     // ---------- Les traductions déjà connues ----------
-    const CLE_CACHE = 'nyasako_teny_dika_' + teny;
+    // « v3 » : les traductions gardées avant le 23/10/2026 venaient d'une langue
+    // de départ mal devinée (beaucoup restées telles quelles), puis sans les
+    // majuscules de l'original ; on repart à neuf.
+    const CLE_CACHE = 'nyasako_teny_dika_v3_' + teny;
+    try{
+      Object.keys(localStorage).forEach(function(k){
+        if(k.indexOf('nyasako_teny_dika_') === 0 && k.indexOf('nyasako_teny_dika_v3_') !== 0) localStorage.removeItem(k);
+      });
+    }catch(e){}
     let dika = {};
     try{ dika = JSON.parse(localStorage.getItem(CLE_CACHE)) || {}; }catch(e){ dika = {}; }
+    // Des mots seuls que Google prend à contresens (« Corbeille » → « Basket »,
+    // « Horaire » → « Hourly ») ou laisse tels quels (« Feo ») : écrits ici,
+    // ils passent avant ce que Google répond. « Botika », lui, est un nom.
+    // En malgache surtout, les mots seuls du menu sortaient de travers
+    // (« Tableau de bord » → « anaty fiara », « Edge » → « sisin'ny »).
+    const VOAFARITRA = {
+      'Botika': { '*': 'Botika' },
+      'Chrome': { '*': 'Chrome' },
+      'Edge': { '*': 'Edge' },
+      'PDF': { '*': 'PDF' },
+      'Corbeille': { en: 'Trash', mg: 'Fako', es: 'Papelera', pt: 'Lixeira', de: 'Papierkorb', it: 'Cestino' },
+      'Horaire': { en: 'Schedule', mg: 'Fandaharam-potoana', es: 'Horario', pt: 'Horário', de: 'Zeitplan', it: 'Orario' },
+      'Feo': { en: 'Sound', fr: 'Son', es: 'Sonido', pt: 'Som', de: 'Ton', it: 'Suono' },
+      'Tableau de bord': { mg: 'Tabilao fitantanana' },
+      'Tableau de bord —': { en: 'Dashboard —', mg: 'Tabilao fitantanana —' },
+      'Articles': { mg: 'Entana' },
+      'Entrée en stock': { mg: "Fidiran'entana" },
+      'Nouvel article': { mg: 'Entana vaovao' },
+      'Notifications': { mg: 'Fampandrenesana' },
+      'Panier': { mg: 'Harona' },
+      'Factures': { mg: 'Faktiora' },
+      'Notes': { mg: 'Naoty' },
+      'Calculatrice': { mg: 'Milina mpikajy' },
+      'Calendrier': { mg: 'Kalandrie' },
+      'Message': { mg: 'Hafatra' },
+      'Live direct': { mg: 'Live mivantana' },
+      'Call': { mg: 'Antso' },
+      'Portefeuille': { mg: 'Kitapom-bola' },
+      'Livreur': { mg: 'Mpanatitra' },
+      "Fond d'écran": { mg: 'Sary ambadika' }
+    };
+    Object.keys(VOAFARITRA).forEach(function(k){
+      const t = VOAFARITRA[k][teny] || VOAFARITRA[k]['*'];
+      if(t) dika[k] = t;
+    });
     let tehirizoTimer = null;
     function tehirizo(){
       if(tehirizoTimer) return;
@@ -116,7 +159,9 @@
     }
 
     // ---------- Ce qui se traduit ----------
-    const SAUTE = /^(SCRIPT|STYLE|TEXTAREA|INPUT|SELECT|OPTION|CODE|PRE|NOSCRIPT|svg|SVG|TITLE)$/;
+    // Les <option> des listes déroulantes se traduisent aussi : leur texte
+    // change, leur valeur non.
+    const SAUTE = /^(SCRIPT|STYLE|TEXTAREA|INPUT|CODE|PRE|NOSCRIPT|svg|SVG|TITLE)$/;
     function horsJeu(el){
       for(let e = el; e && e !== document.body; e = e.parentElement){
         if(SAUTE.test(e.nodeName) || e.isContentEditable) return true;
@@ -133,16 +178,10 @@
       if(/^(https?:\/\/|www\.)\S+$/i.test(texte) || /^\S+@\S+\.\S+$/.test(texte)) return false;
       return true;
     }
-    function hita(el){ return !!(el && el.getClientRects().length); }
-
-    // La langue de départ, devinée à quelques mots courants.
-    const MG = /\b(ny|ary|amin|ho|dia|tsy|izy|ireo|eto|azy|aho|ianao|mba|raha|any|ao|olona|vao|hafatra|misy|izay|efa|mbola|tsara|eny|tsia|sy|an)\b|n'ny|an'i|'ity|'ilay/gi;
-    const FR = /\b(le|la|les|des|du|une|un|et|pour|vous|avec|sur|dans|pas|est|vos|votre|au|aux|ce|cette|qui|que|en|par|plus|ou)\b|\b[ldjnsc]'/gi;
-    function loharano(texte){
-      const mg = (texte.match(MG) || []).length, fr = (texte.match(FR) || []).length;
-      if(mg > fr) return 'mg';
-      if(fr > mg) return 'fr';
-      return 'auto';
+    // Une <option> n'a pas de boîte à elle : c'est sa liste qui se voit ou non.
+    function hita(el){
+      if(el && (el.nodeName === 'OPTION' || el.nodeName === 'OPTGROUP')) el = el.closest('select');
+      return !!(el && el.getClientRects().length);
     }
 
     // ---------- Les textes de la page ----------
@@ -195,44 +234,27 @@
     }
 
     // ---------- Les demandes ----------
+    // translate_a/t prend plusieurs textes (un « q » chacun) et devine la
+    // langue de CHACUN : un paquet mêlant « Factures » et « Hafatra
+    // mivantana » est enfin traduit en entier. Avant, tout le paquet était lu
+    // dans une seule langue, et l'autre moitié restait telle quelle.
     let mandeha = false, miatoTo = 0;
     function alefa(){
       if(mandeha || Date.now() < miatoTo || !miandry.size) return;
-      // Un paquet de même langue de départ, de taille raisonnable pour l'adresse.
-      const voalohany = miandry.values().next().value;
-      const sl = loharano(voalohany);
+      // Un paquet de taille raisonnable pour l'adresse.
       const paquet = [];
       let habe = 0;
-      miandry.forEach(function(k){
-        if(paquet.length >= 40 || habe > 1400) return;
-        if(loharano(k) !== sl) return;
+      for(const k of miandry){
+        const lanja = encodeURIComponent(arovy(k)).length + 3;
+        if(paquet.length && (paquet.length >= 50 || habe + lanja > 6000)) break;
         paquet.push(k);
-        habe += k.length + 1;
-      });
-      paquet.forEach(function(k){ miandry.delete(k); });
-      // Déjà dans la langue voulue : gardé tel quel.
-      if(sl === teny.split('-')[0]){
-        paquet.forEach(function(k){ dika[k] = k; });
-        tehirizo();
-        mihazakazaka();
-        return;
+        habe += lanja;
       }
+      paquet.forEach(function(k){ miandry.delete(k); });
       mandeha = true;
-      // Les retours à la ligne séparent les textes du paquet.
-      const lahatsoratra = paquet.map(function(k){ return arovy(k.replace(/\s*\n\s*/g, ' ')); }).join('\n');
-      adikao(lahatsoratra, sl).then(function(valiny){
-        const lisitra = valiny.split('\n');
-        if(lisitra.length === paquet.length){
-          paquet.forEach(function(k, i){ dika[k] = averina(lisitra[i].trim()) || k; });
-          tehirizo();
-          return;
-        }
-        // Désaligné (une phrase coupée en deux) : on redemande un par un.
-        return paquet.reduce(function(p, k){
-          return p.then(function(){
-            return adikao(arovy(k), sl).then(function(t){ dika[k] = averina(t.trim()) || k; });
-          });
-        }, Promise.resolve()).then(tehirizo);
+      adikao(paquet.map(arovy)).then(function(valiny){
+        paquet.forEach(function(k, i){ dika[k] = haben(k, averina(String(valiny[i] || '').trim())) || k; });
+        tehirizo();
       }).then(null, function(){
         // Refusé ou hors ligne : on attend une minute avant de redemander.
         paquet.forEach(function(k){ miandry.add(k); });
@@ -246,14 +268,29 @@
     // Work ». Il part sous un mot que Google laisse tel quel, et revient.
     function arovy(t){ return t.replace(/\bny\s+asako\b/gi, 'Nyasako'); }
     function averina(t){ return t.replace(/\bnyasako\b/gi, 'Ny asako'); }
-    function adikao(lahatsoratra, sl){
-      const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&dt=t&sl=' +
-        encodeURIComponent(sl) + '&tl=' + encodeURIComponent(teny) + '&q=' + encodeURIComponent(lahatsoratra);
+    // Les majuscules de l'original : Google rendait « Factures » par
+    // « faktiora » et « Message » par « hAFATRA ».
+    function haben(asili, t){
+      if(!t) return t;
+      const litera = t.replace(/[^\p{L}]/gu, '');
+      const ambony = litera.replace(/[^\p{Lu}]/gu, '').length;
+      if(litera.length > 3 && ambony > litera.length / 2 && asili !== asili.toUpperCase()) t = t.toLowerCase();
+      const a = asili.match(/\p{L}/u), b = t.match(/\p{L}/u);
+      if(a && b && a[0] === a[0].toUpperCase() && a[0] !== a[0].toLowerCase()){
+        t = t.slice(0, b.index) + b[0].toUpperCase() + t.slice(b.index + 1);
+      }
+      return t;
+    }
+    function adikao(lisitra){
+      const url = 'https://translate.googleapis.com/translate_a/t?client=gtx&sl=auto&tl=' + encodeURIComponent(teny) +
+        lisitra.map(function(q){ return '&q=' + encodeURIComponent(q); }).join('');
       return fetch(url).then(function(r){
         if(!r.ok) throw new Error('HTTP ' + r.status);
         return r.json();
       }).then(function(data){
-        return ((data && data[0]) || []).map(function(s){ return (s && s[0]) || ''; }).join('');
+        // [[traduction, langue détectée], …] ; un texte seul vient parfois nu.
+        if(!Array.isArray(data)) return [String(data)];
+        return data.map(function(x){ return Array.isArray(x) ? x[0] : x; });
       });
     }
 
