@@ -349,12 +349,19 @@
   }
   function saveCreditSales(list){ localStorage.setItem(STORAGE_CREDIT_SALES, JSON.stringify(list)); }
 
-  const STORAGE_NOTIFICATIONS = 'stockmanager_notifications' + SUFFIXE_MPIASA;
+  // Les notifications vont avec le compte, pas avec l'appareil : deux
+  // comptes ouverts dans le même navigateur (une fenêtre chacun) ne
+  // partagent plus leur liste ni leur nombre de non-lues.
+  function cleDuCompte(base){
+    let email = '';
+    try{ email = currentUser && currentUser.email ? '_' + String(currentUser.email).trim().toLowerCase() : ''; }catch(e){}
+    return base + SUFFIXE_MPIASA + email;
+  }
   function loadNotifications(){
-    try { return JSON.parse(localStorage.getItem(STORAGE_NOTIFICATIONS)) || []; }
+    try { return JSON.parse(localStorage.getItem(cleDuCompte('stockmanager_notifications'))) || []; }
     catch(e){ return []; }
   }
-  function saveNotifications(list){ localStorage.setItem(STORAGE_NOTIFICATIONS, JSON.stringify(list)); }
+  function saveNotifications(list){ localStorage.setItem(cleDuCompte('stockmanager_notifications'), JSON.stringify(list)); }
   // Ajoute une notification à la liste de ce téléphone, sans rien envoyer.
   // action : un bouton dans la notification (ex. accepter une demande
   // d'accès). { cle, libelle } — ce qu'il fait est enregistré à part, par
@@ -390,7 +397,6 @@
   // (vue-mpiasa.js). Chacun relit toutes les minutes, et en revenant sur la
   // page. Sans la table, rien ne se partage et rien ne casse.
   const TYPES_PARTAGES = ['sortie', 'rupture', 'parrainage', 'live'];
-  const STORAGE_NOTIF_VU = 'stockmanager_notif_partage_vu' + SUFFIXE_MPIASA;
 
   function partagerNotification(type, message){
     if(TYPES_PARTAGES.indexOf(type) < 0 || !currentUser) return;
@@ -420,11 +426,11 @@
   function lireNotificationsPartagees(){
     if(!currentUser || lectureNotifEnCours) return;
     let vu = '';
-    try{ vu = localStorage.getItem(STORAGE_NOTIF_VU) || ''; }catch(e){}
+    try{ vu = localStorage.getItem(cleDuCompte('stockmanager_notif_partage_vu')) || ''; }catch(e){}
     // La première fois sur ce téléphone, on part de maintenant : remonter
     // tout l'historique noierait la liste sous des nouvelles d'hier.
     if(!vu){
-      try{ localStorage.setItem(STORAGE_NOTIF_VU, new Date().toISOString()); }catch(e){}
+      try{ localStorage.setItem(cleDuCompte('stockmanager_notif_partage_vu'), new Date().toISOString()); }catch(e){}
       return;
     }
     let lecture;
@@ -459,7 +465,7 @@
         if(notificationDejaLa(r.type, texte) || notificationDejaLa(r.type, r.message)) return;
         ajouterNotificationLocale(r.type, texte, new Date(r.created_at).toLocaleString('fr-FR'));
       });
-      try{ localStorage.setItem(STORAGE_NOTIF_VU, rows[rows.length - 1].created_at); }catch(e){}
+      try{ localStorage.setItem(cleDuCompte('stockmanager_notif_partage_vu'), rows[rows.length - 1].created_at); }catch(e){}
       // Cinquante d'un coup : il en reste peut-être.
       if(rows.length === 50) lireNotificationsPartagees();
     }, function(){ lectureNotifEnCours = false; });
