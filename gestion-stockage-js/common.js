@@ -4557,6 +4557,35 @@
 
     const suivis = [];
 
+    // Plusieurs fenêtres à la fois : celle qu'on touche, ou qu'on vient
+    // d'ouvrir, passe devant les autres (23/10/2026). Les étages restent entre
+    // celui des pages (95) et celui du menu (119) : ce qui doit couvrir toute
+    // l'application — boîtes de dialogue, écran verrouillé — reste au-dessus.
+    const ordre = [];
+    function estFenetre(s){ return s.page || s.commePage || !!PANNEAUX[s.el.id]; }
+    function mettreDevant(s){
+      if(!estFenetre(s)) return;
+      const i = ordre.indexOf(s);
+      if(i >= 0) ordre.splice(i, 1);
+      ordre.push(s);
+      let n = 0;
+      ordre.forEach(function(x){
+        if(!visible(x.el)) return;
+        const z = String(96 + 2 * n++);
+        // Rien ne change, rien n'est écrit : le guetteur des styles ne
+        // repartirait pas pour rien.
+        if(x.el.style.zIndex !== z) x.el.style.zIndex = z;
+        x.calque.style.zIndex = String(+z + 1);
+      });
+    }
+    // Avant tout le reste : le clic qui suit agit dans une fenêtre déjà devant.
+    document.addEventListener('pointerdown', function(e){
+      const s = suivis.find(function(x){
+        return estFenetre(x) && visible(x.el) && (x.el.contains(e.target) || x.calque.contains(e.target));
+      });
+      if(s && ordre[ordre.length - 1] !== s) mettreDevant(s);
+    }, true);
+
     // Une fenêtre est posée tantôt par le haut, tantôt par le bas, tantôt
     // centrée par une transformation. Pour la redimensionner il n'y a qu'un
     // ancrage possible : coin haut-gauche, plus une largeur et une hauteur.
@@ -4722,7 +4751,22 @@
       // En automatique, fermer une page, c'est en avoir fini avec elle : son
       // icône quitte la rangée du même geste (la rangée, plus bas, en décide).
       if(el && typeof window.__pageFermee === 'function') window.__pageFermee(el.id);
-      revenirAuFil();
+      rangerLaPage(el);
+    }
+    // Plusieurs pages peuvent être ouvertes : on ne range que celle-ci. Le fil
+    // revient seulement s'il ne reste plus aucune page à l'écran.
+    function rangerLaPage(el){
+      if(el){
+        el.classList.remove('active');
+        const nav = document.querySelector('.nav-item[data-section="' + el.id.replace(/^section-/, '') + '"]');
+        if(nav) nav.classList.remove('active');
+      }
+      const reste = PAGES.some(function(id){
+        const p = document.getElementById(id);
+        return p && p !== el && visible(p);
+      });
+      if(!reste) revenirAuFil();
+      else if(typeof saveLastView === 'function') saveLastView();
     }
     function revenirAuFil(){
       const navStock = document.querySelector('.nav-item[data-section="stock"]');
@@ -4749,7 +4793,7 @@
         fermerFenetre(el);
         return;
       }
-      revenirAuFil();
+      rangerLaPage(el);
       marquerReduite(el, true);
     }
     // L'icône de la page clignote tant qu'elle est réduite (la rangée, plus
@@ -4847,8 +4891,12 @@
       // Une page ouverte recouvre l'Accueil exactement : ses poignées se
       // superposeraient aux siennes, aux mêmes coins, pour redimensionner une
       // fenêtre que personne ne voit. Elles s'effacent le temps de la visite.
+      // Seulement si cette page est devant lui : touché, l'Accueil repasse
+      // devant, et reprend ses poignées.
+      const accueil = suivis.find(function(x){ return x.el.id === 'dash-accueil'; });
       const pageDevant = suivis.some(function(x){
-        return x.page && x.el.id !== 'dash-accueil' && visible(x.el);
+        return x.page && x.el.id !== 'dash-accueil' && visible(x.el) &&
+          ordre.indexOf(x) > ordre.indexOf(accueil);
       });
       // Une fenêtre ouverte, et le bouton flottant du menu s'efface à demi
       // pour ne pas la masquer (base.css) ; il reste là, et on l'ouvre pareil.
@@ -4880,6 +4928,8 @@
             // Agrandie quand on l'a quittée, elle revient agrandie.
             if(s.agrandie) remplirBande(s);
             s.vu = true;
+            // Ouverte à l'instant : elle passe devant celles déjà là.
+            mettreDevant(s);
           }
         }
         const cache = !vu || (s.el.id === 'dash-accueil' && pageDevant);
@@ -4892,7 +4942,7 @@
         s.calque.style.height = r.height + 'px';
         // Juste au-dessus de sa fenêtre : les panneaux ne sont pas tous au même
         // étage, et une poignée sous sa fenêtre ne se saisit pas.
-        const z = parseInt(getComputedStyle(s.el).zIndex, 10);
+        const z = parseInt(s.el.style.zIndex || getComputedStyle(s.el).zIndex, 10);
         s.calque.style.zIndex = (isFinite(z) ? z : 120) + 1;
       });
     }
@@ -5197,13 +5247,8 @@
       if(fbComposer.style.display !== 'none') placerComposer();
     });
 
-    // Un clic à côté referme, comme pour les autres panneaux.
-    document.addEventListener('click', function(e){
-      if(fbComposer.style.display === 'none') return;
-      if(fbComposer.contains(e.target)) return;
-      if(boutonsComposer.some(function(b){ return b.contains(e.target); })) return;
-      fermerComposer();
-    });
+    // Un clic à côté ne la referme plus : c'est une fenêtre parmi d'autres,
+    // qui passe derrière celle qu'on touche (23/10/2026).
 
     // L'envoi réussi le dit lui-même (parametres.js) ; en cas d'échec ou de
     // fiche incomplète, rien ne vient, et la boîte reste ouverte.
@@ -6702,9 +6747,9 @@
           if(menuToggle) menuToggle.setAttribute('aria-expanded','false');
         }
         placerNotif();
-        // Les panneaux du menu et la loupe se referment : une seule à la fois.
-        [['marketPanel', 'marketToggle'], ['livraisonPanel', 'livraisonToggle'],
-         ['recherchePanel', 'barRecherche']].forEach(function(paire){
+        // La loupe se referme. Les autres panneaux restent : ce sont des
+        // fenêtres, plusieurs s'ouvrent ensemble (23/10/2026).
+        [['recherchePanel', 'barRecherche']].forEach(function(paire){
           var mp = document.getElementById(paire[0]);
           if(!mp) return;
           mp.style.display = 'none';
@@ -6721,14 +6766,8 @@
     if(typeof deposerLeStockPartage === 'function') deposerLeStockPartage();
       }
     });
-    document.addEventListener('click', function(e){
-      // .contains et non !== : le bouton porte maintenant une icône, un
-      // libellé et une pastille, et c'est l'un d'eux que le clic désigne.
-      if(notifPanel.style.display === 'block' && !notifPanel.contains(e.target) && !notifToggle.contains(e.target)){
-        notifPanel.style.display = 'none';
-        notifToggle.setAttribute('aria-expanded', 'false');
-      }
-    });
+    // Un clic à côté ne la referme plus : c'est une fenêtre, qui passe
+    // derrière celle qu'on touche (23/10/2026). Son × ou son entrée la ferment.
   }
   // Achats internationaux (🌍) et Livraison international (🚚) : deux panneaux
   // déroulants du menu, même comportement que la cloche de notifications. Ils
@@ -6762,18 +6801,8 @@
           if(menuToggle) menuToggle.setAttribute('aria-expanded', 'false');
         }
         placerPresDuMenu(panel);
-        // une seule liste ouverte à la fois : la cloche, et l'autre panneau.
-        if(notifPanel){
-          notifPanel.style.display = 'none';
-          if(notifToggle) notifToggle.setAttribute('aria-expanded', 'false');
-        }
-        PANNEAUX_DU_MENU.forEach(function(q){
-          if(q.panneau === p.panneau) return;
-          var autre = document.getElementById(q.panneau);
-          var sonBouton = document.getElementById(q.bouton);
-          if(autre) autre.style.display = 'none';
-          if(sonBouton) sonBouton.setAttribute('aria-expanded', 'false');
-        });
+        // La cloche et l'autre panneau restent ouverts : plusieurs fenêtres
+        // à la fois (23/10/2026). Seule la loupe se referme.
         var loupe = document.getElementById('recherchePanel');
         if(loupe) loupe.style.display = 'none';
         var boutonLoupe = document.getElementById('barRecherche');
@@ -6781,14 +6810,7 @@
         if(typeof window[p.remplir] === 'function') window[p.remplir]();
       }
     });
-    document.addEventListener('click', function(e){
-      // .contains et non !== : le bouton porte maintenant un libelle, et
-      // c'est lui que le clic designe.
-      if(panel.style.display === 'block' && !panel.contains(e.target) && !toggle.contains(e.target)){
-        panel.style.display = 'none';
-        toggle.setAttribute('aria-expanded', 'false');
-      }
-    });
+    // Pas de fermeture au clic à côté : une fenêtre parmi d'autres (23/10/2026).
   });
 
   // ---- La loupe de la rangée du bas ----
@@ -7348,7 +7370,9 @@
   document.querySelectorAll('.nav-item').forEach(function(nav){
     nav.addEventListener('click', function(){
       document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      // Les pages en fenêtre restent ouvertes : on en tient plusieurs à la
+      // fois, et celle qu'on ouvre passe devant (23/10/2026).
+      document.querySelectorAll('.section').forEach(s => { if(!s.classList.contains('fenetre-page')) s.classList.remove('active'); });
       nav.classList.add('active');
       document.getElementById('section-' + nav.dataset.section).classList.add('active');
       if(nav.dataset.section === 'factures') renderInvoiceItems();
@@ -7616,7 +7640,13 @@
     const view = document.getElementById('dash-' + nom);
     if(!view) return false;
     document.querySelectorAll('.dash-tab').forEach(function(t){ t.classList.remove('active'); });
-    document.querySelectorAll('.dash-view').forEach(function(v){ v.classList.remove('active'); });
+    // Une page en fenêtre laisse les autres fenêtres ouvertes ; une vue du
+    // fil remplace tout, comme avant.
+    const enFenetre = view.classList.contains('fenetre-page');
+    document.querySelectorAll('.dash-view').forEach(function(v){
+      if(enFenetre && v.classList.contains('fenetre-page')) return;
+      v.classList.remove('active');
+    });
     view.classList.add('active');
     // Un même onglet peut paraître deux fois — dehors et dans les Articles :
     // les deux s'allument.
