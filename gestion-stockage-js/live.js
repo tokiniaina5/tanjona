@@ -473,11 +473,13 @@
         phone: '', online: true, mpitsidika: mpitsidika };
     });
     makaSary(olona.map(function(o){ return o.email; }));
-    [['callMitsidika', '☎️', 'Antso', function(o){
-        openChannelChooser('☎️ ' + o.name, 'Miditra ankehitriny.', [
-          { label: '📞 Appel mivantana', color: '#25D366', run: function(){ startCall(o.email, o.name, 'audio'); } },
-          { label: '📹 Antso video', color: '#1877F2', run: function(){ startCall(o.email, o.name, 'video'); } }
-        ]);
+    [['callMitsidika', ikonaAntso, 'Antso', function(o){
+        hafatraVoafehy(o.email, o.name, function(){
+          openChannelChooser('☎️ ' + o.name, 'Miditra ankehitriny.', [
+            { label: '📞 Appel mivantana', color: '#25D366', run: function(){ startCall(o.email, o.name, 'audio'); } },
+            { label: '📹 Antso video', color: '#1877F2', run: function(){ startCall(o.email, o.name, 'video'); } }
+          ]);
+        });
       }],
      ['msgMitsidika', ikonaHafatra, 'Hafatra', function(o){
         hafatraVoafehy(o.email, o.name, function(){ sokafyResaka(o.email, o.name); });
@@ -587,10 +589,18 @@
   // Sary 3D (emoji-3d.js) : 🤝 mbola tsy nifandray, ⏳ miandry ny valiny,
   // 🔔 misy mangataka, 💬 efa nekena.
   function ikonaHafatra(o){
+    // Tsy misy email (laharana ihany, na anarana ihany) : tsy misy fangatahana.
+    if(!(o.cle || o.email)) return '💬';
     const f = fifandraisana[o.cle || o.email];
     if(f && f.sata === 'nekena') return '💬';
     if(f && f.sata === 'miandry') return f.izaho ? '⏳' : '🔔';
     return '🤝';
+  }
+  // Pejy 📞 Call : fangatahana mitovy amin'ny Message (iray ihany ny fanekena
+  // ho an'ny roa) ; rehefa nekena, ☎️.
+  function ikonaAntso(o){
+    const i = ikonaHafatra(o);
+    return i === '💬' ? '☎️' : i;
   }
   // Varavarankely fanamarinana misy sary 3D lehibe, solon'ny confirm() :
   // ny confirm() an'ny navigateur dia tsy afaka mitondra sary.
@@ -637,7 +647,7 @@
         [{ label: '🔁 Averina alefa', primary: true, run: function(){ mangatakaResaka(email, anarana); } }]);
       return;
     }
-    fanamarinana('🤝', anarana, 'Handefa fangatahana hiresaka aminy ve ianao ? Rehefa manaiky izy vao afaka mandefa hafatra.',
+    fanamarinana('🤝', anarana, 'Handefa fangatahana hiresaka aminy ve ianao ? Rehefa manaiky izy vao afaka mandefa hafatra sy miantso ianao.',
       [{ label: '✅ Alefa', primary: true, run: function(){ mangatakaResaka(email, anarana); } }]);
   }
   function mangatakaResaka(email, anarana){
@@ -652,7 +662,7 @@
     sendCallSignal({ kind: 'fangatahana', from: me.email, fromName: me.name, to: email });
     alefaPush(email, 'hafatra', { text: me.name + ' te hiresaka aminao : mila ny fanekenao.' });
     asehoyIndrayLisitra();
-    fanamarinana('⏳', 'Lasa ny fangatahana', 'Rehefa manaiky i ' + anarana + ' vao afaka mandefa hafatra ianao.', []);
+    fanamarinana('⏳', 'Lasa ny fangatahana', 'Rehefa manaiky i ' + anarana + ' vao afaka mandefa hafatra sy miantso ianao.', []);
   }
   function asehoyFangatahana(email, anarana){
     fangatahanaNaseho[email] = true;
@@ -818,26 +828,31 @@
     if(!list) return;
     soratraBanga('callMpisoratraEmpty');
     document.getElementById('callMpisoratraEmpty').style.display = olona.length ? 'none' : 'block';
-    list.innerHTML = andalanaMpisoratra(olona, '☎️', 'Antso');
+    list.innerHTML = andalanaMpisoratra(olona, ikonaAntso, 'Antso');
     // Bokotra iray isaky ny olona : ao anatiny ny Appel mivantana, ny Antso
     // video (raha miditra izy) ary ny Antso an-tariby (raha misy laharana).
+    // Toy ny 💬 Message : fangatahana aloha, rehefa nekena vao miantso.
     list.querySelectorAll('[data-i]').forEach(function(btn){
       btn.addEventListener('click', function(){
         const o = olona[Number(btn.getAttribute('data-i'))];
         if(!o) return;
-        const safidy = [];
-        if(o.online && o.email){
-          safidy.push({ label: '📞 Appel mivantana', color: '#25D366', run: function(){ startCall(o.email, o.name, 'audio'); } });
-          safidy.push({ label: '📹 Antso video', color: '#1877F2', run: function(){ startCall(o.email, o.name, 'video'); } });
-        }
-        if(o.phone){
-          const tel = 'tel:' + (o.phone.charAt(0) === '0' ? o.phone : '+' + o.phone);
-          safidy.push({ label: '☎️ Antso an-tariby — ' + o.phone, color: '#25D366', run: function(){ window.location.href = tel; } });
-        }
-        if(!safidy.length){ alert(o.name + ' : tsy miditra ankehitriny ary tsy nanome laharana.'); return; }
-        openChannelChooser('☎️ ' + o.name, o.online ? 'Miditra ankehitriny.' : 'Tsy miditra ankehitriny : antso an-tariby ihany.', safidy);
+        if(o.email) hafatraVoafehy(o.email, o.name, function(){ antsoyIzy(o); });
+        else antsoyIzy(o);
       });
     });
+    function antsoyIzy(o){
+      const safidy = [];
+      if(o.online && o.email){
+        safidy.push({ label: '📞 Appel mivantana', color: '#25D366', run: function(){ startCall(o.email, o.name, 'audio'); } });
+        safidy.push({ label: '📹 Antso video', color: '#1877F2', run: function(){ startCall(o.email, o.name, 'video'); } });
+      }
+      if(o.phone){
+        const tel = 'tel:' + (o.phone.charAt(0) === '0' ? o.phone : '+' + o.phone);
+        safidy.push({ label: '☎️ Antso an-tariby — ' + o.phone, color: '#25D366', run: function(){ window.location.href = tel; } });
+      }
+      if(!safidy.length){ alert(o.name + ' : tsy miditra ankehitriny ary tsy nanome laharana.'); return; }
+      openChannelChooser('☎️ ' + o.name, o.online ? 'Miditra ankehitriny.' : 'Tsy miditra ankehitriny : antso an-tariby ihany.', safidy);
+    }
   }
 
   function renderOnlineClientsForCall(){
