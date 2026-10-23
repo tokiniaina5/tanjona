@@ -4893,24 +4893,56 @@
       if(newsVideoRohy.style.display === 'flex') ekenaNyRohy(t, true);
     }, function(){});
   }
+  // Le rohy de ce compte pour ce réseau (« 🔗 Ajouter les liens », contact.js) :
+  // YouTube n'a pas de case, il vient des canaux ajoutés à la main.
+  const CASE_RESEAU = { facebook: 'facebook', tiktok: 'tiktok', instagram: 'instagram', x: 'twitter', threads: 'threads' };
+  function rohyNyKaonty(cle, channels, extra){
+    if(CASE_RESEAU[cle]){
+      return (typeof adresseDeProfil === 'function') ? adresseDeProfil(CASE_RESEAU[cle], (channels || {})[CASE_RESEAU[cle]]) : null;
+    }
+    const hita = (extra || []).filter(function(e){
+      return e && /^https?:\/\//i.test(e.url || '') && (/youtu\.?be/i.test(e.url || '') || /youtube/i.test(e.name || ''));
+    })[0];
+    return hita ? hita.url.trim() : null;
+  }
+  // Comme dans 💬 Message : un réseau sans lien dans « 🔗 Ajouter les liens »
+  // reste visible mais pâle, et ne s'ouvre pas — l'appui mène à « Ajouter
+  // les liens ». Une fois le lien posé, le logo ouvre ce lien.
   function asehoyNyLogo(){
     const zone = document.getElementById('newsVideoLogos');
-    if(!zone || zone.childElementCount) return;
+    if(!zone) return;
     const logos = window.__logosReseaux || {};
-    TAMBAJOTRA_VIDEO.forEach(function(t){
-      const l = logos[t[0]];
-      const a = document.createElement('a');
-      a.href = t[2];
-      a.target = '_blank';
-      a.rel = 'noopener';
-      a.title = t[1];
-      a.className = 'logo-reseau';
-      a.innerHTML = '<span class="logo-reseau-icone" style="background:' + (l ? l[0] : '#5f6b73') + ';">' +
-        (l ? '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="#fff" d="' + l[1] + '"/></svg>' : '🎬') +
-        '</span><span class="logo-reseau-nom">' + t[1] + '</span>';
-      a.addEventListener('click', function(){ miandryRohy = true; });
-      zone.appendChild(a);
-    });
+    function asehoy(channels, extra){
+      zone.innerHTML = '';
+      TAMBAJOTRA_VIDEO.forEach(function(t){
+        const l = logos[t[0]];
+        const rohy = rohyNyKaonty(t[0], channels, extra);
+        const a = document.createElement('a');
+        a.className = 'logo-reseau';
+        a.innerHTML = '<span class="logo-reseau-icone" style="background:' + (l ? l[0] : '#5f6b73') + ';">' +
+          (l ? '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="#fff" d="' + l[1] + '"/></svg>' : '🎬') +
+          '</span><span class="logo-reseau-nom">' + t[1] + '</span>';
+        if(rohy){
+          a.href = rohy;
+          a.target = '_blank';
+          a.rel = 'noopener';
+          a.title = t[1];
+          a.addEventListener('click', function(){ miandryRohy = true; });
+        } else {
+          a.href = '#';
+          a.style.opacity = '0.4';
+          a.title = t[1] + ' : mbola tsy misy rohy — 🔗 Ajouter les liens';
+          a.addEventListener('click', function(e){
+            e.preventDefault();
+            const nav = document.querySelector('.nav-item[data-section="contact"]');
+            if(nav) nav.click();
+          });
+        }
+        zone.appendChild(a);
+      });
+    }
+    if(typeof fetchMesCanaux === 'function') fetchMesCanaux(asehoy);
+    else asehoy({}, []);
   }
   if(newsVideoBtn && newsVideoRohy && newsVideoRohyInput){
     newsVideoBtn.addEventListener('click', function(){
