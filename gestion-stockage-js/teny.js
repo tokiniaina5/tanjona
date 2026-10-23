@@ -7,8 +7,9 @@
   //
   //  - seuls les textes visibles partent, par paquets, et ce qui arrive plus
   //    tard (une page ouverte, un message reçu) suit au fil de l'eau ;
-  //  - chaque texte garde son original : « ↩️ Tsy adika » recharge la page,
-  //    qui revient telle quelle ;
+  //  - chaque texte garde son original : changer de langue recharge la page,
+  //    qui repart de lui (pas de « Tsy adika » dans la liste, 23/10/2026 :
+  //    l'utilisateur n'en voulait pas) ;
   //  - la langue de départ est devinée texte par texte (malgache ou français),
   //    sans quoi un paquet mêlé était lu dans une seule langue et la moitié
   //    restait en l'état ;
@@ -54,7 +55,7 @@
         '<p data-soratra style="font-size:0.78rem; color:var(--muted); margin-bottom:0.8rem;">Safidio ny fiteny : adika ho azy ny site manontolo.</p>' +
         '<div data-lisitra class="notranslate" style="display:flex; flex-direction:column; gap:0.4rem;"></div>';
       const lisitra = boite.querySelector('[data-lisitra]');
-      TENY.concat([['', '↩️ Tsy adika (teny tany am-boalohany)']]).forEach(function(t){
+      TENY.forEach(function(t){
         const b = document.createElement('button');
         b.type = 'button';
         b.className = 'btn btn-sm' + (t[0] === teny ? ' btn-primary' : '');
