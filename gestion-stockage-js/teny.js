@@ -118,6 +118,11 @@
     // (« Tableau de bord » → « anaty fiara », « Edge » → « sisin'ny »).
     const VOAFARITRA = {
       'Botika': { '*': 'Botika' },
+      'Fokontany': { '*': 'Fokontany' },
+      // L'en-tête de la Botika écrit « Ny <b>asako</b> » : deux morceaux, que
+      // Google rendait par « The my work ».
+      'Ny': { '*': 'Ny' },
+      'asako': { '*': 'asako' },
       'Chrome': { '*': 'Chrome' },
       'Edge': { '*': 'Edge' },
       'PDF': { '*': 'PDF' },
@@ -188,11 +193,18 @@
     const tany = new WeakMap();      // nœud → texte d'origine
     const vita = new WeakMap();      // nœud → texte posé par nous
     const miandry = new Set();       // textes à demander
+    // Ligne par ligne : un même texte mêle souvent les langues (le titre d'un
+    // billet de la Botika en malgache, sa description en anglais, l'appel en
+    // malgache), et Google, à qui l'on donnait le bloc, n'en voyait qu'une.
+    // Ce qui est déjà connu se pose tout de suite ; le reste est demandé.
     function apetrahoAmin(node, asili){
-      const cle = asili.trim();
-      const t = dika[cle];
-      if(t == null) return;
-      const vaovao = asili.replace(cle, t);
+      const vaovao = asili.split('\n').map(function(andalana){
+        const cle = andalana.trim();
+        if(!mila(cle)) return andalana;
+        const t = dika[cle];
+        if(t == null){ miandry.add(cle); return andalana; }
+        return andalana.replace(cle, t);
+      }).join('\n');
       if(node.nodeValue !== vaovao){
         vita.set(node, vaovao);
         node.nodeValue = vaovao;
@@ -212,10 +224,7 @@
           asili = v;
           tany.set(node, v);
         }
-        const cle = asili.trim();
-        if(!mila(cle)) continue;
-        if(dika[cle] != null) apetrahoAmin(node, asili);
-        else miandry.add(cle);
+        apetrahoAmin(node, asili);
       }
       // Les invites des champs (placeholder) : l'original dans data-teny-asili.
       document.querySelectorAll('input[placeholder], textarea[placeholder]').forEach(function(el){

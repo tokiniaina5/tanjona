@@ -98,7 +98,7 @@ if (fs.existsSync(cheminSw)) {
 // <meta name="pejy-version">, que pejy-version.js compare à celle du serveur
 // pour se recharger seule.
 const PAGES_SEULES = ['menu-sakafo.html', 'lakozia.html'];
-const motifSeul = /((?:href|src)="\/)((?:mazava|pejy-version)\.js|gestion-stockage-js\/(?:emoji-3d|fanazavana)\.js)(?:\?v=[^"]*)?(")/g;
+const motifSeul = /((?:href|src)="\/)((?:mazava|pejy-version)\.js|gestion-stockage-js\/(?:emoji-3d|fanazavana|teny)\.js)(?:\?v=[^"]*)?(")/g;
 const META_PEJY = /(<meta name="pejy-version" content=")[^"]*(")/;
 for (const PAGE of PAGES_SEULES) {
   let page = fs.readFileSync(path.join(racine, PAGE), 'utf8');
