@@ -436,7 +436,10 @@
           const hita = {};
           mpisoratraCache = ((res && res.data) || []).filter(function(r){
             const e = String(r.email || '').trim().toLowerCase();
-            const cle = e || String(r.phone || '').replace(/[^\d]/g, '');
+            // Tsy misy session : anarana ihany no tonga (tsy misy email na
+            // laharana), ka ny anarana no famantarana.
+            const cle = e || String(r.phone || '').replace(/[^\d]/g, '') ||
+              (r.name ? 'anarana:' + String(r.name).trim().toLowerCase() : '');
             if(!cle || hita[cle] || e === me.email) return false;
             hita[cle] = true;
             return true;
