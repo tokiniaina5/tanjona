@@ -387,7 +387,15 @@
   // ho an'ny admin ihany).
   // Izay miditra ankehitriny no voalohany, misy 📞 sy 📹 ao anaty appli ;
   // ny hafa dia azo antsoina amin'ny laharany (tel:) raha nomeny.
-  let mpisoratraCache = null, mpisoratraAt = 0, mpisoratraMaka = false;
+  let mpisoratraCache = null, mpisoratraAt = 0, mpisoratraMaka = false, tsySession = false;
+  // Ny soratra ao amin'ny case banga : « tsy misy » sa « tsy misy session ».
+  function soratraBanga(id){
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.textContent = tsySession
+      ? 'Tsy azo alaina ny lisitra : tsy misy session Supabase ato amin\'ity fenêtre ity (niditra tamin\'ny code de secours ?). Mivoaha, dia midira indray amin\'ny teny miafina.'
+      : 'Mbola tsy misy nanao inscription.';
+  }
   function renderMpisoratraForCall(){
     // Ny pejy Call sy ny pejy Message dia samy manana ny lisitra.
     const panels = ['callMpisoratraPanel', 'msgMpisoratraPanel', 'callMitsidikaPanel', 'msgMitsidikaPanel']
@@ -415,9 +423,13 @@
           if(!res || res.error || !res.data || !res.data.length){
             if(!mpisoratraCache) mpisoratraCache = [];
             mpisoratraAt = Date.now() - 50000; // averina afaka 10 s
+            // 401 : tsy misy session Supabase ato amin'ity fenêtre ity (ohatra :
+            // niditra tamin'ny code de secours). Lazaina mazava fa tsy « banga ».
+            tsySession = !!(res && res.error && (res.status === 401 || res.error.code === '42501'));
             renderMpisoratraListe();
             return;
           }
+          tsySession = false;
           mpisoratraAt = Date.now();
           // Iray isaky ny email (na laharana raha tsy misy email) : ny
           // inscription farany no tazonina.
@@ -784,6 +796,7 @@
   function renderMpisoratraHafatra(olona){
     const list = document.getElementById('msgMpisoratra');
     if(!list) return;
+    soratraBanga('msgMpisoratraEmpty');
     document.getElementById('msgMpisoratraEmpty').style.display = olona.length ? 'none' : 'block';
     list.innerHTML = andalanaMpisoratra(olona, ikonaHafatra, 'Hafatra');
     list.querySelectorAll('[data-i]').forEach(function(btn){
@@ -800,6 +813,7 @@
   function renderMpisoratraAntso(olona){
     const list = document.getElementById('callMpisoratra');
     if(!list) return;
+    soratraBanga('callMpisoratraEmpty');
     document.getElementById('callMpisoratraEmpty').style.display = olona.length ? 'none' : 'block';
     list.innerHTML = andalanaMpisoratra(olona, '☎️', 'Antso');
     // Bokotra iray isaky ny olona : ao anatiny ny Appel mivantana, ny Antso
