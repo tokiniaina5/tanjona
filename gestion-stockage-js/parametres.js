@@ -5407,9 +5407,11 @@
   // dans profil_sary (supabase/sql/supabase-profil-sary.sql), pour que le
   // patron la voie dans 👷 Mpiasa et Hôtellerie › Lakozia. Une seule fois par
   // photo : la même vignette n'est pas renvoyée à chaque ouverture.
+  // Elle sert aussi aux listes de 💬 Message et 📞 Call (live.js), y compris
+  // pour l'admin.
   let maPhotoEnvoyee = false;
   function envoyerMaPhoto(){
-    if(maPhotoEnvoyee || jeSuisLaMaison()) return;
+    if(maPhotoEnvoyee) return;
     const u = currentUser;
     if(!u || !u.email || !u.logo || !window.__sb) return;
     maPhotoEnvoyee = true;
@@ -5428,6 +5430,7 @@
         }, function(){ maPhotoEnvoyee = false; });
     });
   }
+  window.__envoyerMaPhoto = envoyerMaPhoto;
 
   function renderCommunityPanel(){
     envoyerMaPhoto();

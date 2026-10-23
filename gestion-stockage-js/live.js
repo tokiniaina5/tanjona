@@ -399,9 +399,12 @@
     const hita = !!(currentUser && window.__sb);
     panels.forEach(function(p){ p.style.display = hita ? '' : 'none'; });
     if(!hita) return;
+    // Ny sarin'ity kaonty ity : mba hita ao amin'ny lisitry ny hafa koa.
+    if(typeof window.__envoyerMaPhoto === 'function') window.__envoyerMaPhoto();
     renderMitsidika();
     if(!mpisoratraMaka && (!mpisoratraCache || Date.now() - mpisoratraAt > 60000)){
       mpisoratraMaka = true;
+      makaFifandraisana();
       // mpisoratra_rehetra() : anarana sy email ho an'ny rehetra, ny
       // laharana ho an'ny admin ihany (supabase-mpisoratra-rehetra.sql).
       window.__sb.rpc('mpisoratra_rehetra')
@@ -435,9 +438,10 @@
     if(!mpisoratraCache) return;
     const olona = (mpisoratraCache || []).map(function(r){
       const email = String(r.email || '').trim().toLowerCase();
-      return { email: email, name: r.name || email || r.phone, phone: String(r.phone || '').replace(/[^\d]/g, ''), online: !!presenceState[email] };
+      return { email: email, cle: email, name: r.name || email || r.phone, phone: String(r.phone || '').replace(/[^\d]/g, ''), online: !!presenceState[email] };
     });
     olona.sort(function(a, b){ return (b.online ? 1 : 0) - (a.online ? 1 : 0); });
+    makaSary(olona.map(function(o){ return o.email; }));
     renderMpisoratraAntso(olona);
     renderMpisoratraHafatra(olona);
   }
@@ -450,16 +454,19 @@
     const olona = Object.keys(presenceState).filter(function(k){ return k !== me.email; }).map(function(k){
       const p = presenceState[k] || {};
       const mpitsidika = k.indexOf('mpitsidika-') === 0;
-      return { email: k, name: (mpitsidika ? '👤 ' : '') + anaranaAseho(k, p),
+      return { email: k, cle: k, name: (mpitsidika ? '👤 ' : '') + anaranaAseho(k, p),
         phone: '', online: true, mpitsidika: mpitsidika };
     });
+    makaSary(olona.map(function(o){ return o.email; }));
     [['callMitsidika', '☎️', 'Antso', function(o){
         openChannelChooser('☎️ ' + o.name, 'Miditra ankehitriny.', [
           { label: '📞 Appel mivantana', color: '#25D366', run: function(){ startCall(o.email, o.name, 'audio'); } },
           { label: '📹 Antso video', color: '#1877F2', run: function(){ startCall(o.email, o.name, 'video'); } }
         ]);
       }],
-     ['msgMitsidika', '💬', 'Hafatra', function(o){ sokafyResaka(o.email, o.name); }]
+     ['msgMitsidika', ikonaHafatra, 'Hafatra', function(o){
+        hafatraVoafehy(o.email, o.name, function(){ sokafyResaka(o.email, o.name); });
+      }]
     ].forEach(function(c){
       const list = document.getElementById(c[0]);
       if(!list) return;
@@ -477,21 +484,176 @@
   }
 
   // Andalana iray isaky ny olona, miaraka amin'ny bokotra iray (data-i).
+  // ikona : soratra, na fonction(o) (ohatra ⏳ raha miandry fanekena).
   function andalanaMpisoratra(olona, ikona, lohateny){
     return olona.map(function(o, i){
       return '<div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; padding:0.6rem 0; border-bottom:1px solid var(--line);">' +
+        '<div style="display:flex; align-items:center; gap:0.6rem; min-width:0;">' + avatarOlona(o) +
         '<div style="min-width:0;">' +
-          // Teboka : maitso raha en ligne, volondavenona raha tsy eo.
-          '<span title="' + (o.online ? 'En ligne' : 'Hors ligne') + '" style="display:inline-block; width:9px; height:9px; ' +
-            'border-radius:50%; margin-right:0.4rem; vertical-align:middle; background:' + (o.online ? '#25D366' : '#7c8b92') + ';' +
-            (o.online ? ' box-shadow:0 0 0 2px rgba(37,211,102,0.25);' : '') + '"></span>' +
           '<strong style="font-size:0.85rem;">' + escapeHtml(o.name) + '</strong>' +
           (o.online ? ' <span style="font-size:0.68rem; color:#25D366;">En ligne</span>' : '') +
           '<div style="font-size:0.72rem; color:var(--muted); overflow:hidden; text-overflow:ellipsis;">' +
-            escapeHtml(o.phone || o.email) + '</div></div>' +
-        '<button type="button" class="btn btn-sm" title="' + lohateny + '" data-i="' + i + '" style="flex:none;">' + ikona + '</button>' +
+            escapeHtml(o.phone || o.email) + '</div></div></div>' +
+        '<button type="button" class="btn btn-sm" title="' + lohateny + '" data-i="' + i + '" style="flex:none;">' +
+          (typeof ikona === 'function' ? ikona(o) : ikona) + '</button>' +
         '</div>';
     }).join('');
+  }
+
+  // ---------------- SARY TENA IZY (profil_sary) ----------------
+  // Ny vignette nalefan'ny kaonty tsirairay (parametres.js), alaina amin'ny
+  // sary_olona() (supabase-fifandraisana-resaka.sql). Tsy misy sary : ny
+  // litera voalohany. Ny boribory dia maitso raha en ligne.
+  const saryOlona = {};   // email → data:image (na '' raha tsy misy)
+  let saryMaka = false;
+  function makaSary(emails){
+    if(!window.__sb || !currentUser || saryMaka) return;
+    const vaovao = emails.filter(function(e){ return e && e.indexOf('@') > 0 && !(e in saryOlona); });
+    if(!vaovao.length) return;
+    vaovao.forEach(function(e){ saryOlona[e] = ''; });
+    saryMaka = true;
+    window.__sb.rpc('sary_olona', { emails: vaovao }).then(function(res){
+      saryMaka = false;
+      const sary = (res && res.data) || [];
+      sary.forEach(function(r){ if(r && r.sary) saryOlona[r.email] = r.sary; });
+      if(sary.length) asehoyIndrayLisitra();
+    }, function(){ saryMaka = false; });
+  }
+  function avatarOlona(o){
+    const sary = saryOlona[o.cle || o.email] || '';
+    const loko = o.online ? '#25D366' : '#7c8b92';
+    const litera = String(o.name || '?').replace(/^👤\s*/, '').split(/\s+/).filter(Boolean).slice(0, 2)
+      .map(function(m){ return m.charAt(0).toUpperCase(); }).join('') || '?';
+    return '<span title="' + (o.online ? 'En ligne' : 'Hors ligne') + '" style="flex:none; width:40px; height:40px; border-radius:50%; ' +
+      'border:2px solid ' + loko + '; overflow:hidden; display:flex; align-items:center; justify-content:center; ' +
+      'background:var(--panel-2); color:var(--text); font-size:0.8rem; font-weight:700;' +
+      (o.online ? ' box-shadow:0 0 0 2px rgba(37,211,102,0.25);' : '') + '">' +
+      (/^data:image\/|^https:\/\//.test(sary)
+        ? '<img src="' + escapeHtml(sary) + '" alt="" style="width:100%; height:100%; object-fit:cover;">'
+        : escapeHtml(litera)) + '</span>';
+  }
+  function asehoyIndrayLisitra(){
+    renderMitsidika();
+    renderMpisoratraListe();
+  }
+
+  // ---------------- FANGATAHANA ALOHAN'NY HAFATRA ----------------
+  // Tsy afaka mandefa hafatra amin'ny olona iray raha tsy nanaiky izy.
+  // Voatahiry ao amin'ny fifandraisana_resaka ho an'ny kaonty ; ny
+  // mpitsidika (tsy misy kaonty) kosa dia mandritra ny fidirany ihany.
+  const fifandraisana = {};   // email hafa → { sata: 'miandry'|'nekena'|'nolavina', izaho: true raha izaho no nangataka }
+  const fangatahanaNaseho = {};
+  function makaFifandraisana(){
+    if(!window.__sb || !currentUser) return;
+    const me = myIdentity();
+    window.__sb.from('fifandraisana_resaka').select('avy,ho,sata').then(function(res){
+      if(!res || res.error) return;
+      (res.data || []).forEach(function(r){
+        const izaho = r.avy === me.email;
+        const hafa = izaho ? r.ho : r.avy;
+        // Raha samy nangataka izy roa, ny « nekena » no manan-kery.
+        if(fifandraisana[hafa] && fifandraisana[hafa].sata === 'nekena') return;
+        fifandraisana[hafa] = { sata: r.sata, izaho: izaho };
+      });
+      asehoyIndrayLisitra();
+      // Fangatahana tonga teo am-pialana : aseho ny voalohany ; ny hafa
+      // dia hita amin'ny 🔔 ao amin'ny lisitra.
+      const tonga = Object.keys(fifandraisana).filter(function(e){
+        return fifandraisana[e].sata === 'miandry' && !fifandraisana[e].izaho && !fangatahanaNaseho[e];
+      });
+      if(tonga.length) asehoyFangatahana(tonga[0], anaranaFantatra(tonga[0]));
+    }, function(){});
+  }
+  function anaranaFantatra(email){
+    if(presenceState[email]) return anaranaAseho(email);
+    const r = (mpisoratraCache || []).filter(function(x){ return String(x.email || '').trim().toLowerCase() === email; })[0];
+    return (r && r.name) || email;
+  }
+  function ikonaHafatra(o){
+    const f = fifandraisana[o.cle || o.email];
+    if(f && f.sata === 'miandry') return f.izaho ? '⏳' : '🔔';
+    return '💬';
+  }
+  // Ny bokotra 💬 : misokatra ny resaka raha efa nekena, raha tsy izany
+  // dia mangataka aloha.
+  function hafatraVoafehy(email, anarana, mandeha){
+    const f = fifandraisana[email];
+    if(f && f.sata === 'nekena'){ mandeha(); return; }
+    if(f && f.sata === 'miandry' && !f.izaho){ asehoyFangatahana(email, anarana); return; }
+    if(f && f.sata === 'miandry'){
+      if(confirm('Mbola miandry ny fanekena an\'i ' + anarana + ' ianao.\nAverina alefa ny fangatahana ?')) mangatakaResaka(email, anarana);
+      return;
+    }
+    if(confirm('Handefa fangatahana hiresaka amin\'i ' + anarana + ' ?\nRehefa manaiky izy vao afaka mandefa hafatra ianao.')) mangatakaResaka(email, anarana);
+  }
+  function mangatakaResaka(email, anarana){
+    const me = myIdentity();
+    fifandraisana[email] = { sata: 'miandry', izaho: true };
+    if(window.__sb && currentUser && email.indexOf('@') > 0){
+      window.__sb.from('fifandraisana_resaka')
+        .upsert({ avy: me.email, ho: email, sata: 'miandry', updated_at: new Date().toISOString() }, { onConflict: 'avy,ho' })
+        .then(function(){}, function(){});
+    }
+    initCallSignaling();
+    sendCallSignal({ kind: 'fangatahana', from: me.email, fromName: me.name, to: email });
+    alefaPush(email, 'hafatra', { text: me.name + ' te hiresaka aminao : mila ny fanekenao.' });
+    asehoyIndrayLisitra();
+    alert('Lasa ny fangatahana. Rehefa manaiky i ' + anarana + ' vao afaka mandefa hafatra ianao.');
+  }
+  function asehoyFangatahana(email, anarana){
+    fangatahanaNaseho[email] = true;
+    openChannelChooser('💬 ' + anarana, anarana + ' te hiresaka aminao. Ekenao ve ?', [
+      { label: '✅ Ekena', color: '#25D366', run: function(){ valioFangatahana(email, anarana, true); } },
+      { label: '❌ Lavina', color: '#e5484d', run: function(){ valioFangatahana(email, anarana, false); } }
+    ]);
+  }
+  function valioFangatahana(email, anarana, ekena){
+    const me = myIdentity();
+    fifandraisana[email] = { sata: ekena ? 'nekena' : 'nolavina', izaho: false };
+    if(window.__sb && currentUser){
+      window.__sb.from('fifandraisana_resaka')
+        .update({ sata: ekena ? 'nekena' : 'nolavina', updated_at: new Date().toISOString() })
+        .eq('avy', email).eq('ho', me.email)
+        .then(function(){}, function(){});
+    }
+    initCallSignaling();
+    sendCallSignal({ kind: 'valiny-fangatahana', from: me.email, fromName: me.name, to: email, ekena: ekena });
+    if(ekena){
+      alefaPush(email, 'hafatra', { text: me.name + ' nanaiky : afaka mandefa hafatra aminy ianao.' });
+      sokafyResaka(email, anarana);
+    }
+    asehoyIndrayLisitra();
+  }
+  function onFangatahana(payload){
+    const avy = payload.from;
+    if(!avy) return;
+    const anarana = presenceState[avy] ? anaranaAseho(avy) : (payload.fromName || avy);
+    // Efa nekena teo aloha : valiana avy hatrany.
+    if(fifandraisana[avy] && fifandraisana[avy].sata === 'nekena'){
+      const me = myIdentity();
+      sendCallSignal({ kind: 'valiny-fangatahana', from: me.email, fromName: me.name, to: avy, ekena: true });
+      return;
+    }
+    fifandraisana[avy] = { sata: 'miandry', izaho: false };
+    feoHafatra();
+    if(currentUser && typeof pushNotification === 'function') pushNotification('hafatra', '💬 ' + anarana + ' te hiresaka aminao.');
+    showSystemNotification('💬 ' + anarana, 'Te hiresaka aminao : ekena ve ?', 'fangatahana-' + avy);
+    asehoyIndrayLisitra();
+    asehoyFangatahana(avy, anarana);
+  }
+  function onValinyFangatahana(payload){
+    const avy = payload.from;
+    if(!avy) return;
+    const anarana = presenceState[avy] ? anaranaAseho(avy) : (payload.fromName || avy);
+    fifandraisana[avy] = { sata: payload.ekena ? 'nekena' : 'nolavina', izaho: true };
+    asehoyIndrayLisitra();
+    if(payload.ekena){
+      feoHafatra();
+      showSystemNotification('💬 ' + anarana, 'Nanaiky : afaka mandefa hafatra ianao.', 'fangatahana-' + avy);
+      sokafyResaka(avy, anarana);
+    } else {
+      alert(anarana + ' tsy nanaiky ny fangatahanao hiresaka.');
+    }
   }
 
   // Hafatra iray soratana indray mandeha, alefa amin'ny canal rehetra :
@@ -583,12 +745,14 @@
     const list = document.getElementById('msgMpisoratra');
     if(!list) return;
     document.getElementById('msgMpisoratraEmpty').style.display = olona.length ? 'none' : 'block';
-    list.innerHTML = andalanaMpisoratra(olona, '💬', 'Hafatra');
+    list.innerHTML = andalanaMpisoratra(olona, ikonaHafatra, 'Hafatra');
     list.querySelectorAll('[data-i]').forEach(function(btn){
       btn.addEventListener('click', function(){
         const o = olona[Number(btn.getAttribute('data-i'))];
         if(!o) return;
-        alefaDaholo(o);
+        // Tsy misy email : tsy azo angatahana ao anaty appli (laharana ihany).
+        if(!o.email){ alefaDaholo(o); return; }
+        hafatraVoafehy(o.email, o.name, function(){ alefaDaholo(o); });
       });
     });
   }
@@ -756,6 +920,8 @@
     // paroles reconnues chez l'autre : traduites puis affichées ici
     else if(payload.kind === 'speech'){ if(typeof onRemoteSpeech === 'function') onRemoteSpeech(payload); }
     else if(payload.kind === 'hafatra') onHafatraTonga(payload);
+    else if(payload.kind === 'fangatahana') onFangatahana(payload);
+    else if(payload.kind === 'valiny-fangatahana') onValinyFangatahana(payload);
   }
 
   // ---------------- HAFATRA MIVANTANA (ao anaty appli) ----------------
