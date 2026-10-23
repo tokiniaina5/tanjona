@@ -383,7 +383,8 @@
   }
 
   // ---------------- PEJY « 📞 Call » : IREO NANAO INSCRIPTION ----------------
-  // Ho an'ny admin ihany (client_signups : ny tompony ihany no mahavaky azy).
+  // Ho an'ny kaonty rehetra (fonction mpisoratra_rehetra ; ny laharana dia
+  // ho an'ny admin ihany).
   // Izay miditra ankehitriny no voalohany, misy 📞 sy 📹 ao anaty appli ;
   // ny hafa dia azo antsoina amin'ny laharany (tel:) raha nomeny.
   let mpisoratraCache = null, mpisoratraAt = 0, mpisoratraMaka = false;
@@ -394,14 +395,16 @@
       .filter(Boolean);
     if(!panels.length) return;
     const me = myIdentity();
-    const admin = me.isAdmin && !!window.__sb;
-    panels.forEach(function(p){ p.style.display = admin ? '' : 'none'; });
-    if(!admin) return;
+    // Hitan'ny kaonty rehetra miditra (tsy ny admin ihany intsony).
+    const hita = !!(currentUser && window.__sb);
+    panels.forEach(function(p){ p.style.display = hita ? '' : 'none'; });
+    if(!hita) return;
     renderMitsidika();
     if(!mpisoratraMaka && (!mpisoratraCache || Date.now() - mpisoratraAt > 60000)){
       mpisoratraMaka = true;
-      window.__sb.from('client_signups').select('name,email,phone,created_at')
-        .order('created_at', { ascending: false }).limit(1000)
+      // mpisoratra_rehetra() : anarana sy email ho an'ny rehetra, ny
+      // laharana ho an'ny admin ihany (supabase-mpisoratra-rehetra.sql).
+      window.__sb.rpc('mpisoratra_rehetra')
         .then(function(res){
           mpisoratraMaka = false;
           // Lisitra banga na diso : matetika ny session Supabase mbola tsy
