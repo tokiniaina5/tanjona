@@ -380,8 +380,50 @@
           btn.addEventListener('click', opt.run);
           row.appendChild(btn);
         }
+        // Ny réseau tsy mbola misy rohy : hita ihany fa manjavozavo, ary tsy
+        // misokatra ; ny tsindry dia mitondra any amin'ny « 🔗 Ajouter les
+        // liens ». Rehefa misy rohy vao mandeha.
+        const misy = {
+          tel: !!phone, wa: !!phone, fb: !!fb, wechat: !!wechat,
+          instagram: !!adresseDeProfil('instagram', channels.instagram),
+          tiktok: !!adresseDeProfil('tiktok', channels.tiktok),
+          threads: !!adresseDeProfil('threads', channels.threads),
+          twitter: !!adresseDeProfil('twitter', channels.twitter)
+        };
+        function reseauxBanga(tel){
+          return [
+            { cle: 'tel', label: tel, color: '#25D366' },
+            { cle: 'wa', label: '💬 WhatsApp', color: '#25D366' },
+            { cle: 'fb', label: '📘 Messenger', color: '#1877F2' },
+            { cle: 'instagram', label: '📸 Instagram', color: '#E1306C' },
+            { cle: 'tiktok', label: '🎵 TikTok', color: '#e7e9ea' },
+            { cle: 'threads', label: '🧵 Threads', color: '#e7e9ea' },
+            { cle: 'twitter', label: '✖️ X (Twitter)', color: '#e7e9ea' },
+            { cle: 'wechat', label: '💚 WeChat', color: '#07C160' }
+          ].filter(function(r){ return !misy[r.cle]; });
+        }
+        function banga(r, row){
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'btn';
+          btn.style.cssText = 'width:100%; text-align:left; flex-direction:column; align-items:flex-start; opacity:0.45;';
+          btn.style.borderColor = r.color;
+          btn.style.color = r.color;
+          btn.title = 'Mbola tsy misy rohy';
+          btn.textContent = r.label;
+          const sous = document.createElement('span');
+          sous.style.cssText = 'display:block; font-size:0.72rem; color:var(--muted); margin-top:0.15rem;';
+          sous.textContent = 'Mbola tsy misy rohy — 🔗 Ajouter les liens';
+          btn.appendChild(sous);
+          btn.addEventListener('click', function(){
+            const nav = document.querySelector('.nav-item[data-section="contact"]');
+            if(nav) nav.click();
+          });
+          row.appendChild(btn);
+        }
         liens.forEach(function(opt){ bokotra(opt, callRow); });
-        document.getElementById('callCanauxEmpty').style.display = liens.length ? 'none' : 'block';
+        reseauxBanga('☎️ Antso an-tariby').forEach(function(r){ banga(r, callRow); });
+        document.getElementById('callCanauxEmpty').style.display = 'none';
 
         // Pejy « 💬 Message » : mitovy amin'ny Call, fa hafatra no alefa.
         // Ny laharana dia lasa SMS ; ny rohy hafa (WhatsApp, Messenger…) dia
@@ -409,7 +451,8 @@
             hafatra.push(o);
           });
           hafatra.forEach(function(opt){ bokotra(opt, msgRow); });
-          document.getElementById('msgCanauxEmpty').style.display = hafatra.length ? 'none' : 'block';
+          reseauxBanga('✉️ SMS').forEach(function(r){ banga(r, msgRow); });
+          document.getElementById('msgCanauxEmpty').style.display = 'none';
         }
       }
     });
