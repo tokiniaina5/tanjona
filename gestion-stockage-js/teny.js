@@ -43,16 +43,16 @@
       if(ancien) ancien.remove();
       const fond = document.createElement('div');
       fond.id = 'tenySafidy';
-      // Les noms des langues restent dans leur propre écriture.
-      fond.className = 'notranslate';
       fond.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.6); display:flex; align-items:center; ' +
         'justify-content:center; z-index:9600; padding:1rem;';
       const boite = document.createElement('div');
       boite.className = 'panel';
       boite.style.cssText = 'max-width:360px; width:100%; margin:0; max-height:calc(100vh - 2rem); overflow-y:auto;';
-      boite.innerHTML = '<h3 style="margin-bottom:0.3rem;">🌐 Teny</h3>' +
-        '<p data-soratra style="font-size:0.78rem; color:var(--muted); margin-bottom:0.8rem;">Safidio ny teny : adika ho azy ny site manontolo.</p>' +
-        '<div data-lisitra style="display:flex; flex-direction:column; gap:0.4rem;"></div>';
+      // Le titre est écrit pour chaque langue ; les noms des langues restent
+      // dans leur propre écriture (notranslate) ; la phrase, elle, se traduit.
+      boite.innerHTML = '<h3 class="notranslate" style="margin-bottom:0.3rem;">🌐 ' + ((teny && ANARAN_NY_BOKOTRA[teny]) || 'Teny') + '</h3>' +
+        '<p data-soratra style="font-size:0.78rem; color:var(--muted); margin-bottom:0.8rem;">Safidio ny fiteny : adika ho azy ny site manontolo.</p>' +
+        '<div data-lisitra class="notranslate" style="display:flex; flex-direction:column; gap:0.4rem;"></div>';
       const lisitra = boite.querySelector('[data-lisitra]');
       TENY.concat([['', '↩️ Tsy adika (teny tany am-boalohany)']]).forEach(function(t){
         const b = document.createElement('button');
@@ -78,8 +78,15 @@
       document.body.appendChild(fond);
     }
     const bokotra = document.getElementById('tenyToggle');
+    // Le bouton lui-même suit la langue choisie. Écrit ici et non traduit :
+    // Google rendait « Teny » par « Words ».
+    const ANARAN_NY_BOKOTRA = {
+      mg: 'Teny', fr: 'Langue', en: 'Language', 'zh-CN': '语言', es: 'Idioma', pt: 'Idioma',
+      ar: 'اللغة', hi: 'भाषा', ru: 'Язык', de: 'Sprache', it: 'Lingua', ja: '言語', ko: '언어'
+    };
     if(bokotra){
       bokotra.classList.add('notranslate');
+      if(teny && ANARAN_NY_BOKOTRA[teny]) bokotra.textContent = '🌐 ' + ANARAN_NY_BOKOTRA[teny];
       const anarana = TENY.filter(function(t){ return t[0] === teny; })[0];
       if(anarana) bokotra.title = '🌐 ' + anarana[1];
       bokotra.addEventListener('click', function(e){
