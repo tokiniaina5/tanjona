@@ -4500,6 +4500,10 @@
     const MARGE = 8;
     // Le menu, et les panneaux qu'il ouvre.
     const IDS = ['navList', 'notifPanel', 'marketPanel', 'livraisonPanel', 'barReglages', 'fbComposer'];
+    // Les panneaux ouverts depuis le menu (🔔, achats, livraison) ont eux aussi
+    // – □ ×, comme les pages (23/10/2026). Les fermer, c'est appuyer sur leur
+    // entrée du menu : elle sait les ranger.
+    const PANNEAUX = { notifPanel: 'notifToggle', marketPanel: 'marketToggle', livraisonPanel: 'livraisonToggle' };
     // Les pages qu'il ouvre. Elles remplaçaient le fil ; elles se posent
     // maintenant par-dessus, dans une fenêtre qu'on tire par les coins. Le fil
     // reste dessous : on n'ouvre pas une page pour perdre de vue d'où l'on
@@ -4682,6 +4686,14 @@
     let filFermeExpres = false;
 
     function fermerFenetre(el){
+      // Un panneau du menu : son entrée le referme (et remet son état).
+      if(el && PANNEAUX[el.id]){
+        const entree = document.getElementById(PANNEAUX[el.id]);
+        if(visible(el) && entree) entree.click();
+        if(visible(el)) el.style.display = 'none';
+        if(entree) entree.setAttribute('aria-expanded', 'false');
+        return;
+      }
       marquerReduite(el, false);
       // La boîte d'écriture n'est pas une page : la fermer, c'est la cacher,
       // sans toucher à ce qui est ouvert derrière.
@@ -4724,6 +4736,8 @@
     // L'Accueil et la fiche d'une personne n'ont pas d'icône à garder : pour
     // eux, réduire et fermer se confondent.
     function reduireFenetre(el){
+      // Un panneau n'a pas d'icône à garder : réduit, il se range comme fermé.
+      if(el && PANNEAUX[el.id]){ fermerFenetre(el); return; }
       // Le fil n'a nulle part où revenir : réduit, il s'efface comme fermé,
       // mais sa maison, dans la rangée, clignote pour dire qu'il attend.
       if(el && (el.id === 'dash-accueil' || el.id === 'fbComposer')){
@@ -5009,7 +5023,7 @@
       const s = { el: el, calque: calque, vu: false, page: page };
       // La boîte d'écriture n'est pas une page, mais elle se tient comme
       // une fenêtre : on la déplace, on la réduit, on l'agrandit.
-      if(page || id === 'fbComposer'){
+      if(page || id === 'fbComposer' || PANNEAUX[id]){
         // Un ruban en haut de la fenêtre, pour la prendre et la poser
         // ailleurs. Dans le calque et non dans la fenêtre : à l'intérieur il
         // défilerait avec la page et l'on ne pourrait plus la déplacer sitôt
