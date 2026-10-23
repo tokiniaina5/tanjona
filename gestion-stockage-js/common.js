@@ -5240,6 +5240,51 @@
     new MutationObserver(function(){ replacerLesPages(); })
       .observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
+    // 🗂️ Alamino : les fenêtres ouvertes se rangent en cascade, de la plus
+    // ancienne à la plus récente, chacune décalée pour qu'on voie le haut de
+    // toutes (23/10/2026). La taille et la place sont retenues comme si on les
+    // avait posées à la main.
+    function ouvertes(){
+      const vues = suivis.filter(function(x){ return estFenetre(x) && visible(x.el); });
+      // Dans l'ordre où elles sont empilées ; celles jamais touchées d'abord.
+      return vues.sort(function(a, b){ return ordre.indexOf(a) - ordre.indexOf(b); });
+    }
+    function alaminoFenetres(){
+      const liste = ouvertes();
+      if(!liste.length) return;
+      const z = ecran();
+      const bande = bandeUtile();
+      const pas = Math.min(32, Math.floor((z.w - 2 * MARGE - MIN_L) / Math.max(1, liste.length - 1)));
+      const decal = Math.max(0, pas) * (liste.length - 1);
+      const w = Math.max(MIN_L, Math.min(900, z.w - 2 * MARGE - decal));
+      const h = Math.max(MIN_H, bande.bas - bande.haut - 2 * MARGE - decal);
+      const tailles = lire(), places = lirePlaces();
+      liste.forEach(function(s, i){
+        if(s.agrandie) marquerAgrandie(s, false);
+        glisser(s, 0);
+        const l = z.x + MARGE + Math.max(0, pas) * i + Math.max(0, (z.w - 2 * MARGE - decal - w) / 2);
+        const t = bande.haut + MARGE + Math.max(0, pas) * i;
+        figer(s.el, { left: Math.round(l), top: Math.round(t), width: Math.round(w), height: Math.round(h) });
+        tailles[s.el.id] = { l: Math.round(w), h: Math.round(h) };
+        places[s.el.id] = { x: Math.round(l), y: Math.round(t) };
+        mettreDevant(s);
+      });
+      ecrire(tailles);
+      ecrirePlaces(places);
+      synchroniser();
+    }
+    // ✖ Hidio daholo : chacune se ferme comme à sa croix. Les pages d'abord,
+    // l'Accueil en dernier : fermer la dernière page rouvrirait le fil.
+    function hidioDaholo(){
+      ouvertes().filter(function(s){ return s.el.id !== 'dash-accueil'; })
+        .forEach(function(s){ glisser(s, 0); fermerFenetre(s.el); });
+      const accueil = document.getElementById('dash-accueil');
+      if(visible(accueil)) fermerFenetre(accueil);
+      synchroniser();
+    }
+    window.__alaminoFenetres = alaminoFenetres;
+    window.__hidioDaholo = hidioDaholo;
+
     // Ce qui place les fenêtres leur impose une hauteur maximale ; la taille
     // choisie doit reprendre la main juste après.
     const placerAvant = placerPresDuMenu;
@@ -6315,6 +6360,19 @@
         if(boutonReglages) boutonReglages.setAttribute('aria-expanded', 'false');
       });
     }
+
+    // Ranger ou fermer les fenêtres ouvertes ; le panneau se referme ensuite,
+    // pour qu'on voie le résultat.
+    [['fenetresAlamino', '__alaminoFenetres'], ['fenetresHidio', '__hidioDaholo']].forEach(function(paire){
+      const b = document.getElementById(paire[0]);
+      if(!b) return;
+      b.addEventListener('click', function(e){
+        e.stopPropagation();
+        if(panneau) panneau.style.display = 'none';
+        if(boutonReglages) boutonReglages.setAttribute('aria-expanded', 'false');
+        if(typeof window[paire[1]] === 'function') window[paire[1]]();
+      });
+    });
 
     if(boutonReglages && panneau){
       document.body.appendChild(panneau);

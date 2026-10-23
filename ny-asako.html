@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="1206b8a6">
+<meta name="ny-asako-version" content="2bcc5304">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -1161,6 +1161,12 @@
           </button>
         </div>
         <p class="panneau-note" id="barReglagesNote"></p>
+        <!-- Les fenêtres ouvertes : les ranger en cascade, ou les fermer toutes
+             d'un coup (common.js, gestionnaire des fenêtres). -->
+        <div style="display:flex; gap:0.5rem; margin-top:0.8rem;">
+          <button type="button" class="btn btn-sm" id="fenetresAlamino" style="flex:1;" title="Ranger les fenêtres">🗂️ Alamino</button>
+          <button type="button" class="btn btn-sm" id="fenetresHidio" style="flex:1;" title="Fermer toutes les fenêtres">✖ Hidio daholo</button>
+        </div>
         <!-- Sortie de secours : une rangée vidée ne se remplissait plus jamais
              d'elle-même, et il n'y avait aucun chemin pour y revenir. -->
         <button type="button" class="btn btn-sm" id="barToutRemettre" style="width:100%; margin-top:0.8rem;">↩︎ Averina ny sary rehetra</button>
@@ -3647,7 +3653,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=84af2870"></script>
+<script src="gestion-stockage-js/common.js?v=9d36737e"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=d0a53ff8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
