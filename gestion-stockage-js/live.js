@@ -708,9 +708,10 @@
       canal.push({ cle: 'appli', nom: '💬 Hafatra mivantana (ao anaty appli)', couleur: 'var(--cyan)',
         alefa: function(t){
           const me = myIdentity();
-          sendCallSignal({ kind: 'hafatra', from: me.email, fromName: me.name, to: o.email, text: t });
+          const id = idHafatra();
+          sendCallSignal({ kind: 'hafatra', from: me.email, fromName: me.name, to: o.email, text: t, id: id });
           alefaPush(o.email, 'hafatra', { text: t });
-          (resaka[o.email] = resaka[o.email] || []).push({ avy: 'izaho', soratra: t, at: Date.now() });
+          (resaka[o.email] = resaka[o.email] || []).push({ id: id, avy: 'izaho', soratra: t, at: Date.now() });
           return true;
         } });
     }
@@ -959,6 +960,7 @@
     // paroles reconnues chez l'autre : traduites puis affichées ici
     else if(payload.kind === 'speech'){ if(typeof onRemoteSpeech === 'function') onRemoteSpeech(payload); }
     else if(payload.kind === 'hafatra') onHafatraTonga(payload);
+    else if(payload.kind === 'hafatra-fafana') onHafatraFafana(payload);
     else if(payload.kind === 'fangatahana') onFangatahana(payload);
     else if(payload.kind === 'valiny-fangatahana') onValinyFangatahana(payload);
   }
@@ -983,7 +985,7 @@
     const avy = payload.from;
     if(!avy || (!payload.text && !payload.media)) return;
     if(presenceState[avy]) payload.fromName = anaranaAseho(avy);
-    (resaka[avy] = resaka[avy] || []).push({ avy: 'izy', soratra: String(payload.text || ''), media: payload.media || null, at: Date.now() });
+    (resaka[avy] = resaka[avy] || []).push({ id: payload.id || idHafatra(), avy: 'izy', soratra: String(payload.text || ''), media: payload.media || null, at: Date.now() });
     const fohy = payload.text ? String(payload.text).slice(0, 120)
       : (payload.media && payload.media.type === 'video' ? '🎬 Video' : '📷 Sary');
     feoHafatra();
@@ -995,10 +997,32 @@
   function alefaHafatra(soratra, media){
     if(!resakaMisokatra) return;
     const me = myIdentity();
-    sendCallSignal({ kind: 'hafatra', from: me.email, fromName: me.name, to: resakaMisokatra.email, text: soratra || '', media: media || null });
+    const id = idHafatra();
+    sendCallSignal({ kind: 'hafatra', from: me.email, fromName: me.name, to: resakaMisokatra.email, text: soratra || '', media: media || null, id: id });
     alefaPush(resakaMisokatra.email, 'hafatra', { text: soratra || (media ? (media.type === 'video' ? '🎬 Video' : '📷 Sary') : '') });
-    (resaka[resakaMisokatra.email] = resaka[resakaMisokatra.email] || []).push({ avy: 'izaho', soratra: soratra || '', media: media || null, at: Date.now() });
+    (resaka[resakaMisokatra.email] = resaka[resakaMisokatra.email] || []).push({ id: id, avy: 'izaho', soratra: soratra || '', media: media || null, at: Date.now() });
     asehoyResaka();
+  }
+
+  // ---------------- FAMAFANA HAFATRA ----------------
+  // Ny hafatra iray (✕) na ny resaka manontolo (🗑️) : voafafa eto sy any
+  // amin'ilay olona koa (raha miditra izy), satria tsy voatahiry any amin'ny
+  // serveur ireo hafatra ireo.
+  function idHafatra(){ return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+  function fafaoHafatra(email, ids){
+    const me = myIdentity();
+    const daholo = !ids;
+    if(daholo) resaka[email] = [];
+    else resaka[email] = (resaka[email] || []).filter(function(h){ return ids.indexOf(h.id) < 0; });
+    sendCallSignal({ kind: 'hafatra-fafana', from: me.email, to: email, ids: ids || null, daholo: daholo });
+    asehoyResaka();
+  }
+  function onHafatraFafana(payload){
+    const avy = payload.from;
+    if(!avy || !resaka[avy]) return;
+    if(payload.daholo) resaka[avy] = [];
+    else if(Array.isArray(payload.ids)) resaka[avy] = resaka[avy].filter(function(h){ return payload.ids.indexOf(h.id) < 0; });
+    if(resakaMisokatra && resakaMisokatra.email === avy) asehoyResaka();
   }
 
   function alefaRakitra(fichier){
@@ -1077,6 +1101,7 @@
             '<div data-momba style="font-size:0.7rem; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></div>' +
           '</div>' +
           '<span style="display:flex; gap:0.3rem; flex:none;">' +
+            '<button type="button" class="btn btn-sm" data-fafana-daholo title="Fafana daholo ny hafatra" style="width:auto;">🗑️</button>' +
             '<button type="button" class="btn btn-sm" data-ngeza title="Angezaina / Ahelezina" style="width:auto;">⤢</button>' +
             '<button type="button" class="btn btn-sm" data-hidio title="Hidio" style="width:auto;">✕</button>' +
           '</span>' +
@@ -1103,6 +1128,18 @@
         '</div>';
       document.body.appendChild(boaty);
       boaty.querySelector('[data-hidio]').addEventListener('click', function(){ boaty.style.display = 'none'; resakaMisokatra = null; });
+      boaty.querySelector('[data-fafana-daholo]').addEventListener('click', function(){
+        if(!resakaMisokatra || !(resaka[resakaMisokatra.email] || []).length) return;
+        const email = resakaMisokatra.email;
+        fanamarinana('🗑️', 'Fafana daholo ?', 'Voafafa eto sy any amin\'ilay olona koa ny hafatra rehetra amin\'ity resaka ity.',
+          [{ label: '🗑️ Fafana daholo', color: '#e5484d', run: function(){ fafaoHafatra(email, null); } }]);
+      });
+      // ✕ amin'ny hafatra iray.
+      boaty.querySelector('[data-hafatra]').addEventListener('click', function(e){
+        const b = e.target.closest('[data-fafao]');
+        if(!b || !resakaMisokatra) return;
+        fafaoHafatra(resakaMisokatra.email, [b.getAttribute('data-fafao')]);
+      });
       let habe = null;
       boaty.querySelector('[data-ngeza]').addEventListener('click', function(){
         if(habe){
@@ -1175,10 +1212,14 @@
                   'style="display:block; max-width:100%; max-height:260px; border-radius:8px;"></a>';
           }
           if(h.soratra) atiny += (atiny ? '<div style="margin-top:0.3rem;">' : '<div>') + escapeHtml(h.soratra) + '</div>';
-          return '<div style="display:flex; justify-content:' + (izaho ? 'flex-end' : 'flex-start') + '; margin:0.25rem 0;">' +
+          if(!h.id) h.id = idHafatra();
+          const fafao = '<button type="button" data-fafao="' + escapeHtml(h.id) + '" title="Fafana" style="flex:none; ' +
+            'border:none; background:none; color:var(--muted); cursor:pointer; font-size:0.8rem; padding:0 0.3rem;">✕</button>';
+          return '<div style="display:flex; align-items:center; justify-content:' + (izaho ? 'flex-end' : 'flex-start') + '; margin:0.25rem 0;">' +
+            (izaho ? fafao : '') +
             '<span style="max-width:80%; padding:0.4rem 0.6rem; border-radius:10px; overflow-wrap:anywhere; ' +
               (izaho ? 'background:var(--cyan); color:#000;' : 'background:var(--panel-2); color:var(--text);') + '">' +
-              atiny + '</span></div>';
+              atiny + '</span>' + (izaho ? '' : fafao) + '</div>';
         }).join('')
       : '<p style="color:var(--muted); font-size:0.76rem;">' +
           (online ? 'Soraty ny hafatra voalohany.' : 'Tsy miditra ankehitriny io olona io : tsy ho tonga ny hafatra raha tsy miditra izy.') + '</p>';
