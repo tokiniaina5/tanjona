@@ -4974,17 +4974,25 @@
         const bande = (s.page || s.commePage) ? bandeUtile() : { haut: z.y, bas: z.y + z.h };
         let l = g.l + (e.clientX - g.x);
         let t = g.t + (e.clientY - g.y);
+        const brut = l;
         l = Math.max(z.x + MARGE, Math.min(l, z.x + z.w - g.w - MARGE));
         t = Math.max(bande.haut + MARGE, Math.min(t, bande.bas - g.h - MARGE));
         s.el.style.left = Math.round(l) + 'px';
         s.el.style.top = Math.round(t) + 'px';
+        // Poussée plus loin que le bord, elle commence à sortir : lâchée
+        // assez loin, elle se ferme (voir armerBalayage).
+        g.depasse = brut - l;
+        glisser(s, g.depasse);
         synchroniser();
       });
       function fin(e){
         if(!g) return;
+        const depasse = g.depasse || 0;
         g = null;
         ruban.classList.remove('tire');
         try{ ruban.releasePointerCapture(e.pointerId); }catch(err){}
+        if(Math.abs(depasse) > SEUIL_JETER){ jeter(s, depasse); return; }
+        glisser(s, 0);
         // Agrandie, sa place n'est pas la sienne : on ne la retient pas.
         if(s.agrandie) return;
         const r = s.el.getBoundingClientRect();
@@ -4994,6 +5002,93 @@
       }
       ruban.addEventListener('pointerup', fin);
       ruban.addEventListener('pointercancel', fin);
+    }
+
+    // Glisser vers la gauche ou la droite, et la fenêtre s'en va : on les
+    // range une à une d'un geste (23/10/2026). Au doigt, n'importe où dans la
+    // fenêtre ; à la souris, en la tirant par son ruban au-delà du bord.
+    const SEUIL_JETER = 110;
+    // Ses poignées la suivent d'elles-mêmes : synchroniser les pose sur le
+    // cadre qu'on voit, décalage compris.
+    function glisser(s, dx){
+      if(!dx){
+        s.el.style.translate = '';
+        s.el.style.opacity = '';
+        return;
+      }
+      s.el.style.translate = Math.round(dx) + 'px 0';
+      s.el.style.opacity = String(Math.max(0.35, 1 - Math.abs(dx) / 500));
+    }
+    function jeter(s, dx){
+      const sens = dx < 0 ? -1 : 1;
+      const r = s.el.getBoundingClientRect();
+      const fin = sens * (window.innerWidth + r.width);
+      s.el.style.transition = 'translate 0.18s ease-in, opacity 0.18s ease-in';
+      s.calque.hidden = true;
+      requestAnimationFrame(function(){
+        s.el.style.translate = Math.round(fin) + 'px 0';
+        s.el.style.opacity = '0';
+      });
+      setTimeout(function(){
+        s.el.style.transition = '';
+        glisser(s, 0);
+        fermerFenetre(s.el);
+        synchroniser();
+      }, 200);
+    }
+    function armerBalayage(s){
+      let g = null;
+      // Là où glisser de côté a déjà un sens, on le lui laisse : un champ,
+      // une rangée qui défile en largeur (les stories), une réglette.
+      function aSonPropreGeste(cible){
+        for(let n = cible; n && n !== s.el; n = n.parentElement){
+          if(n.matches && n.matches('input, textarea, select, [contenteditable="true"], video, canvas')) return true;
+          if(n.scrollWidth > n.clientWidth + 2){
+            const ox = getComputedStyle(n).overflowX;
+            if(ox === 'auto' || ox === 'scroll') return true;
+          }
+        }
+        return false;
+      }
+      // Le navigateur garde le défilement vertical et le zoom ; le
+      // mouvement de côté nous revient.
+      s.el.style.touchAction = 'pan-y pinch-zoom';
+      s.el.addEventListener('pointerdown', function(e){
+        if(e.pointerType === 'mouse' || !e.isPrimary) return;
+        if(aSonPropreGeste(e.target)) return;
+        g = { x: e.clientX, y: e.clientY, id: e.pointerId, pris: false, dx: 0 };
+      });
+      s.el.addEventListener('pointermove', function(e){
+        if(!g || e.pointerId !== g.id) return;
+        const dx = e.clientX - g.x, dy = e.clientY - g.y;
+        if(!g.pris){
+          // Vers le haut ou le bas d'abord : c'est qu'on lit.
+          if(Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)){ g = null; return; }
+          if(Math.abs(dx) < 14) return;
+          g.pris = true;
+          try{ s.el.setPointerCapture(e.pointerId); }catch(err){}
+        }
+        g.dx = dx;
+        glisser(s, dx);
+        synchroniser();
+      });
+      function fin(e){
+        if(!g || e.pointerId !== g.id) return;
+        const pris = g.pris, dx = g.dx;
+        g = null;
+        if(!pris) return;
+        s.balaye = Date.now();
+        try{ s.el.releasePointerCapture(e.pointerId); }catch(err){}
+        const r = s.el.getBoundingClientRect();
+        if(Math.abs(dx) > Math.min(SEUIL_JETER, r.width * 0.3) && e.type === 'pointerup') jeter(s, dx);
+        else { glisser(s, 0); synchroniser(); }
+      }
+      s.el.addEventListener('pointerup', fin);
+      s.el.addEventListener('pointercancel', fin);
+      // Le clic qui termine un balayage n'ouvre rien sous le doigt.
+      s.el.addEventListener('click', function(e){
+        if(s.balaye && Date.now() - s.balaye < 400){ e.preventDefault(); e.stopPropagation(); }
+      }, true);
     }
 
     function armer(s, coin, poignee){
@@ -5086,6 +5181,7 @@
         ruban.setAttribute('aria-hidden', 'true');
         calque.appendChild(ruban);
         armerDeplacement(s, ruban);
+        armerBalayage(s);
 
         // Réduire, agrandir, fermer : les trois boutons d'une fenêtre de
         // bureau, à leur place habituelle.
