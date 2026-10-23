@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="f2149712">
+<meta name="ny-asako-version" content="28fdf242">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -179,7 +179,7 @@
 <!-- fin des écrans de démarrage iOS -->
 <link rel="icon" href="/icone-192.png" type="image/png">
 <link rel="stylesheet" href="gestion-stockage-css/base.css?v=7e2a052a">
-<link rel="stylesheet" href="gestion-stockage-css/components.css?v=19d407c1">
+<link rel="stylesheet" href="gestion-stockage-css/components.css?v=5d61b893">
 <!-- Les émojis dessinés en 3D (emoji-3d.js). -->
 <script src="gestion-stockage-js/emoji-3d.js?v=66dad412" defer></script>
 </head>
@@ -1020,6 +1020,8 @@
           <span>🔔 Notifications</span>
           <span id="notifBadge" style="display:none; background:#ff6b6b; color:#fff; font-size:0.62rem; font-weight:700; border-radius:999px; min-width:16px; height:16px; line-height:16px; text-align:center; padding:0 4px;">0</span>
         </button>
+        <!-- Le site entier dans la langue choisie : Malagasy, Français, English… (teny.js). -->
+        <button type="button" class="nav-action" id="tenyToggle" aria-label="Teny">🌐 Teny</button>
         <!-- Le panier : ce qu'on a mis de côté en parcourant la Botika (parametres.js,
              « LE PANIER »). Le logo est dans un <i> et non un <span> : la rangée du
              bas lit le premier <span> comme le nom de l'entrée. -->
@@ -3656,6 +3658,7 @@
 <script src="gestion-stockage-js/zara-rehetra.js?v=9b9c2469"></script>
 <script src="gestion-stockage-js/live.js?v=65e437a7"></script>
 <script src="gestion-stockage-js/traduction.js?v=8f5605bc"></script>
+<script src="gestion-stockage-js/teny.js?v=fcdcc739"></script>
 <script src="gestion-stockage-js/parametres.js?v=cda4348c"></script>
 <!-- Le partage reçu du dehors remplit la boîte « Écrire », que parametres.js
      tient : il se charge après elle. -->
