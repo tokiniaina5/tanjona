@@ -4588,7 +4588,7 @@
       const place = lirePlaces()[el.id];
       if((!t && !place) || !visible(el)) return;
       const z = ecran();
-      const page = el.classList.contains('fenetre-page');
+      const page = el.classList.contains('fenetre-page') || el.id === 'fbComposer';
       const bande = page ? bandeUtile() : { haut: z.y, bas: z.y + z.h };
       const actuel = el.getBoundingClientRect();
       // Une taille choisie sur un grand écran ne tient pas sur un téléphone.
@@ -4875,7 +4875,7 @@
         } else if(!s.vu){
           // Posée, alors seulement retenue comme ouverte : sinon un passage
           // trop précoce la marquerait faite et personne n'y reviendrait.
-          if(!s.page || poserFenetre(s.el)){
+          if(!(s.page || s.commePage) || poserFenetre(s.el)){
             appliquerTaille(s.el);
             // Agrandie quand on l'a quittée, elle revient agrandie.
             if(s.agrandie) remplirBande(s);
@@ -4921,7 +4921,7 @@
           marquerAgrandie(s, false);
         }
         const z = ecran();
-        const bande = s.page ? bandeUtile() : { haut: z.y, bas: z.y + z.h };
+        const bande = (s.page || s.commePage) ? bandeUtile() : { haut: z.y, bas: z.y + z.h };
         let l = g.l + (e.clientX - g.x);
         let t = g.t + (e.clientY - g.y);
         l = Math.max(z.x + MARGE, Math.min(l, z.x + z.w - g.w - MARGE));
@@ -5020,7 +5020,9 @@
       calque.className = 'poignees';
       calque.dataset.pour = id;
       calque.hidden = true;
-      const s = { el: el, calque: calque, vu: false, page: page };
+      // La boîte « Écrire » se pose comme une page (23/10/2026) : même taille,
+      // même place, entre le nom et la rangée du bas — sans en être une.
+      const s = { el: el, calque: calque, vu: false, page: page, commePage: id === 'fbComposer' };
       // La boîte d'écriture n'est pas une page, mais elle se tient comme
       // une fenêtre : on la déplace, on la réduit, on l'agrandit.
       if(page || id === 'fbComposer' || PANNEAUX[id]){
@@ -5107,7 +5109,7 @@
       const tailles = lire();
       const places = lirePlaces();
       suivis.forEach(function(s){
-        if(!s.page || !visible(s.el)) return;
+        if(!(s.page || s.commePage) || !visible(s.el)) return;
         if(s.agrandie) remplirBande(s);
         else if(tailles[s.el.id] || places[s.el.id]) appliquerTaille(s.el); else poserFenetre(s.el);
       });
@@ -5170,6 +5172,14 @@
       bouton.addEventListener('click', function(e){
         e.stopPropagation();
         if(fbComposer.style.display !== 'none'){ fermerComposer(); return; }
+        // Comme les autres pages du menu : le menu s'efface quand elle s'ouvre,
+        // sinon il restait posé sur elle.
+        const menu = document.getElementById('navList');
+        if(menu && menu.classList.contains('open')){
+          menu.classList.remove('open');
+          const n = document.getElementById('menuToggle');
+          if(n) n.setAttribute('aria-expanded', 'false');
+        }
         fbComposer.style.display = '';
         marquerLesBoutons(true);
         placerComposer();

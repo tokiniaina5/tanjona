@@ -648,9 +648,11 @@
     max-height: 70vh;
     overflow-y: auto;
     box-shadow: 0 -10px 34px rgba(0,0,0,0.5);
-    /* Le haut appartient au ruban et aux boutons ─ □ ✕ : le contenu
-       commence dessous, sinon le champ passait sous eux. */
-    padding-top: 2.4rem;
+    /* Comme une page : même fond, même bord, même marge, et son titre en haut
+       (le haut appartient au ruban et aux boutons ─ □ ✕). */
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 1rem 1.3rem;
   }
 
   .dash-view{ display:none; }
@@ -1271,6 +1273,8 @@
       inset -1px 0 0 rgba(255,255,255,0.07),
       0 12px 36px rgba(0,0,0,0.5) !important;
   }
+  /* « Écrire » a la taille d'une page : il en prend aussi la courbe. */
+  #fbComposer.composer-flottant{ border-radius: 28px !important; }
   /* La marge intérieure s'élargit, pour que rien ne se loge dans la courbe. */
   .nav-list.floating{ padding: 0.8rem 0.9rem; }
   .panneau-boite{ padding: 1rem 1.15rem; }
