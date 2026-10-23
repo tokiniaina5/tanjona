@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="b408606d">
+<meta name="ny-asako-version" content="578ca073">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -193,6 +193,19 @@
     <h1 id="loginTitle">Connexion</h1>
     <p class="sub" id="loginSub">Première connexion : renseignez vos informations et choisissez un mot de passe pour créer votre compte.</p>
 
+    <!-- Connexion ou inscription par le compte Google (« Bon retour », et l'étape 1 de la création de compte) : le nom et l'email
+         viennent de Google, rien à taper (common.js). -->
+    <div id="googleLoginWrap">
+      <button type="button" class="btn" id="googleLoginBtn" style="width:100%; display:flex; align-items:center; justify-content:center; gap:0.6rem; background:#fff; color:#1f1f1f; border-color:#dadce0;">
+        <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.4 5.7c4.3-4 6.9-9.9 6.9-17.1z"/><path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.4-5.7c-2.1 1.4-4.8 2.3-8.5 2.3-6.2 0-11.5-4.1-13.4-9.9l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg>
+        Continuer avec Google
+      </button>
+      <p id="googleLoginStatus" style="font-size:0.75rem; color:var(--amber); margin:0.5rem 0 0; line-height:1.5; min-height:0;"></p>
+      <div style="display:flex; align-items:center; gap:0.6rem; margin:0.9rem 0; font-size:0.72rem; color:var(--muted);">
+        <span style="flex:1; border-top:1px solid var(--line);"></span>ou avec email<span style="flex:1; border-top:1px solid var(--line);"></span>
+      </div>
+    </div>
+
     <!-- Retour d'un compte déjà enregistré : email + code suffisent -->
     <form id="quickLoginForm" style="display:none;">
       <div class="field">
@@ -313,18 +326,6 @@
     <!-- Inscription en quatre étapes : le nom, puis comment vous joindre,
          puis le logo, enfin le mot de passe et sa confirmation. -->
     <form id="loginForm" novalidate>
-      <!-- Inscription par le compte Google (création de compte seulement, à l'étape 1) : le nom et l'email
-           viennent de Google, rien à taper (common.js). -->
-      <div id="googleLoginWrap">
-        <button type="button" class="btn" id="googleLoginBtn" style="width:100%; display:flex; align-items:center; justify-content:center; gap:0.6rem; background:#fff; color:#1f1f1f; border-color:#dadce0;">
-          <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.4 5.7c4.3-4 6.9-9.9 6.9-17.1z"/><path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.4-5.7c-2.1 1.4-4.8 2.3-8.5 2.3-6.2 0-11.5-4.1-13.4-9.9l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg>
-          Continuer avec Google
-        </button>
-        <p id="googleLoginStatus" style="font-size:0.75rem; color:var(--amber); margin:0.5rem 0 0; line-height:1.5; min-height:0;"></p>
-        <div style="display:flex; align-items:center; gap:0.6rem; margin:0.9rem 0; font-size:0.72rem; color:var(--muted);">
-          <span style="flex:1; border-top:1px solid var(--line);"></span>ou avec email<span style="flex:1; border-top:1px solid var(--line);"></span>
-        </div>
-      </div>
       <div class="eyebrow" id="loginStepLabel" style="margin-bottom:0.8rem;">Étape 1 sur 4</div>
 
       <div class="login-step" data-step="1">
@@ -3643,7 +3644,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=0db95e72"></script>
+<script src="gestion-stockage-js/common.js?v=0131837a"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=622d64e8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>

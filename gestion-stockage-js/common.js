@@ -2344,7 +2344,18 @@
     }
     const forgotWrap = document.getElementById('forgotWrap');
     if(forgotWrap) forgotWrap.style.display = quick ? 'block' : 'none';
+    majGoogle();
     closeHelpBoxes();
+  }
+  // Google : dans « Bon retour », et à l'étape 1 de la création de compte
+  // (plus loin, on a déjà choisi l'email).
+  function majGoogle(){
+    const googleWrap = document.getElementById('googleLoginWrap');
+    if(!googleWrap) return;
+    const quick = !!(quickLoginForm && quickLoginForm.style.display !== 'none');
+    let etape = 1;
+    try { etape = loginStep; } catch(e){}
+    googleWrap.style.display = (quick || etape === 1) ? '' : 'none';
   }
 
   // Les deux dépannages sont indépendants : on n'en ouvre jamais deux à la fois.
@@ -2683,8 +2694,8 @@
     try { parGoogle = !!localStorage.getItem(GOOGLE_KEY); } catch(e){}
     if((params.error || params.error_code) && parGoogle){
       try { localStorage.removeItem(GOOGLE_KEY); } catch(e){}
-      // Le bouton Google n'est que dans la création de compte : on y revient
-      // pour que l'explication se voie.
+      // On revient à la création de compte, où le bouton Google se voit avec
+      // son explication.
       showLoginMode('full');
       showLoginStep(1);
       const status = document.getElementById('googleLoginStatus');
@@ -3071,8 +3082,7 @@
     if(prevBtn) prevBtn.style.display = step > 1 ? 'block' : 'none';
     // Google à l'entrée de la création de compte seulement : plus loin, on a
     // déjà choisi l'email.
-    const googleWrap = document.getElementById('googleLoginWrap');
-    if(googleWrap) googleWrap.style.display = step === 1 ? '' : 'none';
+    majGoogle();
     setLoginStatus('');
     const current = loginForm.querySelector('.login-step[data-step="' + step + '"] input');
     if(current && loginScreen.style.display !== 'none') current.focus();
