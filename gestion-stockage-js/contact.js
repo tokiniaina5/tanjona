@@ -188,7 +188,9 @@
     // tsy eo amin'ny pejy intsony : noforonina ihany fa tsy aseho, ary ny
     // pejy Call sy Message no mahazo ny canal.
     const row = document.getElementById('contactMainActions') || document.createElement('div');
-    fetchContactChannels(function(channels, extra){
+    // Ny rohin'ity kaonty ity ihany (« 🔗 Ajouter les liens ») : ny kaonty
+    // tsy mbola nametraka rohy dia tsy mahita ny an'ny admin intsony.
+    fetchMesCanaux(function(channels, extra){
       row.innerHTML = '';
       // Ny site_url dia mety vao tonga avy amin'ny serveur : averina amboarina ny
       // rohy invitation mba tsy hijanona amin'ny adiresy an-toerana.
