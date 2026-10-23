@@ -380,12 +380,16 @@
   }
   /* Le bouton s'efface à demi dès l'ouverture du site (20/10/2026 : avant,
      seulement quand une fenêtre était ouverte), pour ne rien cacher ; il
-     reprend toute sa couleur dès qu'on l'approche, le déplace ou l'ouvre. */
+     reprend toute sa couleur dès qu'on l'approche, le déplace ou l'ouvre.
+     « Ouvert » se lit sur le menu lui-même (#navList.open) et non sur
+     aria-expanded : plusieurs fermetures ne remettaient à « false » que le ☰
+     de la rangée, et le N restait plein par-dessus la page (23/10/2026). */
   .menu-toggle.floating{ transition: opacity 0.25s ease; opacity: 0.35; }
-  .menu-toggle.floating:hover,
+  /* Au doigt, le survol reste collé après le toucher : souris seulement. */
+  @media (hover: hover){ .menu-toggle.floating:hover{ opacity: 1; } }
   .menu-toggle.floating:focus-visible,
   .menu-toggle.floating.dragging,
-  .menu-toggle.floating[aria-expanded="true"]{ opacity: 1; }
+  body:has(#navList.open) .menu-toggle.floating{ opacity: 1; }
   .menu-toggle.floating.dragging{
     cursor: grabbing;
     opacity: 0.85;
