@@ -4026,6 +4026,64 @@
     showAutoNotice();
   });
 
+  // ---------------- SUPPRIMER MON COMPTE ----------------
+  // La fonction fafao-kaonty efface le compte de la session et ce qu'il
+  // possède ; ici, on n'a plus qu'à oublier ce que l'appareil en garde et à
+  // revenir à la connexion. Le panneau suit le compte affiché (le nom change
+  // à chaque connexion, porterLeNomDuCompte le surveille déjà).
+  const fafaoKaontyPanel = document.getElementById('fafaoKaontyPanel');
+  const fafaoKaontyInput = document.getElementById('fafaoKaontyInput');
+  const fafaoKaontyBtn = document.getElementById('fafaoKaontyBtn');
+  function majFafaoKaonty(){
+    if(!fafaoKaontyPanel) return;
+    const email = currentUser && currentUser.email ? String(currentUser.email) : '';
+    fafaoKaontyPanel.style.display = (email && !MODE_MPIASA && !isOwnerEmail(email)) ? '' : 'none';
+  }
+  (function(){
+    const el = document.getElementById('currentUserEmail');
+    if(el && window.MutationObserver){
+      new MutationObserver(majFafaoKaonty).observe(el, { childList: true, characterData: true, subtree: true });
+    }
+  })();
+  if(fafaoKaontyInput && fafaoKaontyBtn){
+    fafaoKaontyInput.addEventListener('input', function(){
+      fafaoKaontyBtn.disabled = fafaoKaontyInput.value.trim().toUpperCase() !== 'FAFAO';
+    });
+    fafaoKaontyBtn.addEventListener('click', function(){
+      const status = document.getElementById('fafaoKaontyStatus');
+      const email = currentUser && currentUser.email ? String(currentUser.email) : '';
+      if(!email || !window.__sb || !window.__sb.functions){
+        if(status) status.textContent = 'Serveur injoignable : vérifiez votre réseau.';
+        return;
+      }
+      if(!confirm('Supprimer définitivement le compte ' + email + ' et toutes ses données ? Rien ne pourra être récupéré.')) return;
+      fafaoKaontyBtn.disabled = true;
+      if(status) status.textContent = 'Suppression en cours…';
+      window.__sb.functions.invoke('fafao-kaonty', { body: { confirmation: 'FAFAO' } }).then(function(r){
+        const d = r && r.data;
+        if(r.error || !d || !d.ok){
+          fafaoKaontyBtn.disabled = false;
+          if(status) status.textContent = 'Compte non supprimé : ' + ((d && d.error) || (r.error && r.error.message) || 'réessayez') + '.';
+          return;
+        }
+        // Ce que cet appareil garde du compte : son profil et son email retenu.
+        const profiles = loadProfiles();
+        Object.keys(profiles).forEach(function(k){
+          if(normEmail(profiles[k].email) === normEmail(email)) delete profiles[k];
+        });
+        saveProfiles(profiles);
+        try { if(normEmail(loadLastEmail()) === normEmail(email)) localStorage.removeItem(STORAGE_LAST_EMAIL); } catch(e){}
+        fafaoKaontyInput.value = '';
+        if(status) status.textContent = '';
+        alert('Votre compte a été supprimé.');
+        document.getElementById('logoutBtn').click();
+      }, function(){
+        fafaoKaontyBtn.disabled = false;
+        if(status) status.textContent = 'Compte non supprimé : vérifiez votre réseau.';
+      });
+    });
+  }
+
   document.getElementById('paywallLogoutBtn').addEventListener('click', function(){
     clearSession();
     currentUser = null; porterLeNomDuCompte();
