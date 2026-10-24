@@ -5248,9 +5248,10 @@
 
     // 🗂️ Alamino : les fenêtres ouvertes se mettent côte à côte, en une
     // rangée qu'on fait glisser à gauche et à droite, comme les applications
-    // récentes d'un téléphone (23/10/2026). Toucher l'une la rouvre en grand,
-    // à sa taille d'avant ; toucher à côté les remet toutes où elles étaient.
-    // Rien n'est retenu : la rangée n'est qu'un coup d'œil.
+    // récentes d'un téléphone (23/10/2026). Depuis le 24/10/2026, elles
+    // restent là où la rangée les a mises : toucher l'une la met devant et on
+    // y travaille aussitôt, toucher à côté referme la rangée sans rien bouger.
+    // Revenir à l'ancienne place défaisait le rangement qu'on venait de demander.
     function ouvertes(){
       const vues = suivis.filter(function(x){ return estFenetre(x) && visible(x.el); });
       // Dans l'ordre où elles sont empilées ; celles jamais touchées d'abord.
@@ -5294,12 +5295,10 @@
       if(laharana){ poserLaharana(); return; }
       const liste = ouvertes();
       if(!liste.length) return;
-      laharana = { liste: liste, decalage: 0, avant: new Map() };
+      laharana = { liste: liste, decalage: 0 };
       liste.forEach(function(s){
         if(s.agrandie) marquerAgrandie(s, false);
         glisser(s, 0);
-        const r = s.el.getBoundingClientRect();
-        laharana.avant.set(s, { left: r.left, top: r.top, width: r.width, height: r.height });
       });
       // La plus récente au bout de la rangée, et la rangée glissée jusqu'à elle.
       laharana.decalage = borneDecalage().min;
@@ -5316,17 +5315,15 @@
       laharana = null;
       document.body.classList.remove('fenetres-laharana');
       if(l.fond) l.fond.remove();
-      l.avant.forEach(function(r, s){
-        if(!visible(s.el)) return;
-        figer(s.el, { left: Math.round(r.left), top: Math.round(r.top), width: Math.round(r.width), height: Math.round(r.height) });
-      });
       if(choisie && visible(choisie.el)) mettreDevant(choisie);
       replacerLesPages();
     }
     // Glisser la rangée, du doigt ou à la souris, n'importe où sur elle ; un
     // appui sans glisser choisit la fenêtre touchée.
     let geste = null;
+    let apresGlisse = false;
     document.addEventListener('pointerdown', function(e){
+      apresGlisse = false;
       if(!laharana || !e.isPrimary) return;
       // Les boutons ─ □ ✕ des fenêtres gardent leur rôle.
       if(e.target.closest && e.target.closest('.fenetre-boutons')) return;
@@ -5334,13 +5331,16 @@
       const surFond = e.target === laharana.fond;
       if(!s && !surFond) return;
       geste = { x: e.clientX, depart: laharana.decalage, s: s, bouge: false };
-      e.preventDefault();
+      // Sur une fenêtre, l'appui passe : le champ touché prend le curseur,
+      // le bouton touché répond, comme hors de la rangée.
+      if(surFond) e.preventDefault();
     }, true);
     document.addEventListener('pointermove', function(e){
       if(!geste || !laharana) return;
       const dx = e.clientX - geste.x;
       if(!geste.bouge && Math.abs(dx) < 8) return;
       geste.bouge = true;
+      e.preventDefault();
       laharana.decalage = geste.depart + dx;
       poserLaharana();
     }, true);
@@ -5348,18 +5348,20 @@
       if(!geste) return;
       const g = geste;
       geste = null;
-      if(!laharana || g.bouge) return;
+      if(g.bouge){ apresGlisse = true; return; }
+      if(!laharana) return;
       quitterLaharana(g.s);
     }, true);
     document.addEventListener('pointercancel', function(){ geste = null; }, true);
-    // Le clic qui suit n'ouvre rien dans la fenêtre touchée.
+    // Un clic après un glissement n'ouvre rien : la rangée a bougé sous le
+    // doigt, ce n'était pas un choix. Un simple appui, lui, arrive après la
+    // fermeture de la rangée et agit dans la fenêtre.
     document.addEventListener('click', function(e){
-      if(!laharana) return;
+      if(!apresGlisse) return;
+      apresGlisse = false;
       if(e.target.closest && e.target.closest('.fenetre-boutons')) return;
-      if(laharana.fond === e.target || laharana.liste.some(function(x){ return x.el.contains(e.target); })){
-        e.preventDefault();
-        e.stopPropagation();
-      }
+      e.preventDefault();
+      e.stopPropagation();
     }, true);
     // La molette fait défiler la rangée, et Échap la referme.
     document.addEventListener('wheel', function(e){
