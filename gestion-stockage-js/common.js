@@ -2969,10 +2969,14 @@
     const zone = document.getElementById('autresComptes');
     if(!zone) return;
     const liste = Object.keys(LOGOS_COMPTES).filter(function(p){ return allumes[p]; });
-    zone.innerHTML = liste.map(function(p){
+    // Un bouton seul (ou le dernier d'un nombre impair) prend toute la
+    // largeur, comme celui de Google.
+    zone.innerHTML = liste.map(function(p, i){
       const logo = LOGOS_COMPTES[p];
-      return '<button type="button" class="btn btn-sm" data-compte="' + p + '" style="display:flex; align-items:center; justify-content:center; gap:0.45rem; background:' + logo[0] + '; color:#fff; border-color:' + logo[0] + ';">' +
-        '<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="#fff" d="' + logo[1] + '"/></svg>' + COMPTES_OAUTH[p] + '</button>';
+      const seul = i === liste.length - 1 && liste.length % 2 === 1;
+      return '<button type="button" class="btn btn-sm" data-compte="' + p + '" style="display:flex; align-items:center; justify-content:center; gap:0.45rem; background:' + logo[0] + '; color:#fff; border-color:' + logo[0] + ';' + (seul ? ' grid-column:1 / -1;' : '') + '">' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="#fff" d="' + logo[1] + '"/></svg>' +
+        (liste.length === 1 ? 'Continuer avec ' : '') + COMPTES_OAUTH[p] + '</button>';
     }).join('');
     zone.style.display = liste.length ? 'grid' : 'none';
     zone.querySelectorAll('[data-compte]').forEach(function(b){
