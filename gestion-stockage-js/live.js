@@ -1761,6 +1761,9 @@
     const sep = base.indexOf('?') >= 0 ? '&' : '?';
     return base + sep + 'live=' + encodeURIComponent(me.email) + '&name=' + encodeURIComponent(me.name);
   }
+  // Pendant le direct, le 🎬 de « Écrire » (parametres.js) s'ouvre déjà rempli
+  // de ce lien : on publie sans avoir à le chercher. Hors direct, rien.
+  window.lienDuLiveEnCours = function(){ return myLive ? liveJoinLink() : null; };
 
   // Fanambarana ny Live any amin'ireo tambajotra voarafitra (WhatsApp, Facebook…).
   function announceLiveOnNetworks(name){

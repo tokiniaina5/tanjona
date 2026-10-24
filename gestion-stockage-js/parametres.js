@@ -4950,10 +4950,13 @@
       if(misokatra){ hidioNyRohy(); return; }
       newsVideoRohy.style.display = 'flex';
       asehoyNyLogo();
-      newsVideoRohyInput.value = rohyVideo || '';
+      // En direct, le lien du live est déjà là : « Publier » le prend tel quel.
+      const rohyLive = (!rohyVideo && typeof window.lienDuLiveEnCours === 'function') ? window.lienDuLiveEnCours() : null;
+      newsVideoRohyInput.value = rohyVideo || rohyLive || '';
       newsVideoRohyInput.focus();
-      // Un lien déjà copié (depuis YouTube…) entre tout seul.
-      vakioNyClipboard();
+      // Un lien déjà copié (depuis YouTube…) entre tout seul — sauf s'il
+      // venait écraser celui du live.
+      if(!rohyLive) vakioNyClipboard();
     });
     // Collé : pris aussitôt. Tapé à la main : pris à Entrée ou en quittant
     // le champ, pour ne pas saisir un lien à moitié écrit.
