@@ -919,30 +919,50 @@
   }
   afficherLesEnregistres();
 
-  // « Bon retour » : les canaux de l'admin (ceux que tout le monde peut lire)
-  // sous « Continuer avec Google », chaque logo ouvre son site. Rien à
-  // effacer ici, et un canal sans lien (WeChat, lien à reprendre) n'y est pas.
+  // « Bon retour » : sous « Continuer avec Google », chaque logo ouvre son
+  // site, comme le bouton Google, même quand aucun lien n'a été ajouté.
+  // Un lien de l'admin (que tout le monde peut lire) prend la place du site.
+  const SITES_FIDIRANA = [
+    { logo: 'whatsapp', nom: 'WhatsApp', canal: 'whatsapp', site: 'https://web.whatsapp.com/' },
+    { logo: 'facebook', nom: 'Facebook', canal: 'facebook', site: 'https://www.facebook.com/' },
+    { logo: 'instagram', nom: 'Instagram', canal: 'instagram', site: 'https://www.instagram.com/' },
+    { logo: 'tiktok', nom: 'TikTok', canal: 'tiktok', site: 'https://www.tiktok.com/' },
+    { logo: 'threads', nom: 'Threads', canal: 'threads', site: 'https://www.threads.com/' },
+    { logo: 'x', nom: 'X', canal: 'twitter', site: 'https://x.com/' },
+    { logo: 'wechat', nom: 'WeChat', canal: 'wechat', site: 'https://web.wechat.com/' },
+    { logo: 'email', nom: 'E-mail', site: 'https://mail.google.com/' },
+    { logo: 'telegram', nom: 'Telegram', site: 'https://web.telegram.org/' },
+    { logo: 'youtube', nom: 'YouTube', site: 'https://www.youtube.com/' }
+  ];
   function afficherRohyFidirana(){
     const zone = document.getElementById('loginRohy');
     if(!zone) return;
-    fetchContactChannels(function(channels, extra){
-      const lignes = [];
+    const rendre = function(channels, extra){
+      const liens = {};
       Object.keys(NOMS_CANAUX).forEach(function(cle){
         const v = String((channels && channels[cle]) || '').trim();
         const lien = v ? lienDuCanal(cle, v) : '';
-        if(lien) lignes.push({ logo: CLE_LOGO[cle], nom: NOMS_CANAUX[cle], lien: lien, ok: true, titre: lien });
+        if(lien) liens[CLE_LOGO[cle]] = lien;
       });
+      const autres = [];
       (extra || []).forEach(function(item){
         if(!item || !item.name || !item.url) return;
-        let lien = /^(viber|mailto|tg|sgnl):/i.test(item.url) ? item.url : adresseDeProfil('', item.url);
+        const lien = /^(viber|mailto|tg|sgnl):/i.test(item.url) ? item.url : adresseDeProfil('', item.url);
         if(!lien || /\s/.test(lien)) return;
-        lignes.push({ logo: logoDe(item.name, item.url), nom: item.name, lien: lien, ok: true, titre: lien });
+        const logo = logoDe(item.name, item.url);
+        if(SITES_FIDIRANA.some(function(s){ return s.logo === logo; })){ if(!liens[logo]) liens[logo] = lien; }
+        else autres.push({ logo: logo, nom: item.name, lien: lien, ok: true, titre: lien });
       });
-      zone.innerHTML = lignes.length
-        ? '<div style="display:flex; flex-wrap:wrap; justify-content:center; gap:0.9rem 1rem;">' + lignes.map(tuile).join('') + '</div>'
-        : '';
-      zone.style.display = lignes.length ? '' : 'none';
-    });
+      const lignes = SITES_FIDIRANA.map(function(s){
+        const lien = liens[s.logo] || s.site;
+        return { logo: s.logo, nom: s.nom, lien: lien, ok: true, titre: lien };
+      }).concat(autres);
+      zone.innerHTML = '<div style="display:flex; flex-wrap:wrap; justify-content:center; gap:0.9rem 1rem;">' + lignes.map(tuile).join('') + '</div>';
+      zone.style.display = '';
+    };
+    // Tout de suite les sites, puis les liens de l'admin quand ils arrivent.
+    rendre({}, []);
+    fetchContactChannels(rendre);
   }
   afficherRohyFidirana();
 
