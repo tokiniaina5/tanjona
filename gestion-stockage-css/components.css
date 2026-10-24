@@ -1283,11 +1283,13 @@
     background: rgba(0,0,0,0.45);
     touch-action: none;
   }
-  /* Le choix du rangement, sous « Alamino » : deux par ligne. */
+  /* Le choix du rangement, sous « Alamino » : les mêmes cartes que Manuel /
+     Automatique, trois par ligne. Une fois ouvert, il est seul dans le
+     panneau (24/10/2026). */
   .fenetres-modely{
-    display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; margin-top: 0.5rem;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;
   }
-  .fenetres-modely .btn{ justify-content: flex-start; }
+  #barReglages.modely-irery > :not(#fenetresModely){ display: none !important; }
   body.fenetres-laharana .poignee,
   body.fenetres-laharana .poignee-deplacer{ display: none; }
   body.fenetres-laharana .fenetre-page,

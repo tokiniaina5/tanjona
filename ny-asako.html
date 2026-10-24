@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="b57c55bb">
+<meta name="ny-asako-version" content="fb84fd2e">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -179,7 +179,7 @@
 <!-- fin des écrans de démarrage iOS -->
 <link rel="icon" href="/icone-192.png" type="image/png">
 <link rel="stylesheet" href="gestion-stockage-css/base.css?v=7e2a052a">
-<link rel="stylesheet" href="gestion-stockage-css/components.css?v=09364446">
+<link rel="stylesheet" href="gestion-stockage-css/components.css?v=0c463ab6">
 <!-- Les émojis dessinés en 3D (emoji-3d.js). -->
 <script src="gestion-stockage-js/emoji-3d.js?v=66dad412" defer></script>
 </head>
@@ -1175,11 +1175,26 @@
         </div>
         <!-- « Alamino » ouvre ce choix : la façon de ranger les fenêtres. -->
         <div id="fenetresModely" class="fenetres-modely" style="display:none;">
-          <button type="button" class="btn btn-sm" data-modely="milahatra" title="Côte à côte, à faire glisser"><span aria-hidden="true">🎞️ </span>Milahatra</button>
-          <button type="button" class="btn btn-sm" data-modely="grille" title="Toutes visibles, en cases"><span aria-hidden="true">▦ </span>Grille</button>
-          <button type="button" class="btn btn-sm" data-modely="roa" title="Les deux dernières, chacune une moitié"><span aria-hidden="true">◫ </span>Mifanila roa</button>
-          <button type="button" class="btn btn-sm" data-modely="cascade" title="Décalées les unes sur les autres"><span aria-hidden="true">🗃️ </span>Cascade</button>
-          <button type="button" class="btn btn-sm" data-modely="mifanongoa" title="Les unes sous les autres, à faire glisser"><span aria-hidden="true">🧱 </span>Mifanongoa</button>
+          <button type="button" class="reglage-action" data-modely="milahatra" title="Côte à côte, à faire glisser">
+            <span class="reglage-icone" aria-hidden="true">🎞️</span>
+            <span class="reglage-nom">Milahatra</span>
+          </button>
+          <button type="button" class="reglage-action" data-modely="grille" title="Toutes visibles, en cases">
+            <span class="reglage-icone" aria-hidden="true">🔲</span>
+            <span class="reglage-nom">Grille</span>
+          </button>
+          <button type="button" class="reglage-action" data-modely="roa" title="Les deux dernières, chacune une moitié">
+            <span class="reglage-icone" aria-hidden="true">📖</span>
+            <span class="reglage-nom">Mifanila roa</span>
+          </button>
+          <button type="button" class="reglage-action" data-modely="cascade" title="Décalées les unes sur les autres">
+            <span class="reglage-icone" aria-hidden="true">🗃️</span>
+            <span class="reglage-nom">Cascade</span>
+          </button>
+          <button type="button" class="reglage-action" data-modely="mifanongoa" title="Les unes sous les autres, à faire glisser">
+            <span class="reglage-icone" aria-hidden="true">🧱</span>
+            <span class="reglage-nom">Mifanongoa</span>
+          </button>
         </div>
         <!-- Sortie de secours : une rangée vidée ne se remplissait plus jamais
              d'elle-même, et il n'y avait aucun chemin pour y revenir. -->
@@ -3667,7 +3682,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=44a28c2a"></script>
+<script src="gestion-stockage-js/common.js?v=0c1ba960"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=d0a53ff8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>

@@ -6599,14 +6599,16 @@
     const modely = document.getElementById('fenetresModely');
     function fermerReglagesFenetres(){
       if(modely) modely.style.display = 'none';
-      if(panneau) panneau.style.display = 'none';
+      if(panneau){ panneau.style.display = 'none'; panneau.classList.remove('modely-irery'); }
       if(boutonReglages) boutonReglages.setAttribute('aria-expanded', 'false');
     }
     const boutonAlamino = document.getElementById('fenetresAlamino');
     if(boutonAlamino && modely){
       boutonAlamino.addEventListener('click', function(e){
         e.stopPropagation();
-        modely.style.display = modely.style.display === 'none' ? 'grid' : 'none';
+        // Le choix reste seul dans le panneau : le reste se cache.
+        modely.style.display = 'grid';
+        if(panneau) panneau.classList.add('modely-irery');
       });
       modely.addEventListener('click', function(e){
         const b = e.target.closest ? e.target.closest('[data-modely]') : null;
@@ -6644,6 +6646,9 @@
         e.stopPropagation();
         const ouvert = panneau.style.display === 'block';
         panneau.style.display = ouvert ? 'none' : 'block';
+        // Rouvert, le panneau repart de son contenu complet.
+        panneau.classList.remove('modely-irery');
+        if(modely) modely.style.display = 'none';
         boutonReglages.setAttribute('aria-expanded', ouvert ? 'false' : 'true');
         if(!ouvert) placerReglages();
       });
