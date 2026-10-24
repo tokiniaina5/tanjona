@@ -5053,6 +5053,21 @@
       // Une fenêtre fermée à sa croix pendant la rangée : les autres se
       // resserrent.
       if(laharana && laharana.liste.some(function(x){ return !visible(x.el); })) poserLaharana();
+      // Une page ouverte pendant la rangée (par le N, la rangée du bas) y
+      // prend place au bout, au lieu de se poser par-dessus les autres.
+      if(laharana){
+        const venues = suivis.filter(function(x){
+          return estFenetre(x) && visible(x.el) && laharana.liste.indexOf(x) < 0;
+        });
+        if(venues.length){
+          venues.forEach(function(x){
+            if(x.agrandie) marquerAgrandie(x, false);
+            laharana.liste.push(x);
+          });
+          laharana.decalage = -Infinity;
+          poserLaharana();
+        }
+      }
     }
 
     // Déplacer : la fenêtre suit le doigt, sans changer de taille, et sans
@@ -5381,17 +5396,45 @@
     function cadreRangement(){
       const z = ecran();
       const bande = bandeUtile();
-      return { x: z.x + MARGE, y: bande.haut + MARGE, w: z.w - 2 * MARGE, h: bande.bas - bande.haut - 2 * MARGE, z: z };
+      return laisserLeN({ x: z.x + MARGE, y: bande.haut + MARGE, w: z.w - 2 * MARGE, h: bande.bas - bande.haut - 2 * MARGE, z: z });
     }
+    // Le N flottant passe au-dessus de toutes les fenêtres : rangées sous lui,
+    // il cachait leurs ─ □ ✕ (24/10/2026). On lui laisse sa colonne, du côté
+    // où on l'a posé — sauf si la place manque pour une fenêtre.
+    function laisserLeN(c){
+      const n = document.getElementById('menuFlottant');
+      if(!n || getComputedStyle(n).display === 'none' || n.style.visibility === 'hidden') return c;
+      const r = n.getBoundingClientRect();
+      if(!r.width || r.bottom <= c.y || r.top >= c.y + c.h) return c;
+      if(r.right <= c.x || r.left >= c.x + c.w) return c;
+      if(r.left + r.width / 2 > c.x + c.w / 2){
+        const w = r.left - MARGE - c.x;
+        if(w >= MIN_L){ c.w = w; c.n = true; }
+      } else {
+        const x = r.right + MARGE;
+        const w = c.x + c.w - x;
+        if(w >= MIN_L){ c.w = w; c.x = x; c.n = true; }
+      }
+      return c;
+    }
+    // Toutes visibles d'un coup (24/10/2026) : la place se partage entre
+    // elles. La rangée ne glisse plus que si elles sont trop nombreuses pour
+    // la taille minimale d'une fenêtre.
     function carte(){
       const c = cadreRangement();
+      const n = Math.max(1, laharana ? laharana.liste.length : 1);
       if(laharana && laharana.sens === 'y'){
         // Une bande sombre reste libre à droite : c'est par elle qu'on fait
         // glisser la rangée, le doigt sur une fenêtre fait défiler son contenu.
-        return { w: Math.round(Math.max(MIN_L, c.w - 52)), h: Math.round(Math.max(MIN_H, c.h * 0.48)), c: c };
+        // La colonne du N en tient lieu quand elle est là.
+        return {
+          w: Math.round(Math.max(MIN_L, c.w - (c.n ? 0 : 52))),
+          h: Math.round(Math.max(MIN_H, (c.h - (n - 1) * ECART) / n)),
+          c: c
+        };
       }
       return {
-        w: Math.round(Math.max(MIN_L, Math.min(380, c.z.w * 0.72))),
+        w: Math.round(Math.max(MIN_L, (c.w - (n - 1) * ECART) / n)),
         h: Math.round(Math.max(MIN_H, c.h)),
         c: c
       };
