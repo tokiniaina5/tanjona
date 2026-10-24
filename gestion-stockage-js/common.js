@@ -6137,7 +6137,7 @@
       if(!cle) return;
       let bouton = rangee.querySelector('[data-epingle="' + cle + '"]');
       if(!bouton && oui){
-        poser(cle);
+        poser(cle, true);
         bouton = rangee.querySelector('[data-epingle="' + cle + '"]');
       }
       if(bouton) bouton.classList.toggle('reduite', !!oui);
@@ -6299,19 +6299,23 @@
       [].forEach.call(document.querySelectorAll('.fenetre-page.active'), function(page){
         if(!page.id || page.id === 'dash-accueil') return;
         const cle = cleDeLaPage(page.id) || lirePageIcone()[page.id];
-        if(!cle || surLeFond(cle) || !entreeDe(cle)) return;
+        // Posée sur le fond ou non : tant que la page est ouverte, une petite
+        // icône la montre dans la rangée, comme la barre des tâches d'un
+        // ordinateur montre ce qui est ouvert, raccourci sur le bureau ou pas.
+        if(!cle || !entreeDe(cle)) return;
         if(gardees.some(function(e){ return e.cle === cle; })) return;
         gardees.push({ cle: cle, vu: Date.now() });
-        poser(cle);
+        poser(cle, true);
       });
       // Le crayon (« Écrire ») et la maison (« Botika ») suivent la même
       // règle : là tant que leur fenêtre est ouverte ou réduite, partis quand
-      // on la ferme à sa ✕.
+      // on la ferme à sa ✕. Posés sur le fond, ils reviennent aussi dans la
+      // rangée le temps que leur fenêtre est ouverte.
       [['barComposer', function(){ const b = document.getElementById('fbComposer'); return b && getComputedStyle(b).display !== 'none'; }],
        ['barAccueil', function(){ const v = document.getElementById('dash-accueil'); return v && v.classList.contains('active'); }]
       ].forEach(function(f){
         const bouton = document.getElementById(f[0]);
-        if(!bouton || surLeFond('fixe:' + f[0])) return;
+        if(!bouton) return;
         bouton.style.display = (f[1]() || bouton.classList.contains('reduite')) ? '' : 'none';
       });
       // Les panneaux (cloche, lune, achats, livraison…) aussi : leur icône
@@ -6320,10 +6324,10 @@
       entreesEpinglables().forEach(function(entree){
         const cle = cleDe(entree);
         // Écrire et l'Accueil ont déjà leur bouton fixe (le crayon, la maison).
-        if(JUMEAUX[entree.id] || !panneauOuvert(cle) || surLeFond(cle)) return;
+        if(JUMEAUX[entree.id] || !panneauOuvert(cle)) return;
         if(gardees.some(function(e){ return e.cle === cle; })) return;
         gardees.push({ cle: cle, vu: Date.now() });
-        poser(cle);
+        poser(cle, true);
       });
       if(gardees.length !== liste.length || gardees.some(function(e, i){ return !liste[i] || liste[i].cle !== e.cle; })){
         ecrireEpingles(gardees);
@@ -6372,7 +6376,7 @@
       if(jumeau){
         // Déjà posée sur le fond : la rappeler du menu la remettrait aussi
         // dans la rangée, et on l'aurait aux deux endroits.
-        if(surLeFond('fixe:' + jumeau)) return;
+        if(surLeFond('fixe:' + jumeau)){ setTimeout(elaguer, 80); return; }
         const bouton = document.getElementById(jumeau);
         if(bouton) bouton.style.display = '';
         ecrireRetirees(lireRetirees().filter(function(id){ return id !== jumeau; }));
@@ -6380,7 +6384,7 @@
         return;
       }
       const cle = cleDe(entree);
-      if(surLeFond(cle)) return;
+      if(surLeFond(cle)){ setTimeout(elaguer, 80); return; }
       if(!remplissage){ noterUsage(cle); retenirLaPageDe(cle); }
       const liste = lireEpingles();
       const connue = liste.filter(function(e){ return e.cle === cle; })[0];
@@ -6839,9 +6843,11 @@
 
     // Une icône posée sur le fond n'a rien à faire dans la rangée : elle y
     // reviendrait au premier passage par le menu, et on l'aurait en double.
+    // Sauf le temps que sa fenêtre est ouverte (`ouverte`) : la rangée montre
+    // alors ce qui est ouvert, et l'icône repart quand on la ferme.
     const poserOriginal = poser;
-    poser = function(cle){
-      if(surLeFond(cle)) return;
+    poser = function(cle, ouverte){
+      if(surLeFond(cle) && !ouverte) return;
       poserOriginal(cle);
     };
 
