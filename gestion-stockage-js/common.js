@@ -5276,7 +5276,9 @@
     function carte(){
       const c = cadreRangement();
       if(laharana && laharana.sens === 'y'){
-        return { w: Math.round(Math.max(MIN_L, c.w)), h: Math.round(Math.max(MIN_H, c.h * 0.48)), c: c };
+        // Une bande sombre reste libre à droite : c'est par elle qu'on fait
+        // glisser la rangée, le doigt sur une fenêtre fait défiler son contenu.
+        return { w: Math.round(Math.max(MIN_L, c.w - 52)), h: Math.round(Math.max(MIN_H, c.h * 0.48)), c: c };
       }
       return {
         w: Math.round(Math.max(MIN_L, Math.min(380, c.z.w * 0.72))),
@@ -5399,6 +5401,7 @@
         document.body.appendChild(fond);
         laharana.fond = fond;
         document.body.classList.add('fenetres-laharana');
+        document.body.classList.toggle('fenetres-laharana-y', laharana.sens === 'y');
         poserLaharana();
         return;
       }
@@ -5414,14 +5417,19 @@
       if(!laharana) return;
       const l = laharana;
       laharana = null;
-      document.body.classList.remove('fenetres-laharana');
+      document.body.classList.remove('fenetres-laharana', 'fenetres-laharana-y');
       if(l.fond) l.fond.remove();
       l.liste.forEach(retenirPlace);
       if(choisie && visible(choisie.el)) mettreDevant(choisie);
       replacerLesPages();
     }
-    // Glisser la rangée, du doigt ou à la souris, n'importe où sur elle ; un
-    // appui sans glisser choisit la fenêtre touchée.
+    // On travaille dans la rangée sans la quitter (24/10/2026) : la quitter
+    // pour chaque appui renvoyait les fenêtres dans le désordre d'où on
+    // voulait sortir. Toucher une fenêtre la met devant et agit dedans ; son
+    // contenu défile comme d'habitude. La rangée, elle, glisse dans son sens
+    // (Milahatra en largeur, n'importe où ; Mifanongoa en hauteur, par la
+    // bande sombre à droite des fenêtres). Seul un appui sur le fond sombre,
+    // ou Échap, la referme.
     let geste = null;
     let apresGlisse = false;
     document.addEventListener('pointerdown', function(e){
@@ -5432,6 +5440,9 @@
       const s = laharana.liste.find(function(x){ return x.el.contains(e.target); }) || null;
       const surFond = e.target === laharana.fond;
       if(!s && !surFond) return;
+      // Dans Mifanongoa, le doigt qui glisse sur une fenêtre fait défiler
+      // son contenu : la rangée ne se tire que par le fond.
+      if(s && laharana.sens === 'y') return;
       geste = { x: e.clientX, y: e.clientY, depart: laharana.decalage, s: s, bouge: false };
       // Sur une fenêtre, l'appui passe : le champ touché prend le curseur,
       // le bouton touché répond, comme hors de la rangée.
@@ -5441,6 +5452,11 @@
       if(!geste || !laharana) return;
       // Mifanongoa glisse en hauteur, Milahatra en largeur.
       const dx = laharana.sens === 'y' ? e.clientY - geste.y : e.clientX - geste.x;
+      const autre = laharana.sens === 'y' ? e.clientX - geste.x : e.clientY - geste.y;
+      if(!geste.bouge && Math.abs(dx) < 8 && Math.abs(autre) < 8) return;
+      // Sur une fenêtre, un geste d'abord vertical fait défiler son contenu :
+      // la rangée le laisse.
+      if(!geste.bouge && geste.s && Math.abs(autre) >= Math.abs(dx)){ geste = null; return; }
       if(!geste.bouge && Math.abs(dx) < 8) return;
       geste.bouge = true;
       e.preventDefault();
@@ -5453,12 +5469,13 @@
       geste = null;
       if(g.bouge){ apresGlisse = true; return; }
       if(!laharana) return;
-      quitterLaharana(g.s);
+      // Le fond referme la rangée ; une fenêtre touchée reste à sa place.
+      if(!g.s) quitterLaharana(null);
     }, true);
     document.addEventListener('pointercancel', function(){ geste = null; }, true);
     // Un clic après un glissement n'ouvre rien : la rangée a bougé sous le
-    // doigt, ce n'était pas un choix. Un simple appui, lui, arrive après la
-    // fermeture de la rangée et agit dans la fenêtre.
+    // doigt, ce n'était pas un choix. Un simple appui, lui, agit dans la
+    // fenêtre.
     document.addEventListener('click', function(e){
       if(!apresGlisse) return;
       apresGlisse = false;
@@ -5466,9 +5483,13 @@
       e.preventDefault();
       e.stopPropagation();
     }, true);
-    // La molette fait défiler la rangée, et Échap la referme.
+    // La molette fait défiler la rangée, et Échap la referme. Sur une
+    // fenêtre, la molette garde son rôle (faire défiler le contenu), sauf de
+    // côté dans Milahatra, qui est le sens de la rangée.
     document.addEventListener('wheel', function(e){
       if(!laharana) return;
+      const surFenetre = laharana.liste.some(function(x){ return x.el.contains(e.target); });
+      if(surFenetre && (laharana.sens === 'y' || Math.abs(e.deltaY) >= Math.abs(e.deltaX))) return;
       e.preventDefault();
       laharana.decalage -= (laharana.sens !== 'y' && Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY);
       poserLaharana();

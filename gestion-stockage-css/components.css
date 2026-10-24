@@ -1292,7 +1292,15 @@
   body.fenetres-laharana #fbComposer,
   body.fenetres-laharana #notifPanel,
   body.fenetres-laharana #marketPanel,
-  body.fenetres-laharana #livraisonPanel{ cursor: pointer; touch-action: none; }
+  body.fenetres-laharana #livraisonPanel{ touch-action: pan-y; }
+  /* On travaille dans la rangée : le contenu défile en hauteur, le geste de
+     côté fait glisser la rangée (Milahatra). Dans Mifanongoa, la rangée se
+     tire par le fond : le contenu garde tous ses gestes. */
+  body.fenetres-laharana-y .fenetre-page,
+  body.fenetres-laharana-y #fbComposer,
+  body.fenetres-laharana-y #notifPanel,
+  body.fenetres-laharana-y #marketPanel,
+  body.fenetres-laharana-y #livraisonPanel{ touch-action: auto; }
 
   /* « Écrire » a la taille d'une page : il en prend aussi la courbe. */
   #fbComposer.composer-flottant{ border-radius: 28px !important; }
