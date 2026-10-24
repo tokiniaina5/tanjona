@@ -94,7 +94,7 @@ Deno.serve(async (req: Request) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   const ownerEmail = (Deno.env.get("OWNER_EMAIL") ?? "").trim().toLowerCase();
-  const appUrl = (Deno.env.get("APP_URL") ?? "https://ny-asako.netlify.app/").replace(/\/*$/, "/");
+  const appUrl = (Deno.env.get("APP_URL") ?? "https://nyasako.com/").replace(/\/*$/, "/");
 
   if (!supabaseUrl || !serviceKey || !ownerEmail) {
     return json({ error: "configuration incomplète (SUPABASE_SERVICE_ROLE_KEY / OWNER_EMAIL)" }, 500);

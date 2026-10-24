@@ -6076,7 +6076,7 @@
         sary: '<svg viewBox="0 0 260 120" class="ios-sary">' +
           '<rect x="10" y="10" width="240" height="100" rx="14" fill="#f2f2f7"/>' +
           '<rect x="22" y="22" width="216" height="26" rx="9" fill="#e3e3ea"/>' +
-          '<text x="130" y="40" text-anchor="middle" font-size="11" fill="#555">ny-asako.netlify.app</text>' +
+          '<text x="130" y="40" text-anchor="middle" font-size="11" fill="#555">nyasako.com</text>' +
           '<g transform="translate(40 84)"><path d="M6 -7 L-2 0 L6 7" fill="none" stroke="#0a84ff" stroke-width="2.6" stroke-linecap="round"/></g>' +
           '<g transform="translate(85 84)"><path d="M-6 -7 L2 0 L-6 7" fill="none" stroke="#c7c7cc" stroke-width="2.6" stroke-linecap="round"/></g>' +
           '<circle cx="130" cy="82" r="20" fill="#0a84ff" opacity=".14" class="ios-pulse"/>' +

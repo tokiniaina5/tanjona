@@ -162,7 +162,7 @@ async function traiter(req: Request): Promise<Response> {
   // Le lien ouvre le site, où le propriétaire doit être connecté : c'est son
   // compte, et non la possession du lien, qui valide. Un lien qui validerait
   // à lui seul serait déclenché par le premier antivirus qui l'ouvre.
-  const appUrl = (Deno.env.get("APP_URL") ?? "https://ny-asako.netlify.app/").replace(/\/*$/, "/");
+  const appUrl = (Deno.env.get("APP_URL") ?? "https://nyasako.com/").replace(/\/*$/, "/");
   // Sur l'application du Fokontany (fokontany/), et non sur le stock.
   const lienValider = appUrl + "fokontany/?commun_valider=" + encodeURIComponent(email) + "&c=" + encodeURIComponent(code);
 

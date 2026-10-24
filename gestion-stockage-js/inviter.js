@@ -13,10 +13,10 @@
   // sokafana avy amin'ny localhost aza ny pejy, mba tsy hisy rohy tsy misokatra
   // any amin'ny mpanjifa. Ny admin dia afaka manova azy ao amin'ny
   // « Nous contacter » → « Adresse publique du site ».
-  const DEFAULT_PUBLIC_URL = 'https://ny-asako.netlify.app';
+  const DEFAULT_PUBLIC_URL = 'https://nyasako.com';
 
   // Toujours terminée par « / » : les liens s'y collent en « ?mpiasa=… »,
-  // « ?suivi=… », « ?invite=… ». Sans la barre, « ny-asako.netlify.app?mpiasa=… »
+  // « ?suivi=… », « ?invite=… ». Sans la barre, « nyasako.com?mpiasa=… »
   // ne ressemble plus à une adresse : collé dans la barre de recherche de
   // Google sur un téléphone, il était cherché comme un mot au lieu d'être
   // ouvert.

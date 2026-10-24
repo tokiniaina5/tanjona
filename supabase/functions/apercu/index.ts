@@ -35,7 +35,7 @@ function json(body: unknown, status = 200): Response {
 // Une page se laisse lire par un navigateur, et se referme devant un script
 // qui s'annonce comme tel. On se présente donc comme un navigateur — c'est ce
 // que fait tout ce qui affiche un aperçu de lien.
-const AGENT = "Mozilla/5.0 (compatible; NyAsako/1.0; +https://ny-asako.netlify.app)";
+const AGENT = "Mozilla/5.0 (compatible; NyAsako/1.0; +https://nyasako.com)";
 // De quoi contenir l'en-tête d'une page. Au-delà, les balises « og: » sont
 // passées depuis longtemps, et l'on ne va pas télécharger un site entier.
 const MAX_OCTETS = 512 * 1024;
