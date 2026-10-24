@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="3b9fc817">
+<meta name="ny-asako-version" content="6e1a5a30">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -179,7 +179,7 @@
 <!-- fin des écrans de démarrage iOS -->
 <link rel="icon" href="/icone-192.png" type="image/png">
 <link rel="stylesheet" href="gestion-stockage-css/base.css?v=7e2a052a">
-<link rel="stylesheet" href="gestion-stockage-css/components.css?v=325462dc">
+<link rel="stylesheet" href="gestion-stockage-css/components.css?v=3dcd2d45">
 <!-- Les émojis dessinés en 3D (emoji-3d.js). -->
 <script src="gestion-stockage-js/emoji-3d.js?v=66dad412" defer></script>
 </head>
@@ -1166,6 +1166,14 @@
         <div style="display:flex; gap:0.5rem; margin-top:0.8rem;">
           <button type="button" class="btn btn-sm" id="fenetresAlamino" style="flex:1;" title="Aligner les fenêtres"><span aria-hidden="true">🗂️ </span>Alamino</button>
           <button type="button" class="btn btn-sm" id="fenetresHidio" style="flex:1;" title="Fermer toutes les fenêtres"><span aria-hidden="true">✖ </span>Hidio daholo</button>
+        </div>
+        <!-- « Alamino » ouvre ce choix : la façon de ranger les fenêtres. -->
+        <div id="fenetresModely" class="fenetres-modely" style="display:none;">
+          <button type="button" class="btn btn-sm" data-modely="milahatra" title="Côte à côte, à faire glisser"><span aria-hidden="true">🎞️ </span>Milahatra</button>
+          <button type="button" class="btn btn-sm" data-modely="grille" title="Toutes visibles, en cases"><span aria-hidden="true">▦ </span>Grille</button>
+          <button type="button" class="btn btn-sm" data-modely="roa" title="Les deux dernières, chacune une moitié"><span aria-hidden="true">◫ </span>Mifanila roa</button>
+          <button type="button" class="btn btn-sm" data-modely="cascade" title="Décalées les unes sur les autres"><span aria-hidden="true">🗃️ </span>Cascade</button>
+          <button type="button" class="btn btn-sm" data-modely="mifanongoa" title="Les unes sous les autres, à faire glisser"><span aria-hidden="true">🧱 </span>Mifanongoa</button>
         </div>
         <!-- Sortie de secours : une rangée vidée ne se remplissait plus jamais
              d'elle-même, et il n'y avait aucun chemin pour y revenir. -->
@@ -3653,7 +3661,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=51625ad0"></script>
+<script src="gestion-stockage-js/common.js?v=93aaa69b"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=d0a53ff8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
@@ -3665,7 +3673,7 @@
 <script src="gestion-stockage-js/zara-rehetra.js?v=9b9c2469"></script>
 <script src="gestion-stockage-js/live.js?v=65e437a7"></script>
 <script src="gestion-stockage-js/traduction.js?v=8f5605bc"></script>
-<script src="gestion-stockage-js/teny.js?v=85419c71"></script>
+<script src="gestion-stockage-js/teny.js?v=cd7b5557"></script>
 <script src="gestion-stockage-js/parametres.js?v=cda4348c"></script>
 <!-- Le partage reçu du dehors remplit la boîte « Écrire », que parametres.js
      tient : il se charge après elle. -->

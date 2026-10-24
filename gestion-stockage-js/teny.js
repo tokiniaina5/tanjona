@@ -148,7 +148,13 @@
       "Fond d'écran": { mg: 'Sary ambadika' },
       // Les deux boutons des fenêtres : « Hidio » sortait « Verrouillez ».
       'Alamino': { fr: 'Aligner', en: 'Line up', es: 'Alinear', pt: 'Alinhar', de: 'Aufreihen', it: 'Allinea' },
-      'Hidio daholo': { fr: 'Tout fermer', en: 'Close all', es: 'Cerrar todo', pt: 'Fechar tudo', de: 'Alle schließen', it: 'Chiudi tutto' }
+      'Hidio daholo': { fr: 'Tout fermer', en: 'Close all', es: 'Cerrar todo', pt: 'Fechar tudo', de: 'Alle schließen', it: 'Chiudi tutto' },
+      // Les façons de ranger, sous « Alamino ».
+      'Milahatra': { fr: 'En rangée', en: 'Row', es: 'En fila', pt: 'Em fila', de: 'Reihe', it: 'In fila' },
+      'Grille': { mg: 'Grille', en: 'Grid', es: 'Cuadrícula', pt: 'Grade', de: 'Raster', it: 'Griglia' },
+      'Mifanila roa': { fr: 'Deux côte à côte', en: 'Split in two', es: 'Dos lado a lado', pt: 'Duas lado a lado', de: 'Zwei nebeneinander', it: 'Due affiancate' },
+      'Cascade': { mg: 'Cascade', en: 'Cascade', es: 'Cascada', pt: 'Cascata', de: 'Kaskade', it: 'Cascata' },
+      'Mifanongoa': { fr: 'Empilées', en: 'Stacked', es: 'Apiladas', pt: 'Empilhadas', de: 'Gestapelt', it: 'Impilate' }
     };
     Object.keys(VOAFARITRA).forEach(function(k){
       const t = VOAFARITRA[k][teny] || VOAFARITRA[k]['*'];

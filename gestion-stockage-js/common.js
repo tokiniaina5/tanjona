@@ -5246,12 +5246,20 @@
     new MutationObserver(function(){ replacerLesPages(); })
       .observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
-    // 🗂️ Alamino : les fenêtres ouvertes se mettent côte à côte, en une
-    // rangée qu'on fait glisser à gauche et à droite, comme les applications
-    // récentes d'un téléphone (23/10/2026). Depuis le 24/10/2026, elles
-    // restent là où la rangée les a mises : toucher l'une la met devant et on
-    // y travaille aussitôt, toucher à côté referme la rangée sans rien bouger.
-    // Revenir à l'ancienne place défaisait le rangement qu'on venait de demander.
+    // 🗂️ Alamino : ranger les fenêtres ouvertes, de cinq façons (24/10/2026).
+    //  - Milahatra : côte à côte, en une rangée qu'on fait glisser à gauche et
+    //    à droite, comme les applications récentes d'un téléphone ;
+    //  - Mifanongoa : la même rangée, mais les unes sous les autres, qu'on
+    //    fait glisser en haut et en bas ;
+    //  - Grille : toutes visibles à la fois, une case chacune ;
+    //  - Mifanila roa : les deux dernières touchées, une moitié d'écran
+    //    chacune (côte à côte sur un écran large, l'une sur l'autre sur un
+    //    téléphone debout) ; les autres restent derrière ;
+    //  - Cascade : décalées, chacune laissant voir le haut de la précédente.
+    // Dans les deux rangées, toucher une fenêtre la met devant et on y
+    // travaille aussitôt ; toucher à côté referme la rangée. Dans tous les cas
+    // les fenêtres restent là où on les a rangées : la place est retenue,
+    // comme si on les y avait posées à la main.
     function ouvertes(){
       const vues = suivis.filter(function(x){ return estFenetre(x) && visible(x.el); });
       // Dans l'ordre où elles sont empilées ; celles jamais touchées d'abord.
@@ -5259,20 +5267,29 @@
     }
     let laharana = null;
     const ECART = 16;
-    function carte(){
+    // La bande où l'on range : sous le nom, au-dessus de la rangée du bas.
+    function cadreRangement(){
       const z = ecran();
       const bande = bandeUtile();
+      return { x: z.x + MARGE, y: bande.haut + MARGE, w: z.w - 2 * MARGE, h: bande.bas - bande.haut - 2 * MARGE, z: z };
+    }
+    function carte(){
+      const c = cadreRangement();
+      if(laharana && laharana.sens === 'y'){
+        return { w: Math.round(Math.max(MIN_L, c.w)), h: Math.round(Math.max(MIN_H, c.h * 0.48)), c: c };
+      }
       return {
-        w: Math.round(Math.max(MIN_L, Math.min(380, z.w * 0.72))),
-        h: Math.round(Math.max(MIN_H, bande.bas - bande.haut - 2 * MARGE)),
-        haut: bande.haut + MARGE, z: z
+        w: Math.round(Math.max(MIN_L, Math.min(380, c.z.w * 0.72))),
+        h: Math.round(Math.max(MIN_H, c.h)),
+        c: c
       };
     }
     function borneDecalage(){
-      const c = carte();
-      const total = laharana.liste.length * c.w + (laharana.liste.length - 1) * ECART;
-      const place = c.z.w - 2 * MARGE;
-      // Moins larges que l'écran : centrées, sans glisser.
+      const k = carte();
+      const y = laharana.sens === 'y';
+      const total = laharana.liste.length * (y ? k.h : k.w) + (laharana.liste.length - 1) * ECART;
+      const place = y ? k.c.h : k.c.w;
+      // Plus courtes que l'écran : centrées, sans glisser.
       if(total <= place) return { min: (place - total) / 2, max: (place - total) / 2 };
       return { min: place - total, max: 0 };
     }
@@ -5280,34 +5297,118 @@
       if(!laharana) return;
       laharana.liste = laharana.liste.filter(function(s){ return visible(s.el); });
       if(!laharana.liste.length){ quitterLaharana(null); return; }
-      const c = carte();
+      const k = carte();
       const b = borneDecalage();
+      const y = laharana.sens === 'y';
       laharana.decalage = Math.max(b.min, Math.min(b.max, laharana.decalage));
       laharana.liste.forEach(function(s, i){
+        const d = laharana.decalage + i * ((y ? k.h : k.w) + ECART);
         figer(s.el, {
-          left: Math.round(c.z.x + MARGE + laharana.decalage + i * (c.w + ECART)),
-          top: Math.round(c.haut), width: c.w, height: c.h
+          left: Math.round(k.c.x + (y ? 0 : d)),
+          top: Math.round(k.c.y + (y ? d : 0)),
+          width: k.w, height: k.h
         });
       });
       synchroniser();
     }
-    function alaminoFenetres(){
-      if(laharana){ poserLaharana(); return; }
+    // Ce que fait la main quand elle pose une fenêtre : sa place et sa taille
+    // sont retenues. Sans cela, le prochain replacement (écran tourné, barre
+    // escamotée) les renvoyait à leur ancienne place.
+    function retenirPlace(s){
+      if(!visible(s.el)) return;
+      const r = s.el.getBoundingClientRect();
+      if(r.width >= MIN_L && r.height >= MIN_H){
+        const t = lire();
+        t[s.el.id] = { l: Math.round(r.width), h: Math.round(r.height) };
+        ecrire(t);
+      }
+      if(s.page || s.commePage){
+        const o = lirePlaces();
+        o[s.el.id] = { x: Math.round(r.left), y: Math.round(r.top) };
+        ecrirePlaces(o);
+      }
+    }
+    // Grille : autant de colonnes que la forme de l'écran le veut — plus
+    // qu'en hauteur sur un ordinateur, moins sur un téléphone debout. La
+    // dernière ligne, incomplète, s'étale sur toute la largeur.
+    function rangerEnGrille(liste){
+      const c = cadreRangement();
+      const n = liste.length;
+      const cols = Math.max(1, Math.min(n, Math.round(Math.sqrt(n * c.w / Math.max(1, c.h))) || 1));
+      const lignes = Math.ceil(n / cols);
+      const ecart = ECART / 2;
+      const h = Math.max(MIN_H, (c.h - (lignes - 1) * ecart) / lignes);
+      liste.forEach(function(s, i){
+        const ligne = Math.floor(i / cols), col = i % cols;
+        const surLaLigne = Math.min(cols, n - ligne * cols);
+        const w = Math.max(MIN_L, (c.w - (surLaLigne - 1) * ecart) / surLaLigne);
+        figer(s.el, {
+          left: Math.round(c.x + col * (w + ecart)),
+          top: Math.round(c.y + ligne * (h + ecart)),
+          width: Math.round(w), height: Math.round(h)
+        });
+      });
+    }
+    function rangerParDeux(liste){
+      const c = cadreRangement();
+      const deux = liste.slice(-2);
+      const ecart = ECART / 2;
+      const cote = c.w >= c.h;
+      const n = deux.length;
+      const w = cote ? (c.w - (n - 1) * ecart) / n : c.w;
+      const h = cote ? c.h : (c.h - (n - 1) * ecart) / n;
+      deux.forEach(function(s, i){
+        figer(s.el, {
+          left: Math.round(c.x + (cote ? i * (w + ecart) : 0)),
+          top: Math.round(c.y + (cote ? 0 : i * (h + ecart))),
+          width: Math.round(Math.max(MIN_L, w)), height: Math.round(Math.max(MIN_H, h))
+        });
+      });
+      return deux;
+    }
+    function rangerEnCascade(liste){
+      const c = cadreRangement();
+      const n = liste.length;
+      // Le décalage laisse voir le haut de chaque fenêtre (ses boutons ─ □ ✕),
+      // et se resserre quand elles sont nombreuses.
+      const pas = n < 2 ? 0 : Math.max(16, Math.min(40, (c.h - MIN_H) / (n - 1), (c.w - MIN_L) / (n - 1)));
+      const w = Math.max(MIN_L, Math.min(900, c.w - (n - 1) * pas));
+      const h = Math.max(MIN_H, c.h - (n - 1) * pas);
+      liste.forEach(function(s, i){
+        figer(s.el, {
+          left: Math.round(c.x + i * pas), top: Math.round(c.y + i * pas),
+          width: Math.round(w), height: Math.round(h)
+        });
+      });
+    }
+    function alaminoFenetres(modely){
+      modely = modely || 'milahatra';
+      quitterLaharana(null);
       const liste = ouvertes();
       if(!liste.length) return;
-      laharana = { liste: liste, decalage: 0 };
       liste.forEach(function(s){
         if(s.agrandie) marquerAgrandie(s, false);
         glisser(s, 0);
       });
-      // La plus récente au bout de la rangée, et la rangée glissée jusqu'à elle.
-      laharana.decalage = borneDecalage().min;
-      const fond = document.createElement('div');
-      fond.className = 'laharana-fond';
-      document.body.appendChild(fond);
-      laharana.fond = fond;
-      document.body.classList.add('fenetres-laharana');
-      poserLaharana();
+      if(modely === 'milahatra' || modely === 'mifanongoa'){
+        laharana = { liste: liste, decalage: 0, sens: modely === 'mifanongoa' ? 'y' : 'x' };
+        // La plus récente au bout de la rangée, et la rangée glissée jusqu'à elle.
+        laharana.decalage = borneDecalage().min;
+        const fond = document.createElement('div');
+        fond.className = 'laharana-fond';
+        document.body.appendChild(fond);
+        laharana.fond = fond;
+        document.body.classList.add('fenetres-laharana');
+        poserLaharana();
+        return;
+      }
+      let rangees = liste;
+      if(modely === 'grille') rangerEnGrille(liste);
+      else if(modely === 'roa') rangees = rangerParDeux(liste);
+      else rangerEnCascade(liste);
+      // Dans l'ordre de la pile : la dernière rangée passe devant.
+      rangees.forEach(function(s){ mettreDevant(s); retenirPlace(s); });
+      synchroniser();
     }
     function quitterLaharana(choisie){
       if(!laharana) return;
@@ -5315,6 +5416,7 @@
       laharana = null;
       document.body.classList.remove('fenetres-laharana');
       if(l.fond) l.fond.remove();
+      l.liste.forEach(retenirPlace);
       if(choisie && visible(choisie.el)) mettreDevant(choisie);
       replacerLesPages();
     }
@@ -5330,14 +5432,15 @@
       const s = laharana.liste.find(function(x){ return x.el.contains(e.target); }) || null;
       const surFond = e.target === laharana.fond;
       if(!s && !surFond) return;
-      geste = { x: e.clientX, depart: laharana.decalage, s: s, bouge: false };
+      geste = { x: e.clientX, y: e.clientY, depart: laharana.decalage, s: s, bouge: false };
       // Sur une fenêtre, l'appui passe : le champ touché prend le curseur,
       // le bouton touché répond, comme hors de la rangée.
       if(surFond) e.preventDefault();
     }, true);
     document.addEventListener('pointermove', function(e){
       if(!geste || !laharana) return;
-      const dx = e.clientX - geste.x;
+      // Mifanongoa glisse en hauteur, Milahatra en largeur.
+      const dx = laharana.sens === 'y' ? e.clientY - geste.y : e.clientX - geste.x;
       if(!geste.bouge && Math.abs(dx) < 8) return;
       geste.bouge = true;
       e.preventDefault();
@@ -5367,7 +5470,7 @@
     document.addEventListener('wheel', function(e){
       if(!laharana) return;
       e.preventDefault();
-      laharana.decalage -= (Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY);
+      laharana.decalage -= (laharana.sens !== 'y' && Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY);
       poserLaharana();
     }, { passive: false, capture: true });
     document.addEventListener('keydown', function(e){
@@ -6470,16 +6573,36 @@
 
     // Ranger ou fermer les fenêtres ouvertes ; le panneau se referme ensuite,
     // pour qu'on voie le résultat.
-    [['fenetresAlamino', '__alaminoFenetres'], ['fenetresHidio', '__hidioDaholo']].forEach(function(paire){
-      const b = document.getElementById(paire[0]);
-      if(!b) return;
-      b.addEventListener('click', function(e){
+    // « Alamino » n'agit plus d'emblée : il déplie le choix du rangement
+    // (24/10/2026), et c'est ce choix qui range.
+    const modely = document.getElementById('fenetresModely');
+    function fermerReglagesFenetres(){
+      if(modely) modely.style.display = 'none';
+      if(panneau) panneau.style.display = 'none';
+      if(boutonReglages) boutonReglages.setAttribute('aria-expanded', 'false');
+    }
+    const boutonAlamino = document.getElementById('fenetresAlamino');
+    if(boutonAlamino && modely){
+      boutonAlamino.addEventListener('click', function(e){
         e.stopPropagation();
-        if(panneau) panneau.style.display = 'none';
-        if(boutonReglages) boutonReglages.setAttribute('aria-expanded', 'false');
-        if(typeof window[paire[1]] === 'function') window[paire[1]]();
+        modely.style.display = modely.style.display === 'none' ? 'grid' : 'none';
       });
-    });
+      modely.addEventListener('click', function(e){
+        const b = e.target.closest ? e.target.closest('[data-modely]') : null;
+        if(!b) return;
+        e.stopPropagation();
+        fermerReglagesFenetres();
+        if(typeof window.__alaminoFenetres === 'function') window.__alaminoFenetres(b.dataset.modely);
+      });
+    }
+    const boutonHidio = document.getElementById('fenetresHidio');
+    if(boutonHidio){
+      boutonHidio.addEventListener('click', function(e){
+        e.stopPropagation();
+        fermerReglagesFenetres();
+        if(typeof window.__hidioDaholo === 'function') window.__hidioDaholo();
+      });
+    }
 
     if(boutonReglages && panneau){
       document.body.appendChild(panneau);

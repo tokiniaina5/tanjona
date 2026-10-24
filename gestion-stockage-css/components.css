@@ -1281,6 +1281,11 @@
     background: rgba(0,0,0,0.45);
     touch-action: none;
   }
+  /* Le choix du rangement, sous « Alamino » : deux par ligne. */
+  .fenetres-modely{
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; margin-top: 0.5rem;
+  }
+  .fenetres-modely .btn{ justify-content: flex-start; }
   body.fenetres-laharana .poignee,
   body.fenetres-laharana .poignee-deplacer{ display: none; }
   body.fenetres-laharana .fenetre-page,
