@@ -596,7 +596,9 @@
   .theme-reglage input[type="range"]{ width:100%; height:26px; accent-color: var(--cyan); cursor:pointer; }
   /* Les deux choix sont d'abord des images : le mot n'est là que pour lever le
      doute sur ce que la main et la machine veulent dire. */
-  .reglage-mode{
+  /* « Alamino » et « Hidio daholo » prennent la même forme, sans l'état actif
+     (une autre classe : common.js branche ses clics sur .reglage-mode). */
+  .reglage-mode, .reglage-action{
     flex:1;
     display:flex; flex-direction:column; align-items:center; gap:0.35rem;
     padding:0.7rem 0.4rem;
@@ -604,7 +606,7 @@
     background:var(--panel-2); color:var(--muted);
     font:inherit; font-size:0.72rem; cursor:pointer;
   }
-  .reglage-mode:hover{ color:var(--text); border-color:var(--cyan); }
+  .reglage-mode:hover, .reglage-action:hover{ color:var(--text); border-color:var(--cyan); }
   .reglage-mode.actif{ color:var(--cyan); border-color:var(--cyan); background:rgba(79,216,224,0.1); }
   .reglage-icone{ font-size:1.5rem; line-height:1; }
 
