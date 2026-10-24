@@ -2344,6 +2344,9 @@
     }
     const forgotWrap = document.getElementById('forgotWrap');
     if(forgotWrap) forgotWrap.style.display = quick ? 'block' : 'none';
+    // Les liens de l'admin (contact.js) : dans « Bon retour » seulement.
+    const loginRohy = document.getElementById('loginRohy');
+    if(loginRohy) loginRohy.hidden = !quick;
     majGoogle();
     closeHelpBoxes();
   }
@@ -2379,6 +2382,8 @@
     const back = document.getElementById('helpBackBtn');
     if(back) back.style.display = openId ? 'block' : 'none';
     if(openId && quickLoginForm) quickLoginForm.style.display = 'none';
+    const loginRohy = document.getElementById('loginRohy');
+    if(openId && loginRohy) loginRohy.hidden = true;
   }
   function openHelpBox(id){
     const box = document.getElementById(id);

@@ -51,6 +51,8 @@
   #loginScreen:not(.plus-ouvert) .login-plus{ display:none !important; }
   /* Ouvertes, elles remplacent le formulaire « Bon retour ». */
   #loginScreen.plus-ouvert #quickLoginForm > :not(#loginPlusBtn):not(.login-plus){ display:none !important; }
+  /* Les liens de l'admin : hors de « Bon retour », ils ne s'affichent pas (common.js). */
+  #loginRohy[hidden], #loginScreen.plus-ouvert #loginRohy{ display:none !important; }
   .login-card{
     width:100%;
     max-width: 380px;

@@ -918,6 +918,34 @@
     if(input) input.focus();
   }
   afficherLesEnregistres();
+
+  // « Bon retour » : les canaux de l'admin (ceux que tout le monde peut lire)
+  // sous « Continuer avec Google », chaque logo ouvre son site. Rien à
+  // effacer ici, et un canal sans lien (WeChat, lien à reprendre) n'y est pas.
+  function afficherRohyFidirana(){
+    const zone = document.getElementById('loginRohy');
+    if(!zone) return;
+    fetchContactChannels(function(channels, extra){
+      const lignes = [];
+      Object.keys(NOMS_CANAUX).forEach(function(cle){
+        const v = String((channels && channels[cle]) || '').trim();
+        const lien = v ? lienDuCanal(cle, v) : '';
+        if(lien) lignes.push({ logo: CLE_LOGO[cle], nom: NOMS_CANAUX[cle], lien: lien, ok: true, titre: lien });
+      });
+      (extra || []).forEach(function(item){
+        if(!item || !item.name || !item.url) return;
+        let lien = /^(viber|mailto|tg|sgnl):/i.test(item.url) ? item.url : adresseDeProfil('', item.url);
+        if(!lien || /\s/.test(lien)) return;
+        lignes.push({ logo: logoDe(item.name, item.url), nom: item.name, lien: lien, ok: true, titre: lien });
+      });
+      zone.innerHTML = lignes.length
+        ? '<div style="display:flex; flex-wrap:wrap; justify-content:center; gap:0.9rem 1rem;">' + lignes.map(tuile).join('') + '</div>'
+        : '';
+      zone.style.display = lignes.length ? '' : 'none';
+    });
+  }
+  afficherRohyFidirana();
+
   // Le compte n'est connu qu'après la connexion : parametres.js redemande
   // alors les canaux de celui-ci (renderLogins).
   window.__rohyVaozina = function(){
