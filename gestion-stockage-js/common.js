@@ -5407,6 +5407,10 @@
       const r = n.getBoundingClientRect();
       if(!r.width || r.bottom <= c.y || r.top >= c.y + c.h) return c;
       if(r.right <= c.x || r.left >= c.x + c.w) return c;
+      // Seulement collé à un bord : posé plus loin, lui laisser toute sa
+      // colonne vidait le côté de l'écran et serrait les fenêtres en lanières.
+      const proche = r.width + 3 * MARGE;
+      if(r.left - c.x > proche && (c.x + c.w) - r.right > proche) return c;
       if(r.left + r.width / 2 > c.x + c.w / 2){
         const w = r.left - MARGE - c.x;
         if(w >= MIN_L){ c.w = w; c.n = true; }
