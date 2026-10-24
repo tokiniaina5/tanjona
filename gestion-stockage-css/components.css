@@ -1290,8 +1290,6 @@
     display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;
   }
   #barReglages.modely-irery > :not(#fenetresModely){ display: none !important; }
-  body.fenetres-laharana .poignee,
-  body.fenetres-laharana .poignee-deplacer{ display: none; }
   body.fenetres-laharana .fenetre-page,
   body.fenetres-laharana #fbComposer,
   body.fenetres-laharana #notifPanel,

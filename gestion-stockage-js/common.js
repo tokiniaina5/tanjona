@@ -5063,8 +5063,12 @@
         ruban.addEventListener(t, function(e){ e.stopPropagation(); });
       });
       ruban.addEventListener('pointerdown', function(e){
+        if(!visible(s.el)) return;
+        // Rangées par « Alamino », elles se reprennent à la main comme
+        // avant : la rangée se défait, chacune garde la place reçue.
+        sortirDeLaRangee(s);
         const r = s.el.getBoundingClientRect();
-        if(!visible(s.el) || r.width < 1 || r.height < 1) return;
+        if(r.width < 1 || r.height < 1) return;
         e.preventDefault();
         figer(s.el, r);
         g = { x: e.clientX, y: e.clientY, l: r.left, t: r.top, w: r.width, h: r.height };
@@ -5212,8 +5216,10 @@
       poignee.addEventListener('pointerdown', function(e){
         // Une fenêtre fermée n'a ni largeur ni hauteur : la saisir écrirait des
         // zéros dans sa taille, et elle rouvrirait réduite à ses bordures.
+        if(!visible(s.el)) return;
+        sortirDeLaRangee(s);
         const r = s.el.getBoundingClientRect();
-        if(!visible(s.el) || r.width < 1 || r.height < 1) return;
+        if(r.width < 1 || r.height < 1) return;
         e.preventDefault();
         // Prise à la main, elle n'est plus agrandie : elle a sa taille à elle.
         if(s.agrandie) marquerAgrandie(s, false);
@@ -5516,6 +5522,9 @@
       // Dans l'ordre de la pile : la dernière rangée passe devant.
       rangees.forEach(function(s){ mettreDevant(s); retenirPlace(s); });
       synchroniser();
+    }
+    function sortirDeLaRangee(s){
+      if(laharana && laharana.liste.indexOf(s) >= 0) quitterLaharana(s);
     }
     function quitterLaharana(choisie){
       if(!laharana) return;
