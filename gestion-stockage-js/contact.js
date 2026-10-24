@@ -919,8 +919,8 @@
   }
   afficherLesEnregistres();
 
-  // « Bon retour » : sous « Continuer avec Google », chaque logo ouvre son
-  // site, comme le bouton Google, même quand aucun lien n'a été ajouté.
+  // Fenêtre « Bienvenue », sous « Se connecter / Créer un compte » : chaque
+  // logo ouvre son site, même quand aucun lien n'a été ajouté.
   // Un lien de l'admin (que tout le monde peut lire) prend la place du site.
   const SITES_FIDIRANA = [
     { logo: 'whatsapp', nom: 'WhatsApp', canal: 'whatsapp', site: 'https://web.whatsapp.com/' },

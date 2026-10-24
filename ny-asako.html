@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="749426cb">
+<meta name="ny-asako-version" content="5ec4cf11">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -178,7 +178,7 @@
 <link rel="apple-touch-startup-image" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)" href="/demarrage/2732x2048.png">
 <!-- fin des écrans de démarrage iOS -->
 <link rel="icon" href="/icone-192.png" type="image/png">
-<link rel="stylesheet" href="gestion-stockage-css/base.css?v=c9a40607">
+<link rel="stylesheet" href="gestion-stockage-css/base.css?v=7e2a052a">
 <link rel="stylesheet" href="gestion-stockage-css/components.css?v=0c463ab6">
 <!-- Les émojis dessinés en 3D (emoji-3d.js). -->
 <script src="gestion-stockage-js/emoji-3d.js?v=66dad412" defer></script>
@@ -201,9 +201,6 @@
         Continuer avec Google
       </button>
       <p id="googleLoginStatus" style="font-size:0.75rem; color:var(--amber); margin:0.5rem 0 0; line-height:1.5; min-height:0;"></p>
-      <!-- « Bon retour » : les liens de l'admin sous le bouton Google, chaque
-           logo ouvre son site (contact.js, afficherRohyFidirana). -->
-      <div id="loginRohy" hidden style="display:none; margin:0.9rem 0 0;"></div>
       <div style="display:flex; align-items:center; gap:0.6rem; margin:0.9rem 0; font-size:0.72rem; color:var(--muted);">
         <span style="flex:1; border-top:1px solid var(--line);"></span>ou avec email<span style="flex:1; border-top:1px solid var(--line);"></span>
       </div>
@@ -726,6 +723,9 @@
       <button type="button" class="btn btn-sm" id="guideLoginBtn" style="flex:1;">🔑 Se connecter</button>
       <button type="button" class="btn btn-sm" id="guideSignupBtn" style="flex:1;">✍️ Créer un compte</button>
     </div>
+    <!-- Les réseaux, sous les raccourcis : chaque logo ouvre son site, ou le
+         lien de l'admin s'il y en a un (contact.js, afficherRohyFidirana). -->
+    <div id="loginRohy" style="display:none; margin-top:1.1rem;"></div>
   </div>
 </div>
 
@@ -3685,7 +3685,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=7c621393"></script>
+<script src="gestion-stockage-js/common.js?v=0c1ba960"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=d0a53ff8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
@@ -3693,7 +3693,7 @@
 <script src="gestion-stockage-js/factures.js?v=69af0cd7"></script>
 <script src="gestion-stockage-js/factures-modely.js?v=8fbf4a42"></script>
 <script src="gestion-stockage-js/inviter.js?v=fffaed9c"></script>
-<script src="gestion-stockage-js/contact.js?v=9c327e0e"></script>
+<script src="gestion-stockage-js/contact.js?v=e1538f63"></script>
 <script src="gestion-stockage-js/zara-rehetra.js?v=9b9c2469"></script>
 <script src="gestion-stockage-js/live.js?v=65e437a7"></script>
 <script src="gestion-stockage-js/traduction.js?v=8f5605bc"></script>
