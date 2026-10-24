@@ -2690,8 +2690,8 @@
 
     // Refus au retour de Google (annulé, adresse de retour non autorisée…) :
     // ce n'est pas un lien email, on le dit sous le bouton Google.
-    let parGoogle = false;
-    try { parGoogle = !!localStorage.getItem(GOOGLE_KEY); } catch(e){}
+    let parGoogle = '';
+    try { parGoogle = localStorage.getItem(GOOGLE_KEY) || ''; } catch(e){}
     if((params.error || params.error_code) && parGoogle){
       try { localStorage.removeItem(GOOGLE_KEY); } catch(e){}
       // On revient à la création de compte, où le bouton Google se voit avec
@@ -2699,7 +2699,7 @@
       showLoginMode('full');
       showLoginStep(1);
       const status = document.getElementById('googleLoginStatus');
-      if(status) status.textContent = 'Connexion Google non aboutie : ' +
+      if(status) status.textContent = 'Connexion ' + COMPTES_OAUTH[compteDeLaMarque(parGoogle)] + ' non aboutie : ' +
         (params.error_description || params.error || '').replace(/\+/g, ' ');
       history.replaceState(null, '', window.location.pathname);
       return;
@@ -2925,8 +2925,17 @@
   // Google, qui renvoie ici avec la session ; le démarrage (getSession, plus
   // bas) ouvre alors l'application. La marque dit au retour que c'est Google
   // qui a été demandé, pour noter un compte neuf et expliquer un refus.
+  // Facebook, X, Apple et GitHub suivent le même chemin : la marque garde
+  // alors le nom du compte choisi (« github:… »), Google n'en a pas.
   const GOOGLE_KEY = 'stockmanager_fidirana_google';
-  function fidiranaGoogle(){
+  const COMPTES_OAUTH = {
+    google: 'Google', facebook: 'Facebook', twitter: 'X', apple: 'Apple', github: 'GitHub'
+  };
+  function compteDeLaMarque(marque){
+    const m = /^([a-z]+):/.exec(String(marque || ''));
+    return m && COMPTES_OAUTH[m[1]] ? m[1] : 'google';
+  }
+  function fidiranaAmin(provider){
     const auth = sbAuth();
     const status = document.getElementById('googleLoginStatus');
     if(!auth || !auth.signInWithOAuth){
@@ -2934,18 +2943,51 @@
       else alert('Serveur injoignable : vérifiez votre réseau.');
       return;
     }
-    try { localStorage.setItem(GOOGLE_KEY, String(Date.now())); } catch(e){}
-    if(status) status.textContent = 'Ouverture de Google…';
-    auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.origin + window.location.pathname, queryParams: { prompt: 'select_account' } }
-    }).then(function(res){
+    try { localStorage.setItem(GOOGLE_KEY, (provider === 'google' ? '' : provider + ':') + Date.now()); } catch(e){}
+    if(status) status.textContent = 'Ouverture de ' + COMPTES_OAUTH[provider] + '…';
+    const options = { redirectTo: window.location.origin + window.location.pathname };
+    if(provider === 'google') options.queryParams = { prompt: 'select_account' };
+    auth.signInWithOAuth({ provider: provider, options: options }).then(function(res){
       if(res && res.error && status) status.textContent = authErrorText(res.error);
     }, function(){ if(status) status.textContent = 'Connexion impossible : vérifiez votre réseau.'; });
   }
+  function fidiranaGoogle(){ fidiranaAmin('google'); }
   window.__fidiranaGoogle = fidiranaGoogle;
   const googleLoginBtn = document.getElementById('googleLoginBtn');
   if(googleLoginBtn) googleLoginBtn.addEventListener('click', fidiranaGoogle);
+
+  // Les boutons des autres comptes : Supabase dit lesquels sont allumés
+  // (Authentication > Providers) ; un compte éteint n'a pas de bouton, il
+  // apparaît tout seul le jour où on l'allume.
+  const LOGOS_COMPTES = {
+    facebook: ['#0866FF', 'M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 1.141.195v3.325a8.623 8.623 0 0 0-.653-.036 26.805 26.805 0 0 0-.733-.009c-.707 0-1.259.096-1.675.309a1.686 1.686 0 0 0-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647Z'],
+    twitter: ['#000000', 'M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z'],
+    apple: ['#000000', 'M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701'],
+    github: ['#181717', 'M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12']
+  };
+  function afficherAutresComptes(allumes){
+    const zone = document.getElementById('autresComptes');
+    if(!zone) return;
+    const liste = Object.keys(LOGOS_COMPTES).filter(function(p){ return allumes[p]; });
+    zone.innerHTML = liste.map(function(p){
+      const logo = LOGOS_COMPTES[p];
+      return '<button type="button" class="btn btn-sm" data-compte="' + p + '" style="display:flex; align-items:center; justify-content:center; gap:0.45rem; background:' + logo[0] + '; color:#fff; border-color:' + logo[0] + ';">' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="#fff" d="' + logo[1] + '"/></svg>' + COMPTES_OAUTH[p] + '</button>';
+    }).join('');
+    zone.style.display = liste.length ? 'grid' : 'none';
+    zone.querySelectorAll('[data-compte]').forEach(function(b){
+      b.addEventListener('click', function(){ fidiranaAmin(b.dataset.compte); });
+    });
+  }
+  (function(){
+    const sb = window.__sb;
+    const url = sb && (sb.supabaseUrl || (sb.rest && sb.rest.url && sb.rest.url.replace(/\/rest\/v1\/?$/, '')));
+    const cle = sb && sb.supabaseKey;
+    if(!url || !cle || !window.fetch) return;
+    fetch(url + '/auth/v1/settings', { headers: { apikey: cle } })
+      .then(function(r){ return r.json(); })
+      .then(function(j){ afficherAutresComptes((j && j.external) || {}); }, function(){});
+  })();
 
   // Retour de Google : un compte créé il y a quelques minutes est une
   // inscription — elle part chez le propriétaire comme les autres.
@@ -2955,7 +2997,7 @@
     if(!marque || !user) return;
     const provider = (user.app_metadata && user.app_metadata.provider) || '';
     const cree = Date.parse(user.created_at || '') || 0;
-    if(provider === 'google' && Date.now() - cree < 15 * 60 * 1000){
+    if(provider === compteDeLaMarque(marque) && Date.now() - cree < 15 * 60 * 1000){
       const meta = user.user_metadata || {};
       recordNewSignup(meta.full_name || meta.name || String(user.email).split('@')[0], user.email, '');
     }
