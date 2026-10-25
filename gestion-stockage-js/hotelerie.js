@@ -408,8 +408,8 @@
     });
     brancherTete(z);
   }
-  // La tête : « ✏️ Ovay » change le nom, le logo (ou « 🖼️ Sary ») ouvre le
-  // dossier pour une image, « ✕ Sary » rend le logo de Ny asako.
+  // Le bloc 🏨 Hotely des Paramètres : « ✏️ Ovay » change le nom, le logo (ou
+  // « 🖼️ Sary ») ouvre le dossier pour une image, « ✕ Sary » rend le logo de Ny asako.
   function brancherTete(z) {
     function sur(id, f) { const b = z.querySelector('#' + id); if (b) b.addEventListener('click', f); }
     sur('hotelAnaranaOvay', function () {
@@ -1151,8 +1151,29 @@
   }
 
   // ---------- ⚙️ Paramètres ----------
-  // Ce qui se règle une fois : le nombre de latabatra et les moyens de
-  // paiement. Les commandes, elles, restent dans leur onglet.
+  // Ce qui se règle une fois : le nom et le logo de l'hôtel, le nombre de
+  // latabatra et les moyens de paiement. Les commandes restent dans leur onglet.
+  // Le bloc de l'hôtel est dessiné par rendre() (brancherTete le branche).
+  function blocHotely(t, logo) {
+    const petit = 'width:auto;';
+    return '<div class="panel">' +
+      '<h4 style="margin:0 0 0.6rem;">🏨 Hotely</h4>' +
+      '<div style="display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center;">' +
+        '<button type="button" id="hotelLogo" title="Ovay ny sary" aria-label="Ovay ny sary" style="background:none; border:0; padding:0; cursor:pointer; font:inherit; line-height:1;">' + logo + '</button>' +
+        (ovayAnarana
+          ? '<input id="hotelAnarana" type="text" maxlength="60" value="' + html(nomHotel()) + '" aria-label="Anaran\'ny hotely" style="flex:1 1 200px; ' + CHAMP + '">' +
+            '<button type="button" class="btn btn-sm btn-primary" id="hotelAnaranaTehirizo" style="' + petit + '">💾 Tehirizo</button>' +
+            '<button type="button" class="btn btn-sm" id="hotelAnaranaAtsahatra" style="' + petit + '">Atsahatra</button>'
+          : '<strong style="font-size:1rem;">' + html(nomHotel()) + '</strong>') +
+      '</div>' +
+      (ovayAnarana ? '' :
+        '<div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.6rem;">' +
+          '<button type="button" class="btn btn-sm" id="hotelAnaranaOvay" style="' + petit + '">✏️ Ovay ny anarana</button>' +
+          '<button type="button" class="btn btn-sm" id="hotelLogoOvay" style="' + petit + '">🖼️ Ovay ny sary</button>' +
+          (t.sary ? '<button type="button" class="btn btn-sm" id="hotelLogoEsory" style="' + petit + '">✕ Esory ny sary</button>' : '') +
+        '</div>') +
+    '</div>';
+  }
   function dessinerParametres() {
     const zone = document.getElementById('parametresZone');
     if (!zone) return;
@@ -1226,21 +1247,12 @@
     const t = teteLire();
     // Sans sary choisi : le logo de Ny asako.
     const logo = '<img src="' + html(t.sary || LOGO_DEFAUT) + '" alt="" style="width:2.2rem; height:2.2rem; object-fit:cover; border-radius:8px; vertical-align:middle; border:1px solid var(--line);">';
+    // Le nom et le logo se changent dans « ⚙️ Paramètres » : la tête les montre.
     const tete =
       '<div class="section-head"><div style="min-width:0; flex:1 1 auto;">' +
-        (ovayAnarana
-          ? '<div style="display:flex; gap:0.4rem; flex-wrap:wrap; align-items:center; margin-bottom:0.4rem;">' +
-              '<input id="hotelAnarana" type="text" maxlength="60" value="' + html(nomHotel()) + '" aria-label="Anaran\'ny hotely" style="flex:1 1 200px; ' + CHAMP + '">' +
-              '<button type="button" class="btn btn-sm btn-primary" id="hotelAnaranaTehirizo" style="width:auto;">💾 Tehirizo</button>' +
-              '<button type="button" class="btn btn-sm" id="hotelAnaranaAtsahatra" style="width:auto;">Atsahatra</button>' +
-            '</div>'
-          : '<h2 style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">' +
-              '<button type="button" id="hotelLogo" title="Ovay ny sary" aria-label="Ovay ny sary" style="background:none; border:0; padding:0; cursor:pointer; font:inherit; line-height:1;">' + logo + '</button>' +
-              '<span>' + html(nomHotel()) + '</span>' +
-              '<button type="button" class="btn btn-sm" id="hotelAnaranaOvay" title="Ovay ny anarana" aria-label="Ovay ny anarana" style="width:auto; padding:0.2rem 0.45rem; font-size:0.95rem; line-height:1;">✏️</button>' +
-              '<button type="button" class="btn btn-sm" id="hotelLogoOvay" title="Ovay ny sary" aria-label="Ovay ny sary" style="width:auto; padding:0.2rem 0.45rem; font-size:0.95rem; line-height:1;">🖼️</button>' +
-              (t.sary ? '<button type="button" class="btn btn-sm" id="hotelLogoEsory" title="Esory ny sary" aria-label="Esory ny sary" style="width:auto; padding:0.2rem 0.45rem; font-size:0.95rem; line-height:1;">✕</button>' : '') +
-            '</h2>') +
+        '<h2 style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">' + logo +
+          '<span>' + html(nomHotel()) + '</span>' +
+        '</h2>' +
         '<p>Ny menu sakafo an\'ny hotely sy ny commande an\'ny mpanjifa isaky ny latabatra.</p></div></div>' +
       '<div class="dash-tabs" style="margin-bottom:1rem; display:flex; gap:0.4rem; flex-wrap:wrap;">' +
         '<button type="button" class="dash-tab' + (onglet === 'menu' ? ' active' : '') + '" data-onglet="menu" style="width:auto;">🍽️ Menu sakafo</button>' +
@@ -1252,7 +1264,7 @@
         '<button type="button" class="dash-tab' + (onglet === 'parametres' ? ' active' : '') + '" data-onglet="parametres" style="width:auto;">⚙️ Paramètres</button>' +
       '</div>';
     if (onglet === 'parametres') {
-      z.innerHTML = tete + '<div id="parametresZone"></div>';
+      z.innerHTML = tete + blocHotely(t, logo) + '<div id="parametresZone" style="margin-top:1rem;"></div>';
       brancherOnglets(z);
       dessinerParametres();
       return;
