@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="f169f02f">
+<meta name="ny-asako-version" content="5e4f7b8e">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -1075,6 +1075,8 @@
         <div class="nav-item" data-section="live">🔴 Live direct</div>
         <div class="nav-item" data-section="appels">📞 Call</div>
         <div class="nav-item" data-section="feo">🔔 Feo</div>
+        <!-- Ny asako sur un projecteur, une télé ou un second écran (projecteur.js). -->
+        <div class="nav-item" data-section="projecteur">📽️ Projecteur</div>
         <div class="nav-item" data-section="wallet">💰 Portefeuille</div>
         <div class="nav-item" data-section="mpiasa">👷 Mpiasa</div>
         <div class="nav-item" data-section="livreur">🛵 Livreur</div>
@@ -2720,6 +2722,47 @@
         </div>
       </section>
 
+      <!-- ---- PROJECTEUR ---- -->
+      <!-- Ny asako sur le mur : l'écran du projecteur branché à l'ordinateur
+           (projecteur.js), ou la recopie d'écran du téléphone. -->
+      <section class="section" id="section-projecteur">
+        <div class="section-head">
+          <div>
+            <h2>📽️ Projecteur</h2>
+            <p>Alefaso eny amin'ny rindrina, amin'ny TV na amin'ny écran faharoa ny Ny asako, avy amin'ny ordinateur na ny finday.</p>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>🖥️ Ordinateur misy projecteur</h3>
+          <p style="color:var(--muted); font-size:0.85rem;">Ampifandraiso amin'ny HDMI ny projecteur, dia tsindrio : ho any amin'ny écran an'ny projecteur, en plein écran, ny Ny asako.</p>
+          <div class="actions-row">
+            <button type="button" class="btn btn-primary btn-sm" id="projecteurAlefaBtn">📽️ Alefaso any amin'ny projecteur</button>
+            <button type="button" class="btn btn-sm" id="projecteurFenetreBtn">🪟 Fenêtre vaovao any</button>
+            <button type="button" class="btn btn-sm" id="projecteurPleinBtn">⛶ Plein écran eto</button>
+          </div>
+          <p id="projecteurEtat" style="color:var(--muted); font-size:0.85rem; margin-top:0.6rem;"></p>
+        </div>
+        <div class="panel">
+          <h3>📱 Finday na tablette</h3>
+          <ul style="margin:0; padding-left:1.2rem; line-height:1.6; font-size:0.9rem;">
+            <li><b>Android</b> : sintomy avy any ambony ny réglages rapides, dia tsindrio « Smart View », « Diffuser l'écran » na « Screen Cast », ary fidio ny TV na ny projecteur.</li>
+            <li><b>iPhone / iPad</b> : sintomy avy eo an-tampony havanana ny Centre de contrôle, dia « Recopie de l'écran » (AirPlay) : Apple TV na TV mahay AirPlay.</li>
+            <li><b>Tariby</b> : USB-C → HDMI (finday sasany) na Lightning → HDMI (iPhone).</li>
+          </ul>
+          <div class="actions-row" style="margin-top:0.6rem;">
+            <button type="button" class="btn btn-sm" id="projecteurCastBtn">📡 Chromecast / TV (Chrome)</button>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>⌨️ Hitsin-dalana amin'ny ordinateur</h3>
+          <ul style="margin:0; padding-left:1.2rem; line-height:1.6; font-size:0.9rem;">
+            <li><b>Windows</b> : <kbd>⊞ Win</kbd> + <kbd>P</kbd> → « Étendre » na « Dupliquer » ; <kbd>⊞ Win</kbd> + <kbd>K</kbd> ho an'ny TV tsy misy tariby (Miracast).</li>
+            <li><b>Mac</b> : Centre de contrôle → « Recopie de l'écran ».</li>
+            <li><b>Chrome</b> : menu ⋮ → « Caster… » → « Caster l'onglet ».</li>
+          </ul>
+        </div>
+      </section>
+
       <!-- ---- PORTEFEUILLE ---- -->
       <section class="section" id="section-wallet">
         <div class="section-head">
@@ -3713,7 +3756,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=4d1275cc"></script>
+<script src="gestion-stockage-js/common.js?v=e57a29ca"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=d0a53ff8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
@@ -3740,6 +3783,7 @@
 <script src="gestion-stockage-js/fitaovana.js?v=bf90a8a5"></script>
 <script src="gestion-stockage-js/photocopie.js?v=be4f35a5"></script>
 <script src="gestion-stockage-js/pdf.js?v=b7c1f056"></script>
+<script src="gestion-stockage-js/projecteur.js?v=3cc0e4de"></script>
 <script src="gestion-stockage-js/commun-alalana.js?v=c3a8e119"></script>
 <!-- Les explications deviennent des fiches « 💡 Fanazavana » qu'un ✕ referme. -->
 <script src="gestion-stockage-js/fanazavana.js?v=adfa06d4"></script>

@@ -4665,7 +4665,7 @@
       'section-calendrier', 'section-horaire',
       // Scan, photos, photocopies (photocopie.js), et les PDF rangés (pdf.js).
       'section-photocopie', 'section-pdf',
-      'section-live', 'section-appels', 'section-feo', 'section-wallet', 'section-panier',
+      'section-live', 'section-appels', 'section-feo', 'section-projecteur', 'section-wallet', 'section-panier',
       'section-mpiasa', 'section-livreur', 'section-personne',
       // Le lien Maps de la boutique et ceux des clients.
       'section-toerana',
