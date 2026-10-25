@@ -112,10 +112,13 @@ async function achatsFor(admin: Admin, email: string): Promise<{ depense: number
     .select("amount_ar,status").eq("buyer_email", email).in("status", ["tazonina", "voaray"]);
   const depense = (achats ?? []).reduce(
     (sum: number, a: { amount_ar: number }) => sum + (Number(a.amount_ar) || 0), 0);
+  // Le vendeur reçoit la vente moins la commission d'affiliation, qu'il paie
+  // quand l'acheteur est venu par le lien de quelqu'un.
   const { data: ventes } = await admin.from("wallet_achats")
-    .select("amount_ar").eq("seller_email", email).eq("status", "voaray");
+    .select("amount_ar,commission_ar").eq("seller_email", email).eq("status", "voaray");
   const recu = (ventes ?? []).reduce(
-    (sum: number, a: { amount_ar: number }) => sum + (Number(a.amount_ar) || 0), 0);
+    (sum: number, a: { amount_ar: number; commission_ar: number }) =>
+      sum + (Number(a.amount_ar) || 0) - (Number(a.commission_ar) || 0), 0);
   return { depense, recu };
 }
 
@@ -168,14 +171,18 @@ function masquer(email: string): string {
 // Le paiement d'une personne amenée : la commission à celui qui l'a amenée.
 // « ref » est unique par paiement — un second appel retombe sur l'index
 // unique et ne paie rien de plus. Un échec ne défait pas le paiement.
-async function verserCommission(admin: Admin, payeur: string, montant: number, ref: string, quoi: string): Promise<void> {
+// Rend ce qui a été versé (0 sinon) : sur un achat du fil, c'est le vendeur
+// qui le paie. « vendeur » amené par son propre lien : rien, il se paierait
+// lui-même.
+async function verserCommission(admin: Admin, payeur: string, montant: number, ref: string, quoi: string,
+  vendeur = ""): Promise<number> {
   try {
     const { data: lien } = await admin.from("affiliations")
       .select("parrain_email").eq("filleul_email", payeur).maybeSingle();
     const parrain = norm(lien?.parrain_email);
-    if (!parrain || parrain === payeur) return;
+    if (!parrain || parrain === payeur || parrain === vendeur) return 0;
     const somme = commission(montant);
-    if (!(somme > 0)) return;
+    if (!(somme > 0)) return 0;
     const { error } = await admin.from("wallet_deposits").insert({
       email: parrain, amount_ar: somme, provider: "affiliation", provider_ref: ref,
       status: "confirme", confirmed_at: new Date().toISOString(),
@@ -184,8 +191,10 @@ async function verserCommission(admin: Admin, payeur: string, montant: number, r
     if (!error) {
       await prevenir(admin, parrain,
         `🤝 Commission ${ar(somme)} : ${masquer(payeur)} nandoa ${ar(montant)} (${quoi}).`);
+      return somme;
     }
   } catch { /* la commission seule se perd */ }
+  return 0;
 }
 
 // Ce que la page montre dans « 🤝 Affiliation ».
@@ -577,12 +586,18 @@ Deno.serve(async (req: Request) => {
       .select("id,status,amount_ar,titre,isa,seller_email,buyer_name").maybeSingle();
     if (error) return json({ error: error.message }, 500);
     if (!data) return json({ error: "Efa voavaha na tsy anao io fividianana io." }, 409);
-    await verserCommission(admin, email, Number(data.amount_ar) || 0, "achat:" + data.id,
-      "« " + (data.titre ?? "Entana") + " »");
+    // La commission d'affiliation se prend sur la vente : le vendeur la paie.
+    const vendeur = norm(data.seller_email);
+    const prise = await verserCommission(admin, email, Number(data.amount_ar) || 0, "achat:" + data.id,
+      "« " + (data.titre ?? "Entana") + " »", vendeur);
+    if (prise > 0) {
+      await admin.from("wallet_achats").update({ commission_ar: prise }).eq("id", data.id);
+    }
     // Le vendeur et son équipe : l'argent est parti chez eux.
-    await prevenir(admin, norm(data.seller_email),
+    await prevenir(admin, vendeur,
       `💸 Lasa ny vola : ${ar(data.amount_ar)} ho an'ny « ${data.titre ?? "Entana"} » × ${data.isa ?? 1}. ` +
-      `Voarain'ny mpividy (${data.buyer_name || email}) ny entana, tafiditra ao amin'ny portefeuille ny vola.`);
+      `Voarain'ny mpividy (${data.buyer_name || email}) ny entana, tafiditra ao amin'ny portefeuille ny vola` +
+      (prise > 0 ? ` (${ar(Number(data.amount_ar) - prise)}, nesorina ${ar(prise)} commission affiliation).` : "."));
     return json({ achat: data });
   }
 

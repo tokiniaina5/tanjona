@@ -1201,3 +1201,6 @@ Secrets (facultatifs, valeurs par défaut) :
   supabase secrets set AFF_PCT=10
   supabase secrets set AFF_JOURS_MAX=7
 Déploiement : supabase functions deploy wallet --project-ref ezpsapvthujkhttbfhlr --use-api
+Sur un achat du fil (« achat_voaray »), la commission est payée par le
+VENDEUR : elle est notée dans wallet_achats.commission_ar et retirée de ce
+qu'il reçoit. Sur « spend » (abonnement…), c'est le propriétaire qui la paie.

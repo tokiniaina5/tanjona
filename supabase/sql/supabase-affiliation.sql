@@ -44,3 +44,7 @@ alter table public.affiliations enable row level security;
 
 -- Aucune policy : ni lecture ni écriture depuis le navigateur. La fonction
 -- « wallet » rend à chacun ce qui le concerne, emails masqués.
+
+-- Sur un achat du fil, c'est le VENDEUR qui paie la commission (25/10/2026) :
+-- elle se retire de ce qu'il reçoit (wallet, « achatsFor »).
+alter table public.wallet_achats add column if not exists commission_ar bigint not null default 0;
