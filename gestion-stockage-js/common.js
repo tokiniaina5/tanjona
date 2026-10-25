@@ -2208,8 +2208,9 @@
     const email = (user && user.email) || '';
     const local = findProfileByEmail(email) || {};
     return {
-      // full_name : le nom donné par Google.
-      name: meta.name || meta.full_name || local.name || email.split('@')[0],
+      // full_name : le nom donné par Google ; user_name : le pseudo GitHub,
+      // quand le compte n'a pas mis de nom.
+      name: meta.name || meta.full_name || local.name || meta.user_name || meta.preferred_username || email.split('@')[0],
       email: email,
       phone: meta.phone || local.phone || '',
       // Le logo suit le compte : sans la copie du serveur, une facture éditée
@@ -2307,12 +2308,53 @@
     document.getElementById('currentUserName').textContent = currentUser.name;
     document.getElementById('currentUserEmail').textContent = currentUser.email;
     saveSession();
+    prendreLaPhotoDuCompte(user);
     if(getSubscriptionStatus().status === 'expired'){
       openPaywall();
     } else {
       openApp();
       ouvrirSurLAccueil();
     }
+  }
+
+  // Un compte ouvert par Google, Facebook ou GitHub arrive avec sa photo
+  // (avatar_url) : elle devient la photo du profil, sans rien avoir à choisir.
+  // On la recopie sur l'appareil, comme une photo choisie à la main — le lien
+  // de Facebook expire au bout de quelques jours. Une photo déjà mise par la
+  // personne reste la sienne. Si le site de la photo refuse qu'on la recopie,
+  // on garde son adresse : elle s'affiche quand même, et on réessaie à la
+  // prochaine connexion.
+  const TAILLE_PHOTO_COMPTE = 256;
+  function prendreLaPhotoDuCompte(user){
+    const meta = (user && user.user_metadata) || {};
+    let url = meta.avatar_url || meta.picture || '';
+    if(!url || !/^https:\/\//.test(url) || !currentUser) return;
+    if(currentUser.logo && !/^https?:/.test(currentUser.logo)) return;
+    // Google la donne en 96 pixels : on la demande plus grande.
+    url = url.replace(/=s\d+-c$/, '=s' + TAILLE_PHOTO_COMPTE + '-c');
+    const email = currentUser.email;
+    function garder(logo){
+      if(!currentUser || currentUser.email !== email) return;
+      currentUser.logo = logo;
+      upsertProfile(currentUser.name, { logo: logo });
+      saveSession();
+      if(typeof updateProfilePhotoPreview === 'function') updateProfilePhotoPreview(logo);
+      if(typeof window.__envoyerMaPhoto === 'function') window.__envoyerMaPhoto();
+    }
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = function(){
+      try{
+        const c = document.createElement('canvas');
+        const cote = Math.min(img.width, img.height);
+        const taille = Math.min(TAILLE_PHOTO_COMPTE, cote);
+        c.width = taille; c.height = taille;
+        c.getContext('2d').drawImage(img, (img.width - cote) / 2, (img.height - cote) / 2, cote, cote, 0, 0, taille, taille);
+        garder(c.toDataURL('image/jpeg', 0.85));
+      }catch(e){ garder(url); }
+    };
+    img.onerror = function(){ if(!currentUser.logo) garder(url); };
+    img.src = url;
   }
 
   // ---------------- CONNEXION RAPIDE (email + code) ----------------

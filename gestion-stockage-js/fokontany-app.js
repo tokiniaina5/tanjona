@@ -778,10 +778,11 @@ document.addEventListener('DOMContentLoaded', function () {
     var meta = (user && user.user_metadata) || {};
     var email = (user && user.email) || '';
     return {
-      name: meta.name || email.split('@')[0],
+      name: meta.name || meta.full_name || meta.user_name || email.split('@')[0],
       email: email,
       phone: meta.phone || '',
-      logo: meta.logo || null,
+      // avatar_url : la photo d'un compte Google, Facebook ou GitHub.
+      logo: meta.logo || meta.avatar_url || meta.picture || null,
       company: meta.company || '',
       nif: meta.nif || '',
       stat: meta.stat || ''
