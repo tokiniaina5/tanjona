@@ -143,42 +143,74 @@
       };
     }
     const reseaux = [
-      { label: 'WhatsApp', color: '#25D366', ok: !!(channels.whatsapp || '').replace(/[^\d]/g, ''), run: function(){
+      { label: 'WhatsApp', logo: 'whatsapp', ok: !!(channels.whatsapp || '').replace(/[^\d]/g, ''), run: function(){
         window.open('https://wa.me/?text=' + encodeURIComponent(inviteMessage(lien())), '_blank'); } },
-      { label: 'Facebook', color: '#1877F2', ok: !!profil('facebook'), run: function(){
+      { label: 'Facebook', logo: 'facebook', ok: !!profil('facebook'), run: function(){
         window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(lien()), '_blank'); } },
-      { label: 'TikTok', color: '#e7e9ea', ok: !!profil('tiktok'), run: function(){ copier('TikTok', profil('tiktok'))(); } },
-      { label: 'Threads', color: '#e7e9ea', ok: !!profil('threads'), run: function(){
+      { label: 'Instagram', logo: 'instagram', ok: !!profil('instagram'), run: function(){ copier('Instagram', profil('instagram'))(); } },
+      { label: 'TikTok', logo: 'tiktok', ok: !!profil('tiktok'), run: function(){ copier('TikTok', profil('tiktok'))(); } },
+      { label: 'Threads', logo: 'threads', ok: !!profil('threads'), run: function(){
         window.open('https://www.threads.net/intent/post?text=' + encodeURIComponent(inviteMessage(lien())), '_blank'); } },
-      { label: 'X (Twitter)', color: '#e7e9ea', ok: !!profil('twitter'), run: function(){
+      { label: 'X', logo: 'x', ok: !!profil('twitter'), run: function(){
         window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(inviteMessage(lien())) + '&url=' + encodeURIComponent(lien()), '_blank'); } },
-      { label: 'Instagram', color: '#E1306C', ok: !!profil('instagram'), run: function(){ copier('Instagram', profil('instagram'))(); } },
-      { label: 'WeChat', color: '#07C160', ok: !!(channels.wechat || '').trim(), run: copier('WeChat') }
+      { label: 'WeChat', logo: 'wechat', ok: !!(channels.wechat || '').trim(), run: copier('WeChat') }
     ];
+    // Tous les canaux ajoutés à la main (Email, Telegram, YouTube…), comme
+    // dans « 🔗 Ajouter les liens ».
     (extra || []).forEach(function(item){
       if(!item || !item.name) return;
       const value = (item.url || '').trim();
-      const propre = (/^https?:\/\//i.test(value) && typeof adresseDeProfil === 'function') ? adresseDeProfil('', value) : null;
-      reseaux.push({ label: item.name, color: 'var(--cyan)', ok: true,
-        run: copier(item.name, (propre && !/\s/.test(propre)) ? propre : null) });
+      const logo = (typeof logoDe === 'function') ? logoDe(item.name, value) : 'site';
+      let run;
+      if(/^mailto:/i.test(value)){
+        // L'email part avec le message déjà écrit.
+        run = function(){
+          window.location.href = value.split('?')[0] + '?subject=' + encodeURIComponent('Ny asako') +
+            '&body=' + encodeURIComponent(inviteMessage(lien()));
+        };
+      } else if(/^(viber|tg|sgnl):/i.test(value)){
+        run = copier(item.name, value);
+      } else {
+        const propre = (/^https?:\/\//i.test(value) && typeof adresseDeProfil === 'function') ? adresseDeProfil('', value) : null;
+        run = copier(item.name, (propre && !/\s/.test(propre)) ? propre : null);
+      }
+      reseaux.push({ label: item.name, logo: logo, ok: true, run: run });
     });
+    // Mêmes logos que dans « 🔗 Ajouter les liens » (LOGOS, contact.js).
+    const logos = (typeof LOGOS === 'object' && LOGOS) || {};
+    row.style.gap = '1rem 1.1rem';
     reseaux.forEach(function(r){
+      const l = logos[r.logo];
+      const fond = l ? l[0] : (r.logo === 'email' ? '#EA4335' : '#5f6b73');
+      const encre = r.logo === 'snapchat' ? '#111' : '#fff';
+      const chemin = l ? l[1] : (r.logo === 'email' && typeof ENVELOPPE === 'string' ? ENVELOPPE : (typeof GLOBE === 'string' ? GLOBE : ''));
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'btn';
-      btn.style.borderColor = r.color;
-      btn.style.color = r.color;
-      btn.textContent = r.label;
+      btn.style.cssText = 'background:none; border:0; padding:0; font:inherit; color:inherit; cursor:pointer; ' +
+        'display:flex; flex-direction:column; align-items:center; gap:0.35rem;';
+      btn.innerHTML = '<span style="display:flex; align-items:center; justify-content:center; width:3.4rem; height:3.4rem; ' +
+        'border-radius:16px; background:' + fond + '; box-shadow:0 4px 12px rgba(0,0,0,0.25);">' +
+        '<svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path fill="' + encre + '" d="' + chemin + '"/></svg></span>' +
+        '<span style="font-size:0.72rem; font-weight:600; color:var(--text); max-width:5.5rem; overflow:hidden; ' +
+        'text-overflow:ellipsis; white-space:nowrap;"></span>';
+      btn.lastChild.textContent = r.label;
       if(r.ok){
+        btn.title = r.label;
         btn.addEventListener('click', r.run);
       } else {
-        btn.style.opacity = '0.4';
+        btn.style.opacity = '0.45';
         btn.title = r.label + ' : mbola tsy misy rohy — 🔗 Ajouter les liens';
         btn.addEventListener('click', allerAuxLiens);
       }
       row.appendChild(btn);
     });
   }
+  // Rendu de nouveau à l'ouverture d'« Inviter des amis » : au chargement,
+  // le compte n'est pas toujours encore connu, et la liste restait vide.
+  const navInviter = document.querySelector('.nav-item[data-section="inviter"]');
+  if(navInviter) navInviter.addEventListener('click', function(){
+    if(typeof fetchMesCanaux === 'function') fetchMesCanaux(renderInviteSocials);
+  });
 
   // ---------------- PARTAGE UNIVERSEL ----------------
   // Ampiasain'ny "Inviter des amis" sy ny bokotra "↗️ Partager" isaky ny post ao
