@@ -188,6 +188,11 @@
   // jamais envoyé. Sans fichier, les sons faits ici (feoNote) restent.
   const FEO_KARAZANA = { hafatra: '💬 Hafatra', antso: '📞 Antso' };
   const FEO_MAX = 5 * 1024 * 1024;
+  // Un clip ou une vidéo sert aussi : on n'en joue que la piste son (un
+  // élément Audio lit le son d'un .mp4 ou d'un .webm). Une vidéo pèse vite
+  // plus lourd qu'un son, d'où une limite à part.
+  const FEO_MAX_VIDEO = 40 * 1024 * 1024;
+  const FEO_VIDEO = /\.(mp4|mov|3gp|mkv|webm)$/i;
   const feoManokana = { hafatra: null, antso: null }; // { url, anarana }
   function feoDb(){
     return new Promise(function(ok, ko){
@@ -254,7 +259,7 @@
       nom.style.cssText = 'flex:1 1 140px; min-width:0;';
       nom.innerHTML = '<strong style="display:block; font-size:0.88rem;">' + FEO_KARAZANA[k] + '</strong>' +
         '<small style="color:var(--muted); display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></small>';
-      nom.querySelector('small').textContent = f ? '🎵 ' + f.anarana : 'Feo ao anaty Ny asako';
+      nom.querySelector('small').textContent = f ? (FEO_VIDEO.test(f.anarana) ? '🎬 ' : '🎵 ') + f.anarana : 'Feo ao anaty Ny asako';
       ligne.appendChild(nom);
       const bouton = function(texte, titre, fin){
         const b = document.createElement('button');
@@ -267,17 +272,21 @@
         ligne.appendChild(b);
         return b;
       };
-      bouton('📂 Hampiditra', 'Fidio ny feo ho an\'ny ' + FEO_KARAZANA[k], function(){
+      bouton('📂 Hampiditra', 'Fidio ny feo, clip na video ho an\'ny ' + FEO_KARAZANA[k], function(){
         const champ = document.createElement('input');
         champ.type = 'file';
-        champ.accept = 'audio/*,.mp3,.m4a,.aac,.ogg,.oga,.wav,.opus,.webm';
+        champ.accept = 'audio/*,video/*,.mp3,.m4a,.aac,.ogg,.oga,.wav,.opus,.webm,.mp4,.mov,.3gp,.mkv';
         champ.style.cssText = 'position:fixed; left:-9999px;';
         document.body.appendChild(champ);
         champ.addEventListener('change', function(){
           const fichier = champ.files && champ.files[0];
           champ.remove();
           if(!fichier) return;
-          if(fichier.size > FEO_MAX){ alert('Lehibe loatra ilay feo (5 Mo farafahabetsany).'); return; }
+          const video = /^video\//.test(fichier.type) || FEO_VIDEO.test(fichier.name);
+          if(fichier.size > (video ? FEO_MAX_VIDEO : FEO_MAX)){
+            alert(video ? 'Lehibe loatra ilay video (40 Mo farafahabetsany).' : 'Lehibe loatra ilay feo (5 Mo farafahabetsany).');
+            return;
+          }
           const v = { blob: fichier, anarana: fichier.name };
           feoTahiry(k, v).then(function(){ feoApetraka(k, v); asehoyFeoSafidy(); feoAlefa(k, false, function(){}); },
             function(){ alert('Tsy voatahiry ilay feo amin\'ity fitaovana ity.'); });
