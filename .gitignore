@@ -8,3 +8,7 @@ test-alerte.json
 # Archive laissee derriere lui par un envoi Netlify interrompu :
 # 4 Mo du depot entier, ni a versionner ni a publier.
 deploy-*.zip
+
+# Vite / npm : averina amboarina amin'ny npm install sy npm run build
+node_modules/
+dist/
