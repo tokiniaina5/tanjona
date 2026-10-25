@@ -135,6 +135,86 @@ function ar(n: number): string {
   return (Number(n) || 0).toLocaleString("fr-FR") + " Ar";
 }
 
+// ---- Affiliation (supabase-affiliation.sql) ----
+// Chacun partage son lien « ?aff=<ID KEY> ». La personne qui crée son compte
+// par ce lien y est rattachée une fois pour toutes ; ensuite, à chacun de ses
+// paiements, celui qui a partagé touche AFF_FIXE_AR + AFF_PCT % du montant.
+// À l'inscription, AFF_INSCRIPTION_AR — une somme de l'appli, qui se dépense
+// ici sans sortir : sinon, créer des comptes vides rapporterait de l'argent.
+// Les chiffres vivent ici, sur le serveur, jamais dans la page.
+const AFF_INSCRIPTION_AR = Math.max(0, Number(Deno.env.get("AFF_INSCRIPTION_AR") ?? "500"));
+const AFF_FIXE_AR = Math.max(0, Number(Deno.env.get("AFF_FIXE_AR") ?? "200"));
+const AFF_PCT = Math.max(0, Number(Deno.env.get("AFF_PCT") ?? "10"));
+// Un compte se rattache dans ses premiers jours seulement : passé ce délai,
+// on ne s'offre plus au premier lien venu.
+const AFF_JOURS_MAX = Number(Deno.env.get("AFF_JOURS_MAX") ?? "7");
+
+// Jamais plus que la moitié du paiement : la commission ne doit pas valoir
+// mieux que de payer soi-même par un second compte.
+function commission(montant: number): number {
+  if (!(montant > 0)) return 0;
+  const brut = AFF_FIXE_AR + Math.ceil(montant * AFF_PCT / 100);
+  return Math.min(brut, Math.floor(montant / 2));
+}
+
+// « ra•••@gmail.com » : celui qui a partagé voit qui est venu, sans lire
+// l'adresse entière d'un inconnu.
+function masquer(email: string): string {
+  const [nom, domaine] = String(email ?? "").split("@");
+  if (!domaine) return "•••";
+  return nom.slice(0, 2) + "•••@" + domaine;
+}
+
+// Le paiement d'une personne amenée : la commission à celui qui l'a amenée.
+// « ref » est unique par paiement — un second appel retombe sur l'index
+// unique et ne paie rien de plus. Un échec ne défait pas le paiement.
+async function verserCommission(admin: Admin, payeur: string, montant: number, ref: string, quoi: string): Promise<void> {
+  try {
+    const { data: lien } = await admin.from("affiliations")
+      .select("parrain_email").eq("filleul_email", payeur).maybeSingle();
+    const parrain = norm(lien?.parrain_email);
+    if (!parrain || parrain === payeur) return;
+    const somme = commission(montant);
+    if (!(somme > 0)) return;
+    const { error } = await admin.from("wallet_deposits").insert({
+      email: parrain, amount_ar: somme, provider: "affiliation", provider_ref: ref,
+      status: "confirme", confirmed_at: new Date().toISOString(),
+      note: `Commission : ${quoi} (${masquer(payeur)}, ${ar(montant)})`,
+    });
+    if (!error) {
+      await prevenir(admin, parrain,
+        `🤝 Commission ${ar(somme)} : ${masquer(payeur)} nandoa ${ar(montant)} (${quoi}).`);
+    }
+  } catch { /* la commission seule se perd */ }
+}
+
+// Ce que la page montre dans « 🤝 Affiliation ».
+async function affiliationFor(admin: Admin, email: string) {
+  const { data: filleuls, error } = await admin.from("affiliations")
+    .select("filleul_email,created_at").eq("parrain_email", email)
+    .order("created_at", { ascending: false }).limit(100);
+  // Table absente (SQL pas encore passé) : rien à montrer.
+  if (error) return null;
+  const { data: gains } = await admin.from("wallet_deposits")
+    .select("amount_ar,provider,note,created_at").eq("email", email).eq("status", "confirme")
+    .in("provider", ["affiliation", "affiliation_inscription"])
+    .order("created_at", { ascending: false }).limit(500);
+  let totalReel = 0;
+  let totalAppli = 0;
+  for (const g of (gains ?? []) as Array<{ amount_ar: number; provider: string }>) {
+    if (g.provider === "affiliation") totalReel += Number(g.amount_ar) || 0;
+    else totalAppli += Number(g.amount_ar) || 0;
+  }
+  return {
+    filleuls: ((filleuls ?? []) as Array<{ filleul_email: string; created_at: string }>)
+      .map((f) => ({ qui: masquer(f.filleul_email), created_at: f.created_at })),
+    nbFilleuls: (filleuls ?? []).length,
+    totalReel, totalAppli,
+    gains: (gains ?? []).slice(0, 20),
+    taux: { inscriptionAr: AFF_INSCRIPTION_AR, fixeAr: AFF_FIXE_AR, pct: AFF_PCT },
+  };
+}
+
 // ---- Le solde, déduit de la base ----
 async function balanceFor(admin: Admin, email: string): Promise<number> {
   // 1) ce qui est parti ou est réservé pour partir
@@ -244,7 +324,9 @@ async function cleFor(admin: Admin, email: string): Promise<string | null> {
 //
 // Peut sortir : ce qui est vraiment entré (versements payés chez Papi ou reçus
 // en Mobile Money / PayPal). Moins ce qui est déjà sorti vers le dehors, et jamais plus que le solde lui-même.
-const PROVIDERS_REELS = ["papi", "mvola", "orange", "airtel", "paypal"];
+// « affiliation » : la commission sur un paiement vraiment fait par une
+// personne amenée — elle est payée avec cet argent-là, elle se retire.
+const PROVIDERS_REELS = ["papi", "mvola", "orange", "airtel", "paypal", "affiliation"];
 
 async function retirableFor(admin: Admin, email: string, balance: number): Promise<number> {
   const { data: depots } = await admin.from("wallet_deposits")
@@ -424,6 +506,7 @@ Deno.serve(async (req: Request) => {
       canaux: { depotPapi: !!Deno.env.get("PAPI_TOKEN") },
       payouts: mine ?? [], deposits: depots ?? [], queue, isOwner, items: SITE_ITEMS,
       achats: achats ?? [], achatsEnAttente, email,
+      affiliation: await affiliationFor(admin, email),
     });
   }
 
@@ -494,6 +577,8 @@ Deno.serve(async (req: Request) => {
       .select("id,status,amount_ar,titre,isa,seller_email,buyer_name").maybeSingle();
     if (error) return json({ error: error.message }, 500);
     if (!data) return json({ error: "Efa voavaha na tsy anao io fividianana io." }, 409);
+    await verserCommission(admin, email, Number(data.amount_ar) || 0, "achat:" + data.id,
+      "« " + (data.titre ?? "Entana") + " »");
     // Le vendeur et son équipe : l'argent est parti chez eux.
     await prevenir(admin, norm(data.seller_email),
       `💸 Lasa ny vola : ${ar(data.amount_ar)} ho an'ny « ${data.titre ?? "Entana"} » × ${data.isa ?? 1}. ` +
@@ -559,6 +644,7 @@ Deno.serve(async (req: Request) => {
     }).select("id").single();
 
     if (error) return json({ error: error.message }, 500);
+    await verserCommission(admin, email, item.priceAr, "spend:" + data.id, item.label);
     return json({
       bought: itemId, label: item.label, priceAr: item.priceAr, days: item.days ?? 0,
       grant: item.grant ?? null,
@@ -831,6 +917,52 @@ Deno.serve(async (req: Request) => {
     if (!data) return json({ error: "Cette demande vient d'être tranchée." }, 409);
 
     return json({ annule: data, balanceAr: await balanceFor(admin, email) });
+  }
+
+  // ---- Rattacher le compte au lien par lequel il est venu ----
+  // La page garde le code du lien (« ?aff= ») et l'envoie après la connexion.
+  // Le compte doit être neuf, ne pas être celui qui partage, et n'être
+  // rattaché à personne encore : le premier lien l'emporte, pour toujours.
+  if (action === "affilier") {
+    const code = String(body.code ?? "").trim().slice(0, 40);
+    if (!normCle(code)) return json({ error: "code vide" }, 400);
+    const { data: deja, error: errDeja } = await admin.from("affiliations")
+      .select("parrain_email").eq("filleul_email", email).maybeSingle();
+    if (errDeja) return json({ error: "affiliation indisponible" }, 503);
+    if (deja) return json({ affilie: false, raison: "deja" });
+
+    const cree = Date.parse(String(caller?.user?.created_at ?? ""));
+    if (!Number.isFinite(cree) || Date.now() - cree > AFF_JOURS_MAX * 86400000) {
+      return json({ affilie: false, raison: "ancien" });
+    }
+
+    // L'ID KEY du lien : exacte d'abord, puis sans tirets ni « NA ».
+    const { data: exacte } = await admin.from("wallet_cles")
+      .select("email").eq("cle", code.toUpperCase()).maybeSingle();
+    let parrain = norm(exacte?.email);
+    if (!parrain) {
+      const { data: toutes } = await admin.from("wallet_cles").select("email,cle");
+      const trouve = ((toutes ?? []) as Array<{ email: string; cle: string }>).find((c) => memeCle(c.cle, code));
+      parrain = norm(trouve?.email);
+    }
+    if (!parrain) return json({ affilie: false, raison: "inconnu" });
+    if (parrain === email) return json({ affilie: false, raison: "soi" });
+
+    const { error } = await admin.from("affiliations").insert({ filleul_email: email, parrain_email: parrain, code });
+    if (error) return json({ affilie: false, raison: "deja" });
+
+    if (AFF_INSCRIPTION_AR > 0) {
+      const { error: e } = await admin.from("wallet_deposits").insert({
+        email: parrain, amount_ar: AFF_INSCRIPTION_AR, provider: "affiliation_inscription",
+        provider_ref: email, status: "confirme", confirmed_at: new Date().toISOString(),
+        note: "Nisoratra tamin'ny rohinao : " + masquer(email),
+      });
+      if (!e) {
+        await prevenir(admin, parrain,
+          `🤝 ${masquer(email)} nisoratra tamin'ny rohinao : +${ar(AFF_INSCRIPTION_AR)}.`);
+      }
+    }
+    return json({ affilie: true });
   }
 
   // ---- Le propriétaire a envoyé l'argent, ou refuse ----

@@ -940,6 +940,7 @@
     const cleSuppr = document.getElementById('walletIdKeyDelete');
     if(cleSuppr) cleSuppr.style.display = walletState.idKey && !walletState.idKeyAuto ? '' : 'none';
     renderTransferts();
+    renderAffiliation();
     transfertCalculer();
     const dispoEl = document.getElementById('etrangerDispo');
     if(dispoEl) dispoEl.textContent = 'Vola tena izy azo ampiasaina : ' + formatWalletAr(walletState.papiAr || 0);
@@ -1165,6 +1166,107 @@
   // Le panier (parametres.js) paie par ici : même appel, même session.
   window.__callWallet = callWallet;
   window.__rafraichirPortefeuille = function(){ refreshWalletFromServer(); };
+
+  // ---------------- AFFILIATION ----------------
+  // « ?aff=<ID KEY> » : la personne arrive par le lien de quelqu'un. On garde
+  // le code jusqu'à ce qu'elle ait un compte, puis le serveur décide (compte
+  // neuf, pas le sien, pas déjà rattaché). Le premier lien l'emporte, ici
+  // comme sur le serveur.
+  const AFF_KEY = 'ny_asako_aff';
+  (function(){
+    if(MODE_MPIASA) return;
+    try{
+      const code = String(new URLSearchParams(window.location.search).get('aff') || '').trim().slice(0, 40);
+      if(code && !localStorage.getItem(AFF_KEY)) localStorage.setItem(AFF_KEY, code);
+    }catch(e){}
+  })();
+
+  function envoyerAffiliation(){
+    let code = '';
+    try{ code = localStorage.getItem(AFF_KEY) || ''; }catch(e){}
+    if(!code) return;
+    callWallet({ action: 'affilier', code: code }).then(function(){
+      // Rattaché ou refusé (compte ancien, lien inconnu, déjà rattaché) :
+      // la réponse est définitive, on n'y revient pas.
+      try{ localStorage.removeItem(AFF_KEY); }catch(e){}
+    }, function(){ /* réseau ou fonction absente : on réessaiera à la prochaine connexion */ });
+  }
+
+  function lienAffiliation(){
+    const cle = walletState && walletState.idKey;
+    return cle ? location.origin + location.pathname + '?aff=' + encodeURIComponent(cle) : '';
+  }
+
+  function renderAffiliation(){
+    const panel = document.getElementById('walletAffPanel');
+    if(!panel || !walletState) return;
+    const a = walletState.affiliation;
+    // Fonction pas encore à jour, ou SQL pas passé : rien à proposer.
+    panel.style.display = a ? '' : 'none';
+    if(!a) return;
+    const lienEl = document.getElementById('walletAffLien');
+    if(lienEl) lienEl.value = lienAffiliation() || '—';
+    const t = a.taux || {};
+    const tauxEl = document.getElementById('walletAffTaux');
+    if(tauxEl){
+      tauxEl.innerHTML = 'Zarao ny rohinao. Izay misoratra anarana amin\'io :<br>' +
+        '• fisoratana anarana : <strong>' + formatWalletAr(t.inscriptionAr) + '</strong> (ato anatin\'ny appli)<br>' +
+        '• isaky ny mandoa izy (abonnement, fividianana) : <strong>' + formatWalletAr(t.fixeAr) +
+        ' + ' + (Number(t.pct) || 0).toLocaleString('fr-FR') + ' %</strong> (vola tena izy, azo alaina)';
+    }
+    const nbEl = document.getElementById('walletAffNb');
+    if(nbEl) nbEl.textContent = String(a.nbFilleuls || 0);
+    const totalEl = document.getElementById('walletAffTotal');
+    if(totalEl) totalEl.textContent = formatWalletAr((a.totalReel || 0) + (a.totalAppli || 0));
+    const detailEl = document.getElementById('walletAffDetail');
+    if(detailEl) detailEl.textContent = 'Vola tena izy ' + formatWalletAr(a.totalReel) +
+      ' · appli ' + formatWalletAr(a.totalAppli);
+    const listeEl = document.getElementById('walletAffListe');
+    if(listeEl){
+      const gains = (a.gains || []).map(function(g){
+        return '<div style="display:flex; justify-content:space-between; gap:0.8rem; padding:0.3rem 0; border-top:1px solid var(--line);">' +
+          '<span>' + escapeHtml(g.note || '') + '<br><span style="font-size:0.7rem; color:var(--muted);">' +
+          new Date(g.created_at).toLocaleString('fr-FR') + '</span></span>' +
+          '<strong style="white-space:nowrap; color:var(--cyan);">+' + formatWalletAr(g.amount_ar) + '</strong></div>';
+      }).join('');
+      listeEl.innerHTML = gains ||
+        '<p style="color:var(--muted);">Mbola tsy nisy olona niditra tamin\'ny rohinao.</p>';
+    }
+  }
+
+  const affCopy = document.getElementById('walletAffCopy');
+  if(affCopy){
+    affCopy.addEventListener('click', function(){
+      const lien = lienAffiliation();
+      if(!lien) return;
+      const fini = function(){
+        affCopy.textContent = '✅ Voadika';
+        setTimeout(function(){ affCopy.textContent = '📋 Adikao'; }, 1500);
+      };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(lien).then(fini, function(){
+          const el = document.getElementById('walletAffLien');
+          if(el){ el.select(); }
+        });
+      } else {
+        const el = document.getElementById('walletAffLien');
+        if(el){ el.select(); try{ document.execCommand('copy'); fini(); }catch(e){} }
+      }
+    });
+  }
+  const affShare = document.getElementById('walletAffShare');
+  if(affShare){
+    affShare.addEventListener('click', function(){
+      const lien = lienAffiliation();
+      if(!lien) return;
+      const texte = 'Midira amin\'ny Ny asako amin\'ity rohy ity :';
+      if(navigator.share){
+        navigator.share({ title: 'Ny asako', text: texte, url: lien }).catch(function(){});
+      } else {
+        window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(lien), '_blank', 'noopener');
+      }
+    });
+  }
 
   // ---- Les achats du fil, payés avec le portefeuille ----
   // Comme acheteur : la somme est tenue, et « Voaraiko » la fait passer au
@@ -2309,6 +2411,7 @@
     document.getElementById('currentUserEmail').textContent = currentUser.email;
     saveSession();
     prendreLaPhotoDuCompte(user);
+    envoyerAffiliation();
     if(getSubscriptionStatus().status === 'expired'){
       openPaywall();
     } else {
