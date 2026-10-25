@@ -178,12 +178,6 @@
       }
       row.appendChild(btn);
     });
-    const ajouter = document.createElement('button');
-    ajouter.type = 'button';
-    ajouter.className = 'btn btn-amber';
-    ajouter.textContent = '🔗 Ajouter les liens';
-    ajouter.addEventListener('click', allerAuxLiens);
-    row.appendChild(ajouter);
   }
 
   // ---------------- PARTAGE UNIVERSEL ----------------
