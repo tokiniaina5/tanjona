@@ -81,6 +81,55 @@
     }catch(e){ dire('Ao amin\'ny Chrome : menu ⋮ → « Caster… » → « Caster l\'onglet ».'); }
   }
 
+  // 📦 Boaty + loupe. La loupe retourne l'image dans les deux sens : un
+  // demi-tour de la page la remet à l'endroit sur le mur. Le plein écran
+  // retire les barres du navigateur, et l'écran reste allumé (Wake Lock) —
+  // il s'éteindrait au bout de trente secondes, enfermé dans sa boîte.
+  // Le petit « ✕ Boaty » est tourné avec le reste : il apparaît en bas à
+  // droite sur le mur, en haut à gauche sur le téléphone.
+  let reveil = null;
+  (function(){
+    const st = document.createElement('style');
+    st.textContent = 'html.mode-boaty{transform:rotate(180deg);transform-origin:50% 50%;}';
+    document.head.appendChild(st);
+  })();
+  function boatyMiditra(){
+    const html = document.documentElement;
+    html.classList.add('mode-boaty');
+    if(!$('boatyMivoaka')){
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.id = 'boatyMivoaka';
+      b.className = 'btn btn-sm';
+      b.textContent = '✕ Boaty';
+      b.style.cssText = 'position:fixed; right:12px; bottom:12px; z-index:2147483647; width:auto; opacity:0.75;';
+      b.addEventListener('click', boatyMivoaka);
+      document.body.appendChild(b);
+    }
+    pleinEcran().catch(function(){});
+    if(navigator.wakeLock && navigator.wakeLock.request){
+      navigator.wakeLock.request('screen').then(function(v){ reveil = v; }, function(){});
+    }
+  }
+  function boatyMivoaka(){
+    document.documentElement.classList.remove('mode-boaty');
+    const b = $('boatyMivoaka');
+    if(b) b.remove();
+    if(reveil){ try{ reveil.release(); }catch(e){} reveil = null; }
+    if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function(){});
+  }
+  // Échap (ou le geste « retour ») quitte le plein écran : la boîte aussi.
+  document.addEventListener('fullscreenchange', function(){
+    if(!document.fullscreenElement && document.documentElement.classList.contains('mode-boaty')) boatyMivoaka();
+  });
+  // Le Wake Lock tombe quand la page passe derrière ; on le reprend au retour.
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState === 'visible' && document.documentElement.classList.contains('mode-boaty') &&
+       navigator.wakeLock && navigator.wakeLock.request){
+      navigator.wakeLock.request('screen').then(function(v){ reveil = v; }, function(){});
+    }
+  });
+
   function brancher(){
     if(!$('projecteurAlefaBtn')) return;
     $('projecteurAlefaBtn').addEventListener('click', alefa);
@@ -89,6 +138,9 @@
       pleinEcran().catch(function(){ dire('Tsy mety ny plein écran eto : tsindrio F11.'); });
     });
     $('projecteurCastBtn').addEventListener('click', cast);
+    $('projecteurBoatyBtn').addEventListener('click', function(){
+      if(document.documentElement.classList.contains('mode-boaty')) boatyMivoaka(); else boatyMiditra();
+    });
   }
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', brancher);
   else brancher();
