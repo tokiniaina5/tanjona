@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="8862e73b">
+<meta name="ny-asako-version" content="af8550ea">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -2407,40 +2407,11 @@
         <div class="panel">
           <h3>Partager sur les réseaux sociaux</h3>
           <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.8rem; line-height:1.5;">
-            Envoyez votre lien directement sur un réseau social.
+            Ny rohy nampidirinao tao amin'ny « 🔗 Ajouter les liens » ihany no mandeha eto ;
+            ny réseau mbola tsy misy rohy dia manjavozavo, ary mitondra any amin'ny « 🔗 Ajouter les liens ».
           </p>
-          <div class="actions-row" style="flex-wrap:wrap; gap:0.6rem;">
-            <button type="button" class="btn" id="shareWhatsappBtn" style="border-color:#25D366; color:#25D366;">WhatsApp</button>
-            <button type="button" class="btn" id="shareFacebookBtn" style="border-color:#1877F2; color:#1877F2;">Facebook</button>
-            <button type="button" class="btn" id="shareTiktokBtn" style="border-color:#e7e9ea; color:#e7e9ea;">TikTok</button>
-            <button type="button" class="btn" id="shareThreadsBtn" style="border-color:#e7e9ea; color:#e7e9ea;">Threads</button>
-            <button type="button" class="btn" id="shareTwitterBtn" style="border-color:#e7e9ea; color:#e7e9ea;">X (Twitter)</button>
-            <button type="button" class="btn" id="shareInstagramBtn" style="border-color:#E1306C; color:#E1306C;">Instagram</button>
-            <button type="button" class="btn" id="shareWechatBtn" style="border-color:#07C160; color:#07C160;">WeChat</button>
-            <button type="button" class="btn btn-primary" id="shareMoreBtn" style="display:none;">📲 Autres applis</button>
-            <span id="customSocialButtons" style="display:contents;"></span>
-            <button type="button" class="btn btn-amber" id="addSocialToggleBtn" title="Ajouter un réseau social">＋ Ajouter</button>
-          </div>
-
-          <div id="addSocialForm" style="display:none; margin-top:0.9rem; padding-top:0.9rem; border-top:1px solid var(--line);">
-            <div class="form-grid">
-              <div class="field" style="margin-bottom:0;">
-                <label for="newSocialName">Nom du réseau</label>
-                <input id="newSocialName" type="text" placeholder="Ex : Snapchat">
-              </div>
-              <div class="field" style="margin-bottom:0;">
-                <label for="newSocialUrl">Lien de partage</label>
-                <input id="newSocialUrl" type="text" placeholder="https://exemple.com/partager?url={lien}&texte={message}">
-              </div>
-            </div>
-            <p style="font-size:0.72rem; color:var(--muted); margin-top:0.5rem; line-height:1.5;">
-              Utilisez <code>{lien}</code> et/ou <code>{message}</code> dans l'URL : ils seront remplacés
-              automatiquement par votre lien d'invitation et le message. Si le réseau ne propose pas
-              d'URL de partage, laissez ce champ vide : le message sera simplement copié.
-            </p>
-            <button type="button" class="btn btn-primary btn-sm" id="saveSocialBtn" style="width:auto; margin-top:0.6rem;">Enregistrer ce réseau</button>
-            <span id="addSocialStatus" style="font-size:0.78rem; color:var(--muted); margin-left:0.6rem;"></span>
-          </div>
+          <!-- Rafetin'ny inviter.js (renderInviteSocials), avy amin'ny rohin'ity kaonty ity (contact.js). -->
+          <div class="actions-row" id="inviteSocialButtons" style="flex-wrap:wrap; gap:0.6rem;"></div>
 
           <p style="font-size:0.72rem; color:var(--muted); margin-top:0.7rem; line-height:1.5;">
             Instagram, TikTok et WeChat ne permettent pas de préremplir un message depuis un site web : votre
@@ -3771,8 +3742,8 @@
 <script src="gestion-stockage-js/comptes.js?v=92ad47d0"></script>
 <script src="gestion-stockage-js/factures.js?v=69af0cd7"></script>
 <script src="gestion-stockage-js/factures-modely.js?v=8fbf4a42"></script>
-<script src="gestion-stockage-js/inviter.js?v=b90a8889"></script>
-<script src="gestion-stockage-js/contact.js?v=e1538f63"></script>
+<script src="gestion-stockage-js/inviter.js?v=1a5d3eb0"></script>
+<script src="gestion-stockage-js/contact.js?v=96f9e192"></script>
 <script src="gestion-stockage-js/zara-rehetra.js?v=9b9c2469"></script>
 <script src="gestion-stockage-js/live.js?v=09e7a36e"></script>
 <script src="gestion-stockage-js/traduction.js?v=8f5605bc"></script>

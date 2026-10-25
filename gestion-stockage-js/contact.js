@@ -195,6 +195,8 @@
       // Ny site_url dia mety vao tonga avy amin'ny serveur : averina amboarina ny
       // rohy invitation mba tsy hijanona amin'ny adiresy an-toerana.
       if(typeof setupInviteLink === 'function') setupInviteLink();
+      // « Partager sur les réseaux sociaux » (Inviter des amis) : mêmes liens.
+      if(typeof renderInviteSocials === 'function') renderInviteSocials(channels, extra);
 
       const voice = [], video = [];
       const inAppVoice = inAppCallOption('audio');

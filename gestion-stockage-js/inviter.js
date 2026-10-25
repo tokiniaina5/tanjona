@@ -118,64 +118,72 @@
     }
   }
 
-  document.getElementById('shareWhatsappBtn').addEventListener('click', function(){
-    const link = document.getElementById('inviteLink').value;
-    window.open('https://wa.me/?text=' + encodeURIComponent(inviteMessage(link)), '_blank');
-  });
-
-  document.getElementById('shareFacebookBtn').addEventListener('click', function(){
-    const link = document.getElementById('inviteLink').value;
-    window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(link), '_blank');
-  });
-
-  document.getElementById('shareThreadsBtn').addEventListener('click', function(){
-    const link = document.getElementById('inviteLink').value;
-    window.open('https://www.threads.net/intent/post?text=' + encodeURIComponent(inviteMessage(link)), '_blank');
-  });
-
-  // TikTok n'a pas d'URL de partage officielle pour du texte : on copie le message.
-  document.getElementById('shareTiktokBtn').addEventListener('click', function(){
-    const link = document.getElementById('inviteLink').value;
-    copyToClipboardSilently(inviteMessage(link));
-    alert('Votre message a été copié. Ouvrez TikTok et collez-le dans un message ou une légende.');
-    window.open('https://www.tiktok.com/', '_blank');
-  });
-
-  document.getElementById('shareTwitterBtn').addEventListener('click', function(){
-    const link = document.getElementById('inviteLink').value;
-    window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(inviteMessage(link)) + '&url=' + encodeURIComponent(link), '_blank');
-  });
-
-  // Instagram et WeChat n'offrent pas de lien web permettant de préremplir un message :
-  // on copie le message et on ouvre l'appli/le site pour que l'utilisateur le colle lui-même.
-  document.getElementById('shareInstagramBtn').addEventListener('click', function(){
-    const link = document.getElementById('inviteLink').value;
-    copyToClipboardSilently(inviteMessage(link));
-    alert('Votre message a été copié. Ouvrez Instagram (story ou message direct) et collez-le.');
-    window.open('https://www.instagram.com/', '_blank');
-  });
-
-  document.getElementById('shareWechatBtn').addEventListener('click', function(){
-    const link = document.getElementById('inviteLink').value;
-    copyToClipboardSilently(inviteMessage(link));
-    alert('Votre message a été copié. Ouvrez WeChat et collez-le dans une discussion.');
-  });
-
-  // Sur mobile, la feuille de partage native permet d'atteindre n'importe quelle appli
-  // installée (Instagram, WeChat, Messenger, etc.) directement avec le lien prérempli.
-  var shareMoreBtn = document.getElementById('shareMoreBtn');
-  if(navigator.share){
-    shareMoreBtn.style.display = 'inline-flex';
-    shareMoreBtn.addEventListener('click', function(){
-      const link = document.getElementById('inviteLink').value;
-      navigator.share({
-        title: 'Ny asako',
-        // Le lien part dans « url » : le laisser aussi dans le texte le
-        // faisait apparaître deux fois dans le message.
-        text: inviteMessage('').trim(),
-        url: link
-      }).catch(function(){});
+  // Les boutons viennent de « 🔗 Ajouter les liens » de ce compte (appelé par
+  // renderContactButtons, contact.js) : un réseau avec un lien partage ; un
+  // réseau sans lien reste visible mais pâle, et l'appui mène à « Ajouter
+  // les liens ».
+  function allerAuxLiens(){
+    const nav = document.querySelector('.nav-item[data-section="contact"]');
+    if(nav) nav.click();
+  }
+  function renderInviteSocials(channels, extra){
+    const row = document.getElementById('inviteSocialButtons');
+    if(!row) return;
+    channels = channels || {};
+    row.innerHTML = '';
+    function lien(){ return document.getElementById('inviteLink').value; }
+    function profil(cle){ return (typeof adresseDeProfil === 'function') ? adresseDeProfil(cle, channels[cle]) : null; }
+    // Instagram, TikTok, WeChat et les canaux ajoutés n'ont pas de lien web
+    // qui préremplit un message : on copie, puis on ouvre le lien du compte.
+    function copier(nom, url){
+      return function(){
+        copyToClipboardSilently(inviteMessage(lien()));
+        alert('Votre message a été copié. Ouvrez ' + nom + ' et collez-le.');
+        if(url) window.open(url, '_blank');
+      };
+    }
+    const reseaux = [
+      { label: 'WhatsApp', color: '#25D366', ok: !!(channels.whatsapp || '').replace(/[^\d]/g, ''), run: function(){
+        window.open('https://wa.me/?text=' + encodeURIComponent(inviteMessage(lien())), '_blank'); } },
+      { label: 'Facebook', color: '#1877F2', ok: !!profil('facebook'), run: function(){
+        window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(lien()), '_blank'); } },
+      { label: 'TikTok', color: '#e7e9ea', ok: !!profil('tiktok'), run: function(){ copier('TikTok', profil('tiktok'))(); } },
+      { label: 'Threads', color: '#e7e9ea', ok: !!profil('threads'), run: function(){
+        window.open('https://www.threads.net/intent/post?text=' + encodeURIComponent(inviteMessage(lien())), '_blank'); } },
+      { label: 'X (Twitter)', color: '#e7e9ea', ok: !!profil('twitter'), run: function(){
+        window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(inviteMessage(lien())) + '&url=' + encodeURIComponent(lien()), '_blank'); } },
+      { label: 'Instagram', color: '#E1306C', ok: !!profil('instagram'), run: function(){ copier('Instagram', profil('instagram'))(); } },
+      { label: 'WeChat', color: '#07C160', ok: !!(channels.wechat || '').trim(), run: copier('WeChat') }
+    ];
+    (extra || []).forEach(function(item){
+      if(!item || !item.name) return;
+      const value = (item.url || '').trim();
+      const propre = (/^https?:\/\//i.test(value) && typeof adresseDeProfil === 'function') ? adresseDeProfil('', value) : null;
+      reseaux.push({ label: item.name, color: 'var(--cyan)', ok: true,
+        run: copier(item.name, (propre && !/\s/.test(propre)) ? propre : null) });
     });
+    reseaux.forEach(function(r){
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn';
+      btn.style.borderColor = r.color;
+      btn.style.color = r.color;
+      btn.textContent = r.label;
+      if(r.ok){
+        btn.addEventListener('click', r.run);
+      } else {
+        btn.style.opacity = '0.4';
+        btn.title = r.label + ' : mbola tsy misy rohy — 🔗 Ajouter les liens';
+        btn.addEventListener('click', allerAuxLiens);
+      }
+      row.appendChild(btn);
+    });
+    const ajouter = document.createElement('button');
+    ajouter.type = 'button';
+    ajouter.className = 'btn btn-amber';
+    ajouter.textContent = '🔗 Ajouter les liens';
+    ajouter.addEventListener('click', allerAuxLiens);
+    row.appendChild(ajouter);
   }
 
   // ---------------- PARTAGE UNIVERSEL ----------------
@@ -280,74 +288,4 @@
     openShareMenu(text, link);
   }
 
-  // ---------------- RÉSEAUX SOCIAUX PERSONNALISÉS (ajoutés par l'utilisateur) ----------------
-  const STORAGE_CUSTOM_SOCIALS = 'stockmanager_custom_socials';
-  function loadCustomSocials(){
-    try { return JSON.parse(localStorage.getItem(STORAGE_CUSTOM_SOCIALS)) || []; }
-    catch(e){ return []; }
-  }
-  function saveCustomSocials(list){ localStorage.setItem(STORAGE_CUSTOM_SOCIALS, JSON.stringify(list)); }
-
-  function renderCustomSocials(){
-    const container = document.getElementById('customSocialButtons');
-    const list = loadCustomSocials();
-    container.innerHTML = '';
-    list.forEach(function(social, index){
-      const wrap = document.createElement('span');
-      wrap.style.display = 'inline-flex';
-      wrap.style.alignItems = 'center';
-      wrap.style.gap = '0.2rem';
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'btn';
-      btn.style.borderColor = 'var(--cyan)';
-      btn.style.color = 'var(--cyan)';
-      btn.textContent = social.name;
-      btn.addEventListener('click', function(){
-        const link = document.getElementById('inviteLink').value;
-        const message = inviteMessage(link);
-        if(!social.url){
-          copyToClipboardSilently(message);
-          alert('Votre message a été copié. Collez-le dans ' + social.name + '.');
-          return;
-        }
-        const built = social.url.replace(/\{lien\}/g, encodeURIComponent(link)).replace(/\{message\}/g, encodeURIComponent(message));
-        window.open(built, '_blank');
-      });
-      const removeBtn = document.createElement('button');
-      removeBtn.type = 'button';
-      removeBtn.className = 'btn btn-red btn-sm';
-      removeBtn.title = 'Retirer ' + social.name;
-      removeBtn.textContent = '×';
-      removeBtn.addEventListener('click', function(){
-        const current = loadCustomSocials();
-        current.splice(index, 1);
-        saveCustomSocials(current);
-        renderCustomSocials();
-      });
-      wrap.appendChild(btn);
-      wrap.appendChild(removeBtn);
-      container.appendChild(wrap);
-    });
-  }
-  renderCustomSocials();
-
-  document.getElementById('addSocialToggleBtn').addEventListener('click', function(){
-    const form = document.getElementById('addSocialForm');
-    form.style.display = form.style.display === 'none' ? 'block' : 'none';
-  });
-
-  document.getElementById('saveSocialBtn').addEventListener('click', function(){
-    const name = document.getElementById('newSocialName').value.trim();
-    const url = document.getElementById('newSocialUrl').value.trim();
-    const status = document.getElementById('addSocialStatus');
-    if(!name){ status.textContent = 'Veuillez donner un nom au réseau.'; return; }
-    const list = loadCustomSocials();
-    list.push({ name: name, url: url });
-    saveCustomSocials(list);
-    renderCustomSocials();
-    document.getElementById('newSocialName').value = '';
-    document.getElementById('newSocialUrl').value = '';
-    status.textContent = '« ' + name + ' » ajouté ✓';
-  });
 
