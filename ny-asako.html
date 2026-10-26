@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="723f6086">
+<meta name="ny-asako-version" content="340ef822">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -3024,6 +3024,20 @@
             <div id="walletAvadikaAdmin" style="display:none; margin-top:1rem; padding-top:0.8rem; border-top:1px solid var(--line);">
               <div style="font-weight:700; font-size:0.85rem; margin-bottom:0.4rem;">🛡️ Fangatahana miandry (admin)</div>
               <div id="walletAvadikaAdminLisitra" style="font-size:0.8rem;"></div>
+              <!-- Le tableau : toutes les demandes, et ce qu'il en est advenu. -->
+              <div style="font-weight:700; font-size:0.85rem; margin:1rem 0 0.4rem;">📜 Tantaran'ny fanovana rehetra</div>
+              <div style="overflow-x:auto;">
+                <table style="width:100%; border-collapse:collapse; font-size:0.76rem;">
+                  <thead>
+                    <tr style="text-align:left; color:var(--muted);">
+                      <th style="padding:0.3rem;">Daty</th><th style="padding:0.3rem;">Iza</th>
+                      <th style="padding:0.3rem; text-align:right;">Vola</th><th style="padding:0.3rem; text-align:right;">Frais</th>
+                      <th style="padding:0.3rem; text-align:right;">Net</th><th style="padding:0.3rem;">Statut</th>
+                    </tr>
+                  </thead>
+                  <tbody id="walletAvadikaTantara"></tbody>
+                </table>
+              </div>
             </div>
           </div>
 
@@ -3066,10 +3080,10 @@
                Papi n'envoie pas d'argent (il n'encaisse que) : le propriétaire
                envoie lui-même, puis marque la demande comme envoyée. -->
           <div class="panel" id="walletPayoutPanel">
-            <h3>💸 Retirer vers mon Mobile Money</h3>
+            <h3>💸 Retirer : Mobile Money na USDT</h3>
             <p style="font-size:0.82rem; color:var(--muted); line-height:1.6; margin-bottom:1rem;">
               Votre argent part vers votre
-              MVola, Orange Money ou Airtel Money. La somme quitte votre solde dès la demande ; le
+              MVola, Orange Money, Airtel Money, ou en USDT (crypto) vers votre portefeuille. La somme quitte votre solde dès la demande ; le
               propriétaire l'envoie et vous êtes prévenu. Si elle ne part pas, elle vous est rendue.
             </p>
             <div class="form-grid">
@@ -3083,13 +3097,25 @@
                   <option value="MVola">MVola</option>
                   <option value="Orange Money">Orange Money</option>
                   <option value="Airtel Money">Airtel Money</option>
+                  <option value="USDT">USDT (crypto)</option>
                 </select>
               </div>
             </div>
+            <!-- USDT : le réseau, puis l'adresse ; vérifiés par le serveur. -->
+            <div class="field" id="payoutReseauBoite" style="margin-top:1rem; display:none;">
+              <label for="payoutReseau">Réseau USDT</label>
+              <select id="payoutReseau">
+                <option value="TRC20">TRC20 (Tron) — adresse en T…</option>
+                <option value="BEP20">BEP20 (BNB Smart Chain) — adresse en 0x…</option>
+              </select>
+            </div>
             <div class="field" style="margin-top:1rem;">
-              <label for="payoutDestination">Votre numéro et le nom du titulaire</label>
+              <label for="payoutDestination" id="payoutDestinationLabelUsdt">Votre numéro et le nom du titulaire</label>
               <input id="payoutDestination" type="text" placeholder="034 00 000 00 — RABE Koto">
             </div>
+            <p id="payoutUsdtNote" style="display:none; font-size:0.76rem; color:var(--amber, #e9a23b); line-height:1.5; margin:-0.4rem 0 0.6rem;">
+              ⚠️ Hamarino tsara ny adiresy sy ny réseau : raha diso izy, very tanteraka ny vola.
+            </p>
             <p id="payoutFrais" style="font-size:0.78rem; color:var(--muted); margin-bottom:0.6rem; line-height:1.5;"></p>
             <button type="button" class="btn btn-primary btn-sm" id="payoutRequestBtn" style="width:auto;">Retirer</button>
             <p id="payoutStatus" style="font-size:0.8rem; color:var(--cyan); margin-top:0.8rem; line-height:1.5;"></p>
@@ -3917,7 +3943,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=e38497c8"></script>
+<script src="gestion-stockage-js/common.js?v=49b48729"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=d0a53ff8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>

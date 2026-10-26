@@ -1227,3 +1227,14 @@ Secrets (facultatifs, valeurs par défaut) :
   supabase secrets set CONV_MIN_AR=5000
   supabase secrets set CONV_MAX_MOIS_AR=50000
   supabase secrets set CONV_FRAIS_PCT=15
+L'admin change son propre argent sans frais (frais_ar = 0) ; le plafond du
+mois vaut pour lui aussi. Portefeuille > bloc 🔁 : l'admin voit, sous les
+demandes qui attendent, le tableau de toutes les demandes (« 📜 Tantara »).
+
+RETRAIT EN USDT (26/10/2026)
+----------------------------
+Portefeuille > « 💸 Retirer » > Vers : USDT (crypto). method « usdt »,
+currency « USDT » (taux = celui du dollar), destination « TRC20 · T… » ou
+« BEP20 · 0x… » — l'adresse est vérifiée par la fonction « wallet ». Comme
+le Mobile Money, la demande attend le propriétaire, qui envoie de son propre
+portefeuille crypto puis la marque envoyée.

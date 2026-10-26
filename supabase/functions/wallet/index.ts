@@ -56,7 +56,14 @@ function fraisRetrait(montant: number): number {
 // (« Achats internationaux »), payé avec la vola tena izy seule — jamais
 // avec les sommes de l'appli. Le propriétaire l'achète
 // depuis le lien et le fait livrer à l'adresse donnée.
-const METHODS = new Set(["mobile", "merchant"]);
+const METHODS = new Set(["mobile", "merchant", "usdt"]);
+// Le retrait en USDT (26/10/2026) : le propriétaire l'envoie de son propre
+// portefeuille crypto, sur le réseau choisi. L'adresse se vérifie ici :
+// une adresse fausse, et l'argent part pour toujours.
+const ADIRESY_USDT: Record<string, RegExp> = {
+  TRC20: /^T[1-9A-HJ-NP-Za-km-z]{33}$/,
+  BEP20: /^0x[0-9a-fA-F]{40}$/,
+};
 // Les portefeuilles internationaux ne connaissent pas l'ariary.
 const METHODES_EN_DEVISE = new Set(["wise", "payoneer", "skrill"]);
 const PURCHASE_METHODS = new Set(["merchant"]);
@@ -91,6 +98,8 @@ function norm(value: unknown): string {
 // Combien d'unités de la devise demandée vaut 1 ariary.
 async function rateFromAr(currency: string): Promise<number> {
   if (!currency || currency === "MGA") return 1;
+  // L'USDT suit le dollar.
+  if (currency === "USDT") currency = "USD";
   const fixed = Number(Deno.env.get(`RATE_${currency}_MGA`) ?? "0");
   if (fixed > 0) return 1 / fixed;
   try {
@@ -346,7 +355,8 @@ async function conversionsFor(admin: Admin, email: string): Promise<{ retenu: nu
 
 // Ce qui peut encore se changer : ce que l'appli garde (« Avy amin'ny appli »
 // dans la page). Ce qui attend déjà en est sorti : le solde le retient.
-async function avadikaFor(admin: Admin, email: string, balance: number) {
+// « sansFrais » : l'admin change son propre argent sans frais (26/10/2026).
+async function avadikaFor(admin: Admin, email: string, balance: number, sansFrais = false) {
   const conv = await conversionsFor(admin, email);
   const parts = await partsSolde(admin, email, balance);
   const azo = Math.max(0, balance - parts.papi);
@@ -358,9 +368,18 @@ async function avadikaFor(admin: Admin, email: string, balance: number) {
   return {
     azoAr: azo, ityVolanaAr: ityVolana,
     sisaVolanaAr: Math.max(0, CONV_MAX_MOIS_AR - ityVolana),
-    taux: { minAr: CONV_MIN_AR, maxMoisAr: CONV_MAX_MOIS_AR, fraisPct: CONV_FRAIS_PCT },
+    taux: { minAr: CONV_MIN_AR, maxMoisAr: CONV_MAX_MOIS_AR, fraisPct: sansFrais ? 0 : CONV_FRAIS_PCT },
     lisitra: conv.lignes.slice(0, 20),
   };
+}
+
+// Pour l'admin : toutes les demandes, les plus récentes d'abord.
+async function conversionsTantara(admin: Admin) {
+  const { data, error } = await admin.from("wallet_conversions")
+    .select("id,email,montant_ar,frais_ar,net_ar,status,note,created_at,settled_at")
+    .order("created_at", { ascending: false }).limit(100);
+  if (error) return [];
+  return data ?? [];
 }
 
 // Pour l'admin : les demandes qui attendent, avec qui et combien.
@@ -604,7 +623,8 @@ Deno.serve(async (req: Request) => {
       payouts: mine ?? [], deposits: depots ?? [], queue, isOwner, items: SITE_ITEMS,
       achats: achats ?? [], achatsEnAttente, email,
       affiliation: await affiliationFor(admin, email),
-      avadika: await avadikaFor(admin, email, balance),
+      avadika: await avadikaFor(admin, email, balance, isOwner),
+      avadikaTantara: isOwner ? await conversionsTantara(admin) : null,
       avadikaEnAttente: isOwner ? await conversionsEnAttente(admin) : null,
     });
   }
@@ -623,7 +643,7 @@ Deno.serve(async (req: Request) => {
     if (montant > etat.azoAr) {
       return json({ error: `Ny commission azo avadika dia ${ar(etat.azoAr)} ihany.` }, 400);
     }
-    const frais = Math.ceil(montant * CONV_FRAIS_PCT / 100);
+    const frais = isOwner ? 0 : Math.ceil(montant * CONV_FRAIS_PCT / 100);
     const { data, error } = await admin.from("wallet_conversions").insert({
       email, montant_ar: montant, frais_ar: frais, net_ar: montant - frais, status: "en_attente",
     }).select("id,montant_ar,frais_ar,net_ar,status,created_at").single();
@@ -963,6 +983,15 @@ Deno.serve(async (req: Request) => {
     }
     if (method === "mobile" && currency !== "MGA") {
       return json({ error: "Le Mobile Money reçoit en ariary (MGA)." }, 400);
+    }
+    if (method === "usdt") {
+      if (currency !== "USDT") return json({ error: "Ny retrait USDT dia amin'ny USDT." }, 400);
+      // « TRC20 · Txxxx » : le réseau, puis l'adresse.
+      const [reseau, adresse] = destination.split("·").map((x) => x.trim());
+      const motif = ADIRESY_USDT[String(reseau ?? "").toUpperCase()];
+      if (!motif || !motif.test(String(adresse ?? ""))) {
+        return json({ error: "Diso ny adiresy USDT : TRC20 (manomboka amin'ny T) na BEP20 (manomboka amin'ny 0x)." }, 400);
+      }
     }
     if (kind === "purchase") return await acheterAilleurs();
     if (!(amount > 0)) return json({ error: "montant invalide" }, 400);

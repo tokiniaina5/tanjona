@@ -1049,6 +1049,7 @@
     if(method === 'cash') return 'Espèces — point cash';
     if(method === 'wallet') return 'Autre portefeuille';
     if(method === 'merchant') return 'Achat à l\'étranger';
+    if(method === 'usdt') return 'USDT (crypto)';
     return 'Ancien moyen (retiré)';
   }
 
@@ -1336,6 +1337,7 @@
       }).join('') || '<p style="color:var(--muted); margin:0;">Mbola tsy nisy fangatahana.</p>';
     }
     renderAvadikaAdmin(walletState.avadikaEnAttente);
+    renderAvadikaTantara(walletState.avadikaTantara);
     avadikaKajy();
   }
   // L'admin : chaque demande, avec Ekena / Lavina. Le serveur ne tranche
@@ -1356,6 +1358,22 @@
         '<button type="button" class="btn btn-sm" style="width:auto;" data-avadika-id="' + escapeHtml(c.id) + '" data-avadika-ekena="0">↩️ Lavina</button>' +
         '</div></div>';
     }).join('') || '<p style="color:var(--muted); margin:0;">Tsy misy miandry.</p>';
+  }
+  // Le tableau de l'admin : toutes les demandes, les plus récentes d'abord.
+  function renderAvadikaTantara(lignes){
+    const corps = document.getElementById('walletAvadikaTantara');
+    if(!corps || !Array.isArray(lignes)) return;
+    const cellule = 'padding:0.3rem; border-top:1px solid var(--line);';
+    corps.innerHTML = lignes.map(function(c){
+      const e = AVADIKA_ETATS[c.status] || { mot: c.status, couleur: 'var(--muted)' };
+      return '<tr>' +
+        '<td style="' + cellule + ' white-space:nowrap;">' + new Date(c.created_at).toLocaleDateString('fr-FR') + '</td>' +
+        '<td style="' + cellule + '">' + escapeHtml(c.email) + (c.note ? '<br><span style="color:var(--muted);">' + escapeHtml(c.note) + '</span>' : '') + '</td>' +
+        '<td style="' + cellule + ' text-align:right; white-space:nowrap;">' + formatWalletAr(c.montant_ar) + '</td>' +
+        '<td style="' + cellule + ' text-align:right; white-space:nowrap;">' + formatWalletAr(c.frais_ar) + '</td>' +
+        '<td style="' + cellule + ' text-align:right; white-space:nowrap;">' + formatWalletAr(c.net_ar) + '</td>' +
+        '<td style="' + cellule + ' color:' + e.couleur + ';">' + e.mot + '</td></tr>';
+    }).join('') || '<tr><td colspan="6" style="' + cellule + ' color:var(--muted);">Mbola tsy nisy.</td></tr>';
   }
   const avadikaAdminListe = document.getElementById('walletAvadikaAdminLisitra');
   if(avadikaAdminListe){
@@ -1615,19 +1633,42 @@
     lienReafficher(list, tous.length - rows.length);
   }
 
+  // USDT choisi : le réseau et l'adresse remplacent le numéro.
+  const payoutOperateurEl = document.getElementById('payoutOperateur');
+  function majPayoutUsdt(){
+    const enUsdt = !!(payoutOperateurEl && payoutOperateurEl.value === 'USDT');
+    const reseau = document.getElementById('payoutReseauBoite');
+    if(reseau) reseau.style.display = enUsdt ? '' : 'none';
+    const note = document.getElementById('payoutUsdtNote');
+    if(note) note.style.display = enUsdt ? '' : 'none';
+    const label = document.getElementById('payoutDestinationLabelUsdt');
+    if(label) label.textContent = enUsdt ? 'Adiresy wallet USDT-nao' : 'Votre numéro et le nom du titulaire';
+    const input = document.getElementById('payoutDestination');
+    if(input) input.placeholder = enUsdt ? 'T… (TRC20) na 0x… (BEP20)' : '034 00 000 00 — RABE Koto';
+  }
+  if(payoutOperateurEl){
+    payoutOperateurEl.addEventListener('change', majPayoutUsdt);
+    majPayoutUsdt();
+  }
+
     const payoutRequestBtn = document.getElementById('payoutRequestBtn');
   if(payoutRequestBtn){
     payoutRequestBtn.addEventListener('click', function(){
       const statusEl = document.getElementById('payoutStatus');
       const amount = Number(document.getElementById('payoutAmount').value) || 0;
-      // Seul le Mobile Money reste ouvert, en ariary. L'opérateur voyage
-      // avec le numéro : c'est ce que le propriétaire lira pour envoyer.
-      const method = 'mobile';
-      const currency = 'MGA';
-      const numero = document.getElementById('payoutDestination').value.trim();
+      // Mobile Money en ariary, ou USDT. L'opérateur (ou le réseau) voyage
+      // avec le numéro (ou l'adresse) : c'est ce que le propriétaire lira
+      // pour envoyer.
       const operateurEl = document.getElementById('payoutOperateur');
-      const destination = numero ? ((operateurEl ? operateurEl.value + ' · ' : '') + numero) : '';
-      if(!destination){ statusEl.textContent = 'Indiquez votre numéro Mobile Money.'; return; }
+      const enUsdt = !!(operateurEl && operateurEl.value === 'USDT');
+      const method = enUsdt ? 'usdt' : 'mobile';
+      const currency = enUsdt ? 'USDT' : 'MGA';
+      const numero = document.getElementById('payoutDestination').value.trim();
+      const reseauEl = document.getElementById('payoutReseau');
+      const destination = !numero ? '' : enUsdt
+        ? (reseauEl ? reseauEl.value : 'TRC20') + ' · ' + numero
+        : (operateurEl ? operateurEl.value + ' · ' : '') + numero;
+      if(!destination){ statusEl.textContent = enUsdt ? 'Apetraho ny adiresy USDT-nao.' : 'Indiquez votre numéro Mobile Money.'; return; }
       if(!(amount > 0)){ statusEl.textContent = 'Indiquez le montant à retirer.'; return; }
 
       payoutRequestBtn.disabled = true;
