@@ -25,31 +25,65 @@
       { nom: 'Deriv', defaut: 'https://deriv.com/' }
     ];
 
+    // Le logo d'une plateforme : son icône, servie par Google à partir du
+    // domaine (celui de la page d'office, sinon celui du lien). Pas de
+    // domaine, ou icône introuvable : l'initiale sur la couleur.
+    function domaineDe(p, valeur){
+      const url = /^https?:\/\//i.test(valeur) ? valeur : (p.defaut || '');
+      const m = url.match(/^https?:\/\/(?:[a-z0-9-]+\.)*?([a-z0-9-]+\.[a-z]{2,})(?:[/:?#]|$)/i);
+      return m ? m[1].toLowerCase() : '';
+    }
+
+    // Une tuile : le logo en carré, le nom dessous ; le lien s'ouvre, un
+    // code seul se copie.
     function bouton(p, valeur){
       const estLien = /^https?:\/\//i.test(valeur);
       const el = document.createElement(estLien ? 'a' : 'button');
-      el.className = 'btn btn-sm';
-      el.style.cssText = 'width:auto; text-decoration:none; border-color:' + p.couleur + ';';
+      el.style.cssText = 'display:flex; flex-direction:column; align-items:center; gap:0.35rem; width:4.6rem; ' +
+        'text-decoration:none; color:inherit; background:none; border:0; padding:0; font:inherit; cursor:pointer;';
+      const carre = document.createElement('span');
+      carre.style.cssText = 'display:flex; align-items:center; justify-content:center; width:3.4rem; height:3.4rem; ' +
+        'border-radius:16px; background:#fff; box-shadow:0 4px 12px rgba(0,0,0,0.25); overflow:hidden; ' +
+        'border:2px solid ' + p.couleur + ';';
+      const initiale = function(){
+        carre.textContent = p.nom.charAt(0).toUpperCase();
+        carre.style.background = p.couleur;
+        carre.style.color = '#fff';
+        carre.style.fontWeight = '700';
+        carre.style.fontSize = '1.4rem';
+      };
+      const domaine = domaineDe(p, valeur);
+      if(domaine){
+        const img = document.createElement('img');
+        img.src = 'https://www.google.com/s2/favicons?domain=' + encodeURIComponent(domaine) + '&sz=128';
+        img.alt = p.nom;
+        img.width = 40; img.height = 40;
+        img.loading = 'lazy';
+        img.style.cssText = 'width:2.5rem; height:2.5rem; object-fit:contain;';
+        img.addEventListener('error', function(){ carre.innerHTML = ''; initiale(); });
+        carre.appendChild(img);
+      } else {
+        initiale();
+      }
+      const nom = document.createElement('span');
+      nom.style.cssText = 'font-size:0.72rem; font-weight:600; max-width:4.6rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;';
+      nom.textContent = p.nom;
+      el.appendChild(carre);
+      el.appendChild(nom);
       if(estLien){
         el.href = valeur;
         el.target = '_blank';
         el.rel = 'noopener';
-        // Les « autres » : le nom seul, sinon la rangée n'en finit plus.
-        el.textContent = p.court ? p.ikona + ' ' + p.nom : p.ikona + ' Hisoratra amin\'ny ' + p.nom;
         el.title = 'Hisoratra amin\'ny ' + p.nom;
       } else {
         el.type = 'button';
-        el.textContent = p.ikona + ' Code ' + p.nom + ' : ' + valeur;
-        el.title = 'Tsindrio raha hadika';
+        el.title = 'Code ' + p.nom + ' : ' + valeur + ' — tsindrio raha hadika';
         el.addEventListener('click', function(){
-          const texte = el.textContent;
-          const fini = function(){
-            el.textContent = '✅ Voadika';
-            setTimeout(function(){ el.textContent = texte; }, 1500);
-          };
-          if(navigator.clipboard && navigator.clipboard.writeText){
-            navigator.clipboard.writeText(valeur).then(fini, function(){});
-          }
+          if(!(navigator.clipboard && navigator.clipboard.writeText)) return;
+          navigator.clipboard.writeText(valeur).then(function(){
+            nom.textContent = '✅ Voadika';
+            setTimeout(function(){ nom.textContent = p.nom; }, 1500);
+          }, function(){});
         });
       }
       return el;
