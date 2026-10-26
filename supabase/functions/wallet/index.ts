@@ -74,7 +74,7 @@ const SITE_ITEMS: Record<string, { label: string; priceAr: number; days?: number
   sub_month: { label: "Abonnement mensuel", priceAr: 15000, days: 30 },
   sub_year: { label: "Abonnement annuel", priceAr: 150000, days: 365 },
   trial_day: { label: "Un jour d'essai en plus", priceAr: 10000, grant: "trial_day" },
-  booster: { label: "Booster — direct Facebook 24 h", priceAr: 5000, grant: "booster" },
+  // Le booster (direct Facebook 24 h) n'est plus vendu depuis le 26/10/2026.
   sub_days: { label: "7 jours mis de côté pour l'abonnement", priceAr: 20000, grant: "sub_days" },
   // Le déblocage payé par carte Visa (via Papi) : même prix que les 20 crédits.
   unlock: { label: "Déblocage du compte", priceAr: 20000, grant: "unlock" },

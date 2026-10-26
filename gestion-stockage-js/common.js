@@ -308,7 +308,6 @@
   // Les prix, eux, sont dans la fonction « wallet » : ici on ne garde que la
   // durée de ce qui est acheté, pour l'appliquer une fois le paiement passé.
   const WALLET_SUB_DAYS = 7;
-  const WALLET_BOOSTER_HOURS = 24;
 
   function loadItems(){
     try { return JSON.parse(localStorage.getItem(STORAGE_ITEMS)) || []; }
@@ -2054,9 +2053,6 @@
         } else if(res.grant === 'trial_day'){
           sub.bonusDays = (sub.bonusDays || 0) + 1;
           detail = ' : un jour de plus sur votre essai';
-        } else if(res.grant === 'booster'){
-          sub.boosterActiveUntil = new Date(Date.now() + WALLET_BOOSTER_HOURS * 60 * 60 * 1000).toISOString();
-          detail = ' : direct Facebook ouvert pour ' + WALLET_BOOSTER_HOURS + ' h';
         } else if(res.grant === 'sub_days'){
           sub.subscriptionCreditDays = (sub.subscriptionCreditDays || 0) + WALLET_SUB_DAYS;
           detail = ' : ' + WALLET_SUB_DAYS + ' jours mis de côté pour votre prochain abonnement';
@@ -2285,15 +2281,6 @@
     // attendant sa réponse, l'estimation locale évite un écran vide.
     refreshWalletFromServer();
 
-
-    const boosterPanel = document.getElementById('walletBoosterPanel');
-    const boosterActive = sub.boosterActiveUntil && new Date(sub.boosterActiveUntil) > new Date();
-    if(boosterPanel){
-      boosterPanel.style.display = boosterActive ? 'block' : 'none';
-      if(boosterActive){
-        document.getElementById('walletBoosterUntil').textContent = new Date(sub.boosterActiveUntil).toLocaleString('fr-FR');
-      }
-    }
 
     const subCreditPanel = document.getElementById('walletSubCreditPanel');
     if(subCreditPanel){
@@ -4442,9 +4429,6 @@
   initWalletAuth();
 
   document.getElementById('walletSignOutBtn').addEventListener('click', walletSignOut);
-  document.getElementById('goLiveFacebookBtn').addEventListener('click', function(){
-    window.open('https://www.facebook.com/live/producer', '_blank');
-  });
 
   document.getElementById('planMensuel').addEventListener('click', function(){
     selectedPlan = 'mensuel';
