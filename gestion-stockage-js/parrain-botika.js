@@ -22,7 +22,13 @@
       { nom: 'Skrill', defaut: 'https://www.skrill.com/' },
       { nom: 'Airtm', defaut: 'https://www.airtm.com/' },
       { nom: 'Exness', defaut: 'https://www.exness.com/' },
-      { nom: 'Deriv', defaut: 'https://deriv.com/' }
+      { nom: 'Deriv', defaut: 'https://deriv.com/' },
+      // Les jeux (18 ans et plus). « Lalao Malagasy (Loterie) » n'a pas de
+      // site connu : il ne se montre qu'avec le lien de l'admin.
+      { nom: 'Bet261', defaut: 'https://www.bet261.mg/' },
+      { nom: 'Aviator', defaut: 'https://spribe.co/games/aviator' },
+      { nom: '1xBet', defaut: 'https://1xbet.com/' },
+      { nom: 'Melbet', defaut: 'https://melbet.com/' }
     ];
 
     // Le logo d'une plateforme : son icône, servie par Google à partir du
