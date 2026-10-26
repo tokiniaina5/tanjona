@@ -1639,12 +1639,11 @@
     lienReafficher(list, tous.length - rows.length);
   }
 
-  // USDT choisi : le réseau et l'adresse remplacent le numéro.
+  // USDT choisi : l'adresse remplace le numéro. Le réseau reste caché,
+  // l'adresse le choisit (voir reseauSelonAdresse).
   const payoutOperateurEl = document.getElementById('payoutOperateur');
   function majPayoutUsdt(){
     const enUsdt = !!(payoutOperateurEl && payoutOperateurEl.value === 'USDT');
-    const reseau = document.getElementById('payoutReseauBoite');
-    if(reseau) reseau.style.display = enUsdt ? '' : 'none';
     const note = document.getElementById('payoutUsdtNote');
     if(note) note.style.display = enUsdt ? '' : 'none';
     const label = document.getElementById('payoutDestinationLabelUsdt');
