@@ -1,15 +1,28 @@
-  // ---------------- BINANCE ET PAYONEER DANS LA BOTIKA ----------------
+  // ---------------- BINANCE, PAYONEER ET LES AUTRES DANS LA BOTIKA ----------------
   // Les liens de parrainage de l'admin (rohy_parrainage, fonction
   // parrainage_admin), montrés à tous : dans l'Accueil de l'appli et dans
-  // botika/. C'est la plateforme qui paie l'admin, pas le client. Rien à
-  // montrer, ou fonction absente : le cadre reste caché.
+  // botika/. C'est la plateforme qui paie l'admin, pas le client.
   // Un lien s'ouvre ; un code seul se copie.
   (function(){
     // « defaut » : la page d'inscription de la plateforme, tant que l'admin
-    // n'a pas mis son lien — le cadre se voit toujours (26/10/2026).
+    // n'a pas mis son lien — toutes se voient d'office (26/10/2026).
     const PLATEFORMES = [
       { cle: 'binance', nom: 'Binance', ikona: '🟡', couleur: '#f0b90b', defaut: 'https://accounts.binance.com/register' },
       { cle: 'payoneer', nom: 'Payoneer', ikona: '🟠', couleur: '#ff4800', defaut: 'https://www.payoneer.com/' }
+    ];
+    // Les mêmes que la liste de « Sehatra hafa » (ny-asako.html) ; un lien de
+    // l'admin au même nom (colonne « hafa ») prend la place de la page.
+    const HAFA_DEFAUT = [
+      { nom: 'Bybit', defaut: 'https://www.bybit.com/register' },
+      { nom: 'OKX', defaut: 'https://www.okx.com/join' },
+      { nom: 'KuCoin', defaut: 'https://www.kucoin.com/' },
+      { nom: 'Bitget', defaut: 'https://www.bitget.com/register' },
+      { nom: 'RedotPay', defaut: 'https://www.redotpay.com/' },
+      { nom: 'Wise', defaut: 'https://wise.com/register' },
+      { nom: 'Skrill', defaut: 'https://www.skrill.com/' },
+      { nom: 'Airtm', defaut: 'https://www.airtm.com/' },
+      { nom: 'Exness', defaut: 'https://www.exness.com/' },
+      { nom: 'Deriv', defaut: 'https://deriv.com/' }
     ];
 
     function bouton(p, valeur){
@@ -21,7 +34,9 @@
         el.href = valeur;
         el.target = '_blank';
         el.rel = 'noopener';
-        el.textContent = p.ikona + ' Hisoratra amin\'ny ' + p.nom;
+        // Les « autres » : le nom seul, sinon la rangée n'en finit plus.
+        el.textContent = p.court ? p.ikona + ' ' + p.nom : p.ikona + ' Hisoratra amin\'ny ' + p.nom;
+        el.title = 'Hisoratra amin\'ny ' + p.nom;
       } else {
         el.type = 'button';
         el.textContent = p.ikona + ' Code ' + p.nom + ' : ' + valeur;
@@ -70,12 +85,21 @@
             const valeur = String(d[p.cle] || '').trim() || p.defaut;
             if(valeur) rangee.appendChild(bouton(p, valeur));
           });
-          // Les autres plateformes choisies par l'admin (colonne « hafa »).
+          // Les autres : la liste d'office, puis celles que l'admin a
+          // ajoutées sous un autre nom (colonne « hafa »).
+          const liensAdmin = {};
           (Array.isArray(d.hafa) ? d.hafa : []).forEach(function(h){
             const valeur = String((h && h.rohy) || '').trim();
-            if(h && h.nom && valeur){
-              rangee.appendChild(bouton({ nom: String(h.nom), ikona: '🔗', couleur: 'var(--cyan)' }, valeur));
-            }
+            if(h && h.nom && valeur) liensAdmin[String(h.nom).toLowerCase()] = { nom: String(h.nom), rohy: valeur };
+          });
+          HAFA_DEFAUT.forEach(function(h){
+            const cle = h.nom.toLowerCase();
+            const lienAdmin = liensAdmin[cle];
+            delete liensAdmin[cle];
+            rangee.appendChild(bouton({ nom: h.nom, ikona: '🔗', couleur: 'var(--cyan)', court: true }, lienAdmin ? lienAdmin.rohy : h.defaut));
+          });
+          Object.keys(liensAdmin).forEach(function(cle){
+            rangee.appendChild(bouton({ nom: liensAdmin[cle].nom, ikona: '🔗', couleur: 'var(--cyan)', court: true }, liensAdmin[cle].rohy));
           });
         }
         cadre.style.display = rangee.children.length ? '' : 'none';
