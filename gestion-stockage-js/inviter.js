@@ -257,6 +257,8 @@
         window.__sb.from('rohy_parrainage').upsert(ligne).then(function(res){
           parrainSave.disabled = false;
           parrainStatut(res && res.error ? '❌ ' + res.error.message : '✅ Voatahiry ny rohinao.');
+          // Ceux de l'admin se voient aussi dans la Botika.
+          if(typeof window.__afficherParrainBotika === 'function') window.__afficherParrainBotika();
         }, function(){
           parrainSave.disabled = false;
           parrainStatut('❌ Tsy voatahiry : jereo ny connexion.');

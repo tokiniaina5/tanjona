@@ -89,6 +89,17 @@
     </p>
   </div>
 
+  <!-- Binance et Payoneer : les liens de l'admin (parrain-botika.js).
+       Caché tant qu'il n'y en a pas. -->
+  <div class="panel" id="botikaParrain" style="display:none;">
+    <h3 style="margin-top:0;">💸 Binance &amp; Payoneer</h3>
+    <p style="font-size:0.78rem; color:var(--muted); line-height:1.5; margin:0 0 0.6rem;">
+      Misorata anarana amin'ireto rohy ireto : Binance ho an'ny crypto (P2P amin'ny MVola / Orange Money),
+      Payoneer handraisana vola avy any ivelany.
+    </p>
+    <div id="botikaParrainBoutons" style="display:flex; gap:0.5rem; flex-wrap:wrap;"></div>
+  </div>
+
   <!-- Les articles en vente, en vitrine. Un appui mène à leur annonce dans
        le fil, où sont la fiche entière et le bouton pour acheter. -->
   <div class="panel" id="bkVitrineBoite" style="display:none;">
@@ -107,6 +118,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" crossorigin="anonymous"></script>
 <script src="/gestion-stockage-js/supabase-init.js?v=632e41ae"></script>
+<script src="/gestion-stockage-js/parrain-botika.js?v=777c8049"></script>
 <script>
 (function () {
   'use strict';
