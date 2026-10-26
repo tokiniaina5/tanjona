@@ -476,10 +476,12 @@
     });
   }
 
-  // Sans compte : les champs se ferment (la base refuse de toute façon
-  // l'écriture). Mettre son lien ne se paie plus depuis le 26/10/2026.
+  // Pas payé (parrainage_voaloa) : les champs se ferment, le bouton payer
+  // s'ouvre. L'admin ne paie pas ; la base refuse de toute façon l'écriture.
   function parrainVoaloa(voaloa){
     parrainVoaloaVe = voaloa;
+    const hidy = document.getElementById('parrainHidy');
+    if(hidy) hidy.style.display = voaloa ? 'none' : '';
     Object.keys(PARRAIN_NOMS).forEach(function(cle){
       const el = parrainInput(cle);
       if(el) el.disabled = !voaloa;
@@ -496,8 +498,9 @@
     chargerTorolalana();
     monUid().then(function(uid){
       if(!uid){ parrainVoaloa(false); parrainStatut('Midira amin\'ny kaontinao vao afaka mitahiry ny rohinao.'); return; }
-      // Gratuit depuis le 26/10/2026 : un compte suffit.
-      parrainVoaloa(true);
+      window.__sb.rpc('parrainage_voaloa').then(function(res){
+        parrainVoaloa(!!(res && !res.error && res.data));
+      }, function(){ parrainVoaloa(false); });
       window.__sb.from('rohy_parrainage').select('binance,payoneer,hafa').eq('user_id', uid).maybeSingle()
         .then(function(res){
           const d = (res && res.data) || {};
@@ -539,6 +542,22 @@
     });
   }
 
+  // 5 000 Ar une fois, par le portefeuille ; s'il manque de l'argent Papi,
+  // common.js ouvre Papi et achète au retour (papi-paiement.js).
+  const parrainAloa = document.getElementById('parrainAloa');
+  if(parrainAloa){
+    parrainAloa.addEventListener('click', function(){
+      const statut = document.getElementById('parrainAloaStatut');
+      if(typeof window.__payerSiteItem !== 'function'){
+        if(statut) statut.textContent = 'Portefeuille tsy vonona : avereno sokafana ny pejy.';
+        return;
+      }
+      window.__payerSiteItem('parrainage', statut, parrainAloa, function(){
+        if(statut) statut.textContent = '✅ Voaloa : apetraho izao ny rohinao.';
+        chargerParrainage();
+      });
+    });
+  }
   const parrainSave = document.getElementById('parrainSave');
   if(parrainSave){
     parrainSave.addEventListener('click', function(){

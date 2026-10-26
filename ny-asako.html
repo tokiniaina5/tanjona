@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="ede9b86a">
+<meta name="ny-asako-version" content="fdc21f7b">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -280,10 +280,47 @@
 
       <div id="forgotBox" style="display:none; margin-top:0.9rem; border-top:1px solid var(--line); padding-top:0.9rem;">
         <p style="font-size:0.76rem; color:var(--muted); line-height:1.5; margin-bottom:0.9rem;">
-          Votre compte a été suspendu par sécurité (codes erronés répétés, ou compte ouvert au nom
-          d'un autre). Le déblocage est <strong style="color:var(--text);">gratuit</strong> : le propriétaire
-          le lève dès qu'il a vérifié votre identité. Écrivez-lui ou appelez-le au
-          <strong style="color:var(--text);" data-owner="phone"></strong>.
+          Votre accès est fermé (abonnement à régler ou compte suspendu). Le déblocage se règle
+          <strong style="color:var(--text);">avec le solde de votre portefeuille</strong> ou
+          <strong style="color:var(--text);">par carte Visa</strong> — votre accès se rouvre tout de suite.
+        </p>
+        <div class="field">
+          <label for="forgotName">Nom</label>
+          <input id="forgotName" type="text" placeholder="Votre nom">
+        </div>
+        <div class="field">
+          <label for="forgotEmail">Email</label>
+          <input id="forgotEmail" type="email" placeholder="vous@exemple.com">
+        </div>
+
+        <!-- Aucun chiffre du portefeuille ici : le solde est l'affaire de la
+             page Portefeuille, pas d'un écran de connexion. Seul le prix est
+             annoncé, parce qu'on ne fait pas payer sans dire combien. -->
+        <div style="border:1px solid var(--line); border-radius:8px; padding:0.8rem 0.9rem; margin-bottom:0.9rem; background:var(--panel-2);">
+          <div style="display:flex; justify-content:space-between; align-items:baseline; gap:0.8rem;">
+            <span style="font-size:0.76rem; color:var(--muted);">Coût du déblocage</span>
+            <strong id="unlockWalletCost" style="font-family:var(--font-mono); font-size:1.1rem; color:var(--cyan);">0</strong>
+          </div>
+
+          <!-- Ou par carte Visa : le numéro se tape chez Papi (carte BRED),
+               jamais sur cette page. Le mot de passe sert à se reconnecter,
+               car le lien de paiement demande une session. -->
+          <div style="display:flex; align-items:center; gap:0.6rem; margin:0.9rem 0 0.7rem; font-size:0.72rem; color:var(--muted);">
+            <span style="flex:1; border-top:1px solid var(--line);"></span>ou<span style="flex:1; border-top:1px solid var(--line);"></span>
+          </div>
+          <div class="field" style="margin-bottom:0.6rem;">
+            <label for="forgotPassword">Mot de passe (pour payer par carte)</label>
+            <input id="forgotPassword" type="password" minlength="6" placeholder="Votre mot de passe" autocomplete="current-password">
+          </div>
+          <button type="button" class="btn btn-sm" id="payUnlockCardBtn" style="width:100%;">💳 Payer par carte Visa et débloquer</button>
+          <p style="font-size:0.7rem; color:var(--muted); margin-top:0.5rem; line-height:1.5;">
+            Vous saisissez votre carte sur la page sécurisée de Papi, pas ici. Frais de paiement : 5 %.
+          </p>
+        </div>
+
+        <p style="font-size:0.74rem; color:var(--muted); line-height:1.5;">
+          Votre solde et vos retraits se consultent dans <strong style="color:var(--text);">Portefeuille</strong>,
+          une fois entré dans l'application.
         </p>
         <p id="forgotStatus" style="font-size:0.75rem; color:var(--muted); margin-top:0.7rem; line-height:1.5;"></p>
       </div>
@@ -469,7 +506,7 @@
         <li><button type="button" class="guide-tout-li" data-guide-vers="toerana"><span class="gt-ikona" aria-hidden="true">📍</span><span class="gt-texte"><b>Toerana &amp; Maps</b><small>Adresse, itinéraire, livreur</small></span><svg class="gt-va" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button></li>
         <li><button type="button" class="guide-tout-li" data-guide-vers="outils"><span class="gt-ikona" aria-hidden="true">📒</span><span class="gt-texte"><b>Bureau</b><small>Notes, calculatrice, calendrier, horaire</small></span><svg class="gt-va" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button></li>
         <li><button type="button" class="guide-tout-li" data-guide-vers="inviter"><span class="gt-ikona" aria-hidden="true">✉️</span><span class="gt-texte"><b>Inviter &amp; Contact</b><small>Partager le site, nous écrire</small></span><svg class="gt-va" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button></li>
-        <li><button type="button" class="guide-tout-li" data-guide-vers="compte"><span class="gt-ikona" aria-hidden="true">⚙️</span><span class="gt-texte"><b>Votre compte</b><small>Fond d'écran, corbeille, paramètres</small></span><svg class="gt-va" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button></li>
+        <li><button type="button" class="guide-tout-li" data-guide-vers="compte"><span class="gt-ikona" aria-hidden="true">⚙️</span><span class="gt-texte"><b>Votre compte</b><small>Abonnement, fond d'écran, corbeille</small></span><svg class="gt-va" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button></li>
       </ul>
     </div>
 
@@ -482,22 +519,52 @@
           <path d="M130 20 C118 2 104 8 112 18 Z M130 20 C142 2 156 8 148 18 Z" fill="var(--red)"/>
         </g>
         <text x="72" y="92" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="var(--font-mono)">7 j sans compte</text>
-        <text x="190" y="92" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="var(--font-mono)">maimaim-poana</text>
+        <text x="190" y="92" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="var(--font-mono)">jusqu'au 15e</text>
         <g fill="var(--cyan)"><rect x="25" y="98" width="12" height="12" rx="2"/><rect x="39" y="98" width="12" height="12" rx="2"/><rect x="53" y="98" width="12" height="12" rx="2"/><rect x="67" y="98" width="12" height="12" rx="2"/><rect x="81" y="98" width="12" height="12" rx="2"/><rect x="95" y="98" width="12" height="12" rx="2"/><rect x="109" y="98" width="12" height="12" rx="2"/></g>
         <g fill="none" stroke="var(--amber)" stroke-width="1.5"><rect x="123" y="98" width="12" height="12" rx="2"/><rect x="137" y="98" width="12" height="12" rx="2"/><rect x="151" y="98" width="12" height="12" rx="2"/><rect x="165" y="98" width="12" height="12" rx="2"/><rect x="179" y="98" width="12" height="12" rx="2"/><rect x="193" y="98" width="12" height="12" rx="2"/><rect x="207" y="98" width="12" height="12" rx="2"/><rect x="221" y="98" width="12" height="12" rx="2"/></g>
       </svg>
-      <div class="eyebrow">Maimaim-poana</div>
-      <h1 style="font-size:1.4rem; margin-bottom:0.9rem;">🎁 Maimaim-poana daholo</h1>
+      <div class="eyebrow">Essai gratuit</div>
+      <h1 style="font-size:1.4rem; margin-bottom:0.9rem;">🎁 15 jours offerts</h1>
       <p class="sub" style="font-size:0.95rem;">
-        Tsy misy abonnement, tsy misy crédit : <strong style="color:var(--text);">maimaim-poana</strong> ny appli.
-        Ny <strong style="color:var(--text);">7 andro voalohany</strong> dia miditra tsy misy kaonty ;
-        aorian'izay, mangataka <strong style="color:var(--text);">kaonty</strong> (maimaim-poana koa) izy,
-        ary mijanona daholo izay efa nosoratanao.
+        Les <strong style="color:var(--text);">7 premiers jours</strong>, l'application s'ouvre
+        <strong style="color:var(--text);">sans compte</strong> : rien à remplir, on entre.
+        Passé ce délai, un <strong style="color:var(--text);">compte</strong> est demandé — l'essai,
+        lui, continue jusqu'au 15<sup>e</sup> jour, et ce qui a été saisi reste en place.
+      </p>
+    </div>
+
+    <div class="guide-page" data-page="3" style="display:none;">
+      <svg class="guide-sary" viewBox="0 0 260 120" aria-hidden="true">
+        <g class="flotte">
+          <rect x="22" y="22" width="70" height="76" rx="6" fill="var(--panel-2)" stroke="var(--cyan)" stroke-width="2"/>
+          <rect x="22" y="22" width="70" height="18" rx="6" fill="var(--cyan)"/>
+          <text x="57" y="74" text-anchor="middle" font-size="22" font-weight="700" fill="var(--text)" font-family="var(--font-display)">1</text>
+          <text x="57" y="90" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="var(--font-mono)">mois</text>
+        </g>
+        <g class="flotte" style="animation-delay:.8s">
+          <rect x="104" y="22" width="70" height="76" rx="6" fill="var(--panel-2)" stroke="var(--violet)" stroke-width="2"/>
+          <rect x="104" y="22" width="70" height="18" rx="6" fill="var(--violet)"/>
+          <text x="139" y="74" text-anchor="middle" font-size="22" font-weight="700" fill="var(--text)" font-family="var(--font-display)">12</text>
+          <text x="139" y="90" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="var(--font-mono)">mois</text>
+        </g>
+        <g class="flotte" style="animation-delay:1.6s">
+          <path d="M202 56 V44 a14 14 0 0 1 28 0 V50" fill="none" stroke="var(--amber)" stroke-width="5" stroke-linecap="round"/>
+          <rect x="194" y="54" width="44" height="38" rx="5" fill="var(--amber)"/>
+          <circle cx="216" cy="70" r="5" fill="var(--panel)"/><rect x="214" y="72" width="4" height="10" fill="var(--panel)"/>
+        </g>
+      </svg>
+      <div class="eyebrow">Abonnement</div>
+      <h1 style="font-size:1.4rem; margin-bottom:0.9rem;">📅 Mensuel ou annuel</h1>
+      <p class="sub" style="font-size:0.95rem;">
+        Après les 15 jours, un abonnement <strong style="color:var(--text);">mensuel</strong> ou
+        <strong style="color:var(--text);">annuel</strong> est demandé pour continuer. Sans paiement,
+        l'accès est bloqué ; un <strong style="color:var(--text);">code de déverrouillage</strong>
+        vous est alors envoyé par email pour réactiver votre compte.
       </p>
     </div>
 
     <!-- Ny asako Hôtel : une application à part (/hotely), ouverte à tous. -->
-    <div class="guide-page" data-page="3" data-guide-id="hotel" style="display:none;">
+    <div class="guide-page" data-page="4" data-guide-id="hotel" style="display:none;">
       <svg class="guide-sary" viewBox="0 0 260 120" aria-hidden="true">
         <g class="flotte">
           <rect x="70" y="26" width="120" height="86" rx="6" fill="var(--panel-2)" stroke="var(--cyan)" stroke-width="2"/>
@@ -535,7 +602,7 @@
     </div>
 
     <!-- Une page par partie de Ny asako (la flèche de la 1re page y mène). -->
-    <div class="guide-page" data-page="4" data-guide-id="stock" style="display:none;">
+    <div class="guide-page" data-page="5" data-guide-id="stock" style="display:none;">
       <div class="guide-ikona" aria-hidden="true">📦</div>
       <div class="eyebrow">Stock</div>
       <h1 style="font-size:1.4rem; margin-bottom:0.9rem;">Stock &amp; Articles</h1>
@@ -544,7 +611,7 @@
       </p>
     </div>
 
-    <div class="guide-page" data-page="5" data-guide-id="factures" style="display:none;">
+    <div class="guide-page" data-page="6" data-guide-id="factures" style="display:none;">
       <div class="guide-ikona" aria-hidden="true">🧾</div>
       <div class="eyebrow">Factures</div>
       <h1 style="font-size:1.4rem; margin-bottom:0.9rem;">Factures &amp; PDF</h1>
@@ -553,7 +620,7 @@
       </p>
     </div>
 
-    <div class="guide-page" data-page="6" data-guide-id="botika" style="display:none;">
+    <div class="guide-page" data-page="7" data-guide-id="botika" style="display:none;">
       <div class="guide-ikona" aria-hidden="true">🛒</div>
       <div class="eyebrow">Botika</div>
       <h1 style="font-size:1.4rem; margin-bottom:0.9rem;">Votre boutique en ligne</h1>
@@ -562,7 +629,7 @@
       </p>
     </div>
 
-    <div class="guide-page" data-page="7" data-guide-id="wallet" style="display:none;">
+    <div class="guide-page" data-page="8" data-guide-id="wallet" style="display:none;">
       <div class="guide-ikona" aria-hidden="true">💰</div>
       <div class="eyebrow">Portefeuille</div>
       <h1 style="font-size:1.4rem; margin-bottom:0.9rem;">Votre argent en ariary</h1>
@@ -571,7 +638,7 @@
       </p>
     </div>
 
-    <div class="guide-page" data-page="8" data-guide-id="live" style="display:none;">
+    <div class="guide-page" data-page="9" data-guide-id="live" style="display:none;">
       <div class="guide-ikona" aria-hidden="true">🔴</div>
       <div class="eyebrow">Live &amp; Appels</div>
       <h1 style="font-size:1.4rem; margin-bottom:0.9rem;">Vendre en direct</h1>
@@ -580,7 +647,7 @@
       </p>
     </div>
 
-    <div class="guide-page" data-page="9" data-guide-id="mpiasa" style="display:none;">
+    <div class="guide-page" data-page="10" data-guide-id="mpiasa" style="display:none;">
       <div class="guide-ikona" aria-hidden="true">👷</div>
       <div class="eyebrow">Mpiasa &amp; Livreur</div>
       <h1 style="font-size:1.4rem; margin-bottom:0.9rem;">Votre équipe</h1>
@@ -589,7 +656,7 @@
       </p>
     </div>
 
-    <div class="guide-page" data-page="10" data-guide-id="toerana" style="display:none;">
+    <div class="guide-page" data-page="11" data-guide-id="toerana" style="display:none;">
       <div class="guide-ikona" aria-hidden="true">📍</div>
       <div class="eyebrow">Toerana &amp; Maps</div>
       <h1 style="font-size:1.4rem; margin-bottom:0.9rem;">Votre adresse et la carte</h1>
@@ -598,7 +665,7 @@
       </p>
     </div>
 
-    <div class="guide-page" data-page="11" data-guide-id="outils" style="display:none;">
+    <div class="guide-page" data-page="12" data-guide-id="outils" style="display:none;">
       <div class="guide-ikona" aria-hidden="true">📒</div>
       <div class="eyebrow">Bureau</div>
       <h1 style="font-size:1.4rem; margin-bottom:0.9rem;">Notes, calcul et agenda</h1>
@@ -607,7 +674,7 @@
       </p>
     </div>
 
-    <div class="guide-page" data-page="12" data-guide-id="inviter" style="display:none;">
+    <div class="guide-page" data-page="13" data-guide-id="inviter" style="display:none;">
       <div class="guide-ikona" aria-hidden="true">✉️</div>
       <div class="eyebrow">Partager</div>
       <h1 style="font-size:1.4rem; margin-bottom:0.9rem;">Inviter &amp; Contact</h1>
@@ -616,16 +683,16 @@
       </p>
     </div>
 
-    <div class="guide-page" data-page="13" data-guide-id="compte" style="display:none;">
+    <div class="guide-page" data-page="14" data-guide-id="compte" style="display:none;">
       <div class="guide-ikona" aria-hidden="true">⚙️</div>
       <div class="eyebrow">Votre compte</div>
-      <h1 style="font-size:1.4rem; margin-bottom:0.9rem;">Fond d'écran, corbeille</h1>
+      <h1 style="font-size:1.4rem; margin-bottom:0.9rem;">Abonnement, fond d'écran, corbeille</h1>
       <p class="sub" style="font-size:0.95rem;">
-        Un <strong style="color:var(--text);">fond d'écran</strong> à votre goût, la <strong style="color:var(--text);">Corbeille</strong> pour reprendre une publication effacée, et vos <strong style="color:var(--text);">Paramètres</strong>.
+        L'<strong style="color:var(--text);">Abonnement</strong> et sa date de fin, un <strong style="color:var(--text);">fond d'écran</strong> à votre goût, la <strong style="color:var(--text);">Corbeille</strong> pour reprendre une publication effacée, et vos <strong style="color:var(--text);">Paramètres</strong>.
       </p>
     </div>
 
-    <div class="guide-page" data-page="14" style="display:none;">
+    <div class="guide-page" data-page="15" style="display:none;">
       <svg class="guide-sary" viewBox="0 0 260 120" aria-hidden="true">
         <line x1="40" y1="55" x2="220" y2="55" stroke="var(--line)" stroke-width="3" stroke-dasharray="6 5"/>
         <g class="tour t1"><circle cx="40" cy="55" r="24" fill="var(--panel-2)" stroke="var(--cyan)" stroke-width="2"/><circle cx="40" cy="48" r="7" fill="var(--cyan)"/><path d="M27 68 a13 11 0 0 1 26 0 Z" fill="var(--cyan)"/></g>
@@ -1014,6 +1081,7 @@
         <div class="nav-item" data-section="mpiasa">👷 Mpiasa</div>
         <div class="nav-item" data-section="livreur">🛵 Livreur</div>
         <div class="nav-item" data-section="toerana">📍 Toerana &amp; Maps</div>
+        <div class="nav-item" data-section="abonnement">💳 Abonnement</div>
         <div class="nav-item" data-section="fond">🖼️ Fond d'écran</div>
         <!-- Les publications effacées attendent ici : on les reprend, ou on les
              efface pour de bon (corbeille, parametres.js). -->
@@ -2392,6 +2460,18 @@
             <div id="parrainAdminBoutons" style="display:flex; gap:0.5rem; flex-wrap:wrap;"></div>
           </div>
 
+          <!-- Mettre SON lien se paie une fois (parrainage_voaloa, inviter.js). -->
+          <div id="parrainHidy" class="aff-isa-boaty" style="display:none; margin-bottom:0.9rem; border-color:var(--amber, #e9a23b);">
+            <div style="font-weight:700; font-size:0.85rem; margin-bottom:0.3rem;">🔒 Hizara ny rohinao manokana</div>
+            <p style="font-size:0.78rem; color:var(--muted); line-height:1.5; margin:0 0 0.6rem;">
+              Mba hahafahanao mametraka sy mizara ny rohinao Binance / Payoneer eto amin'ny site :
+              <strong style="color:var(--text);">5 000 Ar indray mandeha</strong>, aloa avy amin'ny 💰 Portefeuille
+              (MVola, Orange Money, Airtel Money). Tsy averina aloa intsony.
+            </p>
+            <button type="button" class="btn btn-amber btn-sm" id="parrainAloa" style="width:auto;">🔓 Aloavy 5 000 Ar</button>
+            <p id="parrainAloaStatut" style="font-size:0.75rem; color:var(--muted); margin:0.5rem 0 0;"></p>
+          </div>
+
           <div class="parrain-carte" data-plateforme="binance">
             <div style="font-weight:700; margin-bottom:0.3rem;">🟡 Binance (crypto)</div>
             <ol class="parrain-torolalana" data-sehatra="Binance" style="font-size:0.78rem; color:var(--muted); line-height:1.6; margin:0 0 0.6rem 1.1rem; padding:0;">
@@ -3122,6 +3202,39 @@
             <p class="empty-hint" id="walletQueueEmpty" style="display:none;">Aucun retrait en attente.</p>
           </div>
 
+          <!-- ---- DÉPENSER LE SOLDE ---- -->
+          <div class="panel" id="walletBuyPanel">
+            <h3>💳 Payer l'abonnement par Papi</h3>
+            <p style="font-size:0.82rem; color:var(--muted); line-height:1.6; margin-bottom:1.2rem;">
+              Réglé avec l'argent versé par Papi ; s'il manque, Papi s'ouvre pour la différence.
+            </p>
+
+            <h3 style="font-size:0.95rem;">Abonnement</h3>
+            <div class="line-grid" style="margin-top:0.7rem;">
+              <div class="plan-card" style="cursor:default;">
+                <div class="plan-name">Mensuel</div>
+                <div class="plan-price">15 000 Ar</div>
+                <div class="plan-note">30 jours</div>
+                <button type="button" class="btn btn-sm buy-site-item" data-item="sub_month" style="width:100%; margin-top:0.7rem;">Payer</button>
+              </div>
+              <div class="plan-card" style="cursor:default;">
+                <div class="plan-name">Annuel</div>
+                <div class="plan-price">150 000 Ar</div>
+                <div class="plan-note">365 jours — 2 mois offerts</div>
+                <button type="button" class="btn btn-sm buy-site-item" data-item="sub_year" style="width:100%; margin-top:0.7rem;">Payer</button>
+              </div>
+              <div class="plan-card" style="cursor:default;">
+                <div class="plan-name">Jours de réserve</div>
+                <div class="plan-price">+7 jours</div>
+                <div class="plan-note">20 000 Ar — ajoutés au prochain paiement</div>
+                <button type="button" class="btn btn-sm buy-site-item" data-item="sub_days" style="width:100%; margin-top:0.7rem;">Payer</button>
+              </div>
+            </div>
+
+            <p id="walletBuyStatus" style="font-size:0.8rem; color:var(--cyan); margin-top:1rem; line-height:1.5;"></p>
+            <p id="walletRedeemStatus" style="display:none;"></p>
+          </div>
+
           <div class="panel" id="walletBoosterPanel" style="display:none;">
             <h3>Booster actif</h3>
             <p style="font-size:0.85rem; color:var(--muted); margin-bottom:0.8rem;">
@@ -3130,6 +3243,13 @@
             <button type="button" class="btn btn-violet" id="goLiveFacebookBtn">📹 Aller en direct sur Facebook</button>
           </div>
 
+          <div class="panel" id="walletSubCreditPanel" style="display:none;">
+            <h3>Jours bancarisés pour l'abonnement</h3>
+            <p style="font-size:0.85rem; color:var(--muted);">
+              <strong id="walletSubCreditDays" style="color:var(--text);">0</strong> jour(s) seront
+              ajoutés automatiquement à votre prochain paiement d'abonnement.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -3478,6 +3598,42 @@
         <div id="moiContenu"></div>
       </section>
 
+      <section class="section" id="section-abonnement">
+        <div class="section-head">
+          <div>
+            <h2>Abonnement</h2>
+            <p>Où en est votre accès, et comment le prolonger.</p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panneau-titre">État de votre accès</div>
+          <p id="abonnementEtat" style="font-size:0.9rem; line-height:1.6; margin:0;">—</p>
+        </div>
+
+        <div class="panel" style="margin-top:1rem;">
+          <div class="panneau-titre">Les deux formules</div>
+          <div class="paywall-plans">
+            <div class="plan-card">
+              <div class="plan-name">Mensuel</div>
+              <div class="plan-price">15 000 Ar</div>
+              <div class="plan-note">par mois</div>
+            </div>
+            <div class="plan-card">
+              <div class="plan-name">Annuel</div>
+              <div class="plan-price">150 000 Ar</div>
+              <div class="plan-note">par an (2 mois offerts)</div>
+            </div>
+          </div>
+          <p style="font-size:0.8rem; color:var(--muted); line-height:1.6; margin:0.9rem 0 0;">
+            Deux voies : votre <strong>portefeuille</strong>, et l'abonnement démarre dans la seconde ;
+            ou <strong>MVola, Orange Money, Airtel Money</strong> au <strong data-owner="phone"></strong>
+            (<strong data-owner="name"></strong>), puis le code de déverrouillage que le vendeur vous donne.
+          </p>
+          <button type="button" class="btn btn-primary btn-sm" id="abonnementOuvrirBtn" style="margin-top:1rem;">Payer ou saisir mon code</button>
+        </div>
+      </section>
+
       <section class="section" id="section-fond">
         <div class="section-head">
           <div>
@@ -3769,14 +3925,14 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=b179b613"></script>
+<script src="gestion-stockage-js/common.js?v=edd7f54d"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=d0a53ff8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=92ad47d0"></script>
 <script src="gestion-stockage-js/factures.js?v=69af0cd7"></script>
 <script src="gestion-stockage-js/factures-modely.js?v=8fbf4a42"></script>
-<script src="gestion-stockage-js/inviter.js?v=07038f16"></script>
+<script src="gestion-stockage-js/inviter.js?v=0a926178"></script>
 <script src="gestion-stockage-js/parrain-botika.js?v=373bf87b"></script>
 <script src="gestion-stockage-js/contact.js?v=96f9e192"></script>
 <script src="gestion-stockage-js/zara-rehetra.js?v=9b9c2469"></script>

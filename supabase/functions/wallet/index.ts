@@ -67,12 +67,22 @@ function fraisDepot(brut: number): number {
   return DEPOSIT_FEE_PCT > 0 ? Math.ceil(brut * DEPOSIT_FEE_PCT / 100) : 0;
 }
 
-// Ce qui s'achète à l'intérieur de l'application, et à quel prix. Vide depuis
-// le 26/10/2026 : l'application est gratuite — plus d'abonnement, de jour
-// d'essai, de booster, de déblocage ni de parrainage payant. « spend »
-// répond donc « article inconnu » à tout ; les achats d'avant restent dans
-// wallet_payouts (kind « insite ») et dans le solde.
-const SITE_ITEMS: Record<string, { label: string; priceAr: number; days?: number; grant?: string }> = {};
+// Ce qui s'achète à l'intérieur de l'application, et à quel prix. Les prix
+// vivent ici et nulle part ailleurs : dans la page, chacun pourrait décider
+// de payer son abonnement un ariary.
+const SITE_ITEMS: Record<string, { label: string; priceAr: number; days?: number; grant?: string }> = {
+  sub_month: { label: "Abonnement mensuel", priceAr: 15000, days: 30 },
+  sub_year: { label: "Abonnement annuel", priceAr: 150000, days: 365 },
+  trial_day: { label: "Un jour d'essai en plus", priceAr: 10000, grant: "trial_day" },
+  booster: { label: "Booster — direct Facebook 24 h", priceAr: 5000, grant: "booster" },
+  sub_days: { label: "7 jours mis de côté pour l'abonnement", priceAr: 20000, grant: "sub_days" },
+  // Le déblocage payé par carte Visa (via Papi) : même prix que les 20 crédits.
+  unlock: { label: "Déblocage du compte", priceAr: 20000, grant: "unlock" },
+  // Une fois pour toutes : le droit de mettre SON lien Binance / Payoneer
+  // (« Inviter des amis »). La base le lit à ce libellé exact
+  // (parrainage_voaloa, supabase-parrainage.sql) : ne pas le changer seul.
+  parrainage: { label: "Parrainage Binance & Payoneer", priceAr: 5000, grant: "parrainage" },
+};
 
 function norm(value: unknown): string {
   return String(value ?? "").trim().toLowerCase();
@@ -766,7 +776,14 @@ Deno.serve(async (req: Request) => {
   if (action === "spend") {
     const itemId = String(body.item ?? "");
     const item = SITE_ITEMS[itemId];
-    if (!item) return json({ error: "Maimaim-poana ny appli : tsy misy aloa intsony." }, 400);
+    if (!item) return json({ error: "article inconnu" }, 400);
+    // Payé une fois, acquis pour toujours : pas de second paiement.
+    if (itemId === "parrainage") {
+      const { data: deja } = await admin.from("wallet_payouts").select("id")
+        .eq("email", email).eq("kind", "insite").eq("status", "sent")
+        .eq("destination", item.label).limit(1);
+      if ((deja ?? []).length) return json({ error: "Efa voaloa ny Parrainage." }, 409);
+    }
 
     const balance = await balanceFor(admin, email);
     // Seulement l'argent vraiment payé par Papi.

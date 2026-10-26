@@ -36,6 +36,7 @@
     });
   }
   renderOwnerIdentity();
+  const TRIAL_DAYS = 15;
   // ---- LES PREMIERS JOURS, SANS COMPTE ----
   // On n'ouvre pas un compte pour essayer un outil qu'on ne connaît pas encore.
   // Les FREE_ENTRY_DAYS premiers jours, l'application s'ouvre telle quelle : ni
@@ -235,11 +236,32 @@
     }
     return sub;
   }
-  // L'application est gratuite depuis le 26/10/2026 : plus d'essai, plus
-  // d'abonnement, plus de paywall. Toujours « active » ; les appels restent
-  // pour ne pas défaire tout ce qui les interroge.
+  // renvoie { status: 'trial'|'active'|'expired', daysLeft, bonusDays }
   function getSubscriptionStatus(){
-    return { status: 'active', daysLeft: 0, bonusDays: 0 };
+    // L'employé entré par son lien travaille pour un patron : ce n'est pas à
+    // lui de s'abonner, ni d'être arrêté par la fin d'un essai.
+    if(MODE_MPIASA) return { status: 'active', daysLeft: 0, bonusDays: 0 };
+    const sub = ensureInstallDate();
+    // Le propriétaire ne s'abonne pas à sa propre application. L'essai avait
+    // fini par expirer sur son appareil et le mettait à la porte de son propre
+    // outil — sans recours : c'est lui qui délivre les codes de déverrouillage,
+    // et personne ne peut lui en envoyer un. Son compte est ouvert, toujours,
+    // et la bannière d'essai ne le concerne pas non plus.
+    if(currentUser && currentUser.email && isOwnerEmail(currentUser.email)){
+      return { status: 'active', daysLeft: 0, bonusDays: sub.bonusDays || 0 };
+    }
+    const now = new Date();
+    if(sub.paidUntil && new Date(sub.paidUntil) > now){
+      return { status: 'active', daysLeft: 0, bonusDays: sub.bonusDays || 0 };
+    }
+    const installDate = new Date(sub.installDate);
+    const bonusDays = sub.bonusDays || 0;
+    const trialEnd = new Date(installDate.getTime() + (TRIAL_DAYS + bonusDays) * 24 * 60 * 60 * 1000);
+    if(now < trialEnd){
+      const daysLeft = Math.max(0, Math.ceil((trialEnd - now) / (24 * 60 * 60 * 1000)));
+      return { status: 'trial', daysLeft: daysLeft, bonusDays: bonusDays };
+    }
+    return { status: 'expired', daysLeft: 0, bonusDays: bonusDays };
   }
 
   // Jours restants avant que le compte soit réclamé. Les jours payés avec le
@@ -2070,7 +2092,7 @@
   // pour la somme qui manque, et l'abonnement se règle tout seul au retour
   // (papi-paiement.js). Les prix ne sont ici que pour l'affichage : c'est le
   // serveur qui les tient.
-  const PRIX_ABONNEMENT = { sub_month: 15000, sub_year: 150000, sub_days: 20000 };
+  const PRIX_ABONNEMENT = { sub_month: 15000, sub_year: 150000, sub_days: 20000, parrainage: 5000 };
   const FRAIS_DEPOT_PCT = 5;
   // Ce qu'il faut payer chez Papi pour que, frais ôtés, « net » arrive au solde.
   function brutPourNet(net){
@@ -3040,10 +3062,17 @@
     return true;
   }
 
-  // ---------------- DÉBLOCAGE ----------------
-  // Un compte suspendu par sécurité (securite.js) se rouvre depuis l'espace
-  // admin. Il ne se paie plus depuis le 26/10/2026 — ni portefeuille, ni
-  // carte : la boîte de l'écran de connexion dit seulement à qui s'adresser.
+  // ---------------- DÉBLOCAGE PAYÉ AVEC LE PORTEFEUILLE ----------------
+  // Pour un compte fermé (abonnement à régler ou compte suspendu), pas pour un
+  // mot de passe perdu : celui-ci se règle seul avec le lien envoyé par email.
+  //
+  // Le déblocage se paie sur le solde du portefeuille — celui que les
+  // invitations remplissent. Rien ne sort de l'application : la somme passe du
+  // portefeuille du client à celui du propriétaire, et l'accès se rouvre dans
+  // la foulée. Plus de somme à envoyer au dehors, plus de référence à
+  // recopier, plus d'attente qu'un humain constate l'arrivée de l'argent.
+  // Vingt invitations, et le compte se rouvre tout seul.
+  const UNLOCK_COST_CREDITS = 20;
 
   // Les demandes d'avant ce changement portent encore leur ancien moyen de
   // paiement : le propriétaire doit pouvoir relire son historique.
@@ -3066,14 +3095,114 @@
     });
   }
 
+  function renderUnlockWallet(){
+    // Cet élément n'existe plus sur l'écran de connexion ; la ligne reste au
+    // cas où un thème le remettrait, et ne coûte rien s'il est absent.
+    const balanceEl = document.getElementById('unlockWalletBalance');
+    const costEl = document.getElementById('unlockWalletCost');
+    if(costEl) costEl.textContent = (UNLOCK_COST_CREDITS * AR_PER_CREDIT).toLocaleString('fr-FR') + ' Ar';
+    // Le solde n'est plus affiché ici : il se lit dans Portefeuille. Il n'est
+    // dit qu'en réponse à un clic, s'il ne suffit pas — c'est alors une
+    // explication, pas un étalage.
+    if(balanceEl) balanceEl.textContent = '';
+  }
+
+  // Trace laissée au propriétaire : il voit qui s'est débloqué et avec combien,
+  // et ses propres crédits s'en trouvent augmentés d'autant. L'écriture est
+  // faite au mieux — hors ligne, le déblocage a tout de même lieu, car les
+  // crédits, eux, ont bien été retirés.
+  function recordWalletUnlock(name, email, method){
+    if(!window.__sb) return;
+    window.__sb.from('unlock_requests').insert({
+      name: name, email: normEmail(email), phone: '',
+      message: method === 'card' ? 'Payé par carte Visa (Papi)' : 'Payé avec le solde du portefeuille',
+      amount: UNLOCK_COST_CREDITS, paypal_reference: '', payment_method: method || 'wallet',
+      status: 'confirmed', auto_confirmed: true,
+      confirmed_at: new Date().toISOString()
+    }).then(function(){}, function(){});
+  }
+
   const forgotToggleBtn = document.getElementById('forgotToggleBtn');
   if(forgotToggleBtn){
     forgotToggleBtn.addEventListener('click', function(){
-      // Le déblocage ne se paie plus (26/10/2026) : la boîte dit seulement
-      // à qui s'adresser.
-      openHelpBox('forgotBox');
+      if(!openHelpBox('forgotBox')) return;
+      // Ce que la personne vient de taper pour se connecter sert déjà : on ne
+      // lui redemande pas son email deux fois de suite.
+      const quickEmail = document.getElementById('quickEmail').value.trim();
+      const emailField = document.getElementById('forgotEmail');
+      if(quickEmail.indexOf('@') >= 0 && !emailField.value) emailField.value = quickEmail;
+      const known = findProfileByEmail(emailField.value);
+      const nameField = document.getElementById('forgotName');
+      if(known && !nameField.value) nameField.value = known.name || '';
+      renderUnlockWallet();
     });
   }
+
+  // ---- Le même déblocage, payé par carte Visa ----
+  // Le numéro de carte ne passe jamais par ici : il se tape sur la page de
+  // paiement de Papi (carte BRED / Visa). Il faut une session Supabase pour
+  // créer le lien, et le compte bloqué en a été sorti : on se reconnecte donc
+  // avec le mot de passe. Au retour, papi-paiement.js vérifie le paiement,
+  // achète l'article « unlock » au serveur, puis appelle apresDeblocageCarte.
+  const UNLOCK_CARD_KEY = 'stockmanager_deblocage_carte';
+  const payByCardBtn = document.getElementById('payUnlockCardBtn');
+  if(payByCardBtn){
+    payByCardBtn.addEventListener('click', async function(){
+      const statusEl = document.getElementById('forgotStatus');
+      const name = document.getElementById('forgotName').value.trim();
+      const email = document.getElementById('forgotEmail').value.trim();
+      const password = document.getElementById('forgotPassword').value;
+      if(!name || !email){
+        statusEl.textContent = 'Votre nom et votre email sont obligatoires.';
+        return;
+      }
+      if(!findProfileByEmail(email)){
+        statusEl.textContent = 'Aucun compte n\'est enregistré sur cet appareil pour cet email. ' +
+          'Utilisez « Première connexion / autre compte ».';
+        return;
+      }
+      if(typeof window.papiPayerAbonnement !== 'function'){
+        statusEl.textContent = 'Papi indisponible : rechargez la page.';
+        return;
+      }
+      const auth = sbAuth();
+      if(!auth){ statusEl.textContent = 'Paiement par carte indisponible hors ligne.'; return; }
+      payByCardBtn.disabled = true;
+      try {
+        const s = await auth.getSession();
+        const connecte = s && s.data && s.data.session &&
+          normEmail(s.data.session.user && s.data.session.user.email) === normEmail(email);
+        if(!connecte){
+          if(password.length < 6){
+            statusEl.textContent = 'Tapez votre mot de passe pour payer par carte.';
+            payByCardBtn.disabled = false;
+            return;
+          }
+          statusEl.textContent = 'Connexion…';
+          const r = await auth.signInWithPassword({ email: email, password: password });
+          if(r.error) throw new Error('Mot de passe incorrect.');
+        }
+      } catch(err){
+        statusEl.textContent = err.message;
+        payByCardBtn.disabled = false;
+        return;
+      }
+      try { localStorage.setItem(UNLOCK_CARD_KEY, JSON.stringify({ name: name, email: email })); } catch(e){}
+      window.papiPayerAbonnement('unlock', brutPourNet(UNLOCK_COST_CREDITS * AR_PER_CREDIT), statusEl,
+        function(){ payByCardBtn.disabled = false; }, 'BRED');
+    });
+  }
+  window.apresDeblocageCarte = function(){
+    let who = null;
+    try { who = JSON.parse(localStorage.getItem(UNLOCK_CARD_KEY) || 'null'); localStorage.removeItem(UNLOCK_CARD_KEY); } catch(e){}
+    const profile = who && findProfileByEmail(who.email);
+    if(!profile) return;
+    recordWalletUnlock(who.name || profile.name || '', who.email, 'card');
+    const paye = (UNLOCK_COST_CREDITS * AR_PER_CREDIT).toLocaleString('fr-FR') + ' Ar';
+    pushNotification('parrainage', 'Déblocage payé par carte Visa (' + paye + ') — accès rétabli.');
+    loginFromProfile(profile);
+  };
+
 
   // ---------------- CONNEXION / INSCRIPTION PAR GOOGLE ----------------
   // Le nom et l'email viennent du compte Google : rien à taper. On part chez
@@ -4110,9 +4239,47 @@
     if(e.key === 'Escape' && welcomeOpen) closeWelcome(true);
   });
 
-  // L'avis « Essai gratuit & abonnement » : l'application est gratuite
-  // depuis le 26/10/2026, il n'a plus rien à annoncer.
-  function showAutoNotice(){}
+  function showAutoNotice(){
+    if(welcomeOpen){ noticeWaitsForWelcome = true; return; }
+    // Arrivée par un lien reçu par email : la vérification de session se
+    // terminait après coup et faisait remonter cet avis par-dessus le message
+    // qui compte — celui qui explique quoi faire du lien.
+    if(authLinkTookOver) return;
+    const st = getSubscriptionStatus();
+    const modal = document.getElementById('autoNoticeModal');
+    const closeBtn = document.getElementById('autoNoticeClose');
+    const loginBtn = document.getElementById('autoNoticeLoginBtn');
+    const title = document.getElementById('autoNoticeTitle');
+    const text = document.getElementById('autoNoticeText');
+
+    if(st.status === 'expired'){
+      title.textContent = 'Abonnement requis';
+      text.innerHTML = 'Votre essai gratuit de <strong>15 jours</strong> est terminé. L\'accès est <strong>bloqué</strong> ' +
+        'tant que le paiement (mensuel ou annuel) n\'est pas confirmé par le <strong>code de déverrouillage</strong> ' +
+        'envoyé par email. Connectez-vous pour recevoir votre code.';
+      closeBtn.style.display = 'none';
+      loginBtn.style.display = 'block';
+    } else {
+      // Le guide de première visite a déjà tout expliqué : on ne le redit pas.
+      if(guideDejaVu()) return;
+      title.textContent = 'Essai gratuit & abonnement';
+      // Tant que la fenêtre est ouverte, l'avis commence par ce qui vient de se
+      // passer sous les yeux : on est entré sans rien remplir, et voilà pourquoi.
+      const sansCompte = inFreeEntryWindow()
+        ? 'Les <strong>' + FREE_ENTRY_DAYS + ' premiers jours</strong>, l\'application s\'ouvre ' +
+          '<strong>sans compte</strong> : rien à remplir, on entre. Passé ce délai, un ' +
+          '<strong>compte</strong> est demandé — l\'essai, lui, continue jusqu\'au 15<sup>e</sup> jour, ' +
+          'et ce qui a été saisi reste en place. '
+        : '';
+      text.innerHTML = sansCompte + 'L\'application est <strong>gratuite pendant 15 jours</strong>. Passé ce délai, un abonnement ' +
+        '<strong>mensuel</strong> ou <strong>annuel</strong> sera demandé pour continuer à l\'utiliser. ' +
+        'En cas de non-paiement, l\'accès sera bloqué ; un <strong>code de déverrouillage</strong> vous sera ' +
+        'alors envoyé par email pour réactiver votre compte.';
+      closeBtn.style.display = 'block';
+      loginBtn.style.display = 'none';
+    }
+    modal.style.display = 'flex';
+  }
   document.getElementById('autoNoticeClose').addEventListener('click', function(){
     document.getElementById('autoNoticeModal').style.display = 'none';
   });
