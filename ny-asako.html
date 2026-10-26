@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="cfb14cf2">
+<meta name="ny-asako-version" content="537af870">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -2515,16 +2515,27 @@
             <div class="rohy-andalana" id="parrainHafaAmpio" style="margin-top:0.8rem;">
               <select id="parrainHafaSafidy" class="rohy-saha" style="flex:1 1 180px; font-family:inherit;">
                 <option value="">— Safidio ny sehatra —</option>
-                <option>Bybit</option>
-                <option>OKX</option>
-                <option>KuCoin</option>
-                <option>Bitget</option>
-                <option>RedotPay</option>
-                <option>Wise</option>
-                <option>Skrill</option>
-                <option>Airtm</option>
-                <option>Exness</option>
-                <option>Deriv</option>
+                <optgroup label="Crypto sy vola">
+                  <option>Bybit</option>
+                  <option>OKX</option>
+                  <option>KuCoin</option>
+                  <option>Bitget</option>
+                  <option>RedotPay</option>
+                  <option>Wise</option>
+                  <option>Skrill</option>
+                  <option>Airtm</option>
+                  <option>Exness</option>
+                  <option>Deriv</option>
+                </optgroup>
+                <!-- Les jeux d'argent ouverts à Madagascar : dans la Botika,
+                     ils ne se montrent qu'avec le lien de l'admin (parrain-botika.js). -->
+                <optgroup label="Lalao (18 taona no ho miakatra)">
+                  <option>Lalao Malagasy (Loterie)</option>
+                  <option>Bet261</option>
+                  <option>Aviator</option>
+                  <option>1xBet</option>
+                  <option>Melbet</option>
+                </optgroup>
                 <option value="__hafa">Hafa (soraty ny anarany)…</option>
               </select>
               <input id="parrainHafaAnarana" class="rohy-saha" type="text" maxlength="40" placeholder="Anaran'ny sehatra" style="display:none; flex:1 1 160px; font-family:inherit;">
