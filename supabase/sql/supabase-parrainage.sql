@@ -85,3 +85,12 @@ create policy "torolalana hitan'ny rehetra" on public.parrainage_torolalana
 drop policy if exists "torolalana an'ny admin" on public.parrainage_torolalana;
 create policy "torolalana an'ny admin" on public.parrainage_torolalana
   for all to authenticated using (public.is_owner()) with check (public.is_owner());
+
+-- 26/10/2026 : mettre son lien ne se paie plus. Un compte suffit ; la
+-- fonction reste, pour les règles qui l'appellent.
+create or replace function public.parrainage_voaloa()
+returns boolean
+language sql stable security definer set search_path = public
+as $$
+  select auth.uid() is not null;
+$$;
