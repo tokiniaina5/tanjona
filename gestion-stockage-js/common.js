@@ -1214,9 +1214,13 @@
     const t = a.taux || {};
     const tauxEl = document.getElementById('walletAffTaux');
     if(tauxEl){
-      // L'admin ne paie plus (26/10/2026) : reste la commission sur les
+      // La prime d'inscription (somme de l'appli), puis la commission sur les
       // achats du fil, que paie le vendeur.
-      tauxEl.innerHTML = 'Zarao ny rohinao. Isaky ny mividy entana ao amin\'ny fil izay niditra tamin\'io : ' +
+      tauxEl.innerHTML = 'Zarao ny rohinao. Izay misoratra anarana amin\'io :<br>' +
+        (Number(t.inscriptionAr) > 0
+          ? '• fisoratana anarana : <strong>' + formatWalletAr(t.inscriptionAr) + '</strong> (ato anatin\'ny appli, azo avadika)<br>'
+          : '') +
+        '• isaky ny mividy entana ao amin\'ny fil : ' +
         '<strong>' + formatWalletAr(t.fixeAr) + ' + ' + (Number(t.pct) || 0).toLocaleString('fr-FR') +
         ' %</strong> (aloan\'ny mpivarotra, vola tena izy, azo alaina).' +
         // Les 2 % de l'admin, pris sur la même commission (26/10/2026).

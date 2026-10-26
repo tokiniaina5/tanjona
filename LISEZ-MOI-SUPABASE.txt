@@ -1192,16 +1192,17 @@ izy, se retire. Sur ce total, AFF_ADMIN_PCT % du montant (2 par défaut) va à
 l'admin (OWNER_EMAIL), provider « affiliation_admin », provider_ref
 « <ref>:admin » : sur 10 %, 8 % à l'affilié, 2 % à l'admin. Le vendeur ne
 paie pas davantage. Un lien partagé par l'admin lui-même : tout pour lui.
-Depuis le 26/10/2026 l'admin ne paie plus rien : plus de prime à
-l'inscription (AFF_INSCRIPTION_AR supprimé), plus de commission sur « spend »
-(abonnement, essai, booster, déblocage…). Les anciennes lignes
-« affiliation_inscription » restent comptées. Le parrainage qui rapporte passe
+À l'inscription : AFF_INSCRIPTION_AR (500 par défaut), provider
+« affiliation_inscription » — somme de l'appli, retirée le 26/10/2026 puis
+rétablie le même jour ; elle se change par « Avadika ». Plus de commission
+sur « spend » (abonnement, essai, déblocage…). Le parrainage qui rapporte passe
 par Binance et Payoneer : chacun garde ses liens dans « Inviter des amis »
 (table rohy_parrainage, supabase/sql/supabase-parrainage.sql).
 Les paiements de l'hôtellerie (payés directement à l'hôtel) ne passent pas
 par le portefeuille : ils ne rapportent rien.
 
 Secrets (facultatifs, valeurs par défaut) :
+  supabase secrets set AFF_INSCRIPTION_AR=500
   supabase secrets set AFF_FIXE_AR=200
   supabase secrets set AFF_PCT=10
   supabase secrets set AFF_ADMIN_PCT=2

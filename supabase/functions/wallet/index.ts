@@ -155,10 +155,12 @@ function ar(n: number): string {
 // Chacun partage son lien « ?aff=<ID KEY> ». La personne qui crée son compte
 // par ce lien y est rattachée une fois pour toutes ; ensuite, quand elle
 // achète sur le fil, celui qui a partagé touche AFF_FIXE_AR + AFF_PCT % du
-// montant — pris sur la vente, payé par le vendeur. Depuis le 26/10/2026
-// l'admin ne paie plus rien : ni prime d'inscription, ni commission sur les
-// abonnements (le parrainage qui rapporte passe par Binance et Payoneer,
-// « Inviter des amis »). Les chiffres vivent ici, jamais dans la page.
+// montant — pris sur la vente, payé par le vendeur. Plus de commission sur
+// les abonnements depuis le 26/10/2026. À l'inscription, AFF_INSCRIPTION_AR —
+// une somme de l'appli (rétablie le 26/10/2026), qui se dépense ici ou se
+// change par « Avadika », avec l'accord de l'admin. Les chiffres vivent ici,
+// jamais dans la page.
+const AFF_INSCRIPTION_AR = Math.max(0, Number(Deno.env.get("AFF_INSCRIPTION_AR") ?? "500"));
 const AFF_FIXE_AR = Math.max(0, Number(Deno.env.get("AFF_FIXE_AR") ?? "200"));
 const AFF_PCT = Math.max(0, Number(Deno.env.get("AFF_PCT") ?? "10"));
 // Sur ces AFF_PCT %, AFF_ADMIN_PCT % vont à l'admin (26/10/2026) : sur 10 %,
@@ -254,7 +256,7 @@ async function affiliationFor(admin: Admin, email: string) {
     nbFilleuls: (filleuls ?? []).length,
     totalReel, totalAppli,
     gains: (gains ?? []).slice(0, 20),
-    taux: { inscriptionAr: 0, fixeAr: AFF_FIXE_AR, pct: AFF_PCT - AFF_ADMIN_PCT, adminPct: AFF_ADMIN_PCT },
+    taux: { inscriptionAr: AFF_INSCRIPTION_AR, fixeAr: AFF_FIXE_AR, pct: AFF_PCT - AFF_ADMIN_PCT, adminPct: AFF_ADMIN_PCT },
   };
 }
 
@@ -1146,6 +1148,17 @@ Deno.serve(async (req: Request) => {
     const { error } = await admin.from("affiliations").insert({ filleul_email: email, parrain_email: parrain, code });
     if (error) return json({ affilie: false, raison: "deja" });
 
+    if (AFF_INSCRIPTION_AR > 0) {
+      const { error: e } = await admin.from("wallet_deposits").insert({
+        email: parrain, amount_ar: AFF_INSCRIPTION_AR, provider: "affiliation_inscription",
+        provider_ref: email, status: "confirme", confirmed_at: new Date().toISOString(),
+        note: "Nisoratra tamin'ny rohinao : " + masquer(email),
+      });
+      if (!e) {
+        await prevenir(admin, parrain,
+          `🤝 ${masquer(email)} nisoratra tamin'ny rohinao : +${ar(AFF_INSCRIPTION_AR)}.`);
+      }
+    }
     return json({ affilie: true });
   }
 
