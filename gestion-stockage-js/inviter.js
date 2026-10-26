@@ -240,10 +240,26 @@
     const el = document.getElementById('parrainStatut');
     if(el) el.textContent = texte || '';
   }
+  // Pas payé (parrainage_voaloa) : les champs se ferment, le bouton payer
+  // s'ouvre. L'admin ne paie pas ; la base refuse de toute façon l'écriture.
+  function parrainVoaloa(voaloa){
+    const hidy = document.getElementById('parrainHidy');
+    if(hidy) hidy.style.display = voaloa ? 'none' : '';
+    Object.keys(PARRAIN_NOMS).forEach(function(cle){
+      const el = parrainInput(cle);
+      if(el) el.disabled = !voaloa;
+    });
+    const save = document.getElementById('parrainSave');
+    if(save) save.style.display = voaloa ? '' : 'none';
+  }
   function chargerParrainage(){
     if(!window.__sb || !document.getElementById('parrainPanel')) return;
+    if(typeof window.__afficherParrainBotika === 'function') window.__afficherParrainBotika();
     monUid().then(function(uid){
-      if(!uid){ parrainStatut('Midira amin\'ny kaontinao vao afaka mitahiry ny rohinao.'); return; }
+      if(!uid){ parrainVoaloa(false); parrainStatut('Midira amin\'ny kaontinao vao afaka mitahiry ny rohinao.'); return; }
+      window.__sb.rpc('parrainage_voaloa').then(function(res){
+        parrainVoaloa(!!(res && !res.error && res.data));
+      }, function(){ parrainVoaloa(false); });
       window.__sb.from('rohy_parrainage').select('binance,payoneer').eq('user_id', uid).maybeSingle()
         .then(function(res){
           const d = (res && res.data) || {};
@@ -254,6 +270,22 @@
           });
           parrainStatut('');
         }, function(){});
+    });
+  }
+  // 5 000 Ar une fois, par le portefeuille ; s'il manque de l'argent Papi,
+  // common.js ouvre Papi et achète au retour (papi-paiement.js).
+  const parrainAloa = document.getElementById('parrainAloa');
+  if(parrainAloa){
+    parrainAloa.addEventListener('click', function(){
+      const statut = document.getElementById('parrainAloaStatut');
+      if(typeof window.__payerSiteItem !== 'function'){
+        if(statut) statut.textContent = 'Portefeuille tsy vonona : avereno sokafana ny pejy.';
+        return;
+      }
+      window.__payerSiteItem('parrainage', statut, parrainAloa, function(){
+        if(statut) statut.textContent = '✅ Voaloa : apetraho izao ny rohinao.';
+        chargerParrainage();
+      });
     });
   }
   const parrainSave = document.getElementById('parrainSave');

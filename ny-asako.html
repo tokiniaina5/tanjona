@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="d59764d7">
+<meta name="ny-asako-version" content="4455baf1">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -2452,6 +2452,26 @@
             dia zarao amin'ny olona tena hampiasa azy.
           </p>
 
+          <!-- Les liens de l'admin, pour qui n'a pas encore de compte
+               (parrain-botika.js) ; cachés chez l'admin lui-même. -->
+          <div id="parrainAdmin" class="aff-isa-boaty" style="display:none; margin-bottom:0.9rem;">
+            <div style="font-weight:700; font-size:0.85rem; margin-bottom:0.3rem;">🆕 Mbola tsy manana kaonty Binance / Payoneer?</div>
+            <p style="font-size:0.78rem; color:var(--muted); margin:0 0 0.5rem;">Misorata anarana amin'ity rohy ity :</p>
+            <div id="parrainAdminBoutons" style="display:flex; gap:0.5rem; flex-wrap:wrap;"></div>
+          </div>
+
+          <!-- Mettre SON lien se paie une fois (parrainage_voaloa, inviter.js). -->
+          <div id="parrainHidy" class="aff-isa-boaty" style="display:none; margin-bottom:0.9rem; border-color:var(--amber, #e9a23b);">
+            <div style="font-weight:700; font-size:0.85rem; margin-bottom:0.3rem;">🔒 Hizara ny rohinao manokana</div>
+            <p style="font-size:0.78rem; color:var(--muted); line-height:1.5; margin:0 0 0.6rem;">
+              Mba hahafahanao mametraka sy mizara ny rohinao Binance / Payoneer eto amin'ny site :
+              <strong style="color:var(--text);">5 000 Ar indray mandeha</strong>, aloa avy amin'ny 💰 Portefeuille
+              (MVola, Orange Money, Airtel Money). Tsy averina aloa intsony.
+            </p>
+            <button type="button" class="btn btn-amber btn-sm" id="parrainAloa" style="width:auto;">🔓 Aloavy 5 000 Ar</button>
+            <p id="parrainAloaStatut" style="font-size:0.75rem; color:var(--muted); margin:0.5rem 0 0;"></p>
+          </div>
+
           <div class="parrain-carte" data-plateforme="binance">
             <div style="font-weight:700; margin-bottom:0.3rem;">🟡 Binance (crypto)</div>
             <ol style="font-size:0.78rem; color:var(--muted); line-height:1.6; margin:0 0 0.6rem 1.1rem; padding:0;">
@@ -3830,15 +3850,15 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=a0f3e378"></script>
+<script src="gestion-stockage-js/common.js?v=3b67abfd"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=d0a53ff8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=92ad47d0"></script>
 <script src="gestion-stockage-js/factures.js?v=69af0cd7"></script>
 <script src="gestion-stockage-js/factures-modely.js?v=8fbf4a42"></script>
-<script src="gestion-stockage-js/inviter.js?v=de42b496"></script>
-<script src="gestion-stockage-js/parrain-botika.js?v=777c8049"></script>
+<script src="gestion-stockage-js/inviter.js?v=8bf2a8af"></script>
+<script src="gestion-stockage-js/parrain-botika.js?v=a87cda5c"></script>
 <script src="gestion-stockage-js/contact.js?v=96f9e192"></script>
 <script src="gestion-stockage-js/zara-rehetra.js?v=9b9c2469"></script>
 <script src="gestion-stockage-js/live.js?v=09e7a36e"></script>
@@ -3869,7 +3889,7 @@
 <script src="gestion-stockage-js/theme.js?v=096262fd"></script>
 <script src="gestion-stockage-js/mot-de-passe.js?v=fa311136"></script>
 <script src="gestion-stockage-js/securite.js?v=e38535e6"></script>
-<script src="gestion-stockage-js/papi-paiement.js?v=d9fdde58"></script>
+<script src="gestion-stockage-js/papi-paiement.js?v=ff1f560d"></script>
 
 
 

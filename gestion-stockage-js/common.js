@@ -1969,7 +1969,7 @@
   // pour la somme qui manque, et l'abonnement se règle tout seul au retour
   // (papi-paiement.js). Les prix ne sont ici que pour l'affichage : c'est le
   // serveur qui les tient.
-  const PRIX_ABONNEMENT = { sub_month: 15000, sub_year: 150000, sub_days: 20000 };
+  const PRIX_ABONNEMENT = { sub_month: 15000, sub_year: 150000, sub_days: 20000, parrainage: 5000 };
   const FRAIS_DEPOT_PCT = 5;
   // Ce qu'il faut payer chez Papi pour que, frais ôtés, « net » arrive au solde.
   function brutPourNet(net){
@@ -2003,6 +2003,8 @@
     }
     buySiteItem(item, statusEl, btn).then(apres || function(){}, function(){});
   }
+  // « Inviter des amis » paie le Parrainage par ici (inviter.js).
+  window.__payerSiteItem = payerAbonnement;
 
   const paywallWalletBtn = document.getElementById('paywallWalletBtn');
   if(paywallWalletBtn){

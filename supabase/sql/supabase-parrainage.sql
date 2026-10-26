@@ -11,9 +11,37 @@ create table if not exists public.rohy_parrainage (
 );
 alter table public.rohy_parrainage enable row level security;
 
+-- Mettre SON lien se paie, une fois (5 000 Ar, « spend » parrainage du
+-- portefeuille, wallet_payouts kind « insite ») ; l'admin, lui, ne paie pas.
+-- Le libellé est celui de SITE_ITEMS.parrainage (fonction wallet).
+create or replace function public.parrainage_voaloa()
+returns boolean
+language sql stable security definer set search_path = public
+as $$
+  select public.is_owner() or exists (
+    select 1 from public.wallet_payouts p
+    where p.email = lower(coalesce(auth.jwt() ->> 'email', ''))
+      and p.kind = 'insite' and p.status = 'sent'
+      and p.destination = 'Parrainage Binance & Payoneer'
+  );
+$$;
+revoke all on function public.parrainage_voaloa() from public;
+grant execute on function public.parrainage_voaloa() to authenticated;
+
 drop policy if exists "parrainage an'ny tompony" on public.rohy_parrainage;
-create policy "parrainage an'ny tompony" on public.rohy_parrainage
-  for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+drop policy if exists "parrainage hitan'ny tompony" on public.rohy_parrainage;
+create policy "parrainage hitan'ny tompony" on public.rohy_parrainage
+  for select to authenticated using (user_id = auth.uid());
+drop policy if exists "parrainage fafan'ny tompony" on public.rohy_parrainage;
+create policy "parrainage fafan'ny tompony" on public.rohy_parrainage
+  for delete to authenticated using (user_id = auth.uid());
+drop policy if exists "parrainage voaloa ampidirina" on public.rohy_parrainage;
+create policy "parrainage voaloa ampidirina" on public.rohy_parrainage
+  for insert to authenticated with check (user_id = auth.uid() and public.parrainage_voaloa());
+drop policy if exists "parrainage voaloa ovaina" on public.rohy_parrainage;
+create policy "parrainage voaloa ovaina" on public.rohy_parrainage
+  for update to authenticated using (user_id = auth.uid())
+  with check (user_id = auth.uid() and public.parrainage_voaloa());
 
 -- Les liens de l'admin se montrent à tous, dans la Botika (l'appli et
 -- botika/) : un client qui s'inscrit chez Binance ou Payoneer par là fait

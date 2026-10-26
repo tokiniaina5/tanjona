@@ -56,7 +56,9 @@
         window.apresDeblocageCarte();
         return true;
       }
-      msg('Paiement reçu : votre abonnement est actif.');
+      msg(item === 'parrainage'
+        ? 'Paiement reçu : azonao apetraka izao ny rohinao Binance / Payoneer (Inviter des amis).'
+        : 'Paiement reçu : votre abonnement est actif.');
       return true;
     } catch (err) {
       msg('Paiement reçu, mais ' + (item === 'unlock' ? 'le déblocage' : 'l\'abonnement') +

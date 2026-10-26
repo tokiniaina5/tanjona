@@ -38,18 +38,33 @@
       return el;
     }
 
+    // La Botika, et « Inviter des amis » pour qui n'a pas encore de compte
+    // Binance / Payoneer — sauf l'admin, ce sont ses propres liens.
+    const CADRES = [
+      { cadre: 'botikaParrain', rangee: 'botikaParrainBoutons' },
+      { cadre: 'parrainAdmin', rangee: 'parrainAdminBoutons', pasAdmin: true }
+    ];
+
     function afficher(){
-      const cadre = document.getElementById('botikaParrain');
-      const rangee = document.getElementById('botikaParrainBoutons');
-      if(!cadre || !rangee || !window.__sb || !window.__sb.rpc) return;
+      const presents = CADRES.filter(function(c){
+        return document.getElementById(c.cadre) && document.getElementById(c.rangee);
+      });
+      if(!presents.length || !window.__sb || !window.__sb.rpc) return;
       window.__sb.rpc('parrainage_admin').then(function(res){
         const d = (res && !res.error && res.data && res.data[0]) || {};
-        rangee.innerHTML = '';
-        PLATEFORMES.forEach(function(p){
-          const valeur = String(d[p.cle] || '').trim();
-          if(valeur) rangee.appendChild(bouton(p, valeur));
+        const admin = typeof estAdminRohy === 'function' && estAdminRohy();
+        presents.forEach(function(c){
+          const cadre = document.getElementById(c.cadre);
+          const rangee = document.getElementById(c.rangee);
+          rangee.innerHTML = '';
+          if(!(c.pasAdmin && admin)){
+            PLATEFORMES.forEach(function(p){
+              const valeur = String(d[p.cle] || '').trim();
+              if(valeur) rangee.appendChild(bouton(p, valeur));
+            });
+          }
+          cadre.style.display = rangee.children.length ? '' : 'none';
         });
-        cadre.style.display = rangee.children.length ? '' : 'none';
       }, function(){});
     }
 

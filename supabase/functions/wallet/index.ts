@@ -78,6 +78,10 @@ const SITE_ITEMS: Record<string, { label: string; priceAr: number; days?: number
   sub_days: { label: "7 jours mis de côté pour l'abonnement", priceAr: 20000, grant: "sub_days" },
   // Le déblocage payé par carte Visa (via Papi) : même prix que les 20 crédits.
   unlock: { label: "Déblocage du compte", priceAr: 20000, grant: "unlock" },
+  // Une fois pour toutes : le droit de mettre SON lien Binance / Payoneer
+  // (« Inviter des amis »). La base le lit à ce libellé exact
+  // (parrainage_voaloa, supabase-parrainage.sql) : ne pas le changer seul.
+  parrainage: { label: "Parrainage Binance & Payoneer", priceAr: 5000, grant: "parrainage" },
 };
 
 function norm(value: unknown): string {
@@ -638,6 +642,13 @@ Deno.serve(async (req: Request) => {
     const itemId = String(body.item ?? "");
     const item = SITE_ITEMS[itemId];
     if (!item) return json({ error: "article inconnu" }, 400);
+    // Payé une fois, acquis pour toujours : pas de second paiement.
+    if (itemId === "parrainage") {
+      const { data: deja } = await admin.from("wallet_payouts").select("id")
+        .eq("email", email).eq("kind", "insite").eq("status", "sent")
+        .eq("destination", item.label).limit(1);
+      if ((deja ?? []).length) return json({ error: "Efa voaloa ny Parrainage." }, 409);
+    }
 
     const balance = await balanceFor(admin, email);
     // Seulement l'argent vraiment payé par Papi.
