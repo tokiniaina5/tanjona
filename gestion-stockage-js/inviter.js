@@ -44,13 +44,21 @@
       });
   }
 
-  function setupInviteLink(){
+  // Le lien d'invitation est le lien d'affiliation (« ?aff=<ID KEY> ») : qui
+  // s'inscrit par là est rattaché à celui qui l'a partagé. Tant que l'ID KEY
+  // n'est pas connue (portefeuille pas encore chargé), « ?invite=1 ».
+  function lienInvitation(cle){
     // « /confirmation » : le mot se lit dans le lien lui-même. Seulement sur
     // Netlify, qui sait servir cette adresse (_redirects) ; une adresse
     // publique réglée ailleurs garde la racine.
     const base = publicBaseUrl();
     const chemin = /^https:\/\/ny-asako\.netlify\.app\/$/i.test(base) ? 'confirmation' : '';
-    const link = base + chemin + '?invite=1';
+    return base + chemin + (cle ? '?aff=' + encodeURIComponent(cle) : '?invite=1');
+  }
+
+  function setupInviteLink(){
+    const cle = typeof window.__monIdKey === 'function' ? window.__monIdKey() : '';
+    const link = lienInvitation(cle);
     document.getElementById('inviteLink').value = link;
     renderLocalLinkWarning(link);
   }

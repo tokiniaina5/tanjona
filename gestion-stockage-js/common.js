@@ -1192,12 +1192,19 @@
     }, function(){ /* réseau ou fonction absente : on réessaiera à la prochaine connexion */ });
   }
 
+  // Le même que « Lien d'invitation » (inviter.js) : l'adresse publique, pas
+  // celle d'où la page est ouverte.
+  window.__monIdKey = function(){ return (walletState && walletState.idKey) || ''; };
   function lienAffiliation(){
     const cle = walletState && walletState.idKey;
-    return cle ? location.origin + location.pathname + '?aff=' + encodeURIComponent(cle) : '';
+    if(!cle) return '';
+    return typeof lienInvitation === 'function' ? lienInvitation(cle)
+      : location.origin + location.pathname + '?aff=' + encodeURIComponent(cle);
   }
 
   function renderAffiliation(){
+    // L'ID KEY vient d'arriver (ou a changé) : le lien d'invitation la porte.
+    if(typeof setupInviteLink === 'function') setupInviteLink();
     const panel = document.getElementById('walletAffPanel');
     if(!panel || !walletState) return;
     const a = walletState.affiliation;
