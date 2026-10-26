@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="4d78f53c">
+<meta name="ny-asako-version" content="ae08df8a">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -178,7 +178,7 @@
 <link rel="apple-touch-startup-image" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)" href="/demarrage/2732x2048.png">
 <!-- fin des écrans de démarrage iOS -->
 <link rel="icon" href="/icone-192.png" type="image/png">
-<link rel="stylesheet" href="gestion-stockage-css/base.css?v=7e2a052a">
+<link rel="stylesheet" href="gestion-stockage-css/base.css?v=2a59e3e1">
 <link rel="stylesheet" href="gestion-stockage-css/components.css?v=d53a4cc5">
 <!-- Les émojis dessinés en 3D (emoji-3d.js). -->
 <script src="gestion-stockage-js/emoji-3d.js?v=66dad412" defer></script>
@@ -2414,26 +2414,32 @@
           <p style="font-size:0.82rem; color:var(--muted); line-height:1.6; margin-bottom:0.8rem;" id="walletAffTaux">
             Zarao ny rohinao : izay misoratra anarana amin'io dia mampidi-bola anao isaky ny mandoa.
           </p>
-          <div class="plan-note">🔗 Ny rohinao</div>
-          <input id="walletAffLien" type="text" readonly style="font-family:var(--font-mono); font-size:0.8rem;" value="—">
-          <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.5rem;">
-            <button type="button" class="btn btn-primary btn-sm" id="walletAffCopy" style="width:auto;">📋 Adikao</button>
-            <button type="button" class="btn btn-sm" id="walletAffShare" style="width:auto;">📤 Zarao</button>
+          <label class="rohy-etiketa" for="walletAffLien">🔗 Ny rohinao</label>
+          <div class="rohy-andalana">
+            <input id="walletAffLien" class="rohy-saha" type="text" readonly value="—">
+            <button type="button" class="btn btn-primary btn-sm" id="walletAffCopy">📋 Adikao</button>
+            <button type="button" class="btn btn-sm" id="walletAffShare">📤 Zarao</button>
           </div>
           <p style="font-size:0.72rem; color:var(--muted); margin-top:0.4rem;">
             Ny ID KEY-nao no ao amin'ny rohy : raha ovainao izy, tsy mandeha intsony ireo rohy efa nozarainao.
           </p>
-          <div class="line-grid" style="margin-top:0.8rem;">
-            <div>
-              <div class="plan-note">👥 Olona nentinao</div>
-              <div class="plan-price" id="walletAffNb" style="font-size:1.2rem;">0</div>
+          <div class="aff-isa">
+            <div class="aff-isa-boaty">
+              <div class="rohy-etiketa">👥 Olona nentinao</div>
+              <div class="aff-isa-sanda" id="walletAffNb">0</div>
             </div>
-            <div>
-              <div class="plan-note">💰 Commission azo</div>
-              <div class="plan-price" id="walletAffTotal" style="font-size:1.2rem; color:var(--cyan);">0 Ar</div>
-              <div class="plan-note" id="walletAffDetail" style="font-size:0.72rem;"></div>
+            <div class="aff-isa-boaty">
+              <div class="rohy-etiketa">💰 Commission azo</div>
+              <div class="aff-isa-sanda" id="walletAffTotal" style="color:var(--cyan);">0 Ar</div>
+              <div id="walletAffDetail" style="font-size:0.72rem; color:var(--muted);"></div>
             </div>
           </div>
+          <!-- Les commissions sont des lignes du portefeuille (wallet_deposits) :
+               elles s'y retirent comme le reste. -->
+          <p style="font-size:0.78rem; color:var(--muted); line-height:1.5; margin:0.7rem 0 0;">
+            Miditra mivantana ao amin'ny 💰 Portefeuille-nao ny commission rehetra, ary azo alaina avy eo.
+            <button type="button" class="btn btn-sm" id="walletAffVersPortefeuille" style="width:auto; margin-left:0.3rem;">💰 Jereo ny Portefeuille</button>
+          </p>
           <div id="walletAffListe" style="margin-top:0.8rem; font-size:0.8rem;"></div>
         </div>
 
@@ -2455,10 +2461,11 @@
               <li>Isaky ny manao trade ireo olona nentinao dia miditra ao amin'ny kaontinao ny commission (matetika USDT).</li>
               <li>Ho Ariary : <strong>P2P</strong> ao amin'ny Binance (MVola / Orange Money). Aza mamoaka crypto raha tsy tonga tena izy ny vola.</li>
             </ol>
-            <input id="parrainBinance" type="text" maxlength="300" placeholder="https://www.binance.com/referral/… na code">
-            <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.5rem;">
-              <button type="button" class="btn btn-sm" data-parrain-copy="binance" style="width:auto;">📋 Adikao</button>
-              <button type="button" class="btn btn-sm" data-parrain-share="binance" style="width:auto;">📤 Zarao</button>
+            <label class="rohy-etiketa" for="parrainBinance">🔗 Ny rohinao Binance (na code)</label>
+            <div class="rohy-andalana">
+              <input id="parrainBinance" class="rohy-saha" type="text" maxlength="300" placeholder="https://www.binance.com/referral/… na code">
+              <button type="button" class="btn btn-sm" data-parrain-copy="binance">📋 Adikao</button>
+              <button type="button" class="btn btn-sm" data-parrain-share="binance">📤 Zarao</button>
             </div>
           </div>
 
@@ -2470,10 +2477,11 @@
               <li>Mahazo bonus ianao rehefa mahazo vola hatramin'ny habetsahana voafaritra ilay olona nasainao (jereo ao amin'ny kaontinao ny fepetra, fa miova matetika).</li>
               <li>Mety indrindra ho an'ny freelancers sy développeurs mahazo vola avy any ivelany ; azo alefa any amin'ny banky eto an-toerana ny vola.</li>
             </ol>
-            <input id="parrainPayoneer" type="text" maxlength="300" placeholder="https://share.payoneer.com/…">
-            <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.5rem;">
-              <button type="button" class="btn btn-sm" data-parrain-copy="payoneer" style="width:auto;">📋 Adikao</button>
-              <button type="button" class="btn btn-sm" data-parrain-share="payoneer" style="width:auto;">📤 Zarao</button>
+            <label class="rohy-etiketa" for="parrainPayoneer">🔗 Ny rohinao Payoneer</label>
+            <div class="rohy-andalana">
+              <input id="parrainPayoneer" class="rohy-saha" type="text" maxlength="300" placeholder="https://share.payoneer.com/…">
+              <button type="button" class="btn btn-sm" data-parrain-copy="payoneer">📋 Adikao</button>
+              <button type="button" class="btn btn-sm" data-parrain-share="payoneer">📤 Zarao</button>
             </div>
           </div>
 
@@ -3823,7 +3831,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=375c8e3c"></script>
+<script src="gestion-stockage-js/common.js?v=02ef3ac6"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=d0a53ff8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>

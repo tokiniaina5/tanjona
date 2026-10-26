@@ -555,3 +555,20 @@
   .invite-box{ display:flex; gap:0.6rem; flex-wrap:wrap; }
   .invite-box input{ flex-grow:1; min-width:220px; padding:0.7rem 0.85rem; border-radius:8px; border:1px solid var(--line); background:var(--bg); color:var(--text); }
 
+  /* Les rohy d'« Inviter des amis » (affiliation, Binance, Payoneer) : le
+     champ prend la ligne, les boutons à côté ; sur téléphone, ils passent
+     dessous. Lu seul, le champ reste lisible (pas le gris des readonly). */
+  .rohy-etiketa{ display:block; font-size:0.74rem; font-weight:600; color:var(--muted); margin:0.2rem 0 0.35rem; }
+  .rohy-andalana{ display:flex; gap:0.5rem; flex-wrap:wrap; align-items:stretch; }
+  .rohy-andalana .btn{ width:auto; }
+  .rohy-saha{
+    flex:1 1 240px; min-width:0; padding:0.65rem 0.85rem; border-radius:8px;
+    border:1px solid var(--line); background:var(--bg); color:var(--text);
+    font-family:var(--font-mono); font-size:0.82rem;
+  }
+  .rohy-saha:focus{ outline:none; border-color:var(--cyan); }
+  .rohy-saha[readonly]{ opacity:1; cursor:text; }
+  .aff-isa{ display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:0.6rem; margin-top:0.9rem; }
+  .aff-isa-boaty{ border:1px solid var(--line); border-radius:10px; padding:0.7rem 0.85rem; background:var(--bg); }
+  .aff-isa-sanda{ font-family:var(--font-mono); font-size:1.3rem; font-weight:700; color:var(--text); }
+

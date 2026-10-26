@@ -1242,6 +1242,15 @@
     }
   }
 
+  // Les commissions sont dans le portefeuille : un appui y mène.
+  const affVersPortefeuille = document.getElementById('walletAffVersPortefeuille');
+  if(affVersPortefeuille){
+    affVersPortefeuille.addEventListener('click', function(){
+      const nav = document.querySelector('.nav-item[data-section="wallet"]');
+      if(nav) nav.click();
+    });
+  }
+
   const affCopy = document.getElementById('walletAffCopy');
   if(affCopy){
     affCopy.addEventListener('click', function(){
