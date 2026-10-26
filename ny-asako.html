@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="80164da5">
+<meta name="ny-asako-version" content="012e59c6">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -2424,6 +2424,50 @@
           <div id="walletAffListe" style="margin-top:0.8rem; font-size:0.8rem;"></div>
         </div>
 
+        <!-- ---- PARRAINAGE BINANCE / PAYONEER ----
+             Chacun garde ici SON lien de parrainage (table rohy_parrainage) :
+             c'est la plateforme qui paie, pas l'admin (inviter.js). -->
+        <div class="panel" id="parrainPanel">
+          <h3>💸 Parrainage Binance &amp; Payoneer</h3>
+          <p style="font-size:0.8rem; color:var(--muted); line-height:1.6; margin-bottom:0.8rem;">
+            Ny Binance na ny Payoneer no mandoa anao, fa tsy ny admin. Apetraho eto ny rohinao,
+            dia zarao amin'ny olona tena hampiasa azy.
+          </p>
+
+          <div class="parrain-carte" data-plateforme="binance">
+            <div style="font-weight:700; margin-bottom:0.3rem;">🟡 Binance (crypto)</div>
+            <ol style="font-size:0.78rem; color:var(--muted); line-height:1.6; margin:0 0 0.6rem 1.1rem; padding:0;">
+              <li>Misorata anarana amin'ny app Binance, ary ataovy ny <strong>vérification (KYC)</strong> amin'ny CIN na passeport.</li>
+              <li>Mandehana any amin'ny <strong>Profil → Referral</strong> : eo ny lien sy ny code parrainage-nao. Adikao eto ambany.</li>
+              <li>Isaky ny manao trade ireo olona nentinao dia miditra ao amin'ny kaontinao ny commission (matetika USDT).</li>
+              <li>Ho Ariary : <strong>P2P</strong> ao amin'ny Binance (MVola / Orange Money). Aza mamoaka crypto raha tsy tonga tena izy ny vola.</li>
+            </ol>
+            <input id="parrainBinance" type="text" maxlength="300" placeholder="https://www.binance.com/referral/… na code">
+            <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.5rem;">
+              <button type="button" class="btn btn-sm" data-parrain-copy="binance" style="width:auto;">📋 Adikao</button>
+              <button type="button" class="btn btn-sm" data-parrain-share="binance" style="width:auto;">📤 Zarao</button>
+            </div>
+          </div>
+
+          <div class="parrain-carte" data-plateforme="payoneer" style="margin-top:1rem; padding-top:1rem; border-top:1px solid var(--line);">
+            <div style="font-weight:700; margin-bottom:0.3rem;">🟠 Payoneer</div>
+            <ol style="font-size:0.78rem; color:var(--muted); line-height:1.6; margin:0 0 0.6rem 1.1rem; padding:0;">
+              <li>Manokafa kaonty Payoneer (miasa eto Madagasikara) ary ataovy ny vérification.</li>
+              <li>Ao amin'ny tableau de bord, tadiavo ny <strong>Refer a Friend</strong>. Adikao eto ambany ny rohinao.</li>
+              <li>Mahazo bonus ianao rehefa mahazo vola hatramin'ny habetsahana voafaritra ilay olona nasainao (jereo ao amin'ny kaontinao ny fepetra, fa miova matetika).</li>
+              <li>Mety indrindra ho an'ny freelancers sy développeurs mahazo vola avy any ivelany ; azo alefa any amin'ny banky eto an-toerana ny vola.</li>
+            </ol>
+            <input id="parrainPayoneer" type="text" maxlength="300" placeholder="https://share.payoneer.com/…">
+            <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.5rem;">
+              <button type="button" class="btn btn-sm" data-parrain-copy="payoneer" style="width:auto;">📋 Adikao</button>
+              <button type="button" class="btn btn-sm" data-parrain-share="payoneer" style="width:auto;">📤 Zarao</button>
+            </div>
+          </div>
+
+          <button type="button" class="btn btn-primary btn-sm" id="parrainSave" style="width:auto; margin-top:1rem;">💾 Tehirizo ny rohiko</button>
+          <p id="parrainStatut" style="font-size:0.75rem; color:var(--muted); margin-top:0.5rem;"></p>
+        </div>
+
         <div class="panel">
           <h3>Envoyer par email</h3>
           <div class="form-grid">
@@ -3766,14 +3810,14 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=7f8f96f9"></script>
+<script src="gestion-stockage-js/common.js?v=291b57ee"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=d0a53ff8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
 <script src="gestion-stockage-js/comptes.js?v=92ad47d0"></script>
 <script src="gestion-stockage-js/factures.js?v=69af0cd7"></script>
 <script src="gestion-stockage-js/factures-modely.js?v=8fbf4a42"></script>
-<script src="gestion-stockage-js/inviter.js?v=c69f6e80"></script>
+<script src="gestion-stockage-js/inviter.js?v=3066c313"></script>
 <script src="gestion-stockage-js/contact.js?v=96f9e192"></script>
 <script src="gestion-stockage-js/zara-rehetra.js?v=9b9c2469"></script>
 <script src="gestion-stockage-js/live.js?v=09e7a36e"></script>

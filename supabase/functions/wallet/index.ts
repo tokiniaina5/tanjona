@@ -140,12 +140,12 @@ function ar(n: number): string {
 
 // ---- Affiliation (supabase-affiliation.sql) ----
 // Chacun partage son lien « ?aff=<ID KEY> ». La personne qui crée son compte
-// par ce lien y est rattachée une fois pour toutes ; ensuite, à chacun de ses
-// paiements, celui qui a partagé touche AFF_FIXE_AR + AFF_PCT % du montant.
-// À l'inscription, AFF_INSCRIPTION_AR — une somme de l'appli, qui se dépense
-// ici sans sortir : sinon, créer des comptes vides rapporterait de l'argent.
-// Les chiffres vivent ici, sur le serveur, jamais dans la page.
-const AFF_INSCRIPTION_AR = Math.max(0, Number(Deno.env.get("AFF_INSCRIPTION_AR") ?? "500"));
+// par ce lien y est rattachée une fois pour toutes ; ensuite, quand elle
+// achète sur le fil, celui qui a partagé touche AFF_FIXE_AR + AFF_PCT % du
+// montant — pris sur la vente, payé par le vendeur. Depuis le 26/10/2026
+// l'admin ne paie plus rien : ni prime d'inscription, ni commission sur les
+// abonnements (le parrainage qui rapporte passe par Binance et Payoneer,
+// « Inviter des amis »). Les chiffres vivent ici, jamais dans la page.
 const AFF_FIXE_AR = Math.max(0, Number(Deno.env.get("AFF_FIXE_AR") ?? "200"));
 const AFF_PCT = Math.max(0, Number(Deno.env.get("AFF_PCT") ?? "10"));
 // Un compte se rattache dans ses premiers jours seulement : passé ce délai,
@@ -220,7 +220,7 @@ async function affiliationFor(admin: Admin, email: string) {
     nbFilleuls: (filleuls ?? []).length,
     totalReel, totalAppli,
     gains: (gains ?? []).slice(0, 20),
-    taux: { inscriptionAr: AFF_INSCRIPTION_AR, fixeAr: AFF_FIXE_AR, pct: AFF_PCT },
+    taux: { inscriptionAr: 0, fixeAr: AFF_FIXE_AR, pct: AFF_PCT },
   };
 }
 
@@ -659,7 +659,7 @@ Deno.serve(async (req: Request) => {
     }).select("id").single();
 
     if (error) return json({ error: error.message }, 500);
-    await verserCommission(admin, email, item.priceAr, "spend:" + data.id, item.label);
+    // Pas de commission ici : c'est l'appli qui encaisse, l'admin la paierait.
     return json({
       bought: itemId, label: item.label, priceAr: item.priceAr, days: item.days ?? 0,
       grant: item.grant ?? null,
@@ -966,17 +966,6 @@ Deno.serve(async (req: Request) => {
     const { error } = await admin.from("affiliations").insert({ filleul_email: email, parrain_email: parrain, code });
     if (error) return json({ affilie: false, raison: "deja" });
 
-    if (AFF_INSCRIPTION_AR > 0) {
-      const { error: e } = await admin.from("wallet_deposits").insert({
-        email: parrain, amount_ar: AFF_INSCRIPTION_AR, provider: "affiliation_inscription",
-        provider_ref: email, status: "confirme", confirmed_at: new Date().toISOString(),
-        note: "Nisoratra tamin'ny rohinao : " + masquer(email),
-      });
-      if (!e) {
-        await prevenir(admin, parrain,
-          `🤝 ${masquer(email)} nisoratra tamin'ny rohinao : +${ar(AFF_INSCRIPTION_AR)}.`);
-      }
-    }
     return json({ affilie: true });
   }
 

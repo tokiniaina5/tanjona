@@ -1185,22 +1185,24 @@ Chacun a son lien : <adresse de l'appli>?aff=<ID KEY>, dans Inviter des amis >
 moins de AFF_JOURS_MAX jours, pas le sien) y est rattachée une fois pour
 toutes, table « affiliations » (supabase/sql/supabase-affiliation.sql).
 
-Ce que touche celui qui a partagé (lignes de wallet_deposits) :
-  - à l'inscription : AFF_INSCRIPTION_AR, provider « affiliation_inscription »
-    — somme de l'appli, à dépenser ici, ne se retire pas ;
-  - à CHAQUE paiement de la personne (action « spend » : abonnement, jour
-    d'essai, booster, déblocage… ; et « achat_voaray » : achat du fil reçu) :
-    AFF_FIXE_AR + AFF_PCT % du montant, jamais plus de la moitié, provider
-    « affiliation » — vola tena izy, se retire.
+Ce que touche celui qui a partagé (lignes de wallet_deposits) : à chaque
+achat du fil reçu par la personne (« achat_voaray »), AFF_FIXE_AR + AFF_PCT %
+du montant, jamais plus de la moitié, provider « affiliation » — vola tena
+izy, se retire.
+Depuis le 26/10/2026 l'admin ne paie plus rien : plus de prime à
+l'inscription (AFF_INSCRIPTION_AR supprimé), plus de commission sur « spend »
+(abonnement, essai, booster, déblocage…). Les anciennes lignes
+« affiliation_inscription » restent comptées. Le parrainage qui rapporte passe
+par Binance et Payoneer : chacun garde ses liens dans « Inviter des amis »
+(table rohy_parrainage, supabase/sql/supabase-parrainage.sql).
 Les paiements de l'hôtellerie (payés directement à l'hôtel) ne passent pas
 par le portefeuille : ils ne rapportent rien.
 
 Secrets (facultatifs, valeurs par défaut) :
-  supabase secrets set AFF_INSCRIPTION_AR=500
   supabase secrets set AFF_FIXE_AR=200
   supabase secrets set AFF_PCT=10
   supabase secrets set AFF_JOURS_MAX=7
 Déploiement : supabase functions deploy wallet --project-ref ezpsapvthujkhttbfhlr --use-api
 Sur un achat du fil (« achat_voaray »), la commission est payée par le
 VENDEUR : elle est notée dans wallet_achats.commission_ar et retirée de ce
-qu'il reçoit. Sur « spend » (abonnement…), c'est le propriétaire qui la paie.
+qu'il reçoit. Sur « spend » (abonnement…), plus rien depuis le 26/10/2026.

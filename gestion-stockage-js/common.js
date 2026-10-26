@@ -1209,10 +1209,11 @@
     const t = a.taux || {};
     const tauxEl = document.getElementById('walletAffTaux');
     if(tauxEl){
-      tauxEl.innerHTML = 'Zarao ny rohinao. Izay misoratra anarana amin\'io :<br>' +
-        '• fisoratana anarana : <strong>' + formatWalletAr(t.inscriptionAr) + '</strong> (ato anatin\'ny appli)<br>' +
-        '• isaky ny mandoa izy (abonnement, fividianana) : <strong>' + formatWalletAr(t.fixeAr) +
-        ' + ' + (Number(t.pct) || 0).toLocaleString('fr-FR') + ' %</strong> (vola tena izy, azo alaina)';
+      // L'admin ne paie plus (26/10/2026) : reste la commission sur les
+      // achats du fil, que paie le vendeur.
+      tauxEl.innerHTML = 'Zarao ny rohinao. Isaky ny mividy entana ao amin\'ny fil izay niditra tamin\'io : ' +
+        '<strong>' + formatWalletAr(t.fixeAr) + ' + ' + (Number(t.pct) || 0).toLocaleString('fr-FR') +
+        ' %</strong> (aloan\'ny mpivarotra, vola tena izy, azo alaina).';
     }
     const nbEl = document.getElementById('walletAffNb');
     if(nbEl) nbEl.textContent = String(a.nbFilleuls || 0);

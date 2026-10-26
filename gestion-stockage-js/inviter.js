@@ -212,6 +212,92 @@
     if(typeof fetchMesCanaux === 'function') fetchMesCanaux(renderInviteSocials);
     // Le bloc 🤝 Affiliation vit ici : il lui faut l'état du portefeuille.
     if(typeof window.__rafraichirPortefeuille === 'function') window.__rafraichirPortefeuille();
+    chargerParrainage();
+  });
+
+  // ---------------- PARRAINAGE BINANCE / PAYONEER ----------------
+  // Chaque compte garde son propre lien (rohy_parrainage) ; c'est la
+  // plateforme qui paie, l'admin n'y est pour rien.
+  const PARRAIN_NOMS = { binance: 'Binance', payoneer: 'Payoneer' };
+  function parrainInput(cle){
+    return document.getElementById(cle === 'binance' ? 'parrainBinance' : 'parrainPayoneer');
+  }
+  function parrainStatut(texte){
+    const el = document.getElementById('parrainStatut');
+    if(el) el.textContent = texte || '';
+  }
+  function chargerParrainage(){
+    if(!window.__sb || !document.getElementById('parrainPanel')) return;
+    monUid().then(function(uid){
+      if(!uid){ parrainStatut('Midira amin\'ny kaontinao vao afaka mitahiry ny rohinao.'); return; }
+      window.__sb.from('rohy_parrainage').select('binance,payoneer').eq('user_id', uid).maybeSingle()
+        .then(function(res){
+          const d = (res && res.data) || {};
+          Object.keys(PARRAIN_NOMS).forEach(function(cle){
+            const el = parrainInput(cle);
+            // Ce qu'on est en train de taper ne s'efface pas.
+            if(el && document.activeElement !== el) el.value = d[cle] || '';
+          });
+          parrainStatut('');
+        }, function(){});
+    });
+  }
+  const parrainSave = document.getElementById('parrainSave');
+  if(parrainSave){
+    parrainSave.addEventListener('click', function(){
+      if(!window.__sb){ parrainStatut('Tsy misy fifandraisana amin\'ny serveur.'); return; }
+      monUid().then(function(uid){
+        if(!uid){ parrainStatut('Midira amin\'ny kaontinao vao afaka mitahiry ny rohinao.'); return; }
+        const ligne = { user_id: uid, updated_at: new Date().toISOString() };
+        Object.keys(PARRAIN_NOMS).forEach(function(cle){
+          const el = parrainInput(cle);
+          ligne[cle] = el ? (el.value.trim().slice(0, 300) || null) : null;
+        });
+        parrainSave.disabled = true;
+        window.__sb.from('rohy_parrainage').upsert(ligne).then(function(res){
+          parrainSave.disabled = false;
+          parrainStatut(res && res.error ? '❌ ' + res.error.message : '✅ Voatahiry ny rohinao.');
+        }, function(){
+          parrainSave.disabled = false;
+          parrainStatut('❌ Tsy voatahiry : jereo ny connexion.');
+        });
+      });
+    });
+  }
+  document.querySelectorAll('[data-parrain-copy]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      const el = parrainInput(btn.getAttribute('data-parrain-copy'));
+      const valeur = el ? el.value.trim() : '';
+      if(!valeur){ parrainStatut('Apetraho aloha ny rohinao.'); return; }
+      const fini = function(){
+        btn.textContent = '✅ Voadika';
+        setTimeout(function(){ btn.textContent = '📋 Adikao'; }, 1500);
+      };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(valeur).then(fini, function(){ el.select(); });
+      } else {
+        el.select(); try{ document.execCommand('copy'); fini(); }catch(e){}
+      }
+    });
+  });
+  document.querySelectorAll('[data-parrain-share]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      const cle = btn.getAttribute('data-parrain-share');
+      const el = parrainInput(cle);
+      const valeur = el ? el.value.trim() : '';
+      if(!valeur){ parrainStatut('Apetraho aloha ny rohinao.'); return; }
+      const texte = 'Misorata anarana amin\'ny ' + PARRAIN_NOMS[cle] + ' amin\'ity rohy ity :';
+      // Un code seul n'est pas une adresse : il part dans le texte.
+      const estLien = /^https?:\/\//i.test(valeur);
+      if(navigator.share){
+        navigator.share(estLien ? { title: PARRAIN_NOMS[cle], text: texte, url: valeur }
+          : { title: PARRAIN_NOMS[cle], text: texte + ' ' + valeur }).catch(function(){});
+      } else if(estLien){
+        window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(valeur), '_blank', 'noopener');
+      } else {
+        window.open('https://wa.me/?text=' + encodeURIComponent(texte + ' ' + valeur), '_blank', 'noopener');
+      }
+    });
   });
 
   // ---------------- PARTAGE UNIVERSEL ----------------
