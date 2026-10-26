@@ -2067,6 +2067,38 @@
         settlePayout(r.id, 'refused', note, refuseBtn);
       });
 
+      // USDT : la machine envoie elle-même, si le serveur a un portefeuille
+      // pour ce réseau. Le bouton manuel reste, pour ce qu'on a fait à la main.
+      const reseauUsdt = r.method === 'usdt' ? String(r.destination || '').split('·')[0].trim().toUpperCase() : '';
+      const auto = walletState.canaux && walletState.canaux.usdtAuto;
+      if(reseauUsdt && r.auto_provider){
+        const enCours = document.createElement('div');
+        enCours.style.cssText = 'font-size:0.78rem; color:var(--amber, #e9a23b); width:100%;';
+        enCours.textContent = '⏳ Efa nanandrana nandefa ny appli (' + r.auto_provider + ') : jereo ao amin\'ny explorer aloha.';
+        actions.appendChild(enCours);
+      } else if(reseauUsdt && auto && auto[reseauUsdt] && Number(r.amount_out) <= auto.max){
+        const autoBtn = document.createElement('button');
+        autoBtn.type = 'button';
+        autoBtn.className = 'btn btn-primary btn-sm';
+        autoBtn.style.width = 'auto';
+        autoBtn.textContent = '🚀 Alefaso ny ' + arrivee;
+        autoBtn.addEventListener('click', function(){
+          if(!confirm('Handefa ' + arrivee + ' avy amin\'ny wallet-n\'ny appli ho any amin\'ny ' + r.destination + ' ?\n\n' +
+            'Tsy azo averina intsony rehefa lasa.')) return;
+          autoBtn.disabled = true;
+          sentBtn.disabled = true;
+          autoBtn.textContent = '⏳ Alefa…';
+          callWallet({ action: 'envoyer_usdt', id: r.id }).then(function(res){
+            pushNotification('parrainage', 'Lasa ny ' + arrivee + ' (txid ' + String(res.txid).slice(0, 12) + '…).');
+            refreshWalletFromServer();
+          }, function(err){
+            alert(err.message);
+            refreshWalletFromServer();
+          });
+        });
+        actions.appendChild(autoBtn);
+      }
+
       actions.appendChild(sentBtn);
       actions.appendChild(refuseBtn);
       card.appendChild(actions);

@@ -64,6 +64,90 @@ const ADIRESY_USDT: Record<string, RegExp> = {
   TRC20: /^T[1-9A-HJ-NP-Za-km-z]{33}$/,
   BEP20: /^0x[0-9a-fA-F]{40}$/,
 };
+// L'envoi USDT par la machine (26/10/2026) : depuis un portefeuille propre à
+// l'appli, dont la clef privée n'existe que dans les secrets Supabase —
+// USDT_TRON_PRIVATE_KEY (TRC20) et USDT_BSC_PRIVATE_KEY (BEP20). Sans clef,
+// le réseau reste à la main. Le portefeuille doit porter aussi de quoi payer
+// le réseau : du TRX sur Tron, du BNB sur BSC.
+const USDT_CONTRAT = {
+  TRC20: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",          // 6 décimales
+  BEP20: "0x55d398326f99059fF775485246999027B3197955",  // 18 décimales
+};
+// Au-delà, la machine refuse et l'on envoie à la main : une erreur de code
+// ou une session volée ne vide pas le portefeuille d'un coup.
+const USDT_AUTO_MAX = Number(Deno.env.get("USDT_AUTO_MAX") ?? "100");
+function clefUsdt(reseau: string): string {
+  const k = (Deno.env.get(reseau === "TRC20" ? "USDT_TRON_PRIVATE_KEY" : "USDT_BSC_PRIVATE_KEY") ?? "").trim();
+  return k.replace(/^0x/i, "");
+}
+
+// Deux temps séparés : tant que rien n'est diffusé, un échec se rattrape
+// (« diffuse: false ») ; une fois diffusé, seul l'explorateur sait la vérité.
+type EnvoiUsdt = { ok: true; txid: string } | { ok: false; diffuse: boolean; erreur: string };
+
+async function envoyerUsdt(reseau: string, adresse: string, montant: number): Promise<EnvoiUsdt> {
+  const clef = clefUsdt(reseau);
+  if (!/^[0-9a-fA-F]{64}$/.test(clef)) return { ok: false, diffuse: false, erreur: "clef privée absente ou invalide" };
+
+  if (reseau === "TRC20") {
+    const { TronWeb } = await import("npm:tronweb@6.0.0");
+    const apiKey = Deno.env.get("TRONGRID_API_KEY") ?? "";
+    const tw = new TronWeb({
+      fullHost: "https://api.trongrid.io",
+      headers: apiKey ? { "TRON-PRO-API-KEY": apiKey } : undefined,
+      privateKey: clef,
+    });
+    const moi = tw.defaultAddress.base58 as string;
+    const unites = BigInt(Math.round(montant * 1e6));
+    let signee: { txID: string };
+    try {
+      const contrat = await tw.contract().at(USDT_CONTRAT.TRC20);
+      const solde = BigInt(String(await contrat.balanceOf(moi).call()));
+      if (solde < unites) return { ok: false, diffuse: false, erreur: `USDT tsy ampy ao amin'ny wallet (${Number(solde) / 1e6} USDT)` };
+      const { transaction } = await tw.transactionBuilder.triggerSmartContract(
+        USDT_CONTRAT.TRC20, "transfer(address,uint256)", { feeLimit: 40_000_000 },
+        [{ type: "address", value: adresse }, { type: "uint256", value: unites.toString() }], moi);
+      signee = await tw.trx.sign(transaction);
+    } catch (e) {
+      return { ok: false, diffuse: false, erreur: String((e as Error)?.message ?? e) };
+    }
+    try {
+      const res = await tw.trx.sendRawTransaction(signee);
+      if (!res?.result) return { ok: false, diffuse: false, erreur: "Tron a refusé : " + JSON.stringify(res) };
+      return { ok: true, txid: signee.txID };
+    } catch (e) {
+      return { ok: false, diffuse: true, erreur: String((e as Error)?.message ?? e) };
+    }
+  }
+
+  const { ethers } = await import("npm:ethers@6.13.4");
+  const fournisseur = new ethers.JsonRpcProvider(Deno.env.get("BSC_RPC_URL") ?? "https://bsc-dataseed.bnbchain.org");
+  const wallet = new ethers.Wallet(clef, fournisseur);
+  const contrat = new ethers.Contract(USDT_CONTRAT.BEP20, [
+    "function transfer(address,uint256) returns (bool)",
+    "function balanceOf(address) view returns (uint256)",
+  ], wallet);
+  const unites = ethers.parseUnits(montant.toFixed(6), 18);
+  let brute: string;
+  let hash: string;
+  try {
+    const solde: bigint = await contrat.balanceOf(wallet.address);
+    if (solde < unites) return { ok: false, diffuse: false, erreur: `USDT tsy ampy ao amin'ny wallet (${ethers.formatUnits(solde, 18)} USDT)` };
+    const demande = await contrat.transfer.populateTransaction(adresse, unites);
+    const pret = await wallet.populateTransaction(demande);
+    brute = await wallet.signTransaction(pret);
+    hash = ethers.keccak256(brute);
+  } catch (e) {
+    return { ok: false, diffuse: false, erreur: String((e as Error)?.message ?? e) };
+  }
+  try {
+    await fournisseur.broadcastTransaction(brute);
+    return { ok: true, txid: hash };
+  } catch (e) {
+    return { ok: false, diffuse: true, erreur: String((e as Error)?.message ?? e) };
+  }
+}
+
 // Les portefeuilles internationaux ne connaissent pas l'ariary.
 const METHODES_EN_DEVISE = new Set(["wise", "payoneer", "skrill"]);
 const PURCHASE_METHODS = new Set(["merchant"]);
@@ -571,7 +655,7 @@ Deno.serve(async (req: Request) => {
     let queue = null;
     if (isOwner) {
       const { data: pending } = await admin.from("wallet_payouts")
-        .select("id,email,name,amount_ar,method,kind,destination,link,instructions,currency,amount_out,rate,status,created_at")
+        .select("id,email,name,amount_ar,method,kind,destination,link,instructions,currency,amount_out,rate,status,created_at,auto_provider,auto_ref,auto_attempts")
         .eq("status", "pending").order("created_at", { ascending: true }).limit(50);
       queue = pending ?? [];
     }
@@ -630,7 +714,10 @@ Deno.serve(async (req: Request) => {
       depositFeePct: DEPOSIT_FEE_PCT,
       // Ce qui marche vraiment sur ce serveur, pour que la page ne propose
       // pas un canal dont les clefs manquent.
-      canaux: { depotPapi: !!Deno.env.get("PAPI_TOKEN") },
+      canaux: {
+        depotPapi: !!Deno.env.get("PAPI_TOKEN"),
+        usdtAuto: { TRC20: !!clefUsdt("TRC20"), BEP20: !!clefUsdt("BEP20"), max: USDT_AUTO_MAX },
+      },
       payouts: mine ?? [], deposits: depots ?? [], queue, isOwner, items: SITE_ITEMS,
       achats: achats ?? [], achatsEnAttente, email,
       affiliation: await affiliationFor(admin, email),
@@ -1160,6 +1247,54 @@ Deno.serve(async (req: Request) => {
       }
     }
     return json({ affilie: true });
+  }
+
+  // ---- La machine envoie l'USDT elle-même ----
+  // La ligne est d'abord verrouillée (auto_provider posé tant qu'elle est
+  // 'pending' et vierge) : deux clics, deux onglets, un seul envoi.
+  if (action === "envoyer_usdt") {
+    if (!isOwner) return json({ error: "réservé au propriétaire" }, 403);
+    const id = String(body.id ?? "");
+    const { data: ligne } = await admin.from("wallet_payouts")
+      .select("id,method,currency,amount_out,destination,status,auto_provider,auto_attempts")
+      .eq("id", id).maybeSingle();
+    if (!ligne || ligne.status !== "pending") return json({ error: "demande déjà traitée" }, 409);
+    if (ligne.method !== "usdt" || ligne.currency !== "USDT") return json({ error: "tsy retrait USDT ity" }, 400);
+    if (ligne.auto_provider || Number(ligne.auto_attempts ?? 0) > 0) {
+      return json({ error: "Efa nisy fandefasana natao : jereo aloha ao amin'ny explorer (" + String(ligne.auto_provider) + ")." }, 409);
+    }
+    const [reseauBrut, adresse] = String(ligne.destination ?? "").split("·").map((x) => x.trim());
+    const reseau = String(reseauBrut ?? "").toUpperCase();
+    const montant = Number(ligne.amount_out ?? 0);
+    if (!ADIRESY_USDT[reseau] || !ADIRESY_USDT[reseau].test(adresse ?? "")) return json({ error: "adiresy diso" }, 400);
+    if (!(montant > 0)) return json({ error: "vola tsy fantatra" }, 400);
+    if (montant > USDT_AUTO_MAX) return json({ error: `Mihoatra ny ${USDT_AUTO_MAX} USDT : alefaso an-tanana.` }, 400);
+    if (!clefUsdt(reseau)) return json({ error: `Tsy misy wallet ${reseau} voaomana : alefaso an-tanana.` }, 400);
+
+    const fournisseur = reseau === "TRC20" ? "tron" : "bsc";
+    const { data: verrou } = await admin.from("wallet_payouts")
+      .update({ auto_provider: fournisseur, auto_attempts: 1 })
+      .eq("id", id).eq("status", "pending").is("auto_provider", null)
+      .select("id").maybeSingle();
+    if (!verrou) return json({ error: "efa misy fandefasana an-dalana" }, 409);
+
+    const res = await envoyerUsdt(reseau, adresse, montant);
+    if (res.ok) {
+      await admin.from("wallet_payouts").update({
+        status: "sent", auto_ref: res.txid, auto_raw: { txid: res.txid, reseau, montant },
+        note: "txid " + res.txid, settled_at: new Date().toISOString(),
+      }).eq("id", id);
+      return json({ envoye: true, txid: res.txid, reseau });
+    }
+    if (!res.diffuse) {
+      // Rien n'est parti : la ligne redevient libre, on pourra réessayer.
+      await admin.from("wallet_payouts")
+        .update({ auto_provider: null, auto_attempts: 0, auto_raw: { erreur: res.erreur } }).eq("id", id);
+      return json({ error: "Tsy lasa ny vola : " + res.erreur }, 502);
+    }
+    // Peut-être parti : la ligne reste verrouillée jusqu'à vérification.
+    await admin.from("wallet_payouts").update({ auto_raw: { erreur: res.erreur, douteux: true } }).eq("id", id);
+    return json({ error: "Tsy fantatra raha lasa : jereo ao amin'ny explorer alohan'ny hanaovana zavatra hafa. " + res.erreur }, 502);
   }
 
   // ---- Le propriétaire a envoyé l'argent, ou refuse ----
