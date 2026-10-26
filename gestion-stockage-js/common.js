@@ -1316,13 +1316,15 @@
     const taux = document.getElementById('walletAvadikaTaux');
     if(taux){
       taux.textContent = 'Ny vola rehetra « Avy amin\'ny appli » dia azo avadika ho vola tena izy. ' +
-        'Farafahakeliny ' + formatWalletAr(t.minAr) + ', farafahabetsany ' + formatWalletAr(t.maxMoisAr) + ' isam-bolana, frais ' +
+        'Farafahakeliny ' + formatWalletAr(t.minAr) + ', ' +
+        // L'admin n'a pas de plafond du mois (le serveur envoie null).
+        (t.maxMoisAr == null ? 'tsy misy fetra isam-bolana' : 'farafahabetsany ' + formatWalletAr(t.maxMoisAr) + ' isam-bolana') + ', frais ' +
         (Number(t.fraisPct) || 0).toLocaleString('fr-FR') + ' %. Ny admin no manamarina ; rehefa ekena, azo alaina amin\'ny Mobile Money.';
     }
     const azo = document.getElementById('walletAvadikaAzo');
     if(azo) azo.textContent = formatWalletAr(v.azoAr);
     const sisa = document.getElementById('walletAvadikaSisa');
-    if(sisa) sisa.textContent = formatWalletAr(v.sisaVolanaAr);
+    if(sisa) sisa.textContent = t.maxMoisAr == null ? 'Tsy misy fetra' : formatWalletAr(v.sisaVolanaAr);
     const btn = document.getElementById('walletAvadikaBtn');
     if(btn) btn.disabled = !(v.azoAr >= t.minAr && v.sisaVolanaAr >= t.minAr);
     const liste = document.getElementById('walletAvadikaLisitra');
@@ -1404,8 +1406,8 @@
       if(!v) return;
       // Le serveur vérifie de toute façon ; ici, on évite un aller-retour.
       if(montant < v.taux.minAr){ statut.textContent = 'Farafahakeliny ' + formatWalletAr(v.taux.minAr) + '.'; return; }
-      if(montant > v.sisaVolanaAr){ statut.textContent = 'Mihoatra ny fetra isam-bolana : ' + formatWalletAr(v.sisaVolanaAr) + ' sisa.'; return; }
       if(montant > v.azoAr){ statut.textContent = 'Ny azo avadika dia ' + formatWalletAr(v.azoAr) + ' ihany.'; return; }
+      if(montant > v.sisaVolanaAr){ statut.textContent = 'Mihoatra ny fetra isam-bolana : ' + formatWalletAr(v.sisaVolanaAr) + ' sisa.'; return; }
       avadikaBtn.disabled = true;
       statut.style.color = 'var(--muted)';
       statut.textContent = 'Alefa…';

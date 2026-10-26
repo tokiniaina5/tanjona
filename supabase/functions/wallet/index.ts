@@ -355,8 +355,9 @@ async function conversionsFor(admin: Admin, email: string): Promise<{ retenu: nu
 
 // Ce qui peut encore se changer : ce que l'appli garde (« Avy amin'ny appli »
 // dans la page). Ce qui attend déjà en est sorti : le solde le retient.
-// « sansFrais » : l'admin change son propre argent sans frais (26/10/2026).
-async function avadikaFor(admin: Admin, email: string, balance: number, sansFrais = false) {
+// « estAdmin » : l'admin change son propre argent sans frais ni plafond du
+// mois (26/10/2026).
+async function avadikaFor(admin: Admin, email: string, balance: number, estAdmin = false) {
   const conv = await conversionsFor(admin, email);
   const parts = await partsSolde(admin, email, balance);
   const azo = Math.max(0, balance - parts.papi);
@@ -367,8 +368,8 @@ async function avadikaFor(admin: Admin, email: string, balance: number, sansFrai
     .reduce((s, c) => s + (Number(c.montant_ar) || 0), 0);
   return {
     azoAr: azo, ityVolanaAr: ityVolana,
-    sisaVolanaAr: Math.max(0, CONV_MAX_MOIS_AR - ityVolana),
-    taux: { minAr: CONV_MIN_AR, maxMoisAr: CONV_MAX_MOIS_AR, fraisPct: sansFrais ? 0 : CONV_FRAIS_PCT },
+    sisaVolanaAr: estAdmin ? azo : Math.max(0, CONV_MAX_MOIS_AR - ityVolana),
+    taux: { minAr: CONV_MIN_AR, maxMoisAr: estAdmin ? null : CONV_MAX_MOIS_AR, fraisPct: estAdmin ? 0 : CONV_FRAIS_PCT },
     lisitra: conv.lignes.slice(0, 20),
   };
 }
@@ -644,12 +645,12 @@ Deno.serve(async (req: Request) => {
     const montant = Math.floor(Number(body.montantAr) || 0);
     if (montant < CONV_MIN_AR) return json({ error: `Farafahakeliny ${ar(CONV_MIN_AR)}.` }, 400);
     const balance = await balanceFor(admin, email);
-    const etat = await avadikaFor(admin, email, balance);
+    const etat = await avadikaFor(admin, email, balance, isOwner);
+    if (montant > etat.azoAr) {
+      return json({ error: `Ny vola azo avadika dia ${ar(etat.azoAr)} ihany.` }, 400);
+    }
     if (montant > etat.sisaVolanaAr) {
       return json({ error: `Mihoatra ny fetra isam-bolana (${ar(CONV_MAX_MOIS_AR)}) : ${ar(etat.sisaVolanaAr)} sisa ity volana ity.` }, 400);
-    }
-    if (montant > etat.azoAr) {
-      return json({ error: `Ny commission azo avadika dia ${ar(etat.azoAr)} ihany.` }, 400);
     }
     const frais = isOwner ? 0 : Math.ceil(montant * CONV_FRAIS_PCT / 100);
     const { data, error } = await admin.from("wallet_conversions").insert({
