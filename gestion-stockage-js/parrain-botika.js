@@ -5,9 +5,11 @@
   // montrer, ou fonction absente : le cadre reste caché.
   // Un lien s'ouvre ; un code seul se copie.
   (function(){
+    // « defaut » : la page d'inscription de la plateforme, tant que l'admin
+    // n'a pas mis son lien — le cadre se voit toujours (26/10/2026).
     const PLATEFORMES = [
-      { cle: 'binance', nom: 'Binance', ikona: '🟡', couleur: '#f0b90b' },
-      { cle: 'payoneer', nom: 'Payoneer', ikona: '🟠', couleur: '#ff4800' }
+      { cle: 'binance', nom: 'Binance', ikona: '🟡', couleur: '#f0b90b', defaut: 'https://accounts.binance.com/register' },
+      { cle: 'payoneer', nom: 'Payoneer', ikona: '🟠', couleur: '#ff4800', defaut: 'https://www.payoneer.com/' }
     ];
 
     function bouton(p, valeur){
@@ -49,30 +51,35 @@
       const presents = CADRES.filter(function(c){
         return document.getElementById(c.cadre) && document.getElementById(c.rangee);
       });
-      if(!presents.length || !window.__sb || !window.__sb.rpc) return;
+      if(!presents.length) return;
+      // Serveur muet : les pages d'inscription quand même.
+      if(!window.__sb || !window.__sb.rpc){ rendre(presents, {}); return; }
       window.__sb.rpc('parrainage_admin').then(function(res){
-        const d = (res && !res.error && res.data && res.data[0]) || {};
-        const admin = typeof estAdminRohy === 'function' && estAdminRohy();
-        presents.forEach(function(c){
-          const cadre = document.getElementById(c.cadre);
-          const rangee = document.getElementById(c.rangee);
-          rangee.innerHTML = '';
-          if(!(c.pasAdmin && admin)){
-            PLATEFORMES.forEach(function(p){
-              const valeur = String(d[p.cle] || '').trim();
-              if(valeur) rangee.appendChild(bouton(p, valeur));
-            });
-            // Les autres plateformes choisies par l'admin (colonne « hafa »).
-            (Array.isArray(d.hafa) ? d.hafa : []).forEach(function(h){
-              const valeur = String((h && h.rohy) || '').trim();
-              if(h && h.nom && valeur){
-                rangee.appendChild(bouton({ nom: String(h.nom), ikona: '🔗', couleur: 'var(--cyan)' }, valeur));
-              }
-            });
-          }
-          cadre.style.display = rangee.children.length ? '' : 'none';
-        });
-      }, function(){});
+        rendre(presents, (res && !res.error && res.data && res.data[0]) || {});
+      }, function(){ rendre(presents, {}); });
+    }
+
+    function rendre(presents, d){
+      const admin = typeof estAdminRohy === 'function' && estAdminRohy();
+      presents.forEach(function(c){
+        const cadre = document.getElementById(c.cadre);
+        const rangee = document.getElementById(c.rangee);
+        rangee.innerHTML = '';
+        if(!(c.pasAdmin && admin)){
+          PLATEFORMES.forEach(function(p){
+            const valeur = String(d[p.cle] || '').trim() || p.defaut;
+            if(valeur) rangee.appendChild(bouton(p, valeur));
+          });
+          // Les autres plateformes choisies par l'admin (colonne « hafa »).
+          (Array.isArray(d.hafa) ? d.hafa : []).forEach(function(h){
+            const valeur = String((h && h.rohy) || '').trim();
+            if(h && h.nom && valeur){
+              rangee.appendChild(bouton({ nom: String(h.nom), ikona: '🔗', couleur: 'var(--cyan)' }, valeur));
+            }
+          });
+        }
+        cadre.style.display = rangee.children.length ? '' : 'none';
+      });
     }
 
     window.__afficherParrainBotika = afficher;
