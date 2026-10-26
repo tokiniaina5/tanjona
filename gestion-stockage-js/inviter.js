@@ -56,11 +56,20 @@
     return base + chemin + (cle ? '?aff=' + encodeURIComponent(cle) : '?invite=1');
   }
 
+  // Le champ ne montre que l'adresse du site (« https://nyasako.com ») ; le
+  // lien entier, avec l'ID KEY, reste dans data-lien : c'est lui que copient
+  // et partagent les boutons (lienInvitationEntier).
   function setupInviteLink(){
     const cle = typeof window.__monIdKey === 'function' ? window.__monIdKey() : '';
     const link = lienInvitation(cle);
-    document.getElementById('inviteLink').value = link;
+    const input = document.getElementById('inviteLink');
+    input.dataset.lien = link;
+    input.value = publicBaseUrl().replace(/\/+$/, '');
     renderLocalLinkWarning(link);
+  }
+  function lienInvitationEntier(){
+    const input = document.getElementById('inviteLink');
+    return input ? (input.dataset.lien || input.value) : '';
   }
 
   // « Copier tout » : rassemble tous les liens de l'application (invitation,
@@ -70,7 +79,7 @@
   // adresses dans un message ne se lisaient pas.
   function allShareLinksText(){
     const lien = typeof confirmationLink === 'function'
-      ? confirmationLink() : document.getElementById('inviteLink').value;
+      ? confirmationLink() : lienInvitationEntier();
     return 'Ny asako\n\n' +
       'Tsindrio ny rohy confirmation : ao ianao no misafidy, hiditra ao amin\'ny Ny asako, ' +
       'hijery ny Live direct, na hanao antso video na audio.\n\n' +
@@ -107,7 +116,7 @@
 
   document.getElementById('sendInviteBtn').addEventListener('click', function(){
     const email = document.getElementById('inviteEmail').value.trim();
-    const link = document.getElementById('inviteLink').value;
+    const link = lienInvitationEntier();
     const subject = encodeURIComponent('Confirmer ton invitation — Ny asako');
     const body = encodeURIComponent('Salut,\n\nJe t\'invite à rejoindre Ny asako. Clique sur le lien de confirmation pour confirmer ton inscription.\n\nConfirmation : ' + link + '\n\nÀ bientôt !');
     window.location.href = 'mailto:' + email + '?subject=' + subject + '&body=' + body;
@@ -139,7 +148,7 @@
     if(!row) return;
     channels = channels || {};
     row.innerHTML = '';
-    function lien(){ return document.getElementById('inviteLink').value; }
+    function lien(){ return lienInvitationEntier(); }
     function profil(cle){ return (typeof adresseDeProfil === 'function') ? adresseDeProfil(cle, channels[cle]) : null; }
     // Instagram, TikTok, WeChat et les canaux ajoutés n'ont pas de lien web
     // qui préremplit un message : on copie, puis on ouvre le lien du compte.
@@ -314,9 +323,7 @@
   // Ampiasain'ny "Inviter des amis" sy ny bokotra "↗️ Partager" isaky ny post ao
   // amin'ny Accueil : feuille native amin'ny telefaonina, menu lien raha tsy misy.
   function appShareLink(){
-    const input = document.getElementById('inviteLink');
-    if(input && input.value) return input.value;
-    return publicBaseUrl();
+    return lienInvitationEntier() || publicBaseUrl();
   }
 
   const SHARE_TARGETS = [
