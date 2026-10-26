@@ -66,3 +66,22 @@ as $$
 $$;
 revoke all on function public.parrainage_admin() from public;
 grant execute on function public.parrainage_admin() to anon, authenticated;
+
+-- Les explications de chaque plateforme (où trouver son lien, vérification,
+-- passage en ariary), à jour quand une application déplace son menu : l'admin
+-- les réécrit depuis « Inviter des amis », sans toucher au code. Vide pour
+-- une plateforme : la page garde celles qu'elle connaît (inviter.js).
+create table if not exists public.parrainage_torolalana (
+  nom text primary key check (char_length(nom) between 1 and 40),
+  dingana jsonb not null default '[]'::jsonb
+    check (jsonb_typeof(dingana) = 'array' and jsonb_array_length(dingana) <= 8 and length(dingana::text) <= 3000),
+  updated_at timestamptz not null default now()
+);
+alter table public.parrainage_torolalana enable row level security;
+
+drop policy if exists "torolalana hitan'ny rehetra" on public.parrainage_torolalana;
+create policy "torolalana hitan'ny rehetra" on public.parrainage_torolalana
+  for select to anon, authenticated using (true);
+drop policy if exists "torolalana an'ny admin" on public.parrainage_torolalana;
+create policy "torolalana an'ny admin" on public.parrainage_torolalana
+  for all to authenticated using (public.is_owner()) with check (public.is_owner());

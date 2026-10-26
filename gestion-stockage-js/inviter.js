@@ -229,6 +229,186 @@
     chargerParrainage();
   });
 
+  // ---- Les explications de chaque plateforme ----
+  // Où trouver son lien, la vérification, le passage en ariary. Les menus des
+  // applications bougent : l'admin les réécrit ici (✏️), elles vont dans
+  // parrainage_torolalana et tout le monde les voit aussitôt. Rien d'écrit
+  // pour une plateforme : celles d'ici (Binance et Payoneer gardent celles de
+  // la page, ny-asako.html).
+  const LALAO_18 = 'Lalao misy loza : 18 taona no ho miakatra, ary aza milalao vola tsy azonao very.';
+  const TOROLALANA_DEFAUT = {
+    'bybit': [
+      'Misorata anarana amin\'ny app Bybit, ary ataovy ny vérification (KYC) amin\'ny CIN na passeport.',
+      'Profil → « Referral » (na « Invite Friends ») : eo ny rohy sy ny code-nao. Adikao eto ambany.',
+      'Mahazo commission ianao isaky ny manao trade ireo olona nentinao.',
+      'Ho Ariary : P2P ao amin\'ny Bybit (MVola / Orange Money). Aza mamoaka crypto raha tsy tonga tena izy ny vola.'
+    ],
+    'okx': [
+      'Misorata anarana amin\'ny app OKX, ary ataovy ny vérification (KYC).',
+      'Profil → « Invite friends » (na « Referral ») : eo ny rohy sy ny code-nao.',
+      'Mahazo commission ianao amin\'ny trade ataon\'ireo nentinao.',
+      'Ho Ariary : P2P ao amin\'ny OKX (MVola / Orange Money).'
+    ],
+    'kucoin': [
+      'Misorata anarana amin\'ny app KuCoin, ary ataovy ny vérification (KYC).',
+      'Profil → « Referral » : eo ny rohy sy ny code-nao.',
+      'Mahazo ampahany amin\'ny frais de trading an\'ireo nentinao ianao.',
+      'Ho Ariary : P2P ao amin\'ny KuCoin.'
+    ],
+    'bitget': [
+      'Misorata anarana amin\'ny app Bitget, ary ataovy ny vérification (KYC).',
+      'Profil → « Referral » (na « Invite friends ») : eo ny rohy sy ny code-nao.',
+      'Mahazo commission ianao amin\'ny trade ataon\'ireo nentinao.',
+      'Ho Ariary : P2P ao amin\'ny Bitget.'
+    ],
+    'redotpay': [
+      'Misorata anarana amin\'ny app RedotPay (karatra crypto), ary ataovy ny vérification.',
+      'Ao amin\'ny app : « Invite friends » (na « Referral ») : eo ny rohy sy ny code-nao.',
+      'Mahazo bonus ianao rehefa manokatra karatra sy mampiasa azy ireo nentinao (jereo ao amin\'ny app ny fepetra).'
+    ],
+    'wise': [
+      'Manokafa kaonty Wise, ary ataovy ny vérification (jereo aloha raha azo ampiasaina amin\'ny firenenao).',
+      'Ao amin\'ny kaonty : « Invite friends » (na « Refer a friend ») : eo ny rohinao.',
+      'Mahazo bonus ianao rehefa mandefa vola voalohany ireo nasainao (jereo ny fepetra ao amin\'ny kaontinao).'
+    ],
+    'skrill': [
+      'Manokafa kaonty Skrill, ary ataovy ny vérification.',
+      'Ao amin\'ny kaonty : « Refer a friend » : eo ny rohinao.',
+      'Mahazo bonus ianao araka ny fepetra ao amin\'ny kaontinao (miova matetika).'
+    ],
+    'airtm': [
+      'Misorata anarana amin\'ny Airtm, ary ataovy ny vérification.',
+      'Profil → « Invite friends » : eo ny rohy sy ny code-nao.',
+      'Ho Ariary : ny « Cash out » ao amin\'ny Airtm, miaraka amin\'ny Mobile Money raha misy.'
+    ],
+    'exness': [
+      'Manokafa kaonty Exness, ary ataovy ny vérification.',
+      'Personal Area → « Partnership » (na « Exness Partners ») : eo ny rohy partenaire-nao.',
+      'Mahazo commission ianao amin\'ny trade ataon\'ireo nentinao. Trading misy loza : aza mampiasa vola tsy azonao very.'
+    ],
+    'deriv': [
+      'Manokafa kaonty Deriv, ary ataovy ny vérification.',
+      'Misorata ho « Deriv Partners » (affiliate) ao amin\'ny tranonkalan\'i Deriv : eo ny rohy partenaire-nao.',
+      'Mahazo commission ianao amin\'ny trade ataon\'ireo nentinao. Trading misy loza.'
+    ],
+    'lalao malagasy (loterie)': [
+      'Jereo ao amin\'ny Lalao Malagasy raha misy programme parrainage na mpivarotra (revendeur).',
+      'Apetraho eto ny rohy na ny code omeny anao.',
+      LALAO_18
+    ],
+    'bet261': [
+      'Misorata anarana amin\'ny Bet261, ary ataovy ny vérification.',
+      'Kaonty → « Parrainage » (na « Invite friends ») raha misy : eo ny rohy na ny code-nao.',
+      'Ho Ariary : retrait amin\'ny MVola / Orange Money / Airtel Money ao amin\'ny kaonty.',
+      LALAO_18
+    ],
+    'aviator': [
+      'Lalao ao anatin\'ny tranonkala filokana (1xBet, Melbet, Bet261…) ny Aviator, fa tsy tranonkala misaraka.',
+      'Ny rohy partenaire an\'ilay tranonkala misy ny Aviator no apetraka eto.',
+      LALAO_18
+    ],
+    '1xbet': [
+      'Misorata ho partenaire ao amin\'ny « 1xPartners » (programme affiliate an\'ny 1xBet).',
+      'Ao amin\'ny tableau de bord 1xPartners : eo ny rohy partenaire-nao.',
+      'Mahazo commission ianao araka ny filalaovan\'ireo nentinao.',
+      LALAO_18
+    ],
+    'melbet': [
+      'Misorata ho partenaire ao amin\'ny « Melbet Partners » (programme affiliate).',
+      'Ao amin\'ny tableau de bord : eo ny rohy partenaire-nao.',
+      'Mahazo commission ianao araka ny filalaovan\'ireo nentinao.',
+      LALAO_18
+    ]
+  };
+  let torolalanaDb = {};
+  function chargerTorolalana(){
+    if(!window.__sb) return;
+    window.__sb.from('parrainage_torolalana').select('nom,dingana').then(function(res){
+      // Table absente (SQL pas passé) : on reste sur celles d'ici.
+      if(!res || res.error) return;
+      torolalanaDb = {};
+      (res.data || []).forEach(function(r){
+        if(r && r.nom && Array.isArray(r.dingana) && r.dingana.length) torolalanaDb[String(r.nom).toLowerCase()] = r.dingana;
+      });
+      document.querySelectorAll('ol.parrain-torolalana').forEach(rendreTorolalana);
+    }, function(){});
+  }
+  // Une liste : celle de l'admin, sinon celle d'ici ; sinon (Binance,
+  // Payoneer) ce que la page porte déjà.
+  function rendreTorolalana(ol){
+    const nom = ol.getAttribute('data-sehatra') || '';
+    const cle = nom.toLowerCase();
+    if(!ol.hasAttribute('data-page')) ol.setAttribute('data-page', ol.innerHTML);
+    const dingana = torolalanaDb[cle] || TOROLALANA_DEFAUT[cle];
+    if(dingana){
+      ol.innerHTML = '';
+      dingana.forEach(function(t){
+        const li = document.createElement('li');
+        li.textContent = String(t);
+        ol.appendChild(li);
+      });
+    } else {
+      ol.innerHTML = ol.getAttribute('data-page');
+    }
+    ol.style.display = ol.children.length ? '' : 'none';
+    ajouterOvaina(ol);
+  }
+  // ✏️ pour l'admin seul : une étape par ligne. Vide : on revient à celles
+  // d'ici. La base refuse de toute façon l'écriture à un autre.
+  function ajouterOvaina(ol){
+    const suivant = ol.nextElementSibling;
+    if(suivant && suivant.classList.contains('parrain-torolalana-ovay')) suivant.remove();
+    if(!(typeof estAdminRohy === 'function' && estAdminRohy())) return;
+    const nom = ol.getAttribute('data-sehatra') || '';
+    const boite = document.createElement('div');
+    boite.className = 'parrain-torolalana-ovay';
+    boite.style.cssText = 'margin:-0.3rem 0 0.6rem;';
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'btn btn-sm'; btn.style.width = 'auto';
+    btn.textContent = '✏️ Havaozy ny torolalana';
+    btn.title = 'Raha niova toerana ny menu ao amin\'ny ' + nom;
+    btn.addEventListener('click', function(){
+      boite.innerHTML = '';
+      const ta = document.createElement('textarea');
+      ta.className = 'rohy-saha';
+      ta.rows = 5;
+      ta.style.cssText = 'width:100%; font-family:inherit;';
+      ta.placeholder = 'Dingana iray isaky ny andalana (8 farafahabetsany). Avelao ho foana raha hiverina amin\'ny teo aloha.';
+      ta.value = [].map.call(ol.children, function(li){ return li.textContent; }).join('\n');
+      const tehirizo = document.createElement('button');
+      tehirizo.type = 'button'; tehirizo.className = 'btn btn-primary btn-sm'; tehirizo.style.width = 'auto';
+      tehirizo.textContent = '💾 Tehirizo';
+      const ajanony = document.createElement('button');
+      ajanony.type = 'button'; ajanony.className = 'btn btn-sm'; ajanony.style.width = 'auto';
+      ajanony.textContent = '✕';
+      const statut = document.createElement('span');
+      statut.style.cssText = 'font-size:0.75rem; color:var(--muted); margin-left:0.4rem;';
+      ajanony.addEventListener('click', function(){ rendreTorolalana(ol); });
+      tehirizo.addEventListener('click', function(){
+        const dingana = ta.value.split('\n').map(function(l){ return l.trim(); })
+          .filter(Boolean).slice(0, 8).map(function(l){ return l.slice(0, 300); });
+        tehirizo.disabled = true;
+        const fini = function(res){
+          tehirizo.disabled = false;
+          if(res && res.error){ statut.textContent = '❌ ' + res.error.message; return; }
+          if(dingana.length) torolalanaDb[nom.toLowerCase()] = dingana;
+          else delete torolalanaDb[nom.toLowerCase()];
+          rendreTorolalana(ol);
+        };
+        const requete = dingana.length
+          ? window.__sb.from('parrainage_torolalana').upsert({ nom: nom, dingana: dingana, updated_at: new Date().toISOString() })
+          : window.__sb.from('parrainage_torolalana').delete().eq('nom', nom);
+        requete.then(fini, function(){ fini({ error: { message: 'jereo ny connexion' } }); });
+      });
+      const rangee = document.createElement('div');
+      rangee.style.cssText = 'display:flex; gap:0.4rem; align-items:center; margin-top:0.4rem;';
+      rangee.appendChild(tehirizo); rangee.appendChild(ajanony); rangee.appendChild(statut);
+      boite.appendChild(ta); boite.appendChild(rangee);
+    });
+    boite.appendChild(btn);
+    ol.insertAdjacentElement('afterend', boite);
+  }
+
   // ---------------- PARRAINAGE BINANCE / PAYONEER / AUTRES ----------------
   // Chaque compte garde son propre lien (rohy_parrainage) ; c'est la
   // plateforme qui paie, l'admin n'y est pour rien. Binance et Payoneer ont
@@ -283,7 +463,15 @@
         parrainStatut('Tsindrio « 💾 Tehirizo ny rohiko » mba hamafisina.');
       });
       ligne.appendChild(input); ligne.appendChild(adika); ligne.appendChild(zarao); ligne.appendChild(fafao);
-      bloc.appendChild(titre); bloc.appendChild(ligne);
+      // Les explications de la plateforme, au-dessus de son champ.
+      const ol = document.createElement('ol');
+      ol.className = 'parrain-torolalana';
+      ol.setAttribute('data-sehatra', h.nom);
+      ol.style.cssText = 'font-size:0.78rem; color:var(--muted); line-height:1.6; margin:0 0 0.6rem 1.1rem; padding:0;';
+      bloc.appendChild(titre);
+      bloc.appendChild(ol);
+      rendreTorolalana(ol);
+      bloc.appendChild(ligne);
       liste.appendChild(bloc);
     });
   }
@@ -307,6 +495,7 @@
   function chargerParrainage(){
     if(!window.__sb || !document.getElementById('parrainPanel')) return;
     if(typeof window.__afficherParrainBotika === 'function') window.__afficherParrainBotika();
+    chargerTorolalana();
     monUid().then(function(uid){
       if(!uid){ parrainVoaloa(false); parrainStatut('Midira amin\'ny kaontinao vao afaka mitahiry ny rohinao.'); return; }
       window.__sb.rpc('parrainage_voaloa').then(function(res){
