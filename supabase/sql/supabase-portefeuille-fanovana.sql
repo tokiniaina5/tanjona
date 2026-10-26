@@ -6,9 +6,9 @@
 -- À COLLER DANS : Supabase > SQL Editor > New query > Run. Se relance sans
 -- risque.
 --
--- Seule la commission de parrainage (wallet_deposits, provider
--- « affiliation_inscription ») se change ; les bonus et crédits gratuits,
--- non. La fonction « wallet » fait tout : la page ne touche jamais au solde.
+-- Tout l'argent de l'appli (solde moins vola tena izy) se change, depuis le
+-- 26/10/2026 (avant : la seule commission « affiliation_inscription »),
+-- après accord de l'admin. La fonction « wallet » fait tout.
 --   en_attente : la somme est retenue sur le solde de l'appli ;
 --   ekena      : la somme nette (moins les frais) entre en vola tena izy ;
 --   lavina     : la somme revient au solde de l'appli.

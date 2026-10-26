@@ -318,14 +318,15 @@ async function transfertsFor(admin: Admin, email: string): Promise<{ recu: numbe
 }
 
 // ---- Avadika ho vola tena izy (supabase-portefeuille-fanovana.sql) ----
-// La commission de parrainage inscrite dans l'appli (« affiliation_inscription »)
+// L'argent de l'appli (tout ce qui n'est pas vola tena izy : parrainage,
+// fokontany, visiteurs… — depuis le 26/10/2026, plus seulement la commission)
 // se change en vola tena izy, sur demande, après accord de l'admin. En
 // attente, la somme est retenue ; acceptée, le net (moins les frais) devient
-// de l'argent qui se retire ; refusée, elle revient.
+// de l'argent qui se retire ; refusée, elle revient. C'est l'accord de
+// l'admin qui tient la porte : cet argent-là, personne ne l'a versé.
 const CONV_MIN_AR = Math.max(0, Number(Deno.env.get("CONV_MIN_AR") ?? "5000"));
 const CONV_MAX_MOIS_AR = Math.max(0, Number(Deno.env.get("CONV_MAX_MOIS_AR") ?? "50000"));
 const CONV_FRAIS_PCT = Math.min(100, Math.max(0, Number(Deno.env.get("CONV_FRAIS_PCT") ?? "15")));
-const PROVIDERS_CONVERTIBLES = ["affiliation_inscription"];
 
 type Conversion = { id: string; montant_ar: number; frais_ar: number; net_ar: number; status: string; note: string | null; created_at: string; settled_at: string | null };
 async function conversionsFor(admin: Admin, email: string): Promise<{ retenu: number; net: number; lignes: Conversion[] }> {
@@ -343,17 +344,12 @@ async function conversionsFor(admin: Admin, email: string): Promise<{ retenu: nu
   return { retenu, net, lignes: (data ?? []) as Conversion[] };
 }
 
-// Ce qui peut encore se changer : la commission de parrainage reçue, moins
-// ce qui est déjà changé ou en attente, et jamais plus que ce que l'appli
-// garde encore (elle a pu en dépenser une partie).
+// Ce qui peut encore se changer : ce que l'appli garde (« Avy amin'ny appli »
+// dans la page). Ce qui attend déjà en est sorti : le solde le retient.
 async function avadikaFor(admin: Admin, email: string, balance: number) {
-  const { data: comm } = await admin.from("wallet_deposits")
-    .select("amount_ar").eq("email", email).eq("status", "confirme").in("provider", PROVIDERS_CONVERTIBLES);
-  const commission = (comm ?? []).reduce((s: number, d: { amount_ar: number }) => s + (Number(d.amount_ar) || 0), 0);
   const conv = await conversionsFor(admin, email);
   const parts = await partsSolde(admin, email, balance);
-  const appli = Math.max(0, balance - parts.papi);
-  const azo = Math.max(0, Math.min(commission - conv.retenu, appli));
+  const azo = Math.max(0, balance - parts.papi);
   const debutMois = new Date();
   debutMois.setUTCDate(1); debutMois.setUTCHours(0, 0, 0, 0);
   const ityVolana = conv.lignes

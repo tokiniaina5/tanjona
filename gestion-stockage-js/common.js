@@ -1314,7 +1314,7 @@
     const t = v.taux || {};
     const taux = document.getElementById('walletAvadikaTaux');
     if(taux){
-      taux.textContent = 'Ny commission parrainage ao amin\'ny appli ihany no azo avadika (tsy ny bonus na crédit maimaim-poana). ' +
+      taux.textContent = 'Ny vola rehetra « Avy amin\'ny appli » dia azo avadika ho vola tena izy. ' +
         'Farafahakeliny ' + formatWalletAr(t.minAr) + ', farafahabetsany ' + formatWalletAr(t.maxMoisAr) + ' isam-bolana, frais ' +
         (Number(t.fraisPct) || 0).toLocaleString('fr-FR') + ' %. Ny admin no manamarina ; rehefa ekena, azo alaina amin\'ny Mobile Money.';
     }
