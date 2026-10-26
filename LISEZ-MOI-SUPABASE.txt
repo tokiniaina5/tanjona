@@ -1180,7 +1180,7 @@ Mise en place (Meta, une fois) :
 
 AFFILIATION (25/10/2026)
 ------------------------
-Chacun a son lien : <adresse de l'appli>?aff=<ID KEY>, dans Portefeuille >
+Chacun a son lien : <adresse de l'appli>?aff=<ID KEY>, dans Inviter des amis >
 « 🤝 Affiliation ». Une personne qui crée son compte par ce lien (compte de
 moins de AFF_JOURS_MAX jours, pas le sien) y est rattachée une fois pour
 toutes, table « affiliations » (supabase/sql/supabase-affiliation.sql).

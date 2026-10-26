@@ -210,6 +210,8 @@
   const navInviter = document.querySelector('.nav-item[data-section="inviter"]');
   if(navInviter) navInviter.addEventListener('click', function(){
     if(typeof fetchMesCanaux === 'function') fetchMesCanaux(renderInviteSocials);
+    // Le bloc 🤝 Affiliation vit ici : il lui faut l'état du portefeuille.
+    if(typeof window.__rafraichirPortefeuille === 'function') window.__rafraichirPortefeuille();
   });
 
   // ---------------- PARTAGE UNIVERSEL ----------------
