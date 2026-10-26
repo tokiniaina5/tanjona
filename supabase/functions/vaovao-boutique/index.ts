@@ -1,5 +1,6 @@
-// Les quatre publications du jour, tirées des boutiques d'achats internationaux
-// et des transporteurs de la livraison internationale, tour à tour.
+// Les quatre publications du jour, tirées des boutiques d'achats internationaux,
+// des transporteurs de la livraison internationale et des plateformes de
+// parrainage (Binance, Payoneer… — 26/10/2026), tour à tour.
 //
 // Le fil vivait de ce que les gens y écrivaient : les jours où personne
 // n'écrivait, il ne disait rien, et l'on n'y revenait plus. La maison y prend
@@ -147,14 +148,42 @@ const TRANSPORTEURS: { groupe: string; nom: string; url: string }[] = [
   { groupe: "Fanarahana entana", nom: "Parcels App", url: "https://parcelsapp.com" },
 ];
 
-type Adresse = { groupe: string; nom: string; url: string; sorte: "boutique" | "livraison" };
+// Les plateformes de parrainage (26/10/2026) : LA MÊME LISTE que la Botika
+// (PLATEFORMES et HAFA_DEFAUT, gestion-stockage-js/parrain-botika.js). Le
+// lien de l'admin (rohy_parrainage, parrainage_admin) prend la place de la
+// page d'inscription ; un code seul s'écrit dans le billet.
+const PARRAINAGES: { groupe: string; nom: string; url: string }[] = [
+  { groupe: "Crypto sy vola", nom: "Binance", url: "https://accounts.binance.com/register" },
+  { groupe: "Crypto sy vola", nom: "Payoneer", url: "https://www.payoneer.com/" },
+  { groupe: "Crypto sy vola", nom: "Bybit", url: "https://www.bybit.com/register" },
+  { groupe: "Crypto sy vola", nom: "OKX", url: "https://www.okx.com/join" },
+  { groupe: "Crypto sy vola", nom: "KuCoin", url: "https://www.kucoin.com/" },
+  { groupe: "Crypto sy vola", nom: "Bitget", url: "https://www.bitget.com/register" },
+  { groupe: "Crypto sy vola", nom: "RedotPay", url: "https://www.redotpay.com/" },
+  { groupe: "Crypto sy vola", nom: "Wise", url: "https://wise.com/register" },
+  { groupe: "Crypto sy vola", nom: "Skrill", url: "https://www.skrill.com/" },
+  { groupe: "Crypto sy vola", nom: "Airtm", url: "https://www.airtm.com/" },
+  { groupe: "Crypto sy vola", nom: "Exness", url: "https://www.exness.com/" },
+  { groupe: "Crypto sy vola", nom: "Deriv", url: "https://deriv.com/" },
+  { groupe: "Lalao (18+)", nom: "Bet261", url: "https://www.bet261.mg/" },
+  { groupe: "Lalao (18+)", nom: "Aviator", url: "https://spribe.co/games/aviator" },
+  { groupe: "Lalao (18+)", nom: "1xBet", url: "https://1xbet.com/" },
+  { groupe: "Lalao (18+)", nom: "Melbet", url: "https://melbet.com/" },
+];
+
+type Sorte = "boutique" | "livraison" | "parrainage";
+type Adresse = { groupe: string; nom: string; url: string; sorte: Sorte; code?: string };
 
 // L'étiquette et l'invitation changent avec la sorte : on ne « regarde pas ce
 // qui se vend » chez un transporteur.
 const SORTES = {
   boutique: { reseau: "Boutique", icone: "🛍️", invite: "Tsindrio ny rohy hijerena izay amidy any." },
   livraison: { reseau: "Livraison international", icone: "🚚", invite: "Tsindrio ny rohy hijerena ny fomba handefasany entana." },
+  parrainage: { reseau: "Parrainage", icone: "💸", invite: "Tsindrio ny rohy hisoratana anarana." },
 };
+// Le tour des sortes : une boutique, un transporteur, une plateforme, puis
+// on recommence.
+const ORDRE: Sorte[] = ["boutique", "livraison", "parrainage"];
 
 const TOUTES: Adresse[] = [
   ...BOUTIQUES.map((b) => ({ ...b, sorte: "boutique" as const })),
@@ -212,6 +241,7 @@ function leTexte(b: Adresse, a: Apercu): string {
   const lignes = [sorte.icone + " " + b.nom + " — " + b.groupe];
   const phrase = (a.description || a.titre || "").trim();
   if (phrase) lignes.push(phrase.slice(0, 220));
+  if (b.code) lignes.push("Code parrainage : " + b.code);
   lignes.push(sorte.invite);
   return lignes.join("\n");
 }
@@ -266,21 +296,48 @@ Deno.serve(async (req: Request) => {
     }
   }
 
+  // Les plateformes de parrainage, avec le lien de l'admin quand il y en a
+  // un : c'est lui qui gagne quand quelqu'un s'inscrit par là. Fonction
+  // absente : les pages d'inscription.
+  const { data: rohyAdmin } = await admin.rpc("parrainage_admin");
+  const ra = ((rohyAdmin ?? []) as { binance?: string; payoneer?: string; hafa?: { nom?: string; rohy?: string }[] }[])[0] ?? {};
+  const liensAdmin: Record<string, string> = {};
+  if (ra.binance) liensAdmin["binance"] = String(ra.binance).trim();
+  if (ra.payoneer) liensAdmin["payoneer"] = String(ra.payoneer).trim();
+  for (const h of Array.isArray(ra.hafa) ? ra.hafa : []) {
+    if (h && h.nom && h.rohy) liensAdmin[String(h.nom).toLowerCase()] = String(h.rohy).trim();
+  }
+  const parrainages: Adresse[] = PARRAINAGES.map((p) => {
+    const lien = liensAdmin[p.nom.toLowerCase()];
+    delete liensAdmin[p.nom.toLowerCase()];
+    if (!lien) return { ...p, sorte: "parrainage" as const };
+    return /^https?:\/\//i.test(lien)
+      ? { ...p, url: lien, sorte: "parrainage" as const }
+      : { ...p, code: lien.slice(0, 60), sorte: "parrainage" as const };
+  });
+  // Les plateformes que l'admin a ajoutées sous un autre nom : avec un lien
+  // seulement — un billet a besoin d'une adresse.
+  for (const [nom, lien] of Object.entries(liensAdmin)) {
+    if (/^https?:\/\//i.test(lien)) parrainages.push({ groupe: "Ny anao", nom: nom.charAt(0).toUpperCase() + nom.slice(1), url: lien, sorte: "parrainage" });
+  }
+
   const lignes = (deja ?? []) as { link?: string; network?: string }[];
   const vues = new Set(lignes.map((r) => String(r.link ?? "")));
   // Chaque sorte a sa file. Une file vide recommence son tour seule : sans
   // cela la maison se tairait le jour où la liste serait épuisée.
-  const files: Record<Adresse["sorte"], Adresse[]> = { boutique: [], livraison: [] };
-  for (const sorte of ["boutique", "livraison"] as const) {
-    const toutes = [...TOUTES, ...siennes].filter((b) => b.sorte === sorte);
-    files[sorte] = toutes.filter((b) => !vues.has(b.url));
-    if (!files[sorte].length) files[sorte] = toutes.slice();
+  const files: Record<Sorte, Adresse[]> = { boutique: [], livraison: [], parrainage: [] };
+  for (const s of ORDRE) {
+    const toutes = [...TOUTES, ...siennes, ...parrainages].filter((b) => b.sorte === s);
+    files[s] = toutes.filter((b) => !vues.has(b.url));
+    if (!files[s].length) files[s] = toutes.slice();
   }
 
-  // Une boutique, un transporteur, une boutique : les deux sortes se
-  // succèdent, et l'on part de celle qui n'a pas parlé la dernière.
-  const derniere = lignes.find((r) => r.network === SORTES.livraison.reseau || r.network === SORTES.boutique.reseau);
-  let sorte: Adresse["sorte"] = derniere && derniere.network === SORTES.boutique.reseau ? "livraison" : "boutique";
+  // Une boutique, un transporteur, une plateforme : les sortes se
+  // succèdent, et l'on part de celle qui suit la dernière à avoir parlé.
+  const suivante = (s: Sorte): Sorte => ORDRE[(ORDRE.indexOf(s) + 1) % ORDRE.length];
+  const derniere = lignes.find((r) => ORDRE.some((s) => SORTES[s].reseau === r.network));
+  const derniereSorte = derniere ? ORDRE.find((s) => SORTES[s].reseau === derniere.network) : undefined;
+  let sorte: Sorte = derniereSorte ? suivante(derniereSorte) : "boutique";
 
   // Chaque billet tire une adresse au hasard dans sa file, va voir ce
   // qu'elle dit, et passe à la suivante si elle ne dit rien. L'adresse
@@ -291,8 +348,8 @@ Deno.serve(async (req: Request) => {
   const muettes: string[] = [];
 
   for (let i = 0; i < combien; i++) {
-    // La sorte voulue n'a plus rien à ce passage : l'autre parle à sa place.
-    if (!files[sorte].length) sorte = sorte === "boutique" ? "livraison" : "boutique";
+    // La sorte voulue n'a plus rien à ce passage : la suivante parle à sa place.
+    for (let k = 0; k < ORDRE.length && !files[sorte].length; k++) sorte = suivante(sorte);
     const file = files[sorte];
     if (!file.length) break;
 
@@ -330,9 +387,9 @@ Deno.serve(async (req: Request) => {
       // n'est pas passé, pour un résultat identique à l'écran.
       image: null,
     });
-    sorte = b.sorte === "boutique" ? "livraison" : "boutique";
+    sorte = suivante(b.sorte);
   }
-  const restantes = files.boutique.length + files.livraison.length;
+  const restantes = files.boutique.length + files.livraison.length + files.parrainage.length;
 
   // « muettes » n'est pas une erreur : c'est la liste de celles qui se sont
   // refusées à ce passage-là, et qui reviendront au suivant. La voir permet
