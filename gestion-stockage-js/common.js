@@ -1192,9 +1192,8 @@
     }, function(){ /* réseau ou fonction absente : on réessaiera à la prochaine connexion */ });
   }
 
-  // Le même que « Lien d'invitation » (inviter.js) : l'adresse publique, pas
-  // celle d'où la page est ouverte.
-  window.__monIdKey = function(){ return (walletState && walletState.idKey) || ''; };
+  // L'adresse publique, comme « Lien d'invitation » (inviter.js), pas celle
+  // d'où la page est ouverte.
   function lienAffiliation(){
     const cle = walletState && walletState.idKey;
     if(!cle) return '';
@@ -1203,8 +1202,6 @@
   }
 
   function renderAffiliation(){
-    // L'ID KEY vient d'arriver (ou a changé) : le lien d'invitation la porte.
-    if(typeof setupInviteLink === 'function') setupInviteLink();
     const panel = document.getElementById('walletAffPanel');
     if(!panel || !walletState) return;
     const a = walletState.affiliation;

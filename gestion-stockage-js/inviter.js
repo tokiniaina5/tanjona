@@ -44,27 +44,24 @@
       });
   }
 
-  // Le lien d'invitation est le lien d'affiliation (« ?aff=<ID KEY> ») : qui
-  // s'inscrit par là est rattaché à celui qui l'a partagé. Tant que l'ID KEY
-  // n'est pas connue (portefeuille pas encore chargé), « ?invite=1 ».
+  // L'adresse du site, sans code. Avec une ID KEY (« ?aff= »), c'est le lien
+  // d'affiliation, qui ne vit que dans 🤝 Affiliation (common.js).
   function lienInvitation(cle){
     // « /confirmation » : le mot se lit dans le lien lui-même. Seulement sur
     // Netlify, qui sait servir cette adresse (_redirects) ; une adresse
     // publique réglée ailleurs garde la racine.
     const base = publicBaseUrl();
     const chemin = /^https:\/\/ny-asako\.netlify\.app\/$/i.test(base) ? 'confirmation' : '';
-    return base + chemin + (cle ? '?aff=' + encodeURIComponent(cle) : '?invite=1');
+    return base + chemin + (cle ? '?aff=' + encodeURIComponent(cle) : '');
   }
 
-  // Le champ ne montre que l'adresse du site (« https://nyasako.com ») ; le
-  // lien entier, avec l'ID KEY, reste dans data-lien : c'est lui que copient
-  // et partagent les boutons (lienInvitationEntier).
+  // Le champ montre « https://nyasako.com » ; data-lien garde la barre
+  // finale, où les boutons collent leurs « ?rohy=… » (lienInvitationEntier).
   function setupInviteLink(){
-    const cle = typeof window.__monIdKey === 'function' ? window.__monIdKey() : '';
-    const link = lienInvitation(cle);
+    const link = lienInvitation('');
     const input = document.getElementById('inviteLink');
     input.dataset.lien = link;
-    input.value = publicBaseUrl().replace(/\/+$/, '');
+    input.value = link.replace(/\/+$/, '');
     renderLocalLinkWarning(link);
   }
   function lienInvitationEntier(){
