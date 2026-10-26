@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="c9aaf606">
+<meta name="ny-asako-version" content="8f692edf">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -2986,6 +2986,13 @@
                 <strong id="walletConverted" style="font-family:var(--font-mono); font-size:1.1rem; color:var(--text);">—</strong>
               </div>
               <p id="walletRateNote" style="font-size:0.74rem; color:var(--muted); margin-top:0.5rem; line-height:1.5;"></p>
+              <!-- Changer d'ici l'argent de l'appli en vola tena izy : la même
+                   demande que le bloc 🔁 (action « avadika »), pour tout ce
+                   qui peut l'être d'un coup. Caché s'il n'y a rien. -->
+              <div id="walletDeviseAvadika" style="display:none; margin-top:0.6rem;">
+                <button type="button" class="btn btn-primary btn-sm" id="walletDeviseAvadikaBtn" style="width:auto;">🔁 Avadika ho vola tena izy</button>
+                <p id="walletDeviseAvadikaStatut" style="font-size:0.76rem; margin:0.4rem 0 0; line-height:1.5;"></p>
+              </div>
             </div>
 
             <button type="button" class="btn btn-sm" id="walletSignOutBtn" style="margin-top:1rem;">Se déconnecter du portefeuille</button>
@@ -3943,7 +3950,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=54e07f87"></script>
+<script src="gestion-stockage-js/common.js?v=17788e21"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=d0a53ff8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>

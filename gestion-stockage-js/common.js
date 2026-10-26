@@ -1305,10 +1305,54 @@
     const frais = Math.ceil(montant * (Number(v.taux.fraisPct) || 0) / 100);
     el.textContent = 'Frais ' + formatWalletAr(frais) + ' → hiditra ho vola tena izy : ' + formatWalletAr(montant - frais);
   }
+  // Sous « Voir dans une autre devise » : tout ce qui peut se changer d'un
+  // coup (sans plafond pour l'admin, jusqu'au plafond du mois sinon).
+  function avadikaDeviseMontant(){
+    const v = walletState && walletState.avadika;
+    if(!v) return 0;
+    return Math.floor(Math.min(v.azoAr || 0, v.sisaVolanaAr || 0));
+  }
+  function renderAvadikaDevise(){
+    const boite = document.getElementById('walletDeviseAvadika');
+    const btn = document.getElementById('walletDeviseAvadikaBtn');
+    if(!boite || !btn) return;
+    const v = walletState && walletState.avadika;
+    const montant = avadikaDeviseMontant();
+    const ok = !!v && montant >= ((v.taux && v.taux.minAr) || 0) && montant > 0;
+    boite.style.display = ok ? '' : 'none';
+    if(ok) btn.textContent = '🔁 Avadika ho vola tena izy : ' + formatWalletAr(montant);
+  }
+  const deviseAvadikaBtn = document.getElementById('walletDeviseAvadikaBtn');
+  if(deviseAvadikaBtn){
+    deviseAvadikaBtn.addEventListener('click', function(){
+      const statut = document.getElementById('walletDeviseAvadikaStatut');
+      const v = walletState && walletState.avadika;
+      const montant = avadikaDeviseMontant();
+      if(!v || !montant) return;
+      const frais = Math.ceil(montant * (Number(v.taux.fraisPct) || 0) / 100);
+      if(!window.confirm('Avadika ho vola tena izy ny ' + formatWalletAr(montant) +
+        ' ?\nFrais : ' + formatWalletAr(frais) + ' — hiditra : ' + formatWalletAr(montant - frais) +
+        '\nNy admin no manamarina.')) return;
+      deviseAvadikaBtn.disabled = true;
+      statut.style.color = 'var(--muted)';
+      statut.textContent = 'Alefa…';
+      callWallet({ action: 'avadika', montantAr: montant }).then(function(){
+        deviseAvadikaBtn.disabled = false;
+        statut.style.color = 'var(--green, #2bb673)';
+        statut.textContent = '✅ Voaray ny fangatahana : jereo ny bloc « 🔁 Avadika » eo ambany.';
+        refreshWalletFromServer();
+      }, function(err){
+        deviseAvadikaBtn.disabled = false;
+        statut.style.color = 'var(--red, #e5484d)';
+        statut.textContent = '❌ ' + ((err && err.message) || 'Tsy nety.');
+      });
+    });
+  }
   function renderAvadika(){
     const panel = document.getElementById('walletAvadikaPanel');
     if(!panel || !walletState) return;
     const v = walletState.avadika;
+    renderAvadikaDevise();
     // Fonction pas encore à jour : rien à proposer.
     panel.style.display = v ? '' : 'none';
     if(!v) return;
