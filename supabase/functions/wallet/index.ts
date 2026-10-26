@@ -438,6 +438,14 @@ async function cleFor(admin: Admin, email: string): Promise<string | null> {
 // en Mobile Money / PayPal). Moins ce qui est déjà sorti vers le dehors, et jamais plus que le solde lui-même.
 // « affiliation » : la commission sur un paiement vraiment fait par une
 // personne amenée — elle est payée avec cet argent-là, elle se retire.
+// Les retraits par les anciens moyens (PayPal, carte, Wise…), faits avant que
+// le solde ne se sépare en vola tena izy et argent de l'appli : ils sont
+// sortis du solde (balanceFor les compte), mais pas de la vola tena izy —
+// ils avaient été payés avec ce qu'on appelle aujourd'hui l'argent de l'appli
+// (26/10/2026). Sans cela, ils creusaient une dette invisible qui avalait les
+// premières sommes changées.
+const RETRAITS_ANCIENS = new Set(["paypal", "card", "cash", "wallet", "wise", "payoneer", "skrill"]);
+
 const PROVIDERS_REELS = ["papi", "mvola", "orange", "airtel", "paypal", "affiliation", "affiliation_admin"];
 
 async function retirableFor(admin: Admin, email: string, balance: number): Promise<number> {
@@ -447,9 +455,9 @@ async function retirableFor(admin: Admin, email: string, balance: number): Promi
     (sum: number, d: { amount_ar: number }) => sum + (Number(d.amount_ar) || 0), 0);
   // Les achats dans l'application (« insite ») ne sortent rien au dehors.
   const { data: sorties } = await admin.from("wallet_payouts")
-    .select("amount_ar,fee_ar,kind").eq("email", email).in("status", ["pending", "sent"]);
+    .select("amount_ar,fee_ar,kind,method").eq("email", email).in("status", ["pending", "sent"]);
   const sorti = (sorties ?? [])
-    .filter((p: { kind: string }) => p.kind !== "insite")
+    .filter((p: { kind: string; method: string }) => p.kind !== "insite" && !RETRAITS_ANCIENS.has(p.method))
     .reduce((sum: number, p: { amount_ar: number; fee_ar: number }) =>
       sum + (Number(p.amount_ar) || 0) + (Number(p.fee_ar) || 0), 0);
   // Les ventes reçues sont de l'argent payé ; les achats en sont sortis.
@@ -494,7 +502,7 @@ async function partsSolde(admin: Admin, email: string, balance: number): Promise
     } else if (p.kind === "purchase") {
       // Un achat à l'étranger se paie avec la vola tena izy seule.
       abonnements += somme;
-    } else {
+    } else if (!RETRAITS_ANCIENS.has(p.method)) {
       retraits += somme;
     }
   }
