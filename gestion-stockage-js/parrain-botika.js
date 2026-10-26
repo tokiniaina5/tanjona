@@ -114,6 +114,10 @@
         const cadre = document.getElementById(c.cadre);
         const rangee = document.getElementById(c.rangee);
         rangee.innerHTML = '';
+        // Une grille : les tuiles également espacées, en lignes et en
+        // colonnes, quelle que soit la largeur.
+        rangee.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fill, minmax(5rem, 1fr)); ' +
+          'gap:1.1rem 0.6rem; justify-items:center; padding:0.4rem 0 0.2rem;';
         if(!(c.pasAdmin && admin)){
           PLATEFORMES.forEach(function(p){
             const valeur = String(d[p.cle] || '').trim() || p.defaut;
