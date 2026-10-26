@@ -1651,10 +1651,40 @@
     if(label) label.textContent = enUsdt ? 'Adiresy wallet USDT-nao' : 'Votre numéro et le nom du titulaire';
     const input = document.getElementById('payoutDestination');
     if(input) input.placeholder = enUsdt ? 'T… (TRC20) na 0x… (BEP20)' : '034 00 000 00 — RABE Koto';
+    const coller = document.getElementById('payoutCollerBtn');
+    if(coller) coller.style.display = enUsdt ? '' : 'none';
   }
   if(payoutOperateurEl){
     payoutOperateurEl.addEventListener('change', majPayoutUsdt);
     majPayoutUsdt();
+  }
+
+  // L'adresse collée choisit aussi le réseau : T… → TRC20, 0x… → BEP20.
+  function reseauSelonAdresse(){
+    const input = document.getElementById('payoutDestination');
+    const reseau = document.getElementById('payoutReseau');
+    if(!input || !reseau || !payoutOperateurEl || payoutOperateurEl.value !== 'USDT') return;
+    const adr = input.value.trim();
+    if(/^T/.test(adr)) reseau.value = 'TRC20';
+    else if(/^0x/i.test(adr)) reseau.value = 'BEP20';
+  }
+  const payoutDestinationEl = document.getElementById('payoutDestination');
+  if(payoutDestinationEl) payoutDestinationEl.addEventListener('input', reseauSelonAdresse);
+  const payoutCollerBtn = document.getElementById('payoutCollerBtn');
+  if(payoutCollerBtn){
+    payoutCollerBtn.addEventListener('click', async function(){
+      const input = document.getElementById('payoutDestination');
+      try{
+        const texte = await navigator.clipboard.readText();
+        input.value = (texte || '').trim();
+        reseauSelonAdresse();
+      }catch(e){
+        // Navigateur sans accès au presse-papiers : on laisse coller à la main.
+        input.focus();
+        const statusEl = document.getElementById('payoutStatus');
+        if(statusEl) statusEl.textContent = 'Tsindrio ela ilay toerana dia safidio « Coller ».';
+      }
+    });
   }
 
     const payoutRequestBtn = document.getElementById('payoutRequestBtn');
