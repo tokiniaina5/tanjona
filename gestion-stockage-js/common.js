@@ -941,6 +941,7 @@
     if(cleSuppr) cleSuppr.style.display = walletState.idKey && !walletState.idKeyAuto ? '' : 'none';
     renderTransferts();
     renderAffiliation();
+    renderAvadika();
     transfertCalculer();
     const dispoEl = document.getElementById('etrangerDispo');
     if(dispoEl) dispoEl.textContent = 'Vola tena izy azo ampiasaina : ' + formatWalletAr(walletState.papiAr || 0);
@@ -1282,6 +1283,125 @@
       } else {
         window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(lien), '_blank', 'noopener');
       }
+    });
+  }
+
+  // ---- Avadika ho vola tena izy ----
+  // La commission de parrainage de l'appli, changée en argent qui se retire.
+  // Le serveur décide de tout (minimum, plafond du mois, frais, ce qui reste
+  // à changer) ; la page montre, calcule l'aperçu, et envoie la demande.
+  const AVADIKA_ETATS = {
+    en_attente: { mot: 'Miandry ny admin', couleur: 'var(--amber, #e9a23b)' },
+    ekena: { mot: 'Ekena — vola tena izy', couleur: 'var(--green, #2bb673)' },
+    lavina: { mot: 'Lavina — niverina', couleur: 'var(--muted)' }
+  };
+  function avadikaKajy(){
+    const el = document.getElementById('walletAvadikaKajy');
+    const input = document.getElementById('walletAvadikaMontant');
+    const v = walletState && walletState.avadika;
+    if(!el || !input || !v) return;
+    const montant = Math.floor(Number(input.value) || 0);
+    if(!montant){ el.textContent = ''; return; }
+    const frais = Math.ceil(montant * (Number(v.taux.fraisPct) || 0) / 100);
+    el.textContent = 'Frais ' + formatWalletAr(frais) + ' → hiditra ho vola tena izy : ' + formatWalletAr(montant - frais);
+  }
+  function renderAvadika(){
+    const panel = document.getElementById('walletAvadikaPanel');
+    if(!panel || !walletState) return;
+    const v = walletState.avadika;
+    // Fonction pas encore à jour : rien à proposer.
+    panel.style.display = v ? '' : 'none';
+    if(!v) return;
+    const t = v.taux || {};
+    const taux = document.getElementById('walletAvadikaTaux');
+    if(taux){
+      taux.textContent = 'Ny commission parrainage ao amin\'ny appli ihany no azo avadika (tsy ny bonus na crédit maimaim-poana). ' +
+        'Farafahakeliny ' + formatWalletAr(t.minAr) + ', farafahabetsany ' + formatWalletAr(t.maxMoisAr) + ' isam-bolana, frais ' +
+        (Number(t.fraisPct) || 0).toLocaleString('fr-FR') + ' %. Ny admin no manamarina ; rehefa ekena, azo alaina amin\'ny Mobile Money.';
+    }
+    const azo = document.getElementById('walletAvadikaAzo');
+    if(azo) azo.textContent = formatWalletAr(v.azoAr);
+    const sisa = document.getElementById('walletAvadikaSisa');
+    if(sisa) sisa.textContent = formatWalletAr(v.sisaVolanaAr);
+    const btn = document.getElementById('walletAvadikaBtn');
+    if(btn) btn.disabled = !(v.azoAr >= t.minAr && v.sisaVolanaAr >= t.minAr);
+    const liste = document.getElementById('walletAvadikaLisitra');
+    if(liste){
+      liste.innerHTML = (v.lisitra || []).map(function(c){
+        const e = AVADIKA_ETATS[c.status] || { mot: c.status, couleur: 'var(--muted)' };
+        return '<div style="display:flex; justify-content:space-between; gap:0.8rem; padding:0.35rem 0; border-top:1px solid var(--line);">' +
+          '<span>' + formatWalletAr(c.montant_ar) + ' → ' + formatWalletAr(c.net_ar) +
+          '<br><span style="font-size:0.7rem; color:var(--muted);">' + new Date(c.created_at).toLocaleString('fr-FR') +
+          (c.note ? ' · ' + escapeHtml(c.note) : '') + '</span></span>' +
+          '<strong style="white-space:nowrap; color:' + e.couleur + ';">' + e.mot + '</strong></div>';
+      }).join('') || '<p style="color:var(--muted); margin:0;">Mbola tsy nisy fangatahana.</p>';
+    }
+    renderAvadikaAdmin(walletState.avadikaEnAttente);
+    avadikaKajy();
+  }
+  // L'admin : chaque demande, avec Ekena / Lavina. Le serveur ne tranche
+  // qu'une demande encore en attente, et une seule fois.
+  function renderAvadikaAdmin(lignes){
+    const boite = document.getElementById('walletAvadikaAdmin');
+    const liste = document.getElementById('walletAvadikaAdminLisitra');
+    if(!boite || !liste) return;
+    boite.style.display = Array.isArray(lignes) ? '' : 'none';
+    if(!Array.isArray(lignes)) return;
+    liste.innerHTML = lignes.map(function(c){
+      return '<div style="padding:0.45rem 0; border-top:1px solid var(--line);">' +
+        '<div><strong>' + escapeHtml(c.email) + '</strong> — ' + formatWalletAr(c.montant_ar) +
+        ' <span style="color:var(--muted);">(frais ' + formatWalletAr(c.frais_ar) + ', net ' + formatWalletAr(c.net_ar) + ')</span></div>' +
+        '<div style="font-size:0.7rem; color:var(--muted);">' + new Date(c.created_at).toLocaleString('fr-FR') + '</div>' +
+        '<div style="display:flex; gap:0.4rem; margin-top:0.3rem;">' +
+        '<button type="button" class="btn btn-primary btn-sm" style="width:auto;" data-avadika-id="' + escapeHtml(c.id) + '" data-avadika-ekena="1">✅ Ekena</button>' +
+        '<button type="button" class="btn btn-sm" style="width:auto;" data-avadika-id="' + escapeHtml(c.id) + '" data-avadika-ekena="0">↩️ Lavina</button>' +
+        '</div></div>';
+    }).join('') || '<p style="color:var(--muted); margin:0;">Tsy misy miandry.</p>';
+  }
+  const avadikaAdminListe = document.getElementById('walletAvadikaAdminLisitra');
+  if(avadikaAdminListe){
+    avadikaAdminListe.addEventListener('click', function(ev){
+      const btn = ev.target.closest('[data-avadika-id]');
+      if(!btn) return;
+      const ekena = btn.getAttribute('data-avadika-ekena') === '1';
+      let note = '';
+      if(!ekena){
+        note = window.prompt('Antony (tsy voatery) :', '') || '';
+      }
+      btn.disabled = true;
+      callWallet({ action: 'avadika_vahana', id: btn.getAttribute('data-avadika-id'), ekena: ekena, note: note })
+        .then(function(){ refreshWalletFromServer(); }, function(err){
+          btn.disabled = false;
+          window.alert((err && err.message) || 'Tsy nety.');
+        });
+    });
+  }
+  const avadikaInput = document.getElementById('walletAvadikaMontant');
+  if(avadikaInput) avadikaInput.addEventListener('input', avadikaKajy);
+  const avadikaBtn = document.getElementById('walletAvadikaBtn');
+  if(avadikaBtn){
+    avadikaBtn.addEventListener('click', function(){
+      const statut = document.getElementById('walletAvadikaStatut');
+      const montant = Math.floor(Number(avadikaInput && avadikaInput.value) || 0);
+      const v = walletState && walletState.avadika;
+      if(!v) return;
+      // Le serveur vérifie de toute façon ; ici, on évite un aller-retour.
+      if(montant < v.taux.minAr){ statut.textContent = 'Farafahakeliny ' + formatWalletAr(v.taux.minAr) + '.'; return; }
+      if(montant > v.sisaVolanaAr){ statut.textContent = 'Mihoatra ny fetra isam-bolana : ' + formatWalletAr(v.sisaVolanaAr) + ' sisa.'; return; }
+      if(montant > v.azoAr){ statut.textContent = 'Ny azo avadika dia ' + formatWalletAr(v.azoAr) + ' ihany.'; return; }
+      avadikaBtn.disabled = true;
+      statut.style.color = 'var(--muted)';
+      statut.textContent = 'Alefa…';
+      callWallet({ action: 'avadika', montantAr: montant }).then(function(){
+        statut.style.color = 'var(--green, #2bb673)';
+        statut.textContent = '✅ Voaray ny fangatahanao : miandry ny admin.';
+        if(avadikaInput) avadikaInput.value = '';
+        refreshWalletFromServer();
+      }, function(err){
+        avadikaBtn.disabled = false;
+        statut.style.color = 'var(--red, #e5484d)';
+        statut.textContent = '❌ ' + ((err && err.message) || 'Tsy nety.');
+      });
     });
   }
 

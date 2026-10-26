@@ -279,8 +279,12 @@ async function balanceFor(admin: Admin, email: string): Promise<number> {
   // 5) les transferts entre portefeuilles (et, pour le propriétaire, leurs frais).
   const transferts = await transfertsFor(admin, email);
 
-  return Math.max(0, deposited + achats.recu + transferts.recu -
-    withdrawn - spent - achats.depense - transferts.envoye);
+  // 6) les commissions changées en vola tena izy : retenues tant qu'elles
+  //    attendent ou une fois acceptées, le net revenant comme argent réel.
+  const conv = await conversionsFor(admin, email);
+
+  return Math.max(0, deposited + achats.recu + transferts.recu + conv.net -
+    withdrawn - spent - achats.depense - transferts.envoye - conv.retenu);
 }
 
 // ---- Transferts entre portefeuilles (supabase-portefeuille-famindrana.sql) ----
@@ -311,6 +315,65 @@ async function transfertsFor(admin: Admin, email: string): Promise<{ recu: numbe
     recu += (frais ?? []).reduce((sum: number, f: { fee_ar: number }) => sum + (Number(f.fee_ar) || 0), 0);
   }
   return { recu, envoye };
+}
+
+// ---- Avadika ho vola tena izy (supabase-portefeuille-fanovana.sql) ----
+// La commission de parrainage inscrite dans l'appli (« affiliation_inscription »)
+// se change en vola tena izy, sur demande, après accord de l'admin. En
+// attente, la somme est retenue ; acceptée, le net (moins les frais) devient
+// de l'argent qui se retire ; refusée, elle revient.
+const CONV_MIN_AR = Math.max(0, Number(Deno.env.get("CONV_MIN_AR") ?? "5000"));
+const CONV_MAX_MOIS_AR = Math.max(0, Number(Deno.env.get("CONV_MAX_MOIS_AR") ?? "50000"));
+const CONV_FRAIS_PCT = Math.min(100, Math.max(0, Number(Deno.env.get("CONV_FRAIS_PCT") ?? "15")));
+const PROVIDERS_CONVERTIBLES = ["affiliation_inscription"];
+
+type Conversion = { id: string; montant_ar: number; frais_ar: number; net_ar: number; status: string; note: string | null; created_at: string; settled_at: string | null };
+async function conversionsFor(admin: Admin, email: string): Promise<{ retenu: number; net: number; lignes: Conversion[] }> {
+  // Table absente (SQL pas encore passé) : rien n'a été changé.
+  const { data, error } = await admin.from("wallet_conversions")
+    .select("id,montant_ar,frais_ar,net_ar,status,note,created_at,settled_at")
+    .eq("email", email).order("created_at", { ascending: false }).limit(200);
+  if (error) return { retenu: 0, net: 0, lignes: [] };
+  let retenu = 0;
+  let net = 0;
+  for (const c of (data ?? []) as Conversion[]) {
+    if (c.status === "en_attente" || c.status === "ekena") retenu += Number(c.montant_ar) || 0;
+    if (c.status === "ekena") net += Number(c.net_ar) || 0;
+  }
+  return { retenu, net, lignes: (data ?? []) as Conversion[] };
+}
+
+// Ce qui peut encore se changer : la commission de parrainage reçue, moins
+// ce qui est déjà changé ou en attente, et jamais plus que ce que l'appli
+// garde encore (elle a pu en dépenser une partie).
+async function avadikaFor(admin: Admin, email: string, balance: number) {
+  const { data: comm } = await admin.from("wallet_deposits")
+    .select("amount_ar").eq("email", email).eq("status", "confirme").in("provider", PROVIDERS_CONVERTIBLES);
+  const commission = (comm ?? []).reduce((s: number, d: { amount_ar: number }) => s + (Number(d.amount_ar) || 0), 0);
+  const conv = await conversionsFor(admin, email);
+  const parts = await partsSolde(admin, email, balance);
+  const appli = Math.max(0, balance - parts.papi);
+  const azo = Math.max(0, Math.min(commission - conv.retenu, appli));
+  const debutMois = new Date();
+  debutMois.setUTCDate(1); debutMois.setUTCHours(0, 0, 0, 0);
+  const ityVolana = conv.lignes
+    .filter((c) => c.status !== "lavina" && Date.parse(c.created_at) >= debutMois.getTime())
+    .reduce((s, c) => s + (Number(c.montant_ar) || 0), 0);
+  return {
+    azoAr: azo, ityVolanaAr: ityVolana,
+    sisaVolanaAr: Math.max(0, CONV_MAX_MOIS_AR - ityVolana),
+    taux: { minAr: CONV_MIN_AR, maxMoisAr: CONV_MAX_MOIS_AR, fraisPct: CONV_FRAIS_PCT },
+    lisitra: conv.lignes.slice(0, 20),
+  };
+}
+
+// Pour l'admin : les demandes qui attendent, avec qui et combien.
+async function conversionsEnAttente(admin: Admin) {
+  const { data, error } = await admin.from("wallet_conversions")
+    .select("id,email,montant_ar,frais_ar,net_ar,created_at")
+    .eq("status", "en_attente").order("created_at", { ascending: true }).limit(50);
+  if (error) return [];
+  return data ?? [];
 }
 
 // L'ID KEY du compte : tirée au hasard la première fois, puis toujours la
@@ -378,8 +441,10 @@ async function retirableFor(admin: Admin, email: string, balance: number): Promi
   // Les transferts reçus aussi ; ceux envoyés en sont sortis.
   const achats = await achatsFor(admin, email);
   const transferts = await transfertsFor(admin, email);
+  // Une commission changée et acceptée : son net est de la vola tena izy.
+  const conv = await conversionsFor(admin, email);
   return Math.max(0, Math.min(balance,
-    entre + achats.recu + transferts.recu - sorti - achats.depense - transferts.envoye));
+    entre + achats.recu + transferts.recu + conv.net - sorti - achats.depense - transferts.envoye));
 }
 
 // ---- L'argent vraiment payé qui reste, pour l'abonnement ----
@@ -424,7 +489,9 @@ async function partsSolde(admin: Admin, email: string, balance: number): Promise
   retraits += achats.depense;
   // Un transfert reçu est de la vola tena izy ; un transfert envoyé en part.
   const transferts = await transfertsFor(admin, email);
-  const reste = entre + achats.recu + transferts.recu - abonnements - transferts.envoye - retraits;
+  // Une commission changée et acceptée entre comme de l'argent payé.
+  const conv = await conversionsFor(admin, email);
+  const reste = entre + achats.recu + transferts.recu + conv.net - abonnements - transferts.envoye - retraits;
   return { papi: Math.max(0, Math.min(balance, reste)) };
 }
 
@@ -541,7 +608,54 @@ Deno.serve(async (req: Request) => {
       payouts: mine ?? [], deposits: depots ?? [], queue, isOwner, items: SITE_ITEMS,
       achats: achats ?? [], achatsEnAttente, email,
       affiliation: await affiliationFor(admin, email),
+      avadika: await avadikaFor(admin, email, balance),
+      avadikaEnAttente: isOwner ? await conversionsEnAttente(admin) : null,
     });
+  }
+
+  // ---- Avadika ho vola tena izy : la demande ----
+  // Tout se vérifie ici : minimum, plafond du mois, ce qui reste à changer.
+  // La somme est retenue dès la demande, pour ne pas servir deux fois.
+  if (action === "avadika") {
+    const montant = Math.floor(Number(body.montantAr) || 0);
+    if (montant < CONV_MIN_AR) return json({ error: `Farafahakeliny ${ar(CONV_MIN_AR)}.` }, 400);
+    const balance = await balanceFor(admin, email);
+    const etat = await avadikaFor(admin, email, balance);
+    if (montant > etat.sisaVolanaAr) {
+      return json({ error: `Mihoatra ny fetra isam-bolana (${ar(CONV_MAX_MOIS_AR)}) : ${ar(etat.sisaVolanaAr)} sisa ity volana ity.` }, 400);
+    }
+    if (montant > etat.azoAr) {
+      return json({ error: `Ny commission azo avadika dia ${ar(etat.azoAr)} ihany.` }, 400);
+    }
+    const frais = Math.ceil(montant * CONV_FRAIS_PCT / 100);
+    const { data, error } = await admin.from("wallet_conversions").insert({
+      email, montant_ar: montant, frais_ar: frais, net_ar: montant - frais, status: "en_attente",
+    }).select("id,montant_ar,frais_ar,net_ar,status,created_at").single();
+    if (error) return json({ error: error.message }, 500);
+    if (ownerEmail) {
+      await prevenir(admin, ownerEmail,
+        `🔁 Fangatahana avadika ho vola tena izy : ${masquer(email)} — ${ar(montant)} (net ${ar(montant - frais)}).`);
+    }
+    return json({ conversion: data, balanceAr: await balanceFor(admin, email) });
+  }
+
+  // ---- Avadika : l'admin accepte ou refuse ----
+  if (action === "avadika_vahana") {
+    if (!isOwner) return json({ error: "réservé au propriétaire" }, 403);
+    const id = String(body.id ?? "");
+    const ekena = body.ekena === true;
+    const note = String(body.note ?? "").trim().slice(0, 300) || null;
+    // Seule une demande encore en attente se tranche, une seule fois.
+    const { data, error } = await admin.from("wallet_conversions")
+      .update({ status: ekena ? "ekena" : "lavina", note, settled_at: new Date().toISOString() })
+      .eq("id", id).eq("status", "en_attente")
+      .select("id,email,montant_ar,net_ar,status").maybeSingle();
+    if (error) return json({ error: error.message }, 500);
+    if (!data) return json({ error: "Efa voavaha io fangatahana io." }, 409);
+    await prevenir(admin, norm(data.email), ekena
+      ? `✅ Ekena : ${ar(data.net_ar)} tafiditra ho vola tena izy ao amin'ny portefeuille-nao, azo alaina amin'ny Mobile Money.`
+      : `↩️ Lavina ny fanovana ${ar(data.montant_ar)} : niverina ao amin'ny vola appli-nao.` + (note ? ` (${note})` : ""));
+    return json({ conversion: data, enAttente: await conversionsEnAttente(admin) });
   }
 
   // ---- Acheter un entana du fil, l'argent tenu ----

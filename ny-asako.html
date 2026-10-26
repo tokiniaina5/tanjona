@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="a706b5fe">
+<meta name="ny-asako-version" content="fdc21f7b">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -2991,6 +2991,42 @@
             <button type="button" class="btn btn-sm" id="walletSignOutBtn" style="margin-top:1rem;">Se déconnecter du portefeuille</button>
           </div>
 
+          <!-- ---- AVADIKA HO VOLA TENA IZY ----
+               La commission de parrainage de l'appli devient de l'argent qui
+               se retire, après accord de l'admin. Tout se décide dans la
+               fonction « wallet » (avadika, avadika_vahana) ; ici, on montre.
+               Caché tant que le serveur n'en dit rien. -->
+          <div class="panel" id="walletAvadikaPanel" style="display:none;">
+            <h3>🔁 Avadika ho vola tena izy</h3>
+            <p style="font-size:0.8rem; color:var(--muted); line-height:1.6; margin:0 0 0.7rem;" id="walletAvadikaTaux">
+              Ny commission parrainage ao amin'ny appli dia azo avadika ho vola tena izy, azo alaina amin'ny Mobile Money.
+            </p>
+            <div class="aff-isa" style="margin-top:0;">
+              <div class="aff-isa-boaty">
+                <div class="rohy-etiketa">💱 Azo avadika</div>
+                <div class="aff-isa-sanda" id="walletAvadikaAzo">0 Ar</div>
+              </div>
+              <div class="aff-isa-boaty">
+                <div class="rohy-etiketa">📅 Sisa ity volana ity</div>
+                <div class="aff-isa-sanda" id="walletAvadikaSisa">0 Ar</div>
+              </div>
+            </div>
+            <label class="rohy-etiketa" for="walletAvadikaMontant" style="margin-top:0.8rem;">Habetsahana (Ar)</label>
+            <div class="rohy-andalana">
+              <input id="walletAvadikaMontant" class="rohy-saha" type="number" min="0" step="500" placeholder="5000">
+              <button type="button" class="btn btn-primary btn-sm" id="walletAvadikaBtn">🔁 Avadika</button>
+            </div>
+            <p id="walletAvadikaKajy" style="font-size:0.78rem; color:var(--muted); margin:0.4rem 0 0;"></p>
+            <p id="walletAvadikaStatut" style="font-size:0.78rem; margin:0.3rem 0 0;"></p>
+            <div id="walletAvadikaLisitra" style="margin-top:0.8rem; font-size:0.8rem;"></div>
+
+            <!-- L'admin : les demandes qui attendent. -->
+            <div id="walletAvadikaAdmin" style="display:none; margin-top:1rem; padding-top:0.8rem; border-top:1px solid var(--line);">
+              <div style="font-weight:700; font-size:0.85rem; margin-bottom:0.4rem;">🛡️ Fangatahana miandry (admin)</div>
+              <div id="walletAvadikaAdminLisitra" style="font-size:0.8rem;"></div>
+            </div>
+          </div>
+
           <!-- ---- DÉPOSER : l'argent qui ENTRE ----
                Par Papi, vérifié par le serveur : rien n'est crédité avant que
                Papi ne confirme le paiement. -->
@@ -3889,7 +3925,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=c88fed62"></script>
+<script src="gestion-stockage-js/common.js?v=edd7f54d"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=d0a53ff8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>

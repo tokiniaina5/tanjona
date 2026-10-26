@@ -1210,3 +1210,20 @@ Déploiement : supabase functions deploy wallet --project-ref ezpsapvthujkhttbfh
 Sur un achat du fil (« achat_voaray »), la commission est payée par le
 VENDEUR : elle est notée dans wallet_achats.commission_ar et retirée de ce
 qu'il reçoit. Sur « spend » (abonnement…), plus rien depuis le 26/10/2026.
+
+AVADIKA HO VOLA TENA IZY (26/10/2026)
+-------------------------------------
+La commission de parrainage inscrite dans l'appli (wallet_deposits,
+provider « affiliation_inscription ») se change en vola tena izy, qui se
+retire en Mobile Money. Portefeuille > « 🔁 Avadika ho vola tena izy ».
+Table wallet_conversions (supabase/sql/supabase-portefeuille-fanovana.sql),
+lue et écrite par la fonction « wallet » seule (actions « avadika » et, pour
+l'admin, « avadika_vahana »).
+  en_attente : la somme est retenue sur le solde (ne sert pas deux fois) ;
+  ekena      : le net (somme − frais) compte comme argent réel (retirable) ;
+  lavina     : la somme revient au solde de l'appli.
+Bonus et crédits gratuits (fokontany, visiteur, essai…) : jamais changés.
+Secrets (facultatifs, valeurs par défaut) :
+  supabase secrets set CONV_MIN_AR=5000
+  supabase secrets set CONV_MAX_MOIS_AR=50000
+  supabase secrets set CONV_FRAIS_PCT=15
