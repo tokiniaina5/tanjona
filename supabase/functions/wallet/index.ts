@@ -152,6 +152,9 @@ function ar(n: number): string {
 // « Inviter des amis »). Les chiffres vivent ici, jamais dans la page.
 const AFF_FIXE_AR = Math.max(0, Number(Deno.env.get("AFF_FIXE_AR") ?? "200"));
 const AFF_PCT = Math.max(0, Number(Deno.env.get("AFF_PCT") ?? "10"));
+// Sur ces AFF_PCT %, AFF_ADMIN_PCT % vont à l'admin (26/10/2026) : sur 10 %,
+// 8 % à celui qui a partagé, 2 % à l'admin. Le vendeur ne paie pas plus.
+const AFF_ADMIN_PCT = Math.min(AFF_PCT, Math.max(0, Number(Deno.env.get("AFF_ADMIN_PCT") ?? "2")));
 // Un compte se rattache dans ses premiers jours seulement : passé ce délai,
 // on ne s'offre plus au premier lien venu.
 const AFF_JOURS_MAX = Number(Deno.env.get("AFF_JOURS_MAX") ?? "7");
@@ -185,18 +188,36 @@ async function verserCommission(admin: Admin, payeur: string, montant: number, r
       .select("parrain_email").eq("filleul_email", payeur).maybeSingle();
     const parrain = norm(lien?.parrain_email);
     if (!parrain || parrain === payeur || parrain === vendeur) return 0;
-    const somme = commission(montant);
-    if (!(somme > 0)) return 0;
-    const { error } = await admin.from("wallet_deposits").insert({
-      email: parrain, amount_ar: somme, provider: "affiliation", provider_ref: ref,
-      status: "confirme", confirmed_at: new Date().toISOString(),
-      note: `Commission : ${quoi} (${masquer(payeur)}, ${ar(montant)})`,
-    });
-    if (!error) {
-      await prevenir(admin, parrain,
-        `🤝 Commission ${ar(somme)} : ${masquer(payeur)} nandoa ${ar(montant)} (${quoi}).`);
-      return somme;
+    const total = commission(montant);
+    if (!(total > 0)) return 0;
+    // La part de l'admin, prise dans le total (jamais en plus). L'admin
+    // qui a lui-même partagé le lien garde tout, sans partage.
+    const proprio = norm(Deno.env.get("OWNER_EMAIL"));
+    const partAdmin = proprio && parrain !== proprio
+      ? Math.min(total, Math.ceil(montant * AFF_ADMIN_PCT / 100)) : 0;
+    const somme = total - partAdmin;
+    let verse = 0;
+    if (somme > 0) {
+      const { error } = await admin.from("wallet_deposits").insert({
+        email: parrain, amount_ar: somme, provider: "affiliation", provider_ref: ref,
+        status: "confirme", confirmed_at: new Date().toISOString(),
+        note: `Commission : ${quoi} (${masquer(payeur)}, ${ar(montant)})`,
+      });
+      if (!error) {
+        verse += somme;
+        await prevenir(admin, parrain,
+          `🤝 Commission ${ar(somme)} : ${masquer(payeur)} nandoa ${ar(montant)} (${quoi}).`);
+      }
     }
+    if (partAdmin > 0) {
+      const { error } = await admin.from("wallet_deposits").insert({
+        email: proprio, amount_ar: partAdmin, provider: "affiliation_admin", provider_ref: ref + ":admin",
+        status: "confirme", confirmed_at: new Date().toISOString(),
+        note: `Ampahany admin (${AFF_ADMIN_PCT} %) : ${quoi} (${masquer(payeur)}, ${ar(montant)})`,
+      });
+      if (!error) verse += partAdmin;
+    }
+    return verse;
   } catch { /* la commission seule se perd */ }
   return 0;
 }
@@ -224,7 +245,7 @@ async function affiliationFor(admin: Admin, email: string) {
     nbFilleuls: (filleuls ?? []).length,
     totalReel, totalAppli,
     gains: (gains ?? []).slice(0, 20),
-    taux: { inscriptionAr: 0, fixeAr: AFF_FIXE_AR, pct: AFF_PCT },
+    taux: { inscriptionAr: 0, fixeAr: AFF_FIXE_AR, pct: AFF_PCT - AFF_ADMIN_PCT, adminPct: AFF_ADMIN_PCT },
   };
 }
 
@@ -339,7 +360,7 @@ async function cleFor(admin: Admin, email: string): Promise<string | null> {
 // en Mobile Money / PayPal). Moins ce qui est déjà sorti vers le dehors, et jamais plus que le solde lui-même.
 // « affiliation » : la commission sur un paiement vraiment fait par une
 // personne amenée — elle est payée avec cet argent-là, elle se retire.
-const PROVIDERS_REELS = ["papi", "mvola", "orange", "airtel", "paypal", "affiliation"];
+const PROVIDERS_REELS = ["papi", "mvola", "orange", "airtel", "paypal", "affiliation", "affiliation_admin"];
 
 async function retirableFor(admin: Admin, email: string, balance: number): Promise<number> {
   const { data: depots } = await admin.from("wallet_deposits")

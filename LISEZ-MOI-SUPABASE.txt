@@ -1188,7 +1188,10 @@ toutes, table « affiliations » (supabase/sql/supabase-affiliation.sql).
 Ce que touche celui qui a partagé (lignes de wallet_deposits) : à chaque
 achat du fil reçu par la personne (« achat_voaray »), AFF_FIXE_AR + AFF_PCT %
 du montant, jamais plus de la moitié, provider « affiliation » — vola tena
-izy, se retire.
+izy, se retire. Sur ce total, AFF_ADMIN_PCT % du montant (2 par défaut) va à
+l'admin (OWNER_EMAIL), provider « affiliation_admin », provider_ref
+« <ref>:admin » : sur 10 %, 8 % à l'affilié, 2 % à l'admin. Le vendeur ne
+paie pas davantage. Un lien partagé par l'admin lui-même : tout pour lui.
 Depuis le 26/10/2026 l'admin ne paie plus rien : plus de prime à
 l'inscription (AFF_INSCRIPTION_AR supprimé), plus de commission sur « spend »
 (abonnement, essai, booster, déblocage…). Les anciennes lignes
@@ -1201,6 +1204,7 @@ par le portefeuille : ils ne rapportent rien.
 Secrets (facultatifs, valeurs par défaut) :
   supabase secrets set AFF_FIXE_AR=200
   supabase secrets set AFF_PCT=10
+  supabase secrets set AFF_ADMIN_PCT=2
   supabase secrets set AFF_JOURS_MAX=7
 Déploiement : supabase functions deploy wallet --project-ref ezpsapvthujkhttbfhlr --use-api
 Sur un achat du fil (« achat_voaray »), la commission est payée par le

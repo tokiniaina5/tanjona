@@ -1217,7 +1217,10 @@
       // achats du fil, que paie le vendeur.
       tauxEl.innerHTML = 'Zarao ny rohinao. Isaky ny mividy entana ao amin\'ny fil izay niditra tamin\'io : ' +
         '<strong>' + formatWalletAr(t.fixeAr) + ' + ' + (Number(t.pct) || 0).toLocaleString('fr-FR') +
-        ' %</strong> (aloan\'ny mpivarotra, vola tena izy, azo alaina).';
+        ' %</strong> (aloan\'ny mpivarotra, vola tena izy, azo alaina).' +
+        // Les 2 % de l'admin, pris sur la même commission (26/10/2026).
+        (Number(t.adminPct) > 0 ? ' Ny ' + Number(t.adminPct).toLocaleString('fr-FR') +
+          ' % sisa amin\'ny commission dia an\'ny admin.' : '');
     }
     const nbEl = document.getElementById('walletAffNb');
     if(nbEl) nbEl.textContent = String(a.nbFilleuls || 0);
