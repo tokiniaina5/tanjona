@@ -62,6 +62,13 @@
               const valeur = String(d[p.cle] || '').trim();
               if(valeur) rangee.appendChild(bouton(p, valeur));
             });
+            // Les autres plateformes choisies par l'admin (colonne « hafa »).
+            (Array.isArray(d.hafa) ? d.hafa : []).forEach(function(h){
+              const valeur = String((h && h.rohy) || '').trim();
+              if(h && h.nom && valeur){
+                rangee.appendChild(bouton({ nom: String(h.nom), ikona: '🔗', couleur: 'var(--cyan)' }, valeur));
+              }
+            });
           }
           cadre.style.display = rangee.children.length ? '' : 'none';
         });

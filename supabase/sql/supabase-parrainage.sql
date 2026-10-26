@@ -43,14 +43,23 @@ create policy "parrainage voaloa ovaina" on public.rohy_parrainage
   for update to authenticated using (user_id = auth.uid())
   with check (user_id = auth.uid() and public.parrainage_voaloa());
 
+-- Les autres plateformes, au choix de chacun (26/10/2026) :
+-- [{ "nom": "Bybit", "rohy": "https://…" }], dix au plus.
+alter table public.rohy_parrainage add column if not exists hafa jsonb not null default '[]'::jsonb;
+alter table public.rohy_parrainage drop constraint if exists rohy_parrainage_hafa_check;
+alter table public.rohy_parrainage add constraint rohy_parrainage_hafa_check
+  check (jsonb_typeof(hafa) = 'array' and jsonb_array_length(hafa) <= 10 and length(hafa::text) <= 5000);
+
 -- Les liens de l'admin se montrent à tous, dans la Botika (l'appli et
 -- botika/) : un client qui s'inscrit chez Binance ou Payoneer par là fait
 -- gagner l'admin, payé par la plateforme. Seule cette ligne-là sort.
-create or replace function public.parrainage_admin()
-returns table (binance text, payoneer text)
+-- Le type de retour a changé (hafa) : on la refait.
+drop function if exists public.parrainage_admin();
+create function public.parrainage_admin()
+returns table (binance text, payoneer text, hafa jsonb)
 language sql stable security definer set search_path = public
 as $$
-  select r.binance, r.payoneer
+  select r.binance, r.payoneer, r.hafa
   from public.rohy_parrainage r
   join auth.users u on u.id = r.user_id
   where u.email = 'rasolofonirainytokiniaina@gmail.com';

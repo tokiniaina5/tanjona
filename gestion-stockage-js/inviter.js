@@ -229,10 +229,15 @@
     chargerParrainage();
   });
 
-  // ---------------- PARRAINAGE BINANCE / PAYONEER ----------------
+  // ---------------- PARRAINAGE BINANCE / PAYONEER / AUTRES ----------------
   // Chaque compte garde son propre lien (rohy_parrainage) ; c'est la
-  // plateforme qui paie, l'admin n'y est pour rien.
+  // plateforme qui paie, l'admin n'y est pour rien. Binance et Payoneer ont
+  // leur case ; les autres plateformes, chacun les choisit (colonne « hafa » :
+  // [{ nom, rohy }], dix au plus).
   const PARRAIN_NOMS = { binance: 'Binance', payoneer: 'Payoneer' };
+  const PARRAIN_HAFA_MAX = 10;
+  let parrainHafa = [];
+  let parrainVoaloaVe = false;
   function parrainInput(cle){
     return document.getElementById(cle === 'binance' ? 'parrainBinance' : 'parrainPayoneer');
   }
@@ -240,9 +245,53 @@
     const el = document.getElementById('parrainStatut');
     if(el) el.textContent = texte || '';
   }
+
+  // Les autres plateformes : une ligne chacune, comme Binance et Payoneer.
+  function renderParrainHafa(){
+    const liste = document.getElementById('parrainHafaLisitra');
+    if(!liste) return;
+    liste.innerHTML = '';
+    parrainHafa.forEach(function(h, i){
+      const bloc = document.createElement('div');
+      bloc.style.cssText = 'margin-top:0.8rem;';
+      const titre = document.createElement('label');
+      titre.className = 'rohy-etiketa';
+      titre.textContent = '🔗 ' + h.nom;
+      const ligne = document.createElement('div');
+      ligne.className = 'rohy-andalana';
+      const input = document.createElement('input');
+      input.className = 'rohy-saha';
+      input.type = 'text';
+      input.maxLength = 300;
+      input.placeholder = 'Rohy na code ' + h.nom;
+      input.value = h.rohy || '';
+      input.disabled = !parrainVoaloaVe;
+      input.addEventListener('input', function(){ parrainHafa[i].rohy = input.value; });
+      const adika = document.createElement('button');
+      adika.type = 'button'; adika.className = 'btn btn-sm'; adika.textContent = '📋 Adikao';
+      adika.addEventListener('click', function(){ parrainAdika(adika, input); });
+      const zarao = document.createElement('button');
+      zarao.type = 'button'; zarao.className = 'btn btn-sm'; zarao.textContent = '📤 Zarao';
+      zarao.addEventListener('click', function(){ parrainZarao(h.nom, input.value.trim()); });
+      const fafao = document.createElement('button');
+      fafao.type = 'button'; fafao.className = 'btn btn-sm'; fafao.textContent = '🗑️';
+      fafao.title = 'Esory ' + h.nom + ' (tehirizo avy eo)';
+      fafao.disabled = !parrainVoaloaVe;
+      fafao.addEventListener('click', function(){
+        parrainHafa.splice(i, 1);
+        renderParrainHafa();
+        parrainStatut('Tsindrio « 💾 Tehirizo ny rohiko » mba hamafisina.');
+      });
+      ligne.appendChild(input); ligne.appendChild(adika); ligne.appendChild(zarao); ligne.appendChild(fafao);
+      bloc.appendChild(titre); bloc.appendChild(ligne);
+      liste.appendChild(bloc);
+    });
+  }
+
   // Pas payé (parrainage_voaloa) : les champs se ferment, le bouton payer
   // s'ouvre. L'admin ne paie pas ; la base refuse de toute façon l'écriture.
   function parrainVoaloa(voaloa){
+    parrainVoaloaVe = voaloa;
     const hidy = document.getElementById('parrainHidy');
     if(hidy) hidy.style.display = voaloa ? 'none' : '';
     Object.keys(PARRAIN_NOMS).forEach(function(cle){
@@ -251,6 +300,9 @@
     });
     const save = document.getElementById('parrainSave');
     if(save) save.style.display = voaloa ? '' : 'none';
+    const ampio = document.getElementById('parrainHafaAmpio');
+    if(ampio) ampio.style.display = voaloa ? '' : 'none';
+    renderParrainHafa();
   }
   function chargerParrainage(){
     if(!window.__sb || !document.getElementById('parrainPanel')) return;
@@ -260,7 +312,7 @@
       window.__sb.rpc('parrainage_voaloa').then(function(res){
         parrainVoaloa(!!(res && !res.error && res.data));
       }, function(){ parrainVoaloa(false); });
-      window.__sb.from('rohy_parrainage').select('binance,payoneer').eq('user_id', uid).maybeSingle()
+      window.__sb.from('rohy_parrainage').select('binance,payoneer,hafa').eq('user_id', uid).maybeSingle()
         .then(function(res){
           const d = (res && res.data) || {};
           Object.keys(PARRAIN_NOMS).forEach(function(cle){
@@ -268,10 +320,39 @@
             // Ce qu'on est en train de taper ne s'efface pas.
             if(el && document.activeElement !== el) el.value = d[cle] || '';
           });
+          parrainHafa = Array.isArray(d.hafa) ? d.hafa.filter(function(h){ return h && h.nom; }) : [];
+          renderParrainHafa();
           parrainStatut('');
         }, function(){});
     });
   }
+
+  // ➕ Une plateforme de la liste, ou « Hafa » avec son nom à soi.
+  const hafaSafidy = document.getElementById('parrainHafaSafidy');
+  const hafaAnarana = document.getElementById('parrainHafaAnarana');
+  if(hafaSafidy && hafaAnarana){
+    hafaSafidy.addEventListener('change', function(){
+      hafaAnarana.style.display = hafaSafidy.value === '__hafa' ? '' : 'none';
+    });
+  }
+  const hafaAmpio = document.getElementById('parrainHafaAmpioBtn');
+  if(hafaAmpio){
+    hafaAmpio.addEventListener('click', function(){
+      let nom = hafaSafidy ? hafaSafidy.value : '';
+      if(nom === '__hafa') nom = hafaAnarana ? hafaAnarana.value.trim().slice(0, 40) : '';
+      if(!nom){ parrainStatut('Safidio na soraty ny anaran\'ny sehatra.'); return; }
+      const deja = parrainHafa.some(function(h){ return h.nom.toLowerCase() === nom.toLowerCase(); }) ||
+        Object.keys(PARRAIN_NOMS).some(function(c){ return PARRAIN_NOMS[c].toLowerCase() === nom.toLowerCase(); });
+      if(deja){ parrainStatut(nom + ' : efa ao.'); return; }
+      if(parrainHafa.length >= PARRAIN_HAFA_MAX){ parrainStatut(PARRAIN_HAFA_MAX + ' sehatra hafa farafahabetsany.'); return; }
+      parrainHafa.push({ nom: nom, rohy: '' });
+      renderParrainHafa();
+      if(hafaSafidy) hafaSafidy.value = '';
+      if(hafaAnarana){ hafaAnarana.value = ''; hafaAnarana.style.display = 'none'; }
+      parrainStatut('Apetraho ny rohinao ' + nom + ', dia tsindrio « 💾 Tehirizo ny rohiko ».');
+    });
+  }
+
   // 5 000 Ar une fois, par le portefeuille ; s'il manque de l'argent Papi,
   // common.js ouvre Papi et achète au retour (papi-paiement.js).
   const parrainAloa = document.getElementById('parrainAloa');
@@ -299,6 +380,9 @@
           const el = parrainInput(cle);
           ligne[cle] = el ? (el.value.trim().slice(0, 300) || null) : null;
         });
+        ligne.hafa = parrainHafa.map(function(h){
+          return { nom: String(h.nom).slice(0, 40), rohy: String(h.rohy || '').trim().slice(0, 300) };
+        });
         parrainSave.disabled = true;
         window.__sb.from('rohy_parrainage').upsert(ligne).then(function(res){
           parrainSave.disabled = false;
@@ -312,39 +396,44 @@
       });
     });
   }
+
+  function parrainAdika(btn, el){
+    const valeur = el ? el.value.trim() : '';
+    if(!valeur){ parrainStatut('Apetraho aloha ny rohinao.'); return; }
+    const fini = function(){
+      btn.textContent = '✅ Voadika';
+      setTimeout(function(){ btn.textContent = '📋 Adikao'; }, 1500);
+    };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(valeur).then(fini, function(){ el.select(); });
+    } else {
+      el.select(); try{ document.execCommand('copy'); fini(); }catch(e){}
+    }
+  }
+  function parrainZarao(nom, valeur){
+    if(!valeur){ parrainStatut('Apetraho aloha ny rohinao.'); return; }
+    const texte = 'Misorata anarana amin\'ny ' + nom + ' amin\'ity rohy ity :';
+    // Un code seul n'est pas une adresse : il part dans le texte.
+    const estLien = /^https?:\/\//i.test(valeur);
+    if(navigator.share){
+      navigator.share(estLien ? { title: nom, text: texte, url: valeur }
+        : { title: nom, text: texte + ' ' + valeur }).catch(function(){});
+    } else if(estLien){
+      window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(valeur), '_blank', 'noopener');
+    } else {
+      window.open('https://wa.me/?text=' + encodeURIComponent(texte + ' ' + valeur), '_blank', 'noopener');
+    }
+  }
   document.querySelectorAll('[data-parrain-copy]').forEach(function(btn){
     btn.addEventListener('click', function(){
-      const el = parrainInput(btn.getAttribute('data-parrain-copy'));
-      const valeur = el ? el.value.trim() : '';
-      if(!valeur){ parrainStatut('Apetraho aloha ny rohinao.'); return; }
-      const fini = function(){
-        btn.textContent = '✅ Voadika';
-        setTimeout(function(){ btn.textContent = '📋 Adikao'; }, 1500);
-      };
-      if(navigator.clipboard && navigator.clipboard.writeText){
-        navigator.clipboard.writeText(valeur).then(fini, function(){ el.select(); });
-      } else {
-        el.select(); try{ document.execCommand('copy'); fini(); }catch(e){}
-      }
+      parrainAdika(btn, parrainInput(btn.getAttribute('data-parrain-copy')));
     });
   });
   document.querySelectorAll('[data-parrain-share]').forEach(function(btn){
     btn.addEventListener('click', function(){
       const cle = btn.getAttribute('data-parrain-share');
       const el = parrainInput(cle);
-      const valeur = el ? el.value.trim() : '';
-      if(!valeur){ parrainStatut('Apetraho aloha ny rohinao.'); return; }
-      const texte = 'Misorata anarana amin\'ny ' + PARRAIN_NOMS[cle] + ' amin\'ity rohy ity :';
-      // Un code seul n'est pas une adresse : il part dans le texte.
-      const estLien = /^https?:\/\//i.test(valeur);
-      if(navigator.share){
-        navigator.share(estLien ? { title: PARRAIN_NOMS[cle], text: texte, url: valeur }
-          : { title: PARRAIN_NOMS[cle], text: texte + ' ' + valeur }).catch(function(){});
-      } else if(estLien){
-        window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(valeur), '_blank', 'noopener');
-      } else {
-        window.open('https://wa.me/?text=' + encodeURIComponent(texte + ' ' + valeur), '_blank', 'noopener');
-      }
+      parrainZarao(PARRAIN_NOMS[cle], el ? el.value.trim() : '');
     });
   });
 
