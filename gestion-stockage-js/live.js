@@ -1099,7 +1099,7 @@
   // mandresy : ny ankapobeny (menu, fanampiana) no apetraka farany.
   const BOT_MENU = 'ao amin\'ny Menu (ilay logo eo ankavia amin\'ny barre ambany)';
   const BOT_FAQ = [
-    { teny: ['salama', 'manao ahoana', 'bonjour', 'bonsoir', 'salut', 'hello', 'allo', 'akory'],
+    { teny: ['salama', 'manao ahoana', 'bonjour', 'bonsoir', 'salut', 'hello', 'allo', 'akory', 'hola', 'hi', 'hey', 'hallo', 'good morning', 'buongiorno', 'bom dia', 'bonne journee', 'buenos dias'],
       valiny: 'Salama tompoko, izaho no Assistant Ny asako. Inona no hatao anao azafady ?' },
     { teny: ['vidiny', 'ohatrinona', 'hoatrinona', 'prix', 'tarif', 'abonnement', 'abonement', 'mensuel', 'annuel', 'karama', 'combien'],
       valiny: 'Maimaimpoana mandritra ny 15 andro ny Ny asako. Aorian\'izay : 15 000 Ar isam-bolana, ' +
@@ -1199,7 +1199,7 @@
     { teny: ['fond', 'fond d ecran', 'wallpaper', 'sary ambadika', 'image de fond'],
       valiny: '🖼️ Fond d\'écran ' + BOT_MENU + ' : safidio sary avy amin\'ny fitaovanao ho ambadiky ny appli. ' +
         'Mameno ny écran izy, ary tsy miala amin\'ny fitaovanao mihitsy.' },
-    { teny: ['andro', 'alina', 'theme', 'sombre', 'nuit', 'dark', 'mode jour', 'mode nuit', 'luminosite', 'contraste', 'mazava', 'maizina'],
+    { teny: ['andro alina', 'mode andro', 'mode alina', 'theme', 'sombre', 'dark', 'mode jour', 'mode nuit', 'luminosite', 'contraste', 'maizina loatra', 'mazava loatra'],
       valiny: '🌙 Andro / Alina ' + BOT_MENU + ' : Manuel (ianao no mifidy, misy curseur) na Automatique (miova arakaraka ny ora). ' +
         'Eo koa ny 🔆 Luminosité sy ny ◐ Contraste.' },
     { teny: ['notification', 'notifications', 'notif', 'fampandrenesana', 'alerte'],
@@ -1238,11 +1238,16 @@
     { teny: ['iza ianao', 'iza moa ianao', 'qui es tu', 'qui etes vous', 'who are you', 'robot ve ianao', 'olona ve ianao', 'bot ve ianao'],
       valiny: 'Izaho no Assistant Ny asako, mpanampy ao anaty appli. Tsy olona aho, fa fantatro tsara ny ao amin\'ny Ny asako. ' +
         'Ny admin kosa no mamaly izay tsy fantatro.' },
-    { teny: ['inona vaovao', 'quoi de neuf', 'ca va', 'ça va', 'how are you', 'salama ve'],
+    { teny: ['manampy', 'ampio', 'ampianaro', 'mila fanampiana', 'afaka manampy', 'aider', 'aidez', 'aide moi', 'help me', 'can you help',
+        'inona no ataonao', 'inona no azonao atao', 'que peux tu faire', 'que pouvez vous faire', 'what can you do'],
+      valiny: 'Eny tompoko, vonona hanampy anao aho ! Lazao ahy fotsiny izay tianao atao, ohatra : ' +
+        '« hanao facture », « hametraka vola ao amin\'ny portefeuille », « hampiditra entana », « hanova mot de passe »… ' +
+        'dia hazavaiko tsikelikely ary sokafako ho anao ilay pejy.' },
+    { teny: ['inona vaovao', 'vaovao', 'quoi de neuf', 'ca va', 'ça va', 'how are you', 'salama ve'],
       valiny: 'Tsara be aho, misaotra tompoko ! Ary ianao, manao ahoana ? Inona no azoko anampiana anao androany ?' },
-    { teny: ['tsara', 'tsara be', 'ok', 'okay', 'eny', 'oui', 'yes', 'd accord', 'dac', 'azoko'],
+    { fohy: true, teny: ['tsara', 'tsara be', 'ok', 'okay', 'eny', 'oui', 'yes', 'd accord', 'dac', 'azoko'],
       valiny: 'Tsara izany ! Raha mbola misy zavatra tianao ho fantatra, soraty fotsiny eto.' },
-    { teny: ['tsia', 'non', 'tsy ilaina', 'rien'],
+    { fohy: true, teny: ['tsia', 'non', 'tsy ilaina', 'rien'],
       valiny: 'Eny ary tompoko. Eto foana aho raha mila fanampiana ianao.' },
     { teny: ['veloma', 'au revoir', 'bye', 'mandra pihaona', 'a plus', 'bonne nuit', 'tafandria mandry'],
       valiny: 'Veloma tompoko, mandra-pihaona ! Misaotra nifandray tamin\'ny Ny asako.' },
@@ -1297,7 +1302,7 @@
     'projecteur': ['[data-section="projecteur"]', '📽️ Projecteur'],
     'maps': ['[data-section="toerana"]', '📍 Toerana & Maps'],
     'fond': ['[data-section="fond"]', '🖼️ Fond d\'écran'],
-    'andro': ['#menuTheme', '🌙 Andro / Alina'],
+    'andro alina': ['#menuTheme', '🌙 Andro / Alina'],
     'notification': ['#notifToggle', '🔔 Notifications'],
     'teny': ['#tenyToggle', '🌐 Teny'],
     'panier': ['#menuPanier', '🛒 Panier'],
@@ -1326,23 +1331,55 @@
     return /(^| )(sokafy|sokafana|sokafako|hosokafana|ampisehoy|asehoy|ouvrir|ouvre|ouvrez|affiche|open|show)( |$)/.test(' ' + botTeny(soratra) + ' ');
   }
 
+  // Ireo pejy akaiky ny fanontaniana tsy fantatra : ny teny ao aminy izay
+  // manomboka toy ny teny fototra iray (« faktir » → facture, « portfeu »
+  // → portefeuille). Telo farafahabetsany.
+  function botAkaiky(soratra){
+    // Teny 6 litera farafahakeliny : « andro » (toetr'andro) tsy mitarika
+    // any amin'ny Andro / Alina.
+    const teny = botTeny(soratra).split(' ').filter(function(t){ return t.length >= 6; });
+    if(!teny.length) return [];
+    const hita = [];
+    BOT_FAQ.forEach(function(f){
+      const s = BOT_SOKAFY[f.teny[0]];
+      // Tsy atolotra ny pejy nafenina ho an'ity kaonty ity (Hôtellerie…).
+      if(!s || hita.indexOf(s[1]) >= 0 || !botEntree(f.teny[0])) return;
+      const mety = f.teny.some(function(m){
+        const k = botTeny(m);
+        return k.length >= 5 && teny.some(function(t){ return t.slice(0, 5) === k.slice(0, 5); });
+      });
+      if(mety) hita.push(s[1]);
+    });
+    return hita.slice(0, 3);
+  }
+
   // Ny lisitry ny pejy rehetra : ho an'ny fanontaniana ankapobeny na tsy fantatra.
+  // Vondrona fohy, iray isaky ny andalana : ny lisitra tohizana tamin'ny
+  // « · » dia nifangaro tao anaty bulle tery.
+  const BOT_VONDRONA = [
+    ['📦 Stock sy varotra', ['🏠 Botika', '📋 Articles', '📊 Tableau de bord', '🧾 Factures', '📄 PDF', '📠 Multi-service']],
+    ['💰 Vola sy fividianana', ['💰 Portefeuille', '💳 Abonnement', '🛒 Panier', '🌍 Achats internationaux', '🚚 Livraison international']],
+    ['💬 Fifandraisana', ['💬 Message', '📞 Call', '🔴 Live direct', '🔔 Feo', '🔗 Ajouter les liens', '✉️ Inviter des amis']],
+    ['👷 Ekipa sy toerana', ['👷 Mpiasa', '🛵 Livreur', '📍 Toerana & Maps', '📽️ Projecteur']],
+    ['🧰 Fitaovana', ['📒 Notes', '🧮 Calculatrice', '📅 Calendrier', '🕒 Horaire']],
+    ['⚙️ Fikirakirana', ['🖼️ Fond d\'écran', '🌙 Andro / Alina', '🌐 Teny', '🔔 Notifications', '🗑️ Corbeille', '⚙️ Paramètres']]
+  ];
+  // Ny anaran'ny pejy, araka ny hitany ao amin'ny menu : tsy adika amin'ny
+  // fiteny hafa (« 🌐 Teny » lasa « Words », « 🛒 Panier » lasa « Basket »).
+  const BOT_ANARANA = (function(){
+    const l = [];
+    BOT_VONDRONA.forEach(function(v){ v[1].forEach(function(x){ if(l.indexOf(x) < 0) l.push(x); }); });
+    Object.keys(BOT_SOKAFY).forEach(function(k){ if(l.indexOf(BOT_SOKAFY[k][1]) < 0) l.push(BOT_SOKAFY[k][1]); });
+    // Ny lava indrindra aloha : « 🔔 Notifications » alohan'ny « 🔔 Feo ».
+    return l.sort(function(a, b){ return b.length - a.length; });
+  })();
   function botFanampiana(){
-    // Vondrona fohy, iray isaky ny andalana : ny lisitra tohizana tamin'ny
-    // « · » dia nifangaro tao anaty bulle tery.
-    const vondrona = [
-      ['📦 Stock sy varotra', ['🏠 Botika', '📋 Articles', '📊 Tableau de bord', '🧾 Factures', '📄 PDF', '📠 Multi-service']],
-      ['💰 Vola sy fividianana', ['💰 Portefeuille', '💳 Abonnement', '🛒 Panier', '🌍 Achats internationaux', '🚚 Livraison international']],
-      ['💬 Fifandraisana', ['💬 Message', '📞 Call', '🔴 Live direct', '🔔 Feo', '🔗 Ajouter les liens', '✉️ Inviter des amis']],
-      ['👷 Ekipa sy toerana', ['👷 Mpiasa', '🛵 Livreur', '📍 Toerana & Maps', '📽️ Projecteur']],
-      ['🧰 Fitaovana', ['📒 Notes', '🧮 Calculatrice', '📅 Calendrier', '🕒 Horaire']],
-      ['⚙️ Fikirakirana', ['🖼️ Fond d\'écran', '🌙 Andro / Alina', '🌐 Teny', '🔔 Notifications', '🗑️ Corbeille', '⚙️ Paramètres']]
-    ];
     return 'Ireto no ao amin\'ny Ny asako, ' + BOT_MENU + ' :\n\n' +
-      vondrona.map(function(v){
+      BOT_VONDRONA.map(function(v){
         // pre-line no asehoana ny bulle : tsy mijanona ny elanelana eo
-        // am-piandohan'ny andalana, ka ny litera renibe no manavaka ny lohateny.
-        return v[0].toUpperCase() + '\n' + v[1].join('\n');
+        // am-piandohan'ny andalana ; ny « : » no manavaka ny lohateny (ny
+        // litera renibe dia nadika ho teny hafa : « FITAOVANA » → « CONSTRUCTION »).
+        return v[0] + ' :\n' + v[1].join('\n');
       }).join('\n\n') +
       '\n\nAnontanio ahy ny anaran\'ny iray amin\'ireo, dia hazavaiko hoe inona izy sy ahoana no ampiasana azy.';
   }
@@ -1404,8 +1441,12 @@
   // teny ao aminy : mandresy ny « compte » tokana izy.
   function botMitady(soratra){
     const t = ' ' + botTeny(soratra) + ' ';
+    const isaTeny = t.trim().split(' ').length;
     let tsara = null, isa = 0;
     BOT_FAQ.forEach(function(f){
+      // « tsara », « tsia » : valiny ho an'ny hafatra fohy ihany ; « inona no
+      // tsara hohanina » tsy « Tsara izany ! ».
+      if(f.fohy && isaTeny > 3) return;
       let n = 0;
       f.teny.forEach(function(m){
         const k = botTeny(m);
@@ -1503,19 +1544,37 @@
     // Teny iray na roa fantatra (« salama », « misaotra ») : amin'ny teny
     // malagasy foana, satria diso matetika ny fanavahana fiteny amin'ny
     // teny fohy (« ok » → anglisy).
-    const f0 = botMitady(soratra);
+    let f0 = botMitady(soratra);
+    if(f0 === BOT_FAQ[0] && !botFiarahabanaFotsiny(soratra)) f0 = null;
     if(f0 && botTeny(soratra).split(' ').length <= 2) return botValio(email, soratra, f0, null);
     // Ny hafa : fantarina ny fiteny, ary adika amin'ny teny frantsay ilay
     // fanontaniana mba hahitana ny teny fototra (« ¿dónde están las
     // facturas? » → « factures »).
     return botFantaroTeny(soratra).then(function(t){
       const teny = t ? botTenyAmpiasaina(t.src) : null;
-      const f = (teny && t.fr && botMitady(soratra + ' ' + t.fr)) || f0;
+      let f = (teny && t.fr && botMitady(soratra + ' ' + t.fr)) || f0;
+      // Amin'ny fiteny hafa, ny dikany frantsay no jerena.
+      if(f === BOT_FAQ[0] && teny && t.fr && !botFiarahabanaFotsiny(t.fr)) f = null;
       return botValio(email, soratra + (t && t.fr ? ' ' + t.fr : ''), f, teny);
     });
   }
   // Ny valiny (na ny hafatra « tsy azoko » indray mandeha), adika amin'ny
   // teny nampiasain'ilay olona raha tsy malagasy.
+  // Fiarahabana misy zavatra hafa ao aoriany (« manao ahoana ny sakafo ») :
+  // tsy fiarahabana fotsiny io, ka tsy valiana amin'ny « Salama tompoko ».
+  const BOT_TENY_FIARAHABANA = ['ny', 'ianao', 'ianareo', 'tompoko', 'e', 'ry', 've', 'daholo', 'aby', 'namana', 'ndry', 'zoky', 'zandry',
+    'admin', 'assistant', 'asako', 'bot', 'madame', 'monsieur', 'sir', 'tout', 'le', 'monde', 'a', 'tous', 'everyone', 'there', 'leka',
+    'bonne', 'journee', 'soiree', 'bon', 'matin', 'apres', 'midi', 'good', 'morning', 'evening', 'afternoon', 'day', 'buenos', 'dias',
+    'tompokolahy', 'tompokovavy', 'maraina', 'hariva', 'tolakandro'];
+  function botFiarahabanaFotsiny(soratra){
+    let t = ' ' + botTeny(soratra) + ' ';
+    // Averimberina : « bonjour bonjour » dia samy esorina avokoa.
+    BOT_FAQ[0].teny.forEach(function(m){
+      const k = ' ' + botTeny(m) + ' ';
+      while(t.indexOf(k) >= 0) t = t.split(k).join(' ');
+    });
+    return t.trim().split(' ').filter(function(x){ return x && BOT_TENY_FIARAHABANA.indexOf(x) < 0; }).length === 0;
+  }
   function botValio(email, soratra, f, teny){
     let valiny, lakile = null, sokafyIzao = false;
     if(f){
@@ -1527,12 +1586,22 @@
       }
     } else {
       // Tsy fantatra : tsy misy AI na clef (nofidian'ny tompony, 27/10/2026).
-      // Valiana tsara indray mandeha isaky ny resaka, dia mijanona ny bot ;
-      // tonga any amin'ny admin ihany ilay hafatra.
-      if(botEfaNilaza[email]) return Promise.resolve(null);
-      botEfaNilaza[email] = true;
-      valiny = 'Misaotra tompoko ! Tsy azoko tsara izany fanontaniana izany, fa voaray ny hafatrao ' +
-        'ary ho valian\'ny admin raha vao afaka izy.\n\n' + botFanampiana();
+      // Valiana foana (« afaka manampy ahy ve ianao » tsy navaliana teo,
+      // 27/10/2026), ary tsy mivaona : ireo pejy akaiky ilay fanontaniana no
+      // atolotra ; ny lisitra feno indray mandeha ihany isaky ny resaka.
+      const akaiky = botAkaiky(soratra);
+      if(akaiky.length){
+        valiny = 'Miala tsiny tompoko, tsy azoko tsara ny fanontanianao. Angamba ireto no tadiavinao :\n' +
+          akaiky.join('\n') + '\n\nSoraty ny anaran\'ilay iray dia hazavaiko sy sokafako ho anao.';
+      } else if(!botEfaNilaza[email]){
+        botEfaNilaza[email] = true;
+        valiny = 'Miala tsiny tompoko, tsy azoko tsara izany fanontaniana izany. Ho hitan\'ny admin ny hafatrao ' +
+          'ary hamaly anao izy raha vao afaka.\n\n' + botFanampiana();
+      } else {
+        valiny = 'Miala tsiny tompoko, tsy azoko tsara izany. Manontania ahy momba ny Ny asako ' +
+          '(ohatra : « aiza ny facture », « ahoana no hametrahana vola », « sokafy ny stock »), ' +
+          'na andraso ny valin\'ny admin fa ho hitany ny hafatrao.';
+      }
     }
     return botAdikao(valiny, teny).then(function(v){
       return { soratra: v.soratra, teny: v.teny, sokafy: sokafyIzao ? null : lakile, sokafyIzao: sokafyIzao ? lakile : null };
@@ -1574,11 +1643,21 @@
     const andalana = soratra.split('\n');
     const adika = andalana.filter(function(a){ return /\p{L}{2,}/u.test(a); });
     if(!adika.length) return Promise.resolve({ soratra: soratra, teny: null });
+    // Ny anaran'ny pejy : soloina « 【n】 » (tazonin'i Google, na amin'ny
+    // sinoa aza), dia averina rehefa voadika.
+    function arovy(a){
+      BOT_ANARANA.forEach(function(x, i){ a = a.split(x).join('【' + i + '】'); });
+      return a.replace(/\bny\s+asako\b/gi, 'Nyasako');
+    }
+    function averina(a){
+      // Mety ho lasa « [2] » ilay « 【2】 » amin'ny teny anglisy.
+      return a.replace(/\bnyasako\b/gi, 'Ny asako').replace(/[【\[]\s*(\d+)\s*[】\]]/g, function(m, i){ return BOT_ANARANA[+i] || m; });
+    }
     const url = 'https://translate.googleapis.com/translate_a/t?client=gtx&sl=mg&tl=' + encodeURIComponent(teny) +
-      adika.map(function(a){ return '&q=' + encodeURIComponent(a.replace(/\bny\s+asako\b/gi, 'Nyasako')); }).join('');
+      adika.map(function(a){ return '&q=' + encodeURIComponent(arovy(a)); }).join('');
     return botFetch(url).then(function(data){
       const vokatra = (Array.isArray(data) ? data : [data]).map(function(x){
-        return String(Array.isArray(x) ? x[0] : x).replace(/\bnyasako\b/gi, 'Ny asako');
+        return averina(String(Array.isArray(x) ? x[0] : x));
       });
       let i = 0;
       const vita = andalana.map(function(a){ return /\p{L}{2,}/u.test(a) ? (vokatra[i++] || a) : a; }).join('\n');
