@@ -1031,8 +1031,7 @@
     if(!avy || (!payload.text && !payload.media)) return;
     if(presenceState[avy]) payload.fromName = anaranaAseho(avy);
     (resaka[avy] = resaka[avy] || []).push({ id: payload.id || idHafatra(), avy: 'izy', soratra: String(payload.text || ''), media: payload.media || null, at: Date.now() });
-    const fohy = payload.text ? String(payload.text).slice(0, 120)
-      : (payload.media && payload.media.type === 'video' ? '🎬 Video' : '📷 Sary');
+    const fohy = payload.text ? String(payload.text).slice(0, 120) : anaranaMedia(payload.media);
     feoHafatra();
     if(currentUser && typeof pushNotification === 'function') pushNotification('hafatra', '💬 Hafatra avy amin\'i ' + (payload.fromName || avy) + '.');
     showSystemNotification('💬 ' + (payload.fromName || avy), fohy, 'hafatra-' + avy);
@@ -1079,7 +1078,7 @@
     const me = myIdentity();
     const id = idHafatra();
     sendCallSignal({ kind: 'hafatra', from: me.email, fromName: me.name, to: resakaMisokatra.email, text: soratra || '', media: media || null, id: id });
-    alefaPush(resakaMisokatra.email, 'hafatra', { text: soratra || (media ? (media.type === 'video' ? '🎬 Video' : '📷 Sary') : '') });
+    alefaPush(resakaMisokatra.email, 'hafatra', { text: soratra || anaranaMedia(media) });
     (resaka[resakaMisokatra.email] = resaka[resakaMisokatra.email] || []).push({ id: id, avy: 'izaho', soratra: soratra || '', media: media || null, at: Date.now() });
     asehoyResaka();
     if(soratra) botMamaly(resakaMisokatra.email, soratra);
@@ -1730,30 +1729,111 @@
     if(resakaMisokatra && resakaMisokatra.email === avy) asehoyResaka();
   }
 
+  // Ny anaran'ny media ho an'ny fampandrenesana sy ny lisitra.
+  function anaranaMedia(media){
+    if(!media) return '';
+    return media.type === 'video' ? '🎬 Video' : media.type === 'feo' ? '🎤 Feo' : '📷 Sary';
+  }
+
   function alefaRakitra(fichier){
     if(!fichier || !resakaMisokatra) return;
     const video = /^video\//.test(fichier.type);
-    if(!video && !/^image\//.test(fichier.type)){ alert('Sary na video ihany no azo alefa.'); return; }
+    const feo = /^audio\//.test(fichier.type);
+    if(!video && !feo && !/^image\//.test(fichier.type)){ alert('Sary, video na feo ihany no azo alefa.'); return; }
     if(fichier.size > RESAKA_MEDIA_MAX){ alert('Lehibe loatra ny rakitra (25 Mo farafahabetsany).'); return; }
     if(!window.__sb || !window.__sb.storage){ alert('Tsy misy fifandraisana amin\'ny serveur.'); return; }
     const me = myIdentity();
-    const ext = (fichier.name.split('.').pop() || (video ? 'mp4' : 'jpg')).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 5);
+    const ext = (fichier.name.split('.').pop() || (video ? 'mp4' : feo ? 'webm' : 'jpg')).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 5);
     const nom = String(me.email).replace(/[^a-z0-9]/gi, '_').slice(0, 40) + '/' + Date.now() + '-' +
       Math.random().toString(36).slice(2, 8) + '.' + ext;
     const boaty = document.getElementById('resakaMivantana');
     const toerana = boaty && boaty.querySelector('[data-mandefa]');
-    if(toerana){ toerana.style.display = 'block'; toerana.textContent = (video ? '🎬' : '📷') + ' Mandefa...'; }
-    window.__sb.storage.from(RESAKA_BUCKET).upload(nom, fichier, { contentType: fichier.type, upsert: false })
+    if(toerana){ toerana.style.display = 'block'; toerana.textContent = (video ? '🎬' : feo ? '🎤' : '📷') + ' Mandefa...'; }
+    // « audio/webm;codecs=opus » : ny karazany fotsiny no fantatry ny bucket.
+    const karazany = String(fichier.type).split(';')[0];
+    function apetraho(type){ return window.__sb.storage.from(RESAKA_BUCKET).upload(nom, fichier, { contentType: type, upsert: false }); }
+    apetraho(karazany)
+      .then(function(res){
+        // Bucket mbola tsy mandray « audio/* » (supabase-resaka-media.sql tsy
+        // mbola nalefa indray) : alefa ho « video/webm » na « video/mp4 »,
+        // izay ekeny ; mandeha ao amin'ny <audio> ihany ilay rakitra.
+        if(res && res.error && feo && /mime|type/i.test(String(res.error.message || ''))){
+          return apetraho(karazany.replace(/^audio\/(x-m4a|aac|mpeg)$/, 'video/mp4').replace(/^audio\//, 'video/'));
+        }
+        return res;
+      })
       .then(function(res){
         if(res && res.error) throw res.error;
         const url = window.__sb.storage.from(RESAKA_BUCKET).getPublicUrl(nom).data.publicUrl;
         if(toerana) toerana.style.display = 'none';
-        alefaHafatra('', { url: url, type: video ? 'video' : 'sary' });
+        alefaHafatra('', { url: url, type: video ? 'video' : feo ? 'feo' : 'sary' });
       })
       .catch(function(err){
         if(toerana) toerana.style.display = 'none';
         alert('Tsy lasa ny rakitra : ' + ((err && err.message) || 'erreur'));
       });
+  }
+
+  // ---- 🎤 Feo voarakitra ----
+  // Tsindrio indray mandeha : manomboka ny fandraketana (🔴 sy ny fotoana) ;
+  // tsindrio indray ny ⏹ : alefa. « ✕ Foano » : tsy alefa. Mijanona ho azy
+  // aorian'ny 3 minitra. Ny rakitra dia mandeha toy ny sary sy video
+  // (alefaRakitra, bucket resaka-media).
+  const FEO_MAX_MS = 3 * 60 * 1000;
+  let fandraketana = null;
+  function rakitraFeo(boaty){
+    if(fandraketana){ fandraketana.vita(true); return; }
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined'){
+      alert('Tsy afaka mandrakitra feo ity navigateur ity.');
+      return;
+    }
+    const bokotra = boaty.querySelector('[data-feo]');
+    const toerana = boaty.querySelector('[data-mandefa]');
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream){
+      const karazany = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus', 'audio/ogg']
+        .filter(function(t){ return MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t); })[0];
+      const mr = karazany ? new MediaRecorder(stream, { mimeType: karazany }) : new MediaRecorder(stream);
+      const ampahany = [];
+      const nanomboka = Date.now();
+      let alefa = false;
+      mr.ondataavailable = function(e){ if(e.data && e.data.size) ampahany.push(e.data); };
+      mr.onstop = function(){
+        stream.getTracks().forEach(function(t){ t.stop(); });
+        clearInterval(fotoana);
+        clearTimeout(fetra);
+        fandraketana = null;
+        bokotra.textContent = '🎤';
+        bokotra.title = 'Handrakitra feo';
+        toerana.style.display = 'none';
+        toerana.innerHTML = '';
+        if(!alefa || !ampahany.length || Date.now() - nanomboka < 700) return;
+        const type = String(mr.mimeType || karazany || 'audio/webm');
+        const ext = /mp4/.test(type) ? 'm4a' : /ogg/.test(type) ? 'ogg' : 'webm';
+        const blob = new Blob(ampahany, { type: type });
+        let fichier;
+        try{ fichier = new File([blob], 'feo.' + ext, { type: type }); }
+        catch(e){ fichier = blob; fichier.name = 'feo.' + ext; }
+        alefaRakitra(fichier);
+      };
+      function asehoy(){
+        const s = Math.floor((Date.now() - nanomboka) / 1000);
+        const ora = toerana.querySelector('[data-feo-ora]');
+        if(ora) ora.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+      }
+      toerana.style.display = 'block';
+      toerana.innerHTML = '<span style="color:#e5484d;">🔴</span> Mandrakitra… <span data-feo-ora>0:00</span> — ' +
+        'tsindrio ny ⏹ handefasana ' +
+        '<button type="button" data-feo-foano class="btn btn-sm" style="width:auto; margin-left:0.4rem; padding:0.1rem 0.5rem;">✕ Foano</button>';
+      toerana.querySelector('[data-feo-foano]').addEventListener('click', function(){ if(fandraketana) fandraketana.vita(false); });
+      bokotra.textContent = '⏹';
+      bokotra.title = 'Alefaso ny feo';
+      const fotoana = setInterval(asehoy, 500);
+      const fetra = setTimeout(function(){ if(fandraketana) fandraketana.vita(true); }, FEO_MAX_MS);
+      fandraketana = { vita: function(hoAlefa){ alefa = hoAlefa; if(mr.state !== 'inactive') mr.stop(); } };
+      mr.start();
+    }).catch(function(){
+      alert('Tsy azo ampiasaina ny microphone. Avelao ao amin\'ny navigateur ny fidirana amin\'ny microphone.');
+    });
   }
 
   function sokafyEmoji(boaty, input){
@@ -1827,6 +1907,7 @@
           '<button type="button" class="btn btn-sm" data-emoji-bokotra title="Emoji" style="width:auto; flex:none;">😊</button>' +
           '<button type="button" class="btn btn-sm" data-rakitra title="Sary na video" style="width:auto; flex:none;">📎</button>' +
           '<input type="file" data-rakitra-input accept="image/*,video/*" style="display:none;">' +
+          '<button type="button" class="btn btn-sm" data-feo title="Handrakitra feo" aria-label="Handrakitra feo" style="width:auto; flex:none;">🎤</button>' +
           '<input type="text" data-soratra placeholder="Soraty ny hafatra..." style="flex:1; min-width:0; padding:0.5rem 0.7rem; ' +
             'border-radius:8px; border:1px solid var(--line); background:var(--bg); color:var(--text); font-size:0.82rem;">' +
           '<button type="button" class="btn btn-sm btn-primary" data-alefa style="width:auto; flex:none;">Alefa</button>' +
@@ -1904,6 +1985,7 @@
         fichierInput.value = '';
         alefaRakitra(f);
       });
+      boaty.querySelector('[data-feo]').addEventListener('click', function(){ rakitraFeo(boaty); });
     }
     boaty.style.display = 'flex';
     asehoyResaka();
@@ -1943,6 +2025,8 @@
             const url = escapeHtml(h.media.url);
             atiny += h.media.type === 'video'
               ? '<video src="' + url + '" controls playsinline style="display:block; max-width:100%; max-height:260px; border-radius:8px;"></video>'
+              : h.media.type === 'feo'
+              ? '<audio src="' + url + '" controls preload="metadata" style="display:block; width:230px; max-width:100%; height:36px;"></audio>'
               : '<a href="' + url + '" target="_blank" rel="noopener"><img src="' + url + '" alt="Sary" ' +
                   'style="display:block; max-width:100%; max-height:260px; border-radius:8px;"></a>';
           }

@@ -7,13 +7,15 @@
 -- Ny resaka dia mandeha amin'ny broadcast (tsy voatahiry) ; ny rakitra kosa
 -- lehibe loatra ho an'ny broadcast, ka apetraka eto ary ny rohiny no
 -- alefa. Ny mpitsidika tsy niditra (anon) dia mandefa koa, toy ny
--- « annonce-video » : voafetra ho sary sy video, 25 Mo isaky ny rakitra.
+-- « annonce-video » : voafetra ho sary, video ary feo voarakitra (🎤,
+-- 27/10/2026), 25 Mo isaky ny rakitra.
 -- ============================================================
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('resaka-media', 'resaka-media', true, 26214400,
   array['image/jpeg','image/png','image/webp','image/gif',
-        'video/mp4','video/webm','video/quicktime','video/ogg'])
+        'video/mp4','video/webm','video/quicktime','video/ogg',
+        'audio/webm','audio/ogg','audio/mp4','audio/mpeg','audio/aac','audio/wav','audio/x-m4a'])
 on conflict (id) do update set
   public = excluded.public,
   file_size_limit = excluded.file_size_limit,
