@@ -1187,6 +1187,21 @@
   .kpi-card .kpi-label{ font-family:var(--font-mono); font-size:0.66rem; text-transform:uppercase; color:var(--muted); letter-spacing:0.04em; }
   .kpi-card .kpi-value{ font-family:var(--font-display); font-size:1.35rem; font-weight:700; margin-top:0.35rem; color:var(--text); }
 
+  /* Espace admin : les chiffres des cartes sur une même ligne, même quand un
+     libellé (« Codes changés / déblocages ») passe sur deux ; le bouton
+     « Actualiser » sous les boutons de la fenêtre, et non contre eux ; les
+     dates et les en-têtes des tableaux sur une seule ligne. */
+  #section-admin .kpi-card{ display:flex; flex-direction:column; justify-content:space-between; gap:0.5rem; }
+  #section-admin .kpi-card .kpi-label{ line-height:1.4; }
+  #section-admin .kpi-card .kpi-value{ margin-top:0; font-variant-numeric:tabular-nums; }
+  #section-admin.fenetre-page .section-head{ margin-top:1.4rem; align-items:center; }
+  #section-admin th,
+  #section-admin td:first-child{ white-space:nowrap; }
+  #section-admin td{ vertical-align:middle; }
+  #section-admin tbody tr:hover{ background:color-mix(in srgb, var(--text) 5%, transparent); }
+  #adminVisiteursTable th:last-child,
+  #adminVisiteursTable td:last-child{ text-align:right; font-variant-numeric:tabular-nums; font-weight:600; }
+
   .chart-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:0.9rem; margin-bottom:1.4rem; }
   .chart-panel{ background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:1.1rem; }
   .chart-panel h4{ font-family:var(--font-mono); font-size:0.72rem; color:var(--cyan); margin-bottom:0.8rem; text-align:center; font-weight:500; }
