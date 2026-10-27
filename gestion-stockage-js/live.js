@@ -1133,9 +1133,10 @@
     { teny: ['mpiasa', 'employe', 'employé', 'livreur', 'livraison', 'equipe', 'équipe', 'mpitondra'],
       valiny: '👷 Mpiasa sy livreur : samy miditra amin\'ny rohiny manokana ny mpiasa tsirairay (ora, asa). ' +
         'Manaraka ny diany ny livreur, ary hitanao hoe aiza izy.' },
-    { teny: ['binance', 'payoneer', 'crypto', 'usdt', 'bybit', 'okx', 'parrainage', 'referral'],
-      valiny: '💸 Binance, Payoneer & hafa : hitanao ao amin\'ny Botika sy ao amin\'ny « Inviter des amis » ireo rohy fisoratana anarana. ' +
-        'Hametrahana ny rohinao manokana : 5 000 Ar indray mandeha avy amin\'ny Portefeuille.' },
+    { teny: ['binance', 'payoneer', 'crypto', 'usdt', 'parrainage', 'referral', 'plateforme', 'sehatra',
+        'bybit', 'okx', 'kucoin', 'bitget', 'redotpay', 'wise', 'skrill', 'airtm', 'exness', 'deriv',
+        'bet261', 'aviator', '1xbet', 'melbet', 'trading', 'paris', 'filokana'],
+      valiny: botSehatra },
     { teny: ['affiliation', 'inviter', 'invitation', 'manasa', 'namana', 'ami', 'parrain', 'commission'],
       valiny: '🤝 Affiliation : zarao ny rohinao avy amin\'ny « Inviter des amis ». Mahazo 500 Ar ianao isaky ny olona ' +
         'misoratra anarana amin\'ny rohinao (vola ao anaty appli, azo avadika).' },
@@ -1148,6 +1149,53 @@
     { teny: ['misaotra', 'merci', 'thanks', 'mersi'],
       valiny: 'Tsy misy fisaorana ! Raha mbola misy fanontaniana, soraty fotsiny eto. 😊' }
   ];
+  // Binance, Payoneer sy ny hafa : ireo rohy hita ao amin'ny Botika
+  // (parrain-botika.js), miaraka amin'ny fanazavana fohy. Raha misy anarana
+  // sehatra ao amin'ny fanontaniana, ireo ihany no omena ; raha tsy izany, ny
+  // lisitra manontolo. Ny lalao misaraka, miaraka amin'ny fampitandremana.
+  const BOT_SEHATRA = {
+    'binance': 'crypto, mividy sy mivarotra amin\'ny Ariary amin\'ny MVola / Orange Money (P2P)',
+    'payoneer': 'handraisana vola avy amin\'ny mpanjifa sy sehatra any ivelany',
+    'bybit': 'crypto sy trading, P2P amin\'ny Ariary',
+    'okx': 'crypto sy trading, P2P amin\'ny Ariary',
+    'kucoin': 'crypto sy trading',
+    'bitget': 'crypto sy trading',
+    'redotpay': 'karatra crypto handoavana an-tserasera',
+    'wise': 'fandefasana vola iraisam-pirenena',
+    'skrill': 'portefeuille an-tserasera, fandoavana iraisam-pirenena',
+    'airtm': 'dolara an-tserasera, misintona amin\'ny Mobile Money',
+    'exness': 'trading, misy loza',
+    'deriv': 'trading, misy loza'
+  };
+  const BOT_LALAO = ['bet261', 'aviator', '1xbet', 'melbet', 'lalao malagasy (loterie)'];
+  function botSehatra(soratra){
+    const lisitra = (typeof window.__lisitraParrain === 'function') ? window.__lisitraParrain() : [];
+    if(!lisitra.length){
+      return '💸 Binance, Payoneer & hafa : hitanao ao amin\'ny Botika ireo rohy fisoratana anarana.';
+    }
+    const t = botMadio(soratra);
+    const voatonona = lisitra.filter(function(x){ return t.indexOf(botMadio(x.nom)) >= 0; });
+    const ireo = voatonona.length ? voatonona : lisitra;
+    const andalana = function(x){
+      const mot = BOT_SEHATRA[x.nom.toLowerCase()];
+      const valeur = /^https?:\/\//i.test(x.rohy) ? x.rohy : 'code ' + x.rohy;
+      return '• ' + x.nom + (mot ? ' : ' + mot : '') + '\n' + valeur;
+    };
+    const vola = ireo.filter(function(x){ return BOT_LALAO.indexOf(x.nom.toLowerCase()) < 0; });
+    const lalao = ireo.filter(function(x){ return BOT_LALAO.indexOf(x.nom.toLowerCase()) >= 0; });
+    let valiny = '';
+    if(vola.length){
+      valiny += (voatonona.length ? '' : '💸 Handraisana, handefasana sy hitantanana ny volanao an-tserasera, ' +
+        'misorata anarana amin\'ireto sehatra ireto amin\'ireo rohy ireo. ') +
+        'Aorian\'ny fisoratana anarana, ataovy ny vérification (KYC) amin\'ny CIN na passeport :\n\n' +
+        vola.map(andalana).join('\n\n');
+    }
+    if(lalao.length){
+      valiny += (valiny ? '\n\n' : '') + '🎲 Lalao sy filokana (18 taona no ho miakatra ihany, ary aza milalao vola tsy azonao very) :\n\n' +
+        lalao.map(andalana).join('\n\n');
+    }
+    return valiny;
+  }
   // Tsy misy marika (é → e) ary litera madinika : « Abonnement » = « abonnement ».
   function botMadio(t){
     return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -1169,7 +1217,7 @@
     const me = myIdentity();
     if(me.isAdmin || isOwnerEmail(me.email)) return;
     const f = botMitady(soratra);
-    let valiny = f ? f.valiny : null;
+    let valiny = f ? (typeof f.valiny === 'function' ? f.valiny(soratra) : f.valiny) : null;
     if(!valiny){
       if(botEfaNilaza[email]) return;
       botEfaNilaza[email] = true;
@@ -1181,6 +1229,29 @@
       if(resakaMisokatra && resakaMisokatra.email === email) asehoyResaka();
     }, 700);
   }
+
+  // « nyasako.com/?bot=1 » (ny rohy ao amin'ny hafatra fanasana, inviter.js) :
+  // misokatra avy hatrany ny resaka amin'ny admin, ary miarahaba ny bot.
+  // Esorina ao amin'ny adiresy ny « bot=1 », mba tsy hisokatra indray izy
+  // rehefa averina ny pejy.
+  (function(){
+    let q;
+    try{ q = new URLSearchParams(location.search); }catch(e){ return; }
+    if(q.get('bot') !== '1') return;
+    q.delete('bot');
+    try{ history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString() : '') + location.hash); }catch(e){}
+    // Aorian'ny fanombohan'ny appli (kaonty, présence).
+    setTimeout(function(){
+      const me = myIdentity();
+      if(me.isAdmin || isOwnerEmail(me.email)) return;
+      sokafyResaka(OWNER_EMAIL, 'Ny asako');
+      const lisitra = resaka[OWNER_EMAIL] = resaka[OWNER_EMAIL] || [];
+      if(!lisitra.length){
+        lisitra.push({ id: idHafatra(), avy: 'bot', soratra: BOT_FAQ[0].valiny, at: Date.now() });
+        asehoyResaka();
+      }
+    }, 1500);
+  })();
 
   // ---------------- FAMAFANA HAFATRA ----------------
   // Ny hafatra iray (✕) na ny resaka manontolo (🗑️) : voafafa eto sy any
@@ -1423,6 +1494,11 @@
           // Ny valin'ny bot : ankavia toy ny an'ilay olona, fa misy ny anarany
           // sy loko hafa, mba tsy hampifangaroana azy amin'ny tenin'ny admin.
           if(h.avy === 'bot'){
+            // Ny rohy ao anatin'ny valiny : azo tsindriana. Ny andalana vaovao
+            // mijanona ho andalana vaovao.
+            atiny = '<div style="white-space:pre-line;">' + escapeHtml(h.soratra || '').replace(/https:\/\/[^\s<]+/g, function(u){
+              return '<a href="' + u + '" target="_blank" rel="noopener" style="color:var(--cyan); text-decoration:underline;">' + u + '</a>';
+            }) + '</div>';
             return '<div style="display:flex; justify-content:flex-start; margin:0.25rem 0;">' +
               '<span style="max-width:85%; padding:0.4rem 0.6rem; border-radius:10px; overflow-wrap:anywhere; ' +
                 'background:color-mix(in srgb, var(--cyan) 14%, var(--panel-2)); color:var(--text); ' +
