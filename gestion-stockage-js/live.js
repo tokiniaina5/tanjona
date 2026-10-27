@@ -1112,7 +1112,7 @@
       valiny: 'Essai maimaimpoana 15 andro : ny 7 andro voalohany dia miditra tsy misy kaonty ianao. ' +
         'Aorian\'izay dia angatahana kaonty, fa mijanona daholo izay efa nampidirinao. ' +
         'Rehefa tapitra ny 15 andro, abonnement isam-bolana na isan-taona no mila.' },
-    { teny: ['inscription', 'misoratra', 'soratra anarana', 'kaonty', 'compte', 'creer', 'créer', 'mamorona'],
+    { teny: ['inscription', 'misoratra', 'soratra anarana', 'kaonty', 'compte', 'creer un compte', 'créer un compte', 'mamorona kaonty', 'hamorona kaonty'],
       valiny: 'Fisoratana anarana : ny anaranao, ny email sy ny finday, ny logo (indray mandeha ihany), ' +
         'ary mot de passe soratana indroa. Azonao ampiasaina amin\'ny finday na ordinateur rehetra izy avy eo.' },
     { teny: ['mot de passe', 'motdepasse', 'password', 'tenimiafina', 'hadino', 'oublie', 'oublié', 'bloque', 'bloqué', 'voahidy', 'debloquer', 'débloquer', 'code'],
@@ -1236,6 +1236,29 @@
     { teny: ['story', 'stories', 'tantara'],
       valiny: '📸 Story : ao amin\'ny 🏠 Botika, eo ambanin\'ny lohateny. Tsindrio « Hanampy story » hampidirana sary na video, ' +
         'mijanona 24 ora izy.' },
+    // Firesahana andavanandro : tsy misy AI, ka eto no ampiana raha misy
+    // fiteny matetika tsy voavaly.
+    { teny: ['iza ianao', 'iza moa ianao', 'qui es tu', 'qui etes vous', 'who are you', 'robot ve ianao', 'olona ve ianao', 'bot ve ianao'],
+      valiny: 'Izaho no Assistant Ny asako, mpanampy ao anaty appli. Tsy olona aho, fa fantatro tsara ny ao amin\'ny Ny asako. ' +
+        'Ny admin kosa no mamaly izay tsy fantatro.' },
+    { teny: ['inona vaovao', 'quoi de neuf', 'ca va', 'ça va', 'how are you', 'salama ve'],
+      valiny: 'Tsara be aho, misaotra tompoko ! Ary ianao, manao ahoana ? Inona no azoko anampiana anao androany ?' },
+    { teny: ['tsara', 'tsara be', 'ok', 'okay', 'eny', 'oui', 'yes', 'd accord', 'dac', 'azoko'],
+      valiny: 'Tsara izany ! Raha mbola misy zavatra tianao ho fantatra, soraty fotsiny eto.' },
+    { teny: ['tsia', 'non', 'tsy ilaina', 'rien'],
+      valiny: 'Eny ary tompoko. Eto foana aho raha mila fanampiana ianao.' },
+    { teny: ['veloma', 'au revoir', 'bye', 'mandra pihaona', 'a plus', 'bonne nuit', 'tafandria mandry'],
+      valiny: 'Veloma tompoko, mandra-pihaona ! Misaotra nifandray tamin\'ny Ny asako.' },
+    { teny: ['miala tsiny', 'pardon', 'desole', 'désolé', 'sorry', 'azafady'],
+      valiny: 'Tsy maninona tompoko ! Inona no azoko anampiana anao ?' },
+    { teny: ['tsy azoko', 'tsy mazava', 'je ne comprends pas', 'pas compris', 'i don t understand', 'hazavao'],
+      valiny: 'Andao hohazavaiko tsara kokoa : soraty ny anaran\'ilay pejy na fitaovana tianao ho fantatra (ohatra « facture », « portefeuille », « stock ») dia hazavaiko tsikelikely.' },
+    { teny: ['olana', 'probleme', 'problème', 'bug', 'tsy mandeha', 'tsy mety', 'erreur', 'blocage'],
+      valiny: 'Miala tsiny amin\'izany olana izany tompoko ! Lazao ahy hoe aiza no tsy mandeha (ohatra : facture, portefeuille, fidirana) ' +
+        'sy izay hita eo amin\'ny écran. Ho hitan\'ny admin koa ity hafatra ity ka hanampy anao izy.' },
+    { teny: ['admin', 'tompony', 'olona tena izy', 'mpitantana', 'responsable', 'proprietaire'],
+      valiny: 'Tonga any amin\'ny admin avokoa ny hafatra soratanao eto, ary hamaly anao izy raha vao afaka. ' +
+        'Afaka manoratra ny fanontanianao mivantana ianao.' },
     { teny: ['misaotra', 'merci', 'thanks', 'mersi'],
       valiny: 'Tsy misy fisaorana ! Raha mbola misy fanontaniana, soraty fotsiny eto. 😊' },
     // Ny ankapobeny farany : tsy mandresy afa-tsy raha tsy misy hafa hita.
@@ -1388,34 +1411,19 @@
     const valiny = botValyEmoji(soratra) ||
       (f ? (typeof f.valiny === 'function' ? f.valiny(soratra) : f.valiny) : null);
     if(valiny){ botApetraho(email, valiny, 700); return; }
-    // Tsy fantatra eto : ny AI (fonction « assistant ») no manapa-kevitra
-    // raha valiana ilay fanontaniana. Raha momba ny appli izy, na tsy tokony
-    // valiana, na tsy tafiditra ny AI, dia ny admin no hamaly toy ny taloha.
-    botAnontanioAI(soratra).then(function(v){
-      if(v && v.valiana && v.valiny){ botApetraho(email, v.valiny, 0); return; }
-      if(v && v.antony === 'tsy'){
-        botApetraho(email, 'Miala tsiny tompoko, tsy afaka mamaly an\'io fanontaniana io aho. ' +
-          'Fa raha misy zavatra hafa tianao ho fantatra, na momba ny Ny asako, anontanio fotsiny aho.', 0);
-        return;
-      }
-      if(botEfaNilaza[email]) return;
-      botEfaNilaza[email] = true;
-      botApetraho(email, 'Voaray ny hafatrao, ary ho valian\'ny admin raha vao afaka izy.\n\n' + botFanampiana(), 0);
-    });
+    // Tsy fantatra : tsy misy AI na clef (nofidian'ny tompony, 27/10/2026).
+    // Valiana tsara indray mandeha isaky ny resaka, dia mijanona ny bot ;
+    // tonga any amin'ny admin ihany ilay hafatra.
+    if(botEfaNilaza[email]) return;
+    botEfaNilaza[email] = true;
+    botApetraho(email, 'Misaotra tompoko ! Tsy azoko tsara izany fanontaniana izany, fa voaray ny hafatrao ' +
+      'ary ho valian\'ny admin raha vao afaka izy.\n\n' + botFanampiana(), 700);
   }
   function botApetraho(email, valiny, elanelana){
     setTimeout(function(){
       (resaka[email] = resaka[email] || []).push({ id: idHafatra(), avy: 'bot', soratra: botEmoji(valiny), at: Date.now() });
       if(resakaMisokatra && resakaMisokatra.email === email) asehoyResaka();
     }, elanelana);
-  }
-  // { valiana, valiny, antony } avy amin'ny fonction, na null raha tsy
-  // tafiditra (tsy misy réseau, tsy misy Supabase).
-  function botAnontanioAI(soratra){
-    if(!window.__sb || !window.__sb.functions || !window.__sb.functions.invoke) return Promise.resolve(null);
-    return window.__sb.functions.invoke('assistant', { body: { fanontaniana: soratra } })
-      .then(function(res){ return (res && !res.error && res.data) ? res.data : null; })
-      .catch(function(){ return null; });
   }
 
   // Ny resaka amin'ny admin, miaraka amin'ny fiarahaban'ny bot raha mbola
