@@ -64,16 +64,26 @@ const RETENTION_JOURS = Number(Deno.env.get("RETENTION_JOURS") ?? "30");
 // Les messages, eux, ne vivent que sept jours (27/10/2026) : les messages
 // du formulaire de contact (contact_messages). Les photos, vidéos et notes
 // vocales des discussions (bucket « resaka-media », un dossier par adresse)
-// trois jours seulement. Le même passage quotidien s'en charge.
+// trois jours pour les photos, un seul pour les vidéos et les notes vocales
+// (27/10/2026). Le même passage quotidien s'en charge.
 const RESAKA_BUCKET = "resaka-media";
 const RESAKA_JOURS = Number(Deno.env.get("RESAKA_JOURS") ?? "7");
 const RESAKA_MEDIA_JOURS = Number(Deno.env.get("RESAKA_MEDIA_JOURS") ?? "3");
+const RESAKA_FEO_VIDEO_JOURS = Number(Deno.env.get("RESAKA_FEO_VIDEO_JOURS") ?? "1");
+
+// Photo ou non : le type enregistré par le stockage, sinon l'extension.
+function estImage(f: { name: string; metadata?: Record<string, unknown> | null }): boolean {
+  const type = String((f.metadata && (f.metadata as Record<string, unknown>).mimetype) || "");
+  if (type) return type.startsWith("image/");
+  return /\.(jpe?g|png|webp|gif|heic|heif)$/i.test(f.name);
+}
 
 type Admin = ReturnType<typeof createClient>;
 
 // Un niveau de dossiers : « nom_gmail_com/1730000000-abc.webm ». Une entrée
 // sans id est un dossier.
-async function vieuxResaka(admin: Admin, limite: number): Promise<{ noms: string[]; vus: number; erreur?: string }> {
+// limite : celle des photos ; limiteFeoVideo : celle des vidéos et des voix.
+async function vieuxResaka(admin: Admin, limite: number, limiteFeoVideo: number): Promise<{ noms: string[]; vus: number; erreur?: string }> {
   const noms: string[] = [];
   let vus = 0;
   const lire = async (dossier: string) => {
@@ -88,7 +98,7 @@ async function vieuxResaka(admin: Admin, limite: number): Promise<{ noms: string
         if (!f.id) { if (!dossier) await lire(chemin); continue; }
         vus++;
         const d = f.created_at ? Date.parse(f.created_at) : NaN;
-        if (Number.isFinite(d) && d < limite) noms.push(chemin);
+        if (Number.isFinite(d) && d < (estImage(f) ? limite : limiteFeoVideo)) noms.push(chemin);
       }
       if (lot.length < 1000) break;
     }
@@ -99,11 +109,12 @@ async function vieuxResaka(admin: Admin, limite: number): Promise<{ noms: string
 
 async function menageResaka(admin: Admin, essai: boolean) {
   const limite = Date.now() - RESAKA_JOURS * 24 * 60 * 60 * 1000;
-  const fichiers = await vieuxResaka(admin, Date.now() - RESAKA_MEDIA_JOURS * 24 * 60 * 60 * 1000);
+  const fichiers = await vieuxResaka(admin, Date.now() - RESAKA_MEDIA_JOURS * 24 * 60 * 60 * 1000,
+    Date.now() - RESAKA_FEO_VIDEO_JOURS * 24 * 60 * 60 * 1000);
   const depuis = new Date(limite).toISOString();
   if (essai) {
     const { count } = await admin.from("contact_messages").select("id", { count: "exact", head: true }).lt("created_at", depuis);
-    return { jours: RESAKA_JOURS, joursMedia: RESAKA_MEDIA_JOURS, fichiersVus: fichiers.vus, fichiersRetenus: fichiers.noms.length,
+    return { jours: RESAKA_JOURS, joursMedia: RESAKA_MEDIA_JOURS, joursFeoVideo: RESAKA_FEO_VIDEO_JOURS, fichiersVus: fichiers.vus, fichiersRetenus: fichiers.noms.length,
       contactRetenus: count ?? 0, erreur: fichiers.erreur };
   }
   let fichiersEffaces = 0;
@@ -115,7 +126,7 @@ async function menageResaka(admin: Admin, essai: boolean) {
   }
   const { count, error } = await admin.from("contact_messages").delete({ count: "exact" }).lt("created_at", depuis);
   if (error) soucis.push(error.message);
-  return { jours: RESAKA_JOURS, joursMedia: RESAKA_MEDIA_JOURS, fichiersVus: fichiers.vus, fichiersEffaces, contactEffaces: count ?? 0, soucis };
+  return { jours: RESAKA_JOURS, joursMedia: RESAKA_MEDIA_JOURS, joursFeoVideo: RESAKA_FEO_VIDEO_JOURS, fichiersVus: fichiers.vus, fichiersEffaces, contactEffaces: count ?? 0, soucis };
 }
 
 Deno.serve(async (req: Request) => {

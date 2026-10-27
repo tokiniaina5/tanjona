@@ -1027,16 +1027,21 @@
   // sy ny contact_messages, isan'andro (fonction menage-video).
   // Ny sary, video ary feo kosa : 3 andro ihany ; efa voafafa any amin'ny
   // serveur ny rakitra aorian'izay, ka tsy hisokatra intsony.
+  // Ny video sy ny feo : 1 andro ihany (27/10/2026).
   const RESAKA_ANDRO = 7;
   const RESAKA_MEDIA_ANDRO = 3;
+  const RESAKA_FEO_VIDEO_ANDRO = 1;
   function fafaoResakaTaloha(){
-    const fetra = Date.now() - RESAKA_ANDRO * 24 * 60 * 60 * 1000;
-    const fetraMedia = Date.now() - RESAKA_MEDIA_ANDRO * 24 * 60 * 60 * 1000;
+    const andro = 24 * 60 * 60 * 1000;
+    const fetra = Date.now() - RESAKA_ANDRO * andro;
+    const fetraSary = Date.now() - RESAKA_MEDIA_ANDRO * andro;
+    const fetraFeoVideo = Date.now() - RESAKA_FEO_VIDEO_ANDRO * andro;
     let niova = false;
     Object.keys(resaka).forEach(function(email){
       const sisa = resaka[email].filter(function(h){
         if(h.miandry || !h.at) return true;
-        return h.at >= (h.media ? fetraMedia : fetra);
+        if(!h.media) return h.at >= fetra;
+        return h.at >= (h.media.type === 'sary' ? fetraSary : fetraFeoVideo);
       });
       if(sisa.length !== resaka[email].length){ resaka[email] = sisa; niova = true; }
     });
