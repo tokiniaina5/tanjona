@@ -1221,9 +1221,9 @@
     { teny: ['chrome', 'edge', 'navigateur', 'google', 'internet', 'site hafa'],
       valiny: 'Chrome sy Edge ' + BOT_MENU + ' : manokatra ny navigateur hikarohana zavatra any ivelan\'ny appli.' },
     { teny: ['barre', 'barre ambany', 'fenetre', 'fenetres', 'alamino', 'grille', 'cascade', 'hidio daholo', 'icone', 'icones', 'onglet'],
-      valiny: 'Barre ambany : Menu, 🔍 Karohy, ✏️ Écrire, 🏠 Botika, ary ⋯ (Réglages). Ao amin\'ny ⋯ ianao no mifidy hoe Manuel na Automatique ' +
-        'ny fialan\'ny sary, manao 🗂️ Alamino (Milahatra, Grille, Mifanila roa, Cascade, Mifanongoa) na ❌ Hidio daholo ny fenêtre, ' +
-        'ary ao koa ity Assistant ity.' },
+      valiny: 'Barre ambany : 🤖 ity Assistant ity (eo ankavia indrindra), Menu, 🔍 Karohy, ✏️ Écrire, 🏠 Botika, ary ⋯ (Réglages). ' +
+        'Ao amin\'ny ⋯ ianao no mifidy hoe Manuel na Automatique ny fialan\'ny sary, ' +
+        'manao 🗂️ Alamino (Milahatra, Grille, Mifanila roa, Cascade, Mifanongoa) na ❌ Hidio daholo ny fenêtre.' },
     { teny: ['hidio', 'atory', 'veille', 'deconnecter', 'deconnexion', 'avereno', 'redemarrer', 'verrouiller', 'mivoaka', 'se deconnecter'],
       valiny: 'Tazomy ela ilay logo Menu eo amin\'ny barre ambany : miseho ny 🔒 Hidio, 🌙 Atory, ⏻ Déconnecter ary 🔄 Avereno. ' +
         'Ny « Se déconnecter » koa dia eo ambanin\'ny Menu.' },
@@ -1568,7 +1568,7 @@
 
   // Ny resaka amin'ny admin, miaraka amin'ny fiarahaban'ny bot raha mbola
   // foana. Ampiasain'ny rohy ?bot=1 sy ny bokotra « 🤖 Assistant Ny asako »
-  // (ao amin'ny ⋯ eo amin'ny barre ambany). Tsy ho an'ny admin : tsy mamaly
+  // (🤖 eo amin'ny barre ambany, alohan'ny N). Tsy ho an'ny admin : tsy mamaly
   // azy ny bot.
   function sokafyBot(){
     const me = myIdentity();

@@ -7893,7 +7893,7 @@
       const bouton = e.target.closest ? e.target.closest('.dash-tab') : null;
       if(!bouton || !rangee.contains(bouton)) return;
       // La loupe et les réglages tiennent la rangée : ils n'en sortent pas.
-      if(bouton.id === 'menuToggle' || bouton.id === 'barReglagesBtn' || bouton.id === 'barRecherche') return;
+      if(bouton.id === 'menuToggle' || bouton.id === 'barReglagesBtn' || bouton.id === 'barRecherche' || bouton.id === 'barBot') return;
       if(e.target.closest && e.target.closest('.epingle-retirer')) return;
       const cle = bouton.dataset.epingle || (bouton.id ? 'fixe:' + bouton.id : null);
       if(!cle) return;
