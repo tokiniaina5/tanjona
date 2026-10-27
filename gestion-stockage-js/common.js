@@ -1068,6 +1068,19 @@
   function historiqueMasque(){
     try { return JSON.parse(localStorage.getItem(HISTORIQUE_MASQUE_KEY)) || []; } catch(e){ return []; }
   }
+  // L'historique ne montre que les 10 derniers : au-delà, les plus anciens
+  // s'effacent d'eux-mêmes de l'écran. Ils restent au serveur (ce sont des
+  // comptes d'argent) ; ce qui attend encore se montre toujours.
+  const HISTORIQUE_MAX = 10;
+  function dixDerniers(rows, enCours){
+    let place = HISTORIQUE_MAX - rows.filter(enCours).length;
+    return rows.filter(function(r){
+      if(enCours(r)) return true;
+      if(place <= 0) return false;
+      place--;
+      return true;
+    });
+  }
   function masquerDansHistorique(id){
     const ids = historiqueMasque();
     if(ids.indexOf(id) < 0) ids.unshift(id);
@@ -1509,7 +1522,8 @@
     if(!list || !walletState) return;
     const masques = historiqueMasque();
     const tous = walletState.payouts || [];
-    const rows = tous.filter(function(r){ return r.status === 'pending' || masques.indexOf(r.id) < 0; });
+    const rows = dixDerniers(tous.filter(function(r){ return r.status === 'pending' || masques.indexOf(r.id) < 0; }),
+      function(r){ return r.status === 'pending'; });
     list.innerHTML = '';
     if(empty) empty.style.display = rows.length ? 'none' : 'block';
     rows.forEach(function(r){
@@ -1617,7 +1631,8 @@
     if(!list || !walletState) return;
     const masques = historiqueMasque();
     const tous = walletState.deposits || [];
-    const rows = tous.filter(function(r){ return r.status === 'en_attente' || masques.indexOf(r.id) < 0; });
+    const rows = dixDerniers(tous.filter(function(r){ return r.status === 'en_attente' || masques.indexOf(r.id) < 0; }),
+      function(r){ return r.status === 'en_attente'; });
     list.innerHTML = '';
     if(empty) empty.style.display = rows.length ? 'none' : 'block';
     rows.forEach(function(r){
@@ -2026,7 +2041,7 @@
     const list = document.getElementById('transfertList');
     const empty = document.getElementById('transfertEmpty');
     if(!list || !walletState) return;
-    const rows = walletState.transferts || [];
+    const rows = dixDerniers(walletState.transferts || [], function(){ return false; });
     list.innerHTML = '';
     if(empty) empty.style.display = rows.length ? 'none' : 'block';
     rows.forEach(function(t){
