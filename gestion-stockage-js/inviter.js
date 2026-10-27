@@ -132,11 +132,12 @@
   // La liste des pages de Ny asako et celle de Binance, Payoneer & hafa n'y
   // sont plus : le bot de Message (BOT_FAQ, live.js) répond à tout cela, liens
   // compris. Une ligne pour y renvoyer.
-  // Le lien ouvre la conversation avec le bot (« ?bot=1 », live.js) : dans
-  // WhatsApp, un lien tient lieu de bouton.
+  // Plus de lien vers le bot : l'application a son bouton « Manontania ny
+  // bot » (Botika, Message). Les liens « ?bot=1 » déjà envoyés s'ouvrent
+  // encore (live.js).
   function nyAsakoTexte(){
     return '\n\nUne question sur Ny asako (prix, essai gratuit, portefeuille, boutique, Binance, Payoneer…) ? ' +
-      'Le bot Ny asako te répond tout de suite, ouvre la discussion ici :\n' + publicBaseUrl() + '?bot=1';
+      'Dans l\'application, touche « Manontania ny bot » : le bot Ny asako te répond tout de suite.';
   }
   // Le court, pour X : 280 caractères, la liste n'y tient pas.
   function inviteMessageCourt(link){
