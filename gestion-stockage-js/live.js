@@ -1095,7 +1095,7 @@
   // Raha miova ny vidiny na ny fepetra, ovay eto koa.
   const BOT_FAQ = [
     { teny: ['salama', 'manao ahoana', 'bonjour', 'bonsoir', 'salut', 'hello', 'allo'],
-      valiny: 'Salama ! Izaho no bot an\'ny Ny asako. Afaka mamaly anao momba ny vidiny, ny essai maimaimpoana, ' +
+      valiny: 'Salama ! Izaho no Assistant Ny asako. Afaka mamaly anao momba ny vidiny, ny essai maimaimpoana, ' +
         'ny kaonty, ny portefeuille, ny stock, ny facture, ny botika, ny hôtel, ny live, ny mpiasa, ' +
         'ny Binance / Payoneer ary ny affiliation aho. Inona no tianao ho fantatra ?' },
     { teny: ['vidiny', 'ohatrinona', 'hoatrinona', 'prix', 'tarif', 'abonnement', 'abonement', 'mensuel', 'annuel', 'karama', 'combien'],
@@ -1232,7 +1232,7 @@
   }
 
   // Ny resaka amin'ny admin, miaraka amin'ny fiarahaban'ny bot raha mbola
-  // foana. Ampiasain'ny rohy ?bot=1 sy ny bokotra « 🤖 Manontania ny bot »
+  // foana. Ampiasain'ny rohy ?bot=1 sy ny bokotra « 🤖 Assistant Ny asako »
   // (ao amin'ny ⋯ eo amin'ny barre ambany). Tsy ho an'ny admin : tsy mamaly
   // azy ny bot.
   function sokafyBot(){
@@ -1520,7 +1520,7 @@
               '<span style="max-width:85%; padding:0.4rem 0.6rem; border-radius:10px; overflow-wrap:anywhere; ' +
                 'background:color-mix(in srgb, var(--cyan) 14%, var(--panel-2)); color:var(--text); ' +
                 'border:1px solid color-mix(in srgb, var(--cyan) 40%, transparent);">' +
-                '<div style="font-size:0.68rem; font-weight:700; color:var(--cyan); margin-bottom:0.15rem;">🤖 Bot Ny asako</div>' +
+                '<div style="font-size:0.68rem; font-weight:700; color:var(--cyan); margin-bottom:0.15rem;">🤖 Assistant Ny asako</div>' +
                 atiny + '</span></div>';
           }
           const fafao ='<button type="button" data-fafao="' + escapeHtml(h.id) + '" title="Fafana" style="flex:none; ' +

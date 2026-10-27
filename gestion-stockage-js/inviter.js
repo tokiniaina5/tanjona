@@ -137,7 +137,7 @@
   // encore (live.js).
   function nyAsakoTexte(){
     return '\n\nUne question sur Ny asako (prix, essai gratuit, portefeuille, boutique, Binance, Payoneer…) ? ' +
-      'Dans l\'application, touche « Manontania ny bot » : le bot Ny asako te répond tout de suite.';
+      'Dans l\'application, touche « Assistant Ny asako » : l\'assistant Ny asako te répond tout de suite.';
   }
   // Le court, pour X : 280 caractères, la liste n'y tient pas.
   function inviteMessageCourt(link){

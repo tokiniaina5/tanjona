@@ -1250,7 +1250,7 @@
   }
   .admin-compte[hidden]{ display:none; }
   .admin-compte.admin-compte-nouveau{ background:#e5484d; color:#fff; }
-  /* « 🤖 Manontania ny bot » (live.js) : tsy mamaly ny admin ny bot. */
+  /* « 🤖 Assistant Ny asako » (live.js) : tsy mamaly ny admin ny bot. */
   html.est-proprietaire .bokotra-bot{ display:none !important; }
   /* Hafatra kely milaza fa ao amin'ny ⋯ (barre ambany) ny bot. */
   .bot-toerana{ margin:0; font-size:0.75rem; color:var(--muted, #8a8f98); line-height:1.3; }
