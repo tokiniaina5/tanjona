@@ -1468,20 +1468,50 @@
     if(typeof isOwnerEmail !== 'function' || !isOwnerEmail(email)) return;
     const me = myIdentity();
     if(me.isAdmin || isOwnerEmail(me.email)) return;
+    // Ny toeran'ny valiny dia apetraka avy hatrany eo ambanin'ilay
+    // fanontaniana (« ✍️ Manoratra… »), ary io no fenoina rehefa vonona.
+    // Taloha dia nampiana teo amin'ny farany ny valiny rehefa tonga : ny
+    // valiny voadika (tara kokoa) dia tonga taorian'ny valin'ny hafatra
+    // manaraka, na taorian'ny fanontaniana vaovao — tsy nirindra intsony.
+    const toerana = { id: idHafatra(), avy: 'bot', miandry: true, soratra: '', at: Date.now() };
+    (resaka[email] = resaka[email] || []).push(toerana);
+    if(resakaMisokatra && resakaMisokatra.email === email) asehoyResaka();
+    const nanomboka = Date.now();
+    botValiny(email, soratra).then(null, function(){ return null; }).then(function(v){
+      // Fotoana kely farafahakeliny, mba tsy hipoitra mitampoka ny valiny.
+      setTimeout(function(){
+        const lisitra = resaka[email] || [];
+        const i = lisitra.indexOf(toerana);
+        if(i < 0) return;   // voafafa ny resaka teo anelanelany
+        if(!v){ lisitra.splice(i, 1); }
+        else {
+          toerana.soratra = botEmoji(v.soratra);
+          toerana.sokafy = v.sokafy || null;
+          toerana.teny = v.teny || null;
+          toerana.at = Date.now();
+          delete toerana.miandry;
+        }
+        if(resakaMisokatra && resakaMisokatra.email === email) asehoyResaka();
+        if(v && v.sokafyIzao) setTimeout(function(){ botSokafyPejy(v.sokafyIzao); }, 300);
+      }, Math.max(0, 600 - (Date.now() - nanomboka)));
+    });
+  }
+  // { soratra, sokafy, teny, sokafyIzao } na null (tsy misy valiana).
+  function botValiny(email, soratra){
     const emoji = botValyEmoji(soratra);
-    if(emoji){ botApetraho(email, emoji, 700); return; }
+    if(emoji) return Promise.resolve({ soratra: emoji });
     // Teny iray na roa fantatra (« salama », « misaotra ») : amin'ny teny
     // malagasy foana, satria diso matetika ny fanavahana fiteny amin'ny
     // teny fohy (« ok » → anglisy).
     const f0 = botMitady(soratra);
-    if(f0 && botTeny(soratra).split(' ').length <= 2){ botValio(email, soratra, f0, null); return; }
+    if(f0 && botTeny(soratra).split(' ').length <= 2) return botValio(email, soratra, f0, null);
     // Ny hafa : fantarina ny fiteny, ary adika amin'ny teny frantsay ilay
     // fanontaniana mba hahitana ny teny fototra (« ¿dónde están las
     // facturas? » → « factures »).
-    botFantaroTeny(soratra).then(function(t){
+    return botFantaroTeny(soratra).then(function(t){
       const teny = t ? botTenyAmpiasaina(t.src) : null;
       const f = (teny && t.fr && botMitady(soratra + ' ' + t.fr)) || f0;
-      botValio(email, soratra + (t && t.fr ? ' ' + t.fr : ''), f, teny);
+      return botValio(email, soratra + (t && t.fr ? ' ' + t.fr : ''), f, teny);
     });
   }
   // Ny valiny (na ny hafatra « tsy azoko » indray mandeha), adika amin'ny
@@ -1499,24 +1529,14 @@
       // Tsy fantatra : tsy misy AI na clef (nofidian'ny tompony, 27/10/2026).
       // Valiana tsara indray mandeha isaky ny resaka, dia mijanona ny bot ;
       // tonga any amin'ny admin ihany ilay hafatra.
-      if(botEfaNilaza[email]) return;
+      if(botEfaNilaza[email]) return Promise.resolve(null);
       botEfaNilaza[email] = true;
       valiny = 'Misaotra tompoko ! Tsy azoko tsara izany fanontaniana izany, fa voaray ny hafatrao ' +
         'ary ho valian\'ny admin raha vao afaka izy.\n\n' + botFanampiana();
     }
-    botAdikao(valiny, teny).then(function(v){
-      botApetraho(email, v.soratra, 300, sokafyIzao ? null : lakile, v.teny);
-      if(sokafyIzao) setTimeout(function(){ botSokafyPejy(lakile); }, 400);
+    return botAdikao(valiny, teny).then(function(v){
+      return { soratra: v.soratra, teny: v.teny, sokafy: sokafyIzao ? null : lakile, sokafyIzao: sokafyIzao ? lakile : null };
     });
-  }
-  // sokafy : ny lakilen'ny BOT_SOKAFY, hanehoana bokotra « 📂 Sokafy ».
-  // teny : ny fiteny nandikana ny valiny (tsy adika indray ny teny.js).
-  function botApetraho(email, valiny, elanelana, sokafy, teny){
-    setTimeout(function(){
-      (resaka[email] = resaka[email] || []).push({ id: idHafatra(), avy: 'bot', soratra: botEmoji(valiny), sokafy: sokafy || null,
-        teny: teny || null, at: Date.now() });
-      if(resakaMisokatra && resakaMisokatra.email === email) asehoyResaka();
-    }, elanelana);
   }
 
   // ---- Ny fiteny ----
@@ -1855,6 +1875,16 @@
           // Ny valin'ny bot : ankavia toy ny an'ilay olona, fa misy ny anarany
           // sy loko hafa, mba tsy hampifangaroana azy amin'ny tenin'ny admin.
           if(h.avy === 'bot'){
+            // Mbola mikarakara ny valiny ny bot (botMamaly) : ny toerany
+            // ihany, eo ambanin'ilay fanontaniana.
+            if(h.miandry){
+              return '<div style="display:flex; justify-content:flex-start; margin:0.25rem 0;">' +
+                '<span style="padding:0.35rem 0.6rem; border-radius:10px; font-size:0.76rem; font-style:italic; color:var(--muted); ' +
+                  'background:color-mix(in srgb, var(--cyan) 8%, var(--panel-2)); border:1px dashed color-mix(in srgb, var(--cyan) 40%, transparent);">' +
+                  '✍️ Manoratra…</span></div>';
+            }
+            // sokafy : ny lakilen'ny BOT_SOKAFY, hanehoana bokotra « 📂 Sokafy ».
+            // teny : ny fiteny nandikana ny valiny (tsy adika indray ny teny.js).
             // Ny rohy ao anatin'ny valiny : azo tsindriana. Ny andalana vaovao
             // mijanona ho andalana vaovao.
             atiny = '<div style="white-space:pre-line;">' + escapeHtml(h.soratra || '').replace(/https:\/\/[^\s<]+/g, function(u){
