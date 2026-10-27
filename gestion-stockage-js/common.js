@@ -3595,10 +3595,71 @@
       if(res && res.error && status) status.textContent = authErrorText(res.error);
     }, function(){ if(status) status.textContent = 'Connexion impossible : vérifiez votre réseau.'; });
   }
-  function fidiranaGoogle(){ fidiranaAmin('google'); }
+  // Le chemin ci-dessus passe par Supabase, et Google affichait alors
+  // « Accéder à l'application ezpsapvthujkhttbfhlr.supabase.co ». Le bouton
+  // de Google lui-même (GIS) parle depuis nyasako.com : Google rend un jeton
+  // que Supabase échange contre la session, sans quitter la page. Le bouton
+  // maison reste là tant que GIS n'a pas chargé (réseau, bloqueur).
+  // Google Cloud Console : https://nyasako.com doit figurer dans les
+  // « Authorized JavaScript origins » de ce client.
+  const GOOGLE_CLIENT_ID = '147638755066-dj2onjmg3pneoog6egf41epl7thkt13e.apps.googleusercontent.com';
+  let gisPret = false;
+  function apresJetonGoogle(rep){
+    const auth = sbAuth();
+    const status = document.getElementById('googleLoginStatus');
+    if(!rep || !rep.credential || !auth || !auth.signInWithIdToken){
+      if(status) status.textContent = 'Connexion Google impossible : réessayez.';
+      return;
+    }
+    try { localStorage.setItem(GOOGLE_KEY, String(Date.now())); } catch(e){}
+    if(status) status.textContent = 'Connexion…';
+    auth.signInWithIdToken({ provider: 'google', token: rep.credential }).then(function(res){
+      const user = res && res.data && res.data.user;
+      if(res && res.error || !user){
+        try { localStorage.removeItem(GOOGLE_KEY); } catch(e){}
+        if(status) status.textContent = res && res.error ? authErrorText(res.error) : 'Connexion Google non aboutie.';
+        return;
+      }
+      if(status) status.textContent = '';
+      apresGoogle(user);
+      openAppForAuthUser(user, { restoreView: true });
+    }, function(){ if(status) status.textContent = 'Connexion impossible : vérifiez votre réseau.'; });
+  }
+  function demarrerGis(){
+    const gis = window.google && window.google.accounts && window.google.accounts.id;
+    if(!gis || gisPret) return !!gisPret;
+    const zone = document.getElementById('googleGisBtn');
+    const ancien = document.getElementById('googleLoginBtn');
+    gis.initialize({ client_id: GOOGLE_CLIENT_ID, callback: apresJetonGoogle, ux_mode: 'popup', auto_select: false, cancel_on_tap_outside: true });
+    gisPret = true;
+    if(zone){
+      const large = Math.min(400, Math.max(200, (zone.parentNode && zone.parentNode.clientWidth) || 320));
+      gis.renderButton(zone, { type: 'standard', theme: 'outline', size: 'large', text: 'continue_with', shape: 'rectangular', width: large, locale: 'fr' });
+      zone.style.display = 'flex';
+      if(ancien) ancien.style.display = 'none';
+    }
+    return true;
+  }
+  (function attendreGis(essai){
+    if(demarrerGis() || essai > 40) return;
+    setTimeout(function(){ attendreGis(essai + 1); }, 250);
+  })(0);
+  // Appelé d'ailleurs (le chat de live.js) : la petite fenêtre de Google si
+  // elle peut s'ouvrir, sinon l'ancien chemin par Supabase.
+  function fidiranaGoogle(){
+    if(demarrerGis()){
+      window.google.accounts.id.prompt(function(n){
+        if(n && n.isNotDisplayed && n.isNotDisplayed()){
+          fidiranaAmin('google');
+        }
+      });
+      return;
+    }
+    fidiranaAmin('google');
+  }
   window.__fidiranaGoogle = fidiranaGoogle;
   const googleLoginBtn = document.getElementById('googleLoginBtn');
-  if(googleLoginBtn) googleLoginBtn.addEventListener('click', fidiranaGoogle);
+  if(googleLoginBtn) googleLoginBtn.addEventListener('click', function(){ fidiranaAmin('google'); });
 
   // Les boutons des autres comptes : Supabase dit lesquels sont allumés
   // (Authentication > Providers) ; un compte éteint n'a pas de bouton, il

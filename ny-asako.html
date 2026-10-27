@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="3d8d34b5">
+<meta name="ny-asako-version" content="441d8745">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -185,6 +185,7 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" crossorigin="anonymous"></script>
+<script src="https://accounts.google.com/gsi/client" async></script>
 <script src="gestion-stockage-js/supabase-init.js?v=632e41ae"></script>
 <!-- ============ LOGIN ============ -->
 <div id="loginScreen">
@@ -200,6 +201,10 @@
         <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.4 5.7c4.3-4 6.9-9.9 6.9-17.1z"/><path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.4-5.7c-2.1 1.4-4.8 2.3-8.5 2.3-6.2 0-11.5-4.1-13.4-9.9l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg>
         Continuer avec Google
       </button>
+      <!-- Le bouton de Google lui-même (GIS) : il remplace celui du dessus dès
+           qu'il est prêt, et Google y montre nyasako.com, pas l'adresse
+           Supabase (common.js). -->
+      <div id="googleGisBtn" style="display:none; justify-content:center; min-height:44px;"></div>
       <!-- Les autres comptes (Facebook, X, Apple, GitHub), même chemin que
            Google : seuls ceux allumés dans Supabase s'affichent (common.js). -->
       <div id="autresComptes" style="display:none; grid-template-columns:1fr 1fr; gap:0.5rem; margin-top:0.5rem;"></div>
@@ -3978,7 +3983,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=db0bf122"></script>
+<script src="gestion-stockage-js/common.js?v=c8934f23"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=d0a53ff8"></script>
 <script src="gestion-stockage-js/stock.js?v=d7c399e4"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
