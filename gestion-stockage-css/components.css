@@ -1194,7 +1194,7 @@
   #section-admin .kpi-card{ display:flex; flex-direction:column; justify-content:space-between; gap:0.5rem; }
   #section-admin .kpi-card .kpi-label{ line-height:1.4; }
   #section-admin .kpi-card .kpi-value{ margin-top:0; font-variant-numeric:tabular-nums; }
-  #section-admin.fenetre-page .section-head{ margin-top:1.4rem; align-items:center; }
+  #section-admin.fenetre-page > .section-head{ margin-top:1.4rem; align-items:center; }
   #section-admin th,
   #section-admin td:first-child{ white-space:nowrap; }
   #section-admin td{ vertical-align:middle; }

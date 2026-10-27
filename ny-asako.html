@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="78e04e6c">
+<meta name="ny-asako-version" content="2bcd835f">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -179,7 +179,7 @@
 <!-- fin des écrans de démarrage iOS -->
 <link rel="icon" href="/icone-192.png" type="image/png">
 <link rel="stylesheet" href="gestion-stockage-css/base.css?v=2a59e3e1">
-<link rel="stylesheet" href="gestion-stockage-css/components.css?v=b679c213">
+<link rel="stylesheet" href="gestion-stockage-css/components.css?v=35e56826">
 <!-- Les émojis dessinés en 3D (emoji-3d.js). -->
 <script src="gestion-stockage-js/emoji-3d.js?v=66dad412" defer></script>
 </head>
@@ -3343,6 +3343,123 @@
           <div id="adminBlockedList"></div>
           <p class="empty-hint" id="adminBlockedEmpty" style="display:none;">Aucun compte bloqué.</p>
         </div>
+
+        <div class="panel" id="adminVisitsPanel" style="display:none;">
+          <div class="section-head" style="margin-bottom:0.6rem;">
+            <div><h3>🌐 Visiteurs du site</h3></div>
+            <div class="actions-row">
+              <button class="btn btn-red btn-sm" id="clearSiteVisitsBtn">Vider les visites</button>
+            </div>
+          </div>
+          <p style="font-size:0.8rem; color:var(--muted); margin-bottom:0.8rem;">
+            Dernières visites enregistrées sur le site (page consultée, provenance, appareil).
+            Glisser une ligne à gauche ou à droite, ou toucher ✕, l'efface.
+          </p>
+          <p id="siteVisitsStatus" style="font-size:0.78rem; color:var(--amber); margin:0 0 0.5rem; min-height:0;"></p>
+          <table>
+            <thead><tr><th>Date</th><th>Page</th><th>Provenance</th><th>Appareil</th><th></th></tr></thead>
+            <tbody id="siteVisitsTableBody"></tbody>
+          </table>
+          <p class="empty-hint" id="siteVisitsEmptyHint" style="display:none;">Aucune visite enregistrée pour le moment.</p>
+        </div>
+
+        <div class="panel" id="adminLoginsPanel" style="display:none;">
+          <div class="section-head" style="margin-bottom:0.6rem;">
+            <div>
+              <h3 style="font-family:var(--font-mono); font-size:0.85rem; color:var(--cyan);">🗝️ Connexions à l'application</h3>
+            </div>
+            <div class="actions-row">
+              <button class="btn btn-red btn-sm" id="clearLoginsBtn">Vider l'historique</button>
+            </div>
+          </div>
+          <table>
+            <thead><tr><th>Nom</th><th>Email</th><th>Date &amp; heure</th></tr></thead>
+            <tbody id="loginsTableBody"></tbody>
+          </table>
+          <p class="empty-hint" id="loginsEmptyHint" style="display:none;">Aucune connexion enregistrée.</p>
+        </div>
+
+        <div class="panel" id="signupsPanel" style="display:none;">
+          <h3>🆕 Nouvelles inscriptions</h3>
+          <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.8rem;">
+            Chaque personne qui crée son compte apparaît ici automatiquement, avec ses coordonnées.
+            Elle entre directement dans l'application : rien à valider de votre part.
+          </p>
+          <div class="table-scroll">
+            <table id="signupsTable">
+              <thead>
+                <tr><th>Date</th><th>Nom</th><th>Email</th><th>Téléphone</th><th>Lieu</th></tr>
+              </thead>
+              <tbody id="signupsTableBody"></tbody>
+            </table>
+          </div>
+          <p class="empty-hint" id="signupsEmpty" style="display:none;">Aucune inscription pour le moment.</p>
+          <button type="button" class="btn btn-sm" id="refreshSignupsBtn" style="width:auto; margin-top:0.8rem;">↻ Actualiser</button>
+        </div>
+
+        <!-- Ceux qui ont effacé leur compte (Paramètres > Supprimer mon compte) :
+             la fonction fafao-kaonty les note dans kaonty_voafafa. -->
+        <div class="panel" id="kaontyVoafafaPanel" style="display:none;">
+          <h3>🗑️ Comptes supprimés</h3>
+          <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.8rem;">
+            Chaque personne qui supprime elle-même son compte apparaît ici, avec ses coordonnées
+            et la date de son inscription. Ses données, elles, sont déjà effacées.
+          </p>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr><th>Supprimé le</th><th>Nom</th><th>Email</th><th>Téléphone</th><th>Inscrit le</th></tr>
+              </thead>
+              <tbody id="kaontyVoafafaBody"></tbody>
+            </table>
+          </div>
+          <p class="empty-hint" id="kaontyVoafafaEmpty" style="display:none;">Aucun compte supprimé pour le moment.</p>
+          <button type="button" class="btn btn-sm" id="refreshKaontyVoafafaBtn" style="width:auto; margin-top:0.8rem;">↻ Actualiser</button>
+        </div>
+
+        <div class="panel" id="unlockRequestsPanel" style="display:none;">
+          <h3>🔓 Demandes de déblocage</h3>
+          <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.8rem;">
+            Chaque client ayant oublié son mot de passe règle <strong style="color:var(--text);">20 000 Ar</strong>
+            par Papi (MVola, Orange Money, Airtel Money ou carte) puis envoie sa demande ici. Vérifiez la réception du paiement puis cliquez sur
+            <strong style="color:var(--text);">Confirmer le paiement</strong> : l'accès se rouvre tout seul
+            sur l'appareil du client. Aucun code ne circule, rien à transmettre.
+          </p>
+          <div id="unlockRequestsList"></div>
+          <p class="empty-hint" id="unlockRequestsEmpty" style="display:none;">Aucune demande pour le moment.</p>
+          <button type="button" class="btn btn-sm" id="refreshUnlockRequestsBtn" style="width:auto; margin-top:0.8rem;">↻ Actualiser</button>
+        </div>
+
+        <div class="panel" id="masterCodePanel" style="display:none;">
+          <h3>🔑 Codes de déverrouillage</h3>
+          <p style="font-size:0.8rem; color:var(--muted); margin-bottom:0.8rem;">
+            Chaque client bloqué reçoit automatiquement son propre code (généré quand il clique sur
+            « Signaler mon paiement »). Le code est valable <strong>30 minutes</strong> et accepte
+            <strong>3 essais</strong> maximum ; passé ce délai ou ces essais, un nouveau code est généré
+            automatiquement. Retrouvez ici le code actif à communiquer à chaque client après vérification
+            de son paiement.
+          </p>
+          <table>
+            <thead><tr><th>Client (email)</th><th>Code actif</th><th>Généré à</th><th>Expire dans</th><th>Essais</th><th></th></tr></thead>
+            <tbody id="clientCodesTableBody"></tbody>
+          </table>
+          <p class="empty-hint" id="clientCodesEmptyHint" style="display:none;">Aucun code en attente pour le moment.</p>
+
+          <div style="margin-top:1.2rem; padding-top:1.2rem; border-top:1px solid var(--line);">
+            <h3 style="font-size:0.95rem;">Générer un code manuellement</h3>
+            <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.6rem;">
+              Utile si le client vous contacte directement sans passer par « Signaler mon paiement ».
+            </p>
+            <div class="form-grid">
+              <div class="field" style="margin-bottom:0;">
+                <label for="manualCodeEmailInput">Email du client</label>
+                <input id="manualCodeEmailInput" type="email" placeholder="client@exemple.com">
+              </div>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" id="generateManualCodeBtn" style="width:auto; margin-top:0.8rem;">Générer un nouveau code</button>
+            <span id="manualCodeStatus" style="font-size:0.78rem; color:var(--muted); margin-left:0.6rem;"></span>
+          </div>
+        </div>
       </section>
 
       <!-- ---- PARAMÈTRES ---- -->
@@ -3796,123 +3913,6 @@
           <button type="button" class="btn btn-red btn-sm" id="fafaoKaontyBtn" style="width:auto;" disabled>Supprimer définitivement mon compte</button>
           <p id="fafaoKaontyStatus" style="font-size:0.78rem; color:var(--amber); margin-top:0.6rem; min-height:1em;"></p>
         </div>
-
-        <div class="panel" id="adminVisitsPanel" style="display:none;">
-          <div class="section-head" style="margin-bottom:0.6rem;">
-            <div><h3>🌐 Visiteurs du site</h3></div>
-            <div class="actions-row">
-              <button class="btn btn-red btn-sm" id="clearSiteVisitsBtn">Vider les visites</button>
-            </div>
-          </div>
-          <p style="font-size:0.8rem; color:var(--muted); margin-bottom:0.8rem;">
-            Dernières visites enregistrées sur le site (page consultée, provenance, appareil).
-            Glisser une ligne à gauche ou à droite, ou toucher ✕, l'efface.
-          </p>
-          <p id="siteVisitsStatus" style="font-size:0.78rem; color:var(--amber); margin:0 0 0.5rem; min-height:0;"></p>
-          <table>
-            <thead><tr><th>Date</th><th>Page</th><th>Provenance</th><th>Appareil</th><th></th></tr></thead>
-            <tbody id="siteVisitsTableBody"></tbody>
-          </table>
-          <p class="empty-hint" id="siteVisitsEmptyHint" style="display:none;">Aucune visite enregistrée pour le moment.</p>
-        </div>
-
-        <div class="panel" id="adminLoginsPanel" style="display:none;">
-          <div class="section-head" style="margin-bottom:0.6rem;">
-            <div>
-              <h3 style="font-family:var(--font-mono); font-size:0.85rem; color:var(--cyan);">🗝️ Connexions à l'application</h3>
-            </div>
-            <div class="actions-row">
-              <button class="btn btn-red btn-sm" id="clearLoginsBtn">Vider l'historique</button>
-            </div>
-          </div>
-          <table>
-            <thead><tr><th>Nom</th><th>Email</th><th>Date &amp; heure</th></tr></thead>
-            <tbody id="loginsTableBody"></tbody>
-          </table>
-          <p class="empty-hint" id="loginsEmptyHint" style="display:none;">Aucune connexion enregistrée.</p>
-        </div>
-
-        <div class="panel" id="signupsPanel" style="display:none;">
-          <h3>🆕 Nouvelles inscriptions (admin — vous uniquement)</h3>
-          <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.8rem;">
-            Chaque personne qui crée son compte apparaît ici automatiquement, avec ses coordonnées.
-            Elle entre directement dans l'application : rien à valider de votre part.
-          </p>
-          <div class="table-scroll">
-            <table id="signupsTable">
-              <thead>
-                <tr><th>Date</th><th>Nom</th><th>Email</th><th>Téléphone</th><th>Lieu</th></tr>
-              </thead>
-              <tbody id="signupsTableBody"></tbody>
-            </table>
-          </div>
-          <p class="empty-hint" id="signupsEmpty" style="display:none;">Aucune inscription pour le moment.</p>
-          <button type="button" class="btn btn-sm" id="refreshSignupsBtn" style="width:auto; margin-top:0.8rem;">↻ Actualiser</button>
-        </div>
-
-        <!-- Ceux qui ont effacé leur compte (Paramètres > Supprimer mon compte) :
-             la fonction fafao-kaonty les note dans kaonty_voafafa. -->
-        <div class="panel" id="kaontyVoafafaPanel" style="display:none;">
-          <h3>🗑️ Comptes supprimés (admin — vous uniquement)</h3>
-          <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.8rem;">
-            Chaque personne qui supprime elle-même son compte apparaît ici, avec ses coordonnées
-            et la date de son inscription. Ses données, elles, sont déjà effacées.
-          </p>
-          <div class="table-scroll">
-            <table>
-              <thead>
-                <tr><th>Supprimé le</th><th>Nom</th><th>Email</th><th>Téléphone</th><th>Inscrit le</th></tr>
-              </thead>
-              <tbody id="kaontyVoafafaBody"></tbody>
-            </table>
-          </div>
-          <p class="empty-hint" id="kaontyVoafafaEmpty" style="display:none;">Aucun compte supprimé pour le moment.</p>
-          <button type="button" class="btn btn-sm" id="refreshKaontyVoafafaBtn" style="width:auto; margin-top:0.8rem;">↻ Actualiser</button>
-        </div>
-
-        <div class="panel" id="unlockRequestsPanel" style="display:none;">
-          <h3>🔓 Demandes de déblocage (admin — vous uniquement)</h3>
-          <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.8rem;">
-            Chaque client ayant oublié son mot de passe règle <strong style="color:var(--text);">20 000 Ar</strong>
-            par Papi (MVola, Orange Money, Airtel Money ou carte) puis envoie sa demande ici. Vérifiez la réception du paiement puis cliquez sur
-            <strong style="color:var(--text);">Confirmer le paiement</strong> : l'accès se rouvre tout seul
-            sur l'appareil du client. Aucun code ne circule, rien à transmettre.
-          </p>
-          <div id="unlockRequestsList"></div>
-          <p class="empty-hint" id="unlockRequestsEmpty" style="display:none;">Aucune demande pour le moment.</p>
-          <button type="button" class="btn btn-sm" id="refreshUnlockRequestsBtn" style="width:auto; margin-top:0.8rem;">↻ Actualiser</button>
-        </div>
-
-        <div class="panel" id="masterCodePanel" style="display:none;">
-          <h3>🔑 Codes de déverrouillage (admin — vous uniquement)</h3>
-          <p style="font-size:0.8rem; color:var(--muted); margin-bottom:0.8rem;">
-            Chaque client bloqué reçoit automatiquement son propre code (généré quand il clique sur
-            « Signaler mon paiement »). Le code est valable <strong>30 minutes</strong> et accepte
-            <strong>3 essais</strong> maximum ; passé ce délai ou ces essais, un nouveau code est généré
-            automatiquement. Retrouvez ici le code actif à communiquer à chaque client après vérification
-            de son paiement.
-          </p>
-          <table>
-            <thead><tr><th>Client (email)</th><th>Code actif</th><th>Généré à</th><th>Expire dans</th><th>Essais</th><th></th></tr></thead>
-            <tbody id="clientCodesTableBody"></tbody>
-          </table>
-          <p class="empty-hint" id="clientCodesEmptyHint" style="display:none;">Aucun code en attente pour le moment.</p>
-
-          <div style="margin-top:1.2rem; padding-top:1.2rem; border-top:1px solid var(--line);">
-            <h3 style="font-size:0.95rem;">Générer un code manuellement</h3>
-            <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.6rem;">
-              Utile si le client vous contacte directement sans passer par « Signaler mon paiement ».
-            </p>
-            <div class="form-grid">
-              <div class="field" style="margin-bottom:0;">
-                <label for="manualCodeEmailInput">Email du client</label>
-                <input id="manualCodeEmailInput" type="email" placeholder="client@exemple.com">
-              </div>
-            </div>
-            <button type="button" class="btn btn-primary btn-sm" id="generateManualCodeBtn" style="width:auto; margin-top:0.8rem;">Générer un nouveau code</button>
-            <span id="manualCodeStatus" style="font-size:0.78rem; color:var(--muted); margin-left:0.6rem;"></span>
-          </div>
-        </div>
       </section>
 
       <!-- ---- FITAOVANA : Word, Excel, Notes, Calculatrice, Calendrier, Horaire ----
@@ -3937,7 +3937,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=2cc2f45e"></script>
+<script src="gestion-stockage-js/common.js?v=d6d972c0"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=d0a53ff8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
@@ -3975,7 +3975,7 @@
 <script src="gestion-stockage-js/adidy.js?v=0f6b4f4c"></script>
 <script src="gestion-stockage-js/theme.js?v=096262fd"></script>
 <script src="gestion-stockage-js/mot-de-passe.js?v=fa311136"></script>
-<script src="gestion-stockage-js/securite.js?v=e38535e6"></script>
+<script src="gestion-stockage-js/securite.js?v=e1917bbb"></script>
 <script src="gestion-stockage-js/papi-paiement.js?v=ff1f560d"></script>
 
 

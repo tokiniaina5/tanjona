@@ -508,4 +508,8 @@
   }
 
   const refreshAdminBtn = document.getElementById('refreshAdminBtn');
-  if(refreshAdminBtn) refreshAdminBtn.addEventListener('click', renderAdminSpace);
+  if(refreshAdminBtn) refreshAdminBtn.addEventListener('click', function(){
+    renderAdminSpace();
+    // les panneaux venus de Paramètres (parametres.js)
+    if(typeof renderLogins === 'function') renderLogins();
+  });

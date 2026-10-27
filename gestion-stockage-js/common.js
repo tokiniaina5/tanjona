@@ -8335,6 +8335,9 @@
       if(nav.dataset.section === 'stock'){ renderFilters(); renderDashboard(); renderCommunityPanel(); }
       if(nav.dataset.section === 'admin'){
         if(typeof renderAdminSpace === 'function') renderAdminSpace();
+        // Visiteurs, connexions, inscriptions, comptes supprimés, déblocages,
+        // codes : venus de Paramètres le 27/10/2026, rafraîchis avec la page.
+        if(typeof renderLogins === 'function') renderLogins();
       }
       // Chaque page rafraîchit ce qui lui appartient, depuis qu'elles sont
       // séparées : la liste des lives d'un côté, celle des personnes à
