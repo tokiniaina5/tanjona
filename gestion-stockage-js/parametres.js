@@ -30,7 +30,9 @@
     if(typeof window.__rohyVaozina === 'function') window.__rohyVaozina();
     document.getElementById('unlockRequestsPanel').style.display = isAdmin ? 'block' : 'none';
     document.getElementById('signupsPanel').style.display = isAdmin ? 'block' : 'none';
-    if(isAdmin){ renderSiteVisits(); renderClientCodesAdmin(); renderUnlockRequests(); renderSignups(); }
+    const voafafaPanel = document.getElementById('kaontyVoafafaPanel');
+    if(voafafaPanel) voafafaPanel.style.display = isAdmin ? 'block' : 'none';
+    if(isAdmin){ renderSiteVisits(); renderClientCodesAdmin(); renderUnlockRequests(); renderSignups(); renderKaontyVoafafa(); }
     renderProfileForm();
   }
 
@@ -5779,4 +5781,43 @@
   const refreshSignupsBtn = document.getElementById('refreshSignupsBtn');
   if(refreshSignupsBtn){
     refreshSignupsBtn.addEventListener('click', renderSignups);
+  }
+
+  // « Comptes supprimés » : écrits par la fonction fafao-kaonty
+  // (supabase-kaonty-voafafa.sql), lus par le propriétaire seul.
+  function renderKaontyVoafafa(){
+    const body = document.getElementById('kaontyVoafafaBody');
+    const empty = document.getElementById('kaontyVoafafaEmpty');
+    if(!body) return;
+    const vide = function(texte){
+      body.innerHTML = '';
+      if(empty){ empty.style.display = 'block'; empty.textContent = texte; }
+    };
+    if(!window.__sb){ vide('Serveur injoignable : impossible de charger la liste.'); return; }
+    window.__sb.from('kaonty_voafafa')
+      .select('id,name,email,phone,inscrit_le,created_at')
+      .order('created_at', { ascending: false })
+      .limit(100)
+      .then(function(res){
+        if(res && res.error){ vide('Liste indisponible (supabase-kaonty-voafafa.sql pas encore passé ?).'); return; }
+        const rows = (res && res.data) || [];
+        body.innerHTML = '';
+        if(empty){ empty.style.display = rows.length ? 'none' : 'block'; empty.textContent = 'Aucun compte supprimé pour le moment.'; }
+        const date = function(v){ return v ? new Date(v).toLocaleString('fr-FR') : '—'; };
+        rows.forEach(function(row){
+          const tr = document.createElement('tr');
+          tr.innerHTML =
+            '<td>' + date(row.created_at) + '</td>' +
+            '<td>' + escapeAdminHtml(row.name || '—') + '</td>' +
+            '<td>' + escapeAdminHtml(row.email || '—') + '</td>' +
+            '<td>' + escapeAdminHtml(row.phone || '—') + '</td>' +
+            '<td>' + date(row.inscrit_le) + '</td>';
+          body.appendChild(tr);
+        });
+      }, function(){ vide('Chargement impossible : vérifiez votre réseau.'); });
+  }
+
+  const refreshKaontyVoafafaBtn = document.getElementById('refreshKaontyVoafafaBtn');
+  if(refreshKaontyVoafafaBtn){
+    refreshKaontyVoafafaBtn.addEventListener('click', renderKaontyVoafafa);
   }

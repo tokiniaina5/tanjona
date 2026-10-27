@@ -125,6 +125,17 @@ Deno.serve(async (req) => {
     return json({ error: "Le compte du propriétaire ne s'efface pas d'ici." }, 403);
   }
 
+  // Le propriétaire le voit dans « Comptes supprimés »
+  // (supabase-kaonty-voafafa.sql). Table absente : l'effacement continue.
+  const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+  await admin.from("kaonty_voafafa").insert({
+    user_id: user.id,
+    email: email || null,
+    name: String(meta.name ?? "").trim() || null,
+    phone: String(meta.phone ?? user.phone ?? "").trim() || null,
+    inscrit_le: user.created_at ?? null,
+  }).then(() => {}, () => {});
+
   const echecs: string[] = [];
   if (email) {
     for (const [table, colonnes] of Object.entries(PAR_EMAIL)) {

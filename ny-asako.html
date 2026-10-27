@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="47bda8d2">
+<meta name="ny-asako-version" content="c85c7ec0">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -3850,6 +3850,26 @@
           <button type="button" class="btn btn-sm" id="refreshSignupsBtn" style="width:auto; margin-top:0.8rem;">↻ Actualiser</button>
         </div>
 
+        <!-- Ceux qui ont effacé leur compte (Paramètres > Supprimer mon compte) :
+             la fonction fafao-kaonty les note dans kaonty_voafafa. -->
+        <div class="panel" id="kaontyVoafafaPanel" style="display:none;">
+          <h3>🗑️ Comptes supprimés (admin — vous uniquement)</h3>
+          <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.8rem;">
+            Chaque personne qui supprime elle-même son compte apparaît ici, avec ses coordonnées
+            et la date de son inscription. Ses données, elles, sont déjà effacées.
+          </p>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr><th>Supprimé le</th><th>Nom</th><th>Email</th><th>Téléphone</th><th>Inscrit le</th></tr>
+              </thead>
+              <tbody id="kaontyVoafafaBody"></tbody>
+            </table>
+          </div>
+          <p class="empty-hint" id="kaontyVoafafaEmpty" style="display:none;">Aucun compte supprimé pour le moment.</p>
+          <button type="button" class="btn btn-sm" id="refreshKaontyVoafafaBtn" style="width:auto; margin-top:0.8rem;">↻ Actualiser</button>
+        </div>
+
         <div class="panel" id="unlockRequestsPanel" style="display:none;">
           <h3>🔓 Demandes de déblocage (admin — vous uniquement)</h3>
           <p style="font-size:0.78rem; color:var(--muted); margin-bottom:0.8rem;">
@@ -3931,7 +3951,7 @@
 <script src="gestion-stockage-js/live.js?v=09e7a36e"></script>
 <script src="gestion-stockage-js/traduction.js?v=8f5605bc"></script>
 <script src="gestion-stockage-js/teny.js?v=cd7b5557"></script>
-<script src="gestion-stockage-js/parametres.js?v=9f670949"></script>
+<script src="gestion-stockage-js/parametres.js?v=5417c131"></script>
 <!-- Le partage reçu du dehors remplit la boîte « Écrire », que parametres.js
      tient : il se charge après elle. -->
 <script src="gestion-stockage-js/zara-miditra.js?v=4d5d0264"></script>
