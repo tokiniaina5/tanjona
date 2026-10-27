@@ -1336,8 +1336,45 @@
   // tsy ampiana intsony.
   function botEmoji(valiny){
     const s = String(valiny || '').replace(/\s+$/, '');
-    if(/\p{Extended_Pictographic}️?$/u.test(s)) return s;
+    if(/(?:\p{Extended_Pictographic}|\p{Regional_Indicator})[️\p{Emoji_Modifier}]*$/u.test(s)) return s;
     return s + ' 😊';
+  }
+  // Hafatra emoji fotsiny (😂, 👍, ❤️…) : valiana emoji koa, miaraka amin'ny
+  // fanontaniana momba ilay emoji nalefany. Ny vondrona tsy fantatra dia
+  // anontaniana hoe inona no tiany holazaina.
+  const BOT_EMOJI = [
+    { e: '😂🤣😆😹😅😝😜', fan: 'Hahaha ! Inona no mampihomehy anao toy izao ?' },
+    { e: '❤💕💖💗💓💞💘😍🥰😘😻💝', fan: 'Misaotra betsaka ! Inona no tena tianao indrindra ao amin\'ny Ny asako ?' },
+    { e: '😊🙂😀😃😄😁☺🤗😇', fan: 'Faly aho mahita anao faly ! Inona no nahafaly anao androany ?' },
+    { e: '👍👌✅💪🤝👏', fan: 'Tsara izany ! Mbola misy zavatra tianao ho fantatra ve ?' },
+    { e: '🙏', fan: 'Misaotra anao koa ! Inona no azoko anampiana anao ?' },
+    { e: '😢😭😞😔☹🙁😟😥💔', fan: 'Inona no nahatonga anao malahelo ? Lazao ahy fa angamba afaka manampy aho.' },
+    { e: '😡😠🤬😤👎', fan: 'Miala tsiny raha misy tsy nety ! Inona no nanelingelina anao ?' },
+    { e: '🤔😕🤨😐😶❓❔', fan: 'Misy zavatra tsy mazava ve ? Inona no fanontanianao ?' },
+    { e: '😮😲😱🤯😳', fan: 'Inona no nahagaga anao ?' },
+    { e: '👋', fan: 'Salama ! Inona no azoko anampiana anao androany ?' },
+    { e: '🔥💯🚀⭐🌟✨🎉🥳', fan: 'Mahafinaritra ! Inona no tena nampientanentana anao ?' },
+    { e: '😴🥱', fan: 'Reraka ve ianao ? Inona no azoko atao hanamora ny asanao ?' },
+    { e: '💰💵💸🤑', fan: 'Vola ve no resahina ? Te hahafantatra momba ny 💰 Portefeuille na ny vidiny ve ianao ?' },
+    { e: '🛒🛍📦', fan: 'Hividy na hivarotra ve ianao ? Inona no entana tadiavinao ?' }
+  ];
+  function botValyEmoji(soratra){
+    const s = String(soratra || '').replace(/[\s️‍]|\p{Emoji_Modifier}/gu, '');
+    if(!s || !/^(?:\p{Extended_Pictographic}|\p{Regional_Indicator})+$/u.test(s)) return null;
+    // Ny emoji tsirairay manontolo (🇲🇬, 👍🏽, ❤️) : Intl.Segmenter raha misy,
+    // fa raha tsy izany dia tapaka ny saina sy ny loko.
+    const madio = String(soratra).replace(/\s+/g, '');
+    let lisitra;
+    try{
+      lisitra = Array.from(new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(madio), function(x){ return x.segment; });
+    }catch(e){ lisitra = Array.from(s); }
+    const voalohany = lisitra[0];
+    const fototra = Array.from(voalohany.replace(/[️‍]|\p{Emoji_Modifier}/gu, ''))[0];
+    // Averina ilay emoji nalefany (telo farafahabetsany), ary ny fanontaniana.
+    const averina = lisitra.slice(0, 3).join('');
+    const v = BOT_EMOJI.find(function(x){ return x.e.indexOf(fototra) >= 0; });
+    if(!v) return averina + '\n' + 'Inona no tianao holazaina amin\'ity ' + voalohany + ' ity ?';
+    return averina + '\n' + v.fan + ' ' + voalohany;
   }
   const botEfaNilaza = {};
   function botMamaly(email, soratra){
@@ -1346,7 +1383,8 @@
     const me = myIdentity();
     if(me.isAdmin || isOwnerEmail(me.email)) return;
     const f = botMitady(soratra);
-    let valiny = f ? (typeof f.valiny === 'function' ? f.valiny(soratra) : f.valiny) : null;
+    let valiny = botValyEmoji(soratra) ||
+      (f ? (typeof f.valiny === 'function' ? f.valiny(soratra) : f.valiny) : null);
     if(!valiny){
       if(botEfaNilaza[email]) return;
       botEfaNilaza[email] = true;
