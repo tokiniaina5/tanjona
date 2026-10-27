@@ -1,5 +1,7 @@
 // Les quatre publications du jour, tirées des boutiques d'achats internationaux,
-// des transporteurs de la livraison internationale et des plateformes de
+// des transporteurs de la livraison internationale, des sites où chercher du
+// travail (LinkedIn… — 27/10/2026), des pages et groupes Facebook où l'on
+// cherche des pièces et vend de tout (27/10/2026) et des plateformes de
 // parrainage (Binance, Payoneer… — 26/10/2026), tour à tour.
 //
 // Le fil vivait de ce que les gens y écrivaient : les jours où personne
@@ -171,7 +173,59 @@ const PARRAINAGES: { groupe: string; nom: string; url: string }[] = [
   { groupe: "Lalao (18+)", nom: "Melbet", url: "https://melbet.com/" },
 ];
 
-type Sorte = "boutique" | "livraison" | "parrainage";
+// Chercher du travail (27/10/2026) : LinkedIn d'abord, puis les sites
+// d'offres d'ici et d'ailleurs, et ceux du travail à distance. Ces adresses
+// ne sont qu'ici : la page n'a pas de fenêtre pour elles, elles ne vivent que
+// dans le fil.
+const ASA: { groupe: string; nom: string; url: string }[] = [
+  { groupe: "LinkedIn", nom: "LinkedIn — Asa eto Madagasikara", url: "https://www.linkedin.com/jobs/search/?location=Madagascar" },
+  { groupe: "LinkedIn", nom: "LinkedIn — Asa an-tranonao (remote)", url: "https://www.linkedin.com/jobs/search/?f_WT=2" },
+  { groupe: "LinkedIn", nom: "LinkedIn — Asa any Frantsa", url: "https://www.linkedin.com/jobs/search/?location=France" },
+  { groupe: "Eto Madagasikara", nom: "Portal Job Madagascar", url: "https://www.portaljob-madagascar.com" },
+  { groupe: "Eto Madagasikara", nom: "Indeed — Madagascar", url: "https://www.indeed.com/jobs?l=Madagascar" },
+  { groupe: "Eto Madagasikara", nom: "ReliefWeb — ONG sy fikambanana", url: "https://reliefweb.int/jobs?search=madagascar" },
+  { groupe: "Eto Madagasikara", nom: "Facebook — Offre d'emploi Madagascar", url: "https://www.facebook.com/search/groups/?q=offre%20d%27emploi%20madagascar" },
+  { groupe: "Manerantany", nom: "Indeed", url: "https://www.indeed.com" },
+  { groupe: "Manerantany", nom: "Glassdoor", url: "https://www.glassdoor.com" },
+  { groupe: "Manerantany", nom: "Welcome to the Jungle", url: "https://www.welcometothejungle.com/fr/jobs" },
+  { groupe: "Manerantany", nom: "UN Careers", url: "https://careers.un.org" },
+  { groupe: "Freelance", nom: "Upwork", url: "https://www.upwork.com" },
+  { groupe: "Freelance", nom: "Fiverr", url: "https://www.fiverr.com" },
+  { groupe: "Freelance", nom: "Freelancer", url: "https://www.freelancer.com" },
+  { groupe: "Freelance", nom: "Malt", url: "https://www.malt.fr" },
+  { groupe: "Freelance", nom: "Remote OK", url: "https://remoteok.com" },
+  { groupe: "Freelance", nom: "We Work Remotely", url: "https://weworkremotely.com" },
+];
+
+// Facebook (27/10/2026) : là où l'on cherche une pièce et où l'on vend de
+// tout. Aucune page précise n'y est nommée — elles changent de nom, ferment,
+// renaissent : ce sont les recherches de Facebook elles-mêmes (groupes,
+// pages) et les rayons de Marketplace, qui montrent chaque jour celles qui
+// vivent. Facebook ne répond pas aux robots : ces billets partent souvent
+// nus, avec leur seul texte.
+const FACEBOOK: { groupe: string; nom: string; url: string }[] = [
+  { groupe: "Pièces", nom: "Pièces auto Madagascar", url: "https://www.facebook.com/search/groups/?q=pi%C3%A8ces%20auto%20madagascar" },
+  { groupe: "Pièces", nom: "Pièces moto Madagascar", url: "https://www.facebook.com/search/groups/?q=pi%C3%A8ces%20moto%20madagascar" },
+  { groupe: "Pièces", nom: "Pièces détachées Madagascar", url: "https://www.facebook.com/search/pages/?q=pi%C3%A8ces%20d%C3%A9tach%C3%A9es%20madagascar" },
+  { groupe: "Pièces", nom: "Pièces téléphone Madagascar", url: "https://www.facebook.com/search/groups/?q=pi%C3%A8ces%20t%C3%A9l%C3%A9phone%20madagascar" },
+  { groupe: "Pièces", nom: "Pièces informatique Madagascar", url: "https://www.facebook.com/search/groups/?q=informatique%20madagascar%20vente" },
+  { groupe: "Pièces", nom: "Pièces électroménager Madagascar", url: "https://www.facebook.com/search/groups/?q=pi%C3%A8ces%20%C3%A9lectrom%C3%A9nager%20madagascar" },
+  { groupe: "Varotra samihafa", nom: "Vente et achat Madagascar", url: "https://www.facebook.com/search/groups/?q=vente%20et%20achat%20madagascar" },
+  { groupe: "Varotra samihafa", nom: "Varotra Antananarivo", url: "https://www.facebook.com/search/groups/?q=varotra%20antananarivo" },
+  { groupe: "Varotra samihafa", nom: "Vente voiture Madagascar", url: "https://www.facebook.com/search/groups/?q=vente%20voiture%20madagascar" },
+  { groupe: "Varotra samihafa", nom: "Vente moto Madagascar", url: "https://www.facebook.com/search/groups/?q=vente%20moto%20madagascar" },
+  { groupe: "Varotra samihafa", nom: "Vente terrain et maison Madagascar", url: "https://www.facebook.com/search/groups/?q=vente%20terrain%20maison%20madagascar" },
+  { groupe: "Varotra samihafa", nom: "Location maison Antananarivo", url: "https://www.facebook.com/search/groups/?q=location%20maison%20antananarivo" },
+  { groupe: "Varotra samihafa", nom: "Akanjo sy kiraro Madagascar", url: "https://www.facebook.com/search/groups/?q=vente%20v%C3%AAtements%20madagascar" },
+  { groupe: "Varotra samihafa", nom: "Boutique en ligne Madagascar", url: "https://www.facebook.com/search/pages/?q=boutique%20en%20ligne%20madagascar" },
+  { groupe: "Marketplace", nom: "Marketplace — Fiara", url: "https://www.facebook.com/marketplace/category/vehicles" },
+  { groupe: "Marketplace", nom: "Marketplace — Elektronika", url: "https://www.facebook.com/marketplace/category/electronics" },
+  { groupe: "Marketplace", nom: "Marketplace — Trano hofaina", url: "https://www.facebook.com/marketplace/category/propertyrentals" },
+  { groupe: "Marketplace", nom: "Marketplace — Akanjo", url: "https://www.facebook.com/marketplace/category/apparel" },
+  { groupe: "Marketplace", nom: "Marketplace — Ao an-trano", url: "https://www.facebook.com/marketplace/category/home" },
+];
+
+type Sorte = "boutique" | "livraison" | "parrainage" | "asa" | "facebook";
 type Adresse = { groupe: string; nom: string; url: string; sorte: Sorte; code?: string };
 
 // L'étiquette et l'invitation changent avec la sorte : on ne « regarde pas ce
@@ -180,14 +234,18 @@ const SORTES = {
   boutique: { reseau: "Boutique", icone: "🛍️", invite: "Tsindrio ny rohy hijerena izay amidy any." },
   livraison: { reseau: "Livraison international", icone: "🚚", invite: "Tsindrio ny rohy hijerena ny fomba handefasany entana." },
   parrainage: { reseau: "Parrainage", icone: "💸", invite: "Tsindrio ny rohy hisoratana anarana." },
+  asa: { reseau: "Fitadiavana asa", icone: "💼", invite: "Tsindrio ny rohy hijerena ireo asa misy." },
+  facebook: { reseau: "Facebook", icone: "📘", invite: "Tsindrio ny rohy hitadiavana ao amin'ny Facebook." },
 };
-// Le tour des sortes : une boutique, un transporteur, une plateforme, puis
-// on recommence.
-const ORDRE: Sorte[] = ["boutique", "livraison", "parrainage"];
+// Le tour des sortes : une boutique, une offre de travail, un transporteur,
+// Facebook (pièces et ventes), une plateforme, puis on recommence.
+const ORDRE: Sorte[] = ["boutique", "asa", "livraison", "facebook", "parrainage"];
 
 const TOUTES: Adresse[] = [
   ...BOUTIQUES.map((b) => ({ ...b, sorte: "boutique" as const })),
   ...TRANSPORTEURS.map((b) => ({ ...b, sorte: "livraison" as const })),
+  ...ASA.map((b) => ({ ...b, sorte: "asa" as const })),
+  ...FACEBOOK.map((b) => ({ ...b, sorte: "facebook" as const })),
 ];
 
 // Sept jours : c'est la fenêtre du fil lui-même. Une boutique déjà passée
@@ -325,7 +383,7 @@ Deno.serve(async (req: Request) => {
   const vues = new Set(lignes.map((r) => String(r.link ?? "")));
   // Chaque sorte a sa file. Une file vide recommence son tour seule : sans
   // cela la maison se tairait le jour où la liste serait épuisée.
-  const files: Record<Sorte, Adresse[]> = { boutique: [], livraison: [], parrainage: [] };
+  const files: Record<Sorte, Adresse[]> = { boutique: [], livraison: [], parrainage: [], asa: [], facebook: [] };
   for (const s of ORDRE) {
     const toutes = [...TOUTES, ...siennes, ...parrainages].filter((b) => b.sorte === s);
     files[s] = toutes.filter((b) => !vues.has(b.url));
@@ -389,7 +447,7 @@ Deno.serve(async (req: Request) => {
     });
     sorte = suivante(b.sorte);
   }
-  const restantes = files.boutique.length + files.livraison.length + files.parrainage.length;
+  const restantes = ORDRE.reduce((n, s) => n + files[s].length, 0);
 
   // « muettes » n'est pas une erreur : c'est la liste de celles qui se sont
   // refusées à ce passage-là, et qui reviendront au suivant. La voir permet
