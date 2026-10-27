@@ -623,11 +623,78 @@
         const liste = lireOuverts().filter(function(c){ return c !== cle; });
         if(!plie) liste.push(cle);
         garderOuverts(liste);
+        // ouvert, il est lu : ce qui était nouveau ne l'est plus
+        if(!plie) compter(panneau, cle, true);
       };
+      // Le nombre de lignes, posé sur le titre : il se voit panneau fermé.
+      const pastille = document.createElement('span');
+      pastille.className = 'admin-compte';
+      pastille.hidden = true;
+      titre.appendChild(pastille);
+      const liste = panneau.querySelector('tbody') || panneau.querySelector('[id$="List"]');
+      panneau._adminCle = cle;
+      if(liste){
+        panneau._adminListe = liste;
+        new MutationObserver(function(){ compter(panneau, cle, false); })
+          .observe(liste, { childList: true });
+      }
       titre.setAttribute('aria-expanded', panneau.classList.contains('admin-plie') ? 'false' : 'true');
       titre.addEventListener('click', basculer);
       titre.addEventListener('keydown', function(e){
         if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); basculer(); }
       });
+    });
+  }
+
+  // ---------------- LES NOMBRES SUR LES TITRES ----------------
+  // Chaque titre porte le nombre de lignes de son tableau ; il s'allume
+  // quand des lignes sont arrivées depuis la dernière fois qu'on a ouvert le
+  // panneau. Le total des nouvelles s'affiche aussi sur « Espace admin » dans
+  // le menu, pour le voir sans ouvrir la page. Ce qui a été vu se garde sur
+  // cet appareil.
+  const CLE_VUS = 'nyasako_admin_vus';
+  function lireVus(){
+    try { return JSON.parse(localStorage.getItem(CLE_VUS)) || {}; } catch(e){ return {}; }
+  }
+  function garderVus(vus){
+    try { localStorage.setItem(CLE_VUS, JSON.stringify(vus)); } catch(e){}
+  }
+  const nouveautes = {};
+  function compter(panneau, cle, lu){
+    const liste = panneau._adminListe;
+    const pastille = panneau.querySelector('.admin-compte');
+    if(!liste || !pastille) return;
+    const n = liste.children.length;
+    const vus = lireVus();
+    // Première fois : ce qui est déjà là compte comme vu, seul l'après s'allume.
+    // Ouvert, le panneau est sous les yeux : tout y est vu.
+    if(lu || vus[cle] === undefined || !panneau.classList.contains('admin-plie') || n < vus[cle]){
+      if(n > 0 || vus[cle] !== undefined){ vus[cle] = n; garderVus(vus); }
+    }
+    const nouveau = Math.max(0, n - (vus[cle] || 0));
+    pastille.hidden = n === 0;
+    pastille.textContent = nouveau ? '+' + nouveau : String(n);
+    pastille.classList.toggle('admin-compte-nouveau', nouveau > 0);
+    pastille.title = nouveau ? nouveau + ' nouveau(x) sur ' + n : n + ' en tout';
+    nouveautes[cle] = nouveau;
+    totalDansLeMenu();
+  }
+  // Comme le 💬 des messages (live.js) : un attribut lu par le CSS, et non
+  // un <span>, sur l'entrée du menu et sur son icône épinglée — la rangée
+  // recopie le texte de l'entrée pour faire son icône.
+  function totalDansLeMenu(){
+    const total = Object.keys(nouveautes).reduce(function(s, k){ return s + nouveautes[k]; }, 0);
+    document.querySelectorAll('#navList .nav-item[data-section="admin"], [data-epingle="section:admin"]')
+      .forEach(function(el){
+        if(total) el.setAttribute('data-isa-hafatra', total > 9 ? '9+' : String(total));
+        else el.removeAttribute('data-isa-hafatra');
+      });
+  }
+  // L'icône épinglée peut être recréée : on repose.
+  setInterval(totalDansLeMenu, 2000);
+  // Ce qui est déjà dessiné au chargement est compté tout de suite.
+  if(sectionAdmin){
+    [].slice.call(sectionAdmin.querySelectorAll(':scope > .admin-pliable')).forEach(function(panneau){
+      if(panneau._adminCle) compter(panneau, panneau._adminCle, false);
     });
   }

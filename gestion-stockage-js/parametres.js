@@ -32,7 +32,12 @@
     document.getElementById('signupsPanel').style.display = isAdmin ? 'block' : 'none';
     const voafafaPanel = document.getElementById('kaontyVoafafaPanel');
     if(voafafaPanel) voafafaPanel.style.display = isAdmin ? 'block' : 'none';
-    if(isAdmin){ renderSiteVisits(); renderClientCodesAdmin(); renderUnlockRequests(); renderSignups(); renderKaontyVoafafa(); }
+    if(isAdmin){
+      renderSiteVisits(); renderClientCodesAdmin(); renderUnlockRequests(); renderSignups(); renderKaontyVoafafa();
+      // le reste de l'espace admin aussi : ses nombres se voient dans le menu
+      // avant même d'ouvrir la page (securite.js)
+      if(typeof renderAdminSpace === 'function') renderAdminSpace();
+    }
     renderProfileForm();
   }
 

@@ -1239,6 +1239,17 @@
   #section-admin .admin-pliable > .section-head{ margin-bottom:0 !important; align-items:center; }
   #section-admin .admin-plie > :not(.section-head):not(h3){ display:none !important; }
   #section-admin .admin-pliable{ padding-top:1rem; padding-bottom:1rem; }
+  /* Le nombre de lignes sur chaque titre, et le total des nouvelles sur
+     « Espace admin » dans le menu (securite.js). Allumé : du nouveau. */
+  .admin-compte{
+    display:inline-flex; align-items:center; justify-content:center;
+    min-width:1.45rem; height:1.25rem; padding:0 0.4rem; border-radius:999px;
+    font-family:var(--font-mono); font-size:0.68rem; font-weight:700; line-height:1;
+    background:color-mix(in srgb, var(--text) 12%, transparent); color:var(--muted);
+    letter-spacing:0; flex-shrink:0;
+  }
+  .admin-compte[hidden]{ display:none; }
+  .admin-compte.admin-compte-nouveau{ background:#e5484d; color:#fff; }
   #section-admin td{ white-space:nowrap; }
   #adminVisiteursTable th:last-child,
   #adminVisiteursTable td:last-child{ text-align:right; font-variant-numeric:tabular-nums; font-weight:600; }
