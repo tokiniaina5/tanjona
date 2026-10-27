@@ -1536,7 +1536,7 @@
     (resaka[email] = resaka[email] || []).push(toerana);
     if(resakaMisokatra && resakaMisokatra.email === email) asehoyResaka();
     const nanomboka = Date.now();
-    botValiny(email, soratra, media).then(null, function(){ return null; }).then(function(v){
+    botValinyFeno(email, soratra, media).then(null, function(){ return null; }).then(function(v){
       // Fotoana kely farafahakeliny, mba tsy hipoitra mitampoka ny valiny.
       setTimeout(function(){
         const lisitra = resaka[email] || [];
@@ -1653,6 +1653,17 @@
     botVideoVita.then(null, function(){ botVideoVita = null; });
     return botVideoVita;
   }
+  // Ny soratra vakiana : tsy misy emoji (« 📦 » vakiana hoe « package »),
+  // ary ny « (ilay logo… ) » sy ny rohy esorina.
+  function botHoVakiana(soratra){
+    return String(soratra || '')
+      .replace(/https?:\/\/\S+/g, '')
+      .replace(/(?:\p{Extended_Pictographic}|\p{Regional_Indicator})[️‍\p{Emoji_Modifier}\p{Extended_Pictographic}]*/gu, '')
+      .replace(/[«»•◐]/g, '')
+      .replace(/\n+/g, '. ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
   // Ny feo : iray ihany no miteny amin'ny fotoana iray.
   function botVakio(soratra, teny){
     if(!window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined'){
@@ -1674,10 +1685,69 @@
   // Ny fiteny farany nanoratan'ilay olona (null = malagasy) : ho an'ny
   // valiny tsy misy soratra hamantarana azy (sary, video, feo).
   const botTenyFarany = {};
+  // Ny endrika nampiasain'ilay olona farany (sary/video → 'sary', feo →
+  // 'feo') : rehefa mbola manontany amin'ny soratra izy avy eo, dia
+  // arahina sary fanazavana na feo mitovy amin'ny hafatra ny valiny.
+  const botFomba = {};
+  function botValinyFeno(email, soratra, media){
+    if(media) botFomba[email] = media.type === 'feo' ? 'feo' : 'sary';
+    return botValiny(email, soratra, media).then(function(v){
+      if(!v || !v.soratra || v.media || media) return v;
+      if(botFomba[email] === 'sary') v.media = { type: 'sary', url: botSaryFanazavana(v.soratra) };
+      else if(botFomba[email] === 'feo') v.media = { type: 'bot-feo', soratra: botHoVakiana(v.soratra), teny: v.teny || 'mg' };
+      return v;
+    });
+  }
+  // Sary fanazavana mitovy amin'ny valiny : karatra SVG (toy ny
+  // bot/ny-asako.svg) misy ny lohateny sy ny fanazavana, amin'ny fiteny
+  // nanoratana ny valiny. data: URL, tsy alefa any amin'ny serveur.
+  function botSaryFanazavana(soratra){
+    const xml = function(s){ return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); };
+    const andalana = String(soratra).split('\n').filter(function(a){ return a.trim(); });
+    let lohateny = andalana.shift() || '';
+    let vatana = andalana.join(' ');
+    const i = lohateny.indexOf(' : ') >= 0 ? lohateny.indexOf(' : ') : lohateny.indexOf(': ');
+    if(i > 0 && i < 70){ vatana = lohateny.slice(i).replace(/^\s*:\s*/, '') + (vatana ? ' ' + vatana : ''); lohateny = lohateny.slice(0, i); }
+    else if(lohateny.length > 40){ vatana = lohateny + (vatana ? ' ' + vatana : ''); lohateny = '🤖 Assistant Ny asako'; }
+    // Ny « (ilay logo… ) » : soloina « Menu » fohy eo amin'ny sary.
+    lohateny = lohateny.replace(/\s*\([^)]*\)/g, '');
+    vatana = vatana.replace(/\s*\([^)]*\)/g, '');
+    const teny = vatana.split(/\s+/);
+    const tsipika = [];
+    let ankehitriny = '';
+    teny.forEach(function(t){
+      if((ankehitriny + ' ' + t).trim().length > 44){ tsipika.push(ankehitriny.trim()); ankehitriny = t; }
+      else ankehitriny += ' ' + t;
+    });
+    if(ankehitriny.trim()) tsipika.push(ankehitriny.trim());
+    const asehoy = tsipika.slice(0, 9);
+    if(tsipika.length > 9) asehoy[8] = asehoy[8].replace(/\s*\S*$/, '') + ' …';
+    const h = 150 + asehoy.length * 30;
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 ' + h + '" width="640" height="' + h + '" ' +
+      'font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">' +
+      '<defs><linearGradient id="f" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0f1b22"/><stop offset="1" stop-color="#123540"/></linearGradient></defs>' +
+      '<rect width="640" height="' + h + '" rx="26" fill="url(#f)"/>' +
+      '<circle cx="580" cy="40" r="110" fill="#4fd8e0" opacity="0.08"/>' +
+      '<text x="36" y="66" font-size="34" font-weight="800" fill="#ffffff">' + xml(lohateny.slice(0, 34)) + '</text>' +
+      '<rect x="36" y="88" width="568" height="2" fill="#4fd8e0" opacity="0.5"/>' +
+      asehoy.map(function(t, n){ return '<text x="36" y="' + (128 + n * 30) + '" font-size="21" fill="#e6f7f8">' + xml(t) + '</text>'; }).join('') +
+      '<text x="604" y="' + (h - 18) + '" text-anchor="end" font-size="15" fill="#9fe7ec">🤖 Assistant Ny asako</text>' +
+      '</svg>';
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  }
   function botValiny(email, soratra, media){
     // Sary, video na feo fotsiny : tsy henony na hitany ny ao anatiny, ka
     // anontaniany izay tiany ho valiana ; ny fanontaniana manaraka dia
     // valiany toy ny mahazatra.
+    // Feo azo ny soratra ao aminy (feoHoSoratra) : valiana toy ny hafatra
+    // soratra, ary io valiny io ihany no vakiana amin'ny ▶ 🔊.
+    if(media && media.type === 'feo' && media.dikany && !String(soratra || '').trim()){
+      return botValiny(email, media.dikany).then(function(v){
+        if(!v || !v.soratra) return v;
+        v.media = { type: 'bot-feo', soratra: botHoVakiana(v.soratra), teny: v.teny || 'mg' };
+        return v;
+      });
+    }
     if(media && !String(soratra || '').trim()){
       // Ary mamerina media mitovy karazana aminy, momba ny Ny asako : sary,
       // video kely, na feo (27/10/2026).
@@ -1888,7 +1958,7 @@
     return media.type === 'video' ? '🎬 Video' : media.type === 'feo' ? '🎤 Feo' : '📷 Sary';
   }
 
-  function alefaRakitra(fichier){
+  function alefaRakitra(fichier, dikany){
     if(!fichier || !resakaMisokatra) return;
     const video = /^video\//.test(fichier.type);
     const feo = /^audio\//.test(fichier.type);
@@ -1919,7 +1989,10 @@
         if(res && res.error) throw res.error;
         const url = window.__sb.storage.from(RESAKA_BUCKET).getPublicUrl(nom).data.publicUrl;
         if(toerana) toerana.style.display = 'none';
-        alefaHafatra('', { url: url, type: video ? 'video' : feo ? 'feo' : 'sary' });
+        const media = { url: url, type: video ? 'video' : feo ? 'feo' : 'sary' };
+        // Ny soratry ny feo (feoHoSoratra) : hitan'ny bot sy ny admin.
+        if(feo && dikany) media.dikany = String(dikany).slice(0, 1000);
+        alefaHafatra('', media);
       })
       .catch(function(err){
         if(toerana) toerana.style.display = 'none';
@@ -1934,6 +2007,51 @@
   // (alefaRakitra, bucket resaka-media).
   const FEO_MAX_MS = 3 * 60 * 1000;
   let fandraketana = null;
+  // Ny feo ho soratra : SpeechRecognition an'ny navigateur (Chrome, Safari),
+  // tsy misy clef. Manandrana ny teny malagasy aloha ; raha tsy fantany,
+  // ny frantsay. Raha tsy mety (navigateur, microphone efa ampiasaina),
+  // soratra foana : ny valiny mahazatra amin'ny feo no alefan'ny bot.
+  function feoHoSoratra(teny){
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!SR) return null;
+    const lisitra = teny ? [teny, 'mg-MG', 'fr-FR'] : ['mg-MG', 'fr-FR'];
+    let soratra = '', rec = null, mihaino = true, faranyVita = null;
+    const vita = new Promise(function(r){ faranyVita = r; });
+    function manomboka(i){
+      if(i >= lisitra.length || !mihaino){ faranyVita(soratra.trim()); return; }
+      try{ rec = new SR(); }catch(e){ faranyVita(''); return; }
+      rec.lang = lisitra[i];
+      rec.continuous = true;
+      rec.interimResults = false;
+      let nivadika = false;
+      rec.onresult = function(e){
+        for(let j = e.resultIndex; j < e.results.length; j++){
+          if(e.results[j].isFinal) soratra += ' ' + e.results[j][0].transcript;
+        }
+      };
+      rec.onerror = function(e){
+        // Teny tsy fantany : manandrana ny manaraka.
+        if(e && e.error === 'language-not-supported' && mihaino){ nivadika = true; manomboka(i + 1); }
+      };
+      rec.onend = function(){
+        if(nivadika) return;
+        // Mijanona ho azy rehefa mangina kely : averina raha mbola mandrakitra.
+        if(mihaino){ try{ rec.start(); return; }catch(e){} }
+        faranyVita(soratra.trim());
+      };
+      try{ rec.start(); }catch(e){ faranyVita(''); }
+    }
+    manomboka(0);
+    return {
+      vita: function(){
+        mihaino = false;
+        try{ if(rec) rec.stop(); }catch(e){}
+        // Tsy miandry mandrakizay : 2 segondra farafahabetsany.
+        return Promise.race([vita, new Promise(function(r){ setTimeout(function(){ r(soratra.trim()); }, 2000); })]);
+      }
+    };
+  }
+
   function rakitraFeo(boaty){
     if(fandraketana){ fandraketana.vita(true); return; }
     if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined'){
@@ -1966,7 +2084,8 @@
         let fichier;
         try{ fichier = new File([blob], 'feo.' + ext, { type: type }); }
         catch(e){ fichier = blob; fichier.name = 'feo.' + ext; }
-        alefaRakitra(fichier);
+        // Miandry ny soratry ny feo (raha nisy) vao alefa.
+        (fihainoana ? fihainoana.vita() : Promise.resolve('')).then(function(dikany){ alefaRakitra(fichier, dikany); });
       };
       function asehoy(){
         const s = Math.floor((Date.now() - nanomboka) / 1000);
@@ -1982,8 +2101,17 @@
       bokotra.title = 'Alefaso ny feo';
       const fotoana = setInterval(asehoy, 500);
       const fetra = setTimeout(function(){ if(fandraketana) fandraketana.vita(true); }, FEO_MAX_MS);
-      fandraketana = { vita: function(hoAlefa){ alefa = hoAlefa; if(mr.state !== 'inactive') mr.stop(); } };
+      fandraketana = { vita: function(hoAlefa){
+        alefa = hoAlefa;
+        if(!hoAlefa && fihainoana) fihainoana.vita();
+        if(mr.state !== 'inactive') mr.stop();
+      } };
       mr.start();
+      // Amin'ny Assistant ihany : avadika ho soratra ilay feo mandritra ny
+      // fandraketana, mba hamaliany azy toy ny hafatra soratra.
+      const me = myIdentity();
+      const fihainoana = (resakaMisokatra && isOwnerEmail(resakaMisokatra.email) && !me.isAdmin && !isOwnerEmail(me.email))
+        ? feoHoSoratra(botTenyFarany[resakaMisokatra.email] || null) : null;
     }).catch(function(){
       alert('Tsy azo ampiasaina ny microphone. Avelao ao amin\'ny navigateur ny fidirana amin\'ny microphone.');
     });
@@ -2186,7 +2314,10 @@
             atiny += h.media.type === 'video'
               ? '<video src="' + url + '" controls playsinline style="display:block; max-width:100%; max-height:260px; border-radius:8px;"></video>'
               : h.media.type === 'feo'
-              ? '<audio src="' + url + '" controls preload="metadata" style="display:block; width:230px; max-width:100%; height:36px;"></audio>'
+              ? '<audio src="' + url + '" controls preload="metadata" style="display:block; width:230px; max-width:100%; height:36px;"></audio>' +
+                // Ny soratra azo avy amin'ny feo (feoHoSoratra), raha nisy.
+                (h.media.dikany ? '<div style="margin-top:0.25rem; font-size:0.74rem; font-style:italic; opacity:0.85;">🎤 « ' +
+                  escapeHtml(h.media.dikany) + ' »</div>' : '')
               : '<a href="' + url + '" target="_blank" rel="noopener"><img src="' + url + '" alt="Sary" ' +
                   'style="display:block; max-width:100%; max-height:260px; border-radius:8px;"></a>';
           }
@@ -2213,7 +2344,7 @@
             if(h.media){
               const m = h.media;
               let html = '';
-              if(m.type === 'sary' && /^\//.test(m.url)){
+              if(m.type === 'sary' && /^(\/|data:image\/svg\+xml)/.test(m.url)){
                 html = '<img src="' + escapeHtml(m.url) + '" alt="Ny asako" style="display:block; width:100%; max-width:280px; border-radius:10px;">';
               } else if(m.type === 'video' && /^(blob:|\/)/.test(m.url)){
                 html = '<video src="' + escapeHtml(m.url) + '" controls playsinline muted autoplay loop ' +
