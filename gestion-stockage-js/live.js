@@ -1267,6 +1267,68 @@
     { teny: ['menu', 'fanampiana', 'aide', 'help', 'inona no azo atao', 'inona no ataon ny appli', 'fitaovana', 'fonctionnalite', 'fonctionnalites'],
       valiny: botFanampiana }
   ];
+  // Ny pejy azon'ny bot sokafana, araka ny teny voalohany amin'ny valiny
+  // tsirairay ao amin'ny BOT_FAQ : ny entrée ao amin'ny menu (na ny barre)
+  // no tsindriany, toy ny sary eo amin'ny barre (common.js) — izy no mahay
+  // manova pejy sy manokatra fenêtre.
+  const BOT_SOKAFY = {
+    'vidiny': ['[data-section="abonnement"]', '💳 Abonnement'],
+    'portefeuille': ['[data-section="wallet"]', '💰 Portefeuille'],
+    'stock': ['#menuArticles', '📋 Articles'],
+    'tableau de bord': ['#menuTableauBord', '📊 Tableau de bord'],
+    'facture': ['[data-section="factures"]', '🧾 Factures'],
+    'pdf': ['[data-section="pdf"]', '📄 PDF'],
+    'botika': ['#menuAccueil', '🏠 Botika'],
+    'story': ['#menuAccueil', '🏠 Botika'],
+    'hotel': ['[data-section="hotelerie"]', '🏨 Hôtellerie'],
+    'live': ['[data-section="live"]', '🔴 Live direct'],
+    'call': ['[data-section="appels"]', '📞 Call'],
+    'message': ['[data-section="serviceclient"]', '💬 Message'],
+    'feo': ['[data-section="feo"]', '🔔 Feo'],
+    'mpiasa': ['[data-section="mpiasa"]', '👷 Mpiasa'],
+    'livreur': ['[data-section="livreur"]', '🛵 Livreur'],
+    'affiliation': ['[data-section="inviter"]', '✉️ Inviter des amis'],
+    'supprimer mon compte': ['#navParametres', '⚙️ Paramètres'],
+    'parametres': ['#navParametres', '⚙️ Paramètres'],
+    'corbeille': ['[data-section="corbeille"]', '🗑️ Corbeille'],
+    'multi service': ['[data-section="photocopie"]', '📠 Multi-service'],
+    'notes': ['[data-section="notes"]', '📒 Notes'],
+    'calculatrice': ['[data-section="kajy"]', '🧮 Calculatrice'],
+    'calendrier': ['[data-section="calendrier"]', '📅 Calendrier'],
+    'horaire': ['[data-section="horaire"]', '🕒 Horaire'],
+    'ajouter les liens': ['[data-section="contact"]', '🔗 Ajouter les liens'],
+    'projecteur': ['[data-section="projecteur"]', '📽️ Projecteur'],
+    'maps': ['[data-section="toerana"]', '📍 Toerana & Maps'],
+    'fond': ['[data-section="fond"]', '🖼️ Fond d\'écran'],
+    'andro': ['#menuTheme', '🌙 Andro / Alina'],
+    'notification': ['#notifToggle', '🔔 Notifications'],
+    'teny': ['#tenyToggle', '🌐 Teny'],
+    'panier': ['#menuPanier', '🛒 Panier'],
+    'achats internationaux': ['#marketToggle', '🌍 Achats internationaux'],
+    'livraison international': ['#livraisonToggle', '🚚 Livraison international'],
+    'fokontany': ['#menuCommun', '🗂️ Fokontany'],
+    'barre': ['#barReglagesBtn', '⋯ Réglages'],
+    'karohy': ['#barRecherche', '🔍 Karohy']
+  };
+  // Ny entrée azo tsindriana, na null raha tsy misy na nafenina ho an'ity
+  // kaonty ity (Hôtellerie, Espace admin…).
+  function botEntree(lakile){
+    const s = BOT_SOKAFY[lakile];
+    const el = s && document.querySelector(s[0]);
+    if(!el || getComputedStyle(el).display === 'none') return null;
+    return el;
+  }
+  function botSokafyPejy(lakile){
+    const el = botEntree(lakile);
+    if(!el) return false;
+    el.click();
+    return true;
+  }
+  // « sokafy ny facture », « ouvre les notes » : sokafana avy hatrany.
+  function botTeOhSokafana(soratra){
+    return /(^| )(sokafy|sokafana|sokafako|hosokafana|ampisehoy|asehoy|ouvrir|ouvre|ouvrez|affiche|open|show)( |$)/.test(' ' + botTeny(soratra) + ' ');
+  }
+
   // Ny lisitry ny pejy rehetra : ho an'ny fanontaniana ankapobeny na tsy fantatra.
   function botFanampiana(){
     // Vondrona fohy, iray isaky ny andalana : ny lisitra tohizana tamin'ny
@@ -1410,7 +1472,16 @@
     const f = botMitady(soratra);
     const valiny = botValyEmoji(soratra) ||
       (f ? (typeof f.valiny === 'function' ? f.valiny(soratra) : f.valiny) : null);
-    if(valiny){ botApetraho(email, valiny, 700); return; }
+    if(valiny){
+      const lakile = f && !botValyEmoji(soratra) && BOT_SOKAFY[f.teny[0]] ? f.teny[0] : null;
+      if(lakile && botTeOhSokafana(soratra) && botEntree(lakile)){
+        botApetraho(email, '📂 Nosokafako ho anao ny ' + BOT_SOKAFY[lakile][1] + '.\n\n' + valiny, 400);
+        setTimeout(function(){ botSokafyPejy(lakile); }, 500);
+        return;
+      }
+      botApetraho(email, valiny, 700, lakile);
+      return;
+    }
     // Tsy fantatra : tsy misy AI na clef (nofidian'ny tompony, 27/10/2026).
     // Valiana tsara indray mandeha isaky ny resaka, dia mijanona ny bot ;
     // tonga any amin'ny admin ihany ilay hafatra.
@@ -1419,9 +1490,10 @@
     botApetraho(email, 'Misaotra tompoko ! Tsy azoko tsara izany fanontaniana izany, fa voaray ny hafatrao ' +
       'ary ho valian\'ny admin raha vao afaka izy.\n\n' + botFanampiana(), 700);
   }
-  function botApetraho(email, valiny, elanelana){
+  // sokafy : ny lakilen'ny BOT_SOKAFY, hanehoana bokotra « 📂 Sokafy ».
+  function botApetraho(email, valiny, elanelana, sokafy){
     setTimeout(function(){
-      (resaka[email] = resaka[email] || []).push({ id: idHafatra(), avy: 'bot', soratra: botEmoji(valiny), at: Date.now() });
+      (resaka[email] = resaka[email] || []).push({ id: idHafatra(), avy: 'bot', soratra: botEmoji(valiny), sokafy: sokafy || null, at: Date.now() });
       if(resakaMisokatra && resakaMisokatra.email === email) asehoyResaka();
     }, elanelana);
   }
@@ -1606,6 +1678,15 @@
       });
       // ✕ amin'ny hafatra iray.
       boaty.querySelector('[data-hafatra]').addEventListener('click', function(e){
+        // « 📂 Sokafy » ao amin'ny valin'ny bot. stopPropagation : raha tsy
+        // izany dia hanidy avy hatrany ny panneau vao nosokafana ny
+        // mpiambina « clic à côté ».
+        const pejy = e.target.closest('[data-sokafy-pejy]');
+        if(pejy){
+          e.stopPropagation();
+          botSokafyPejy(pejy.getAttribute('data-sokafy-pejy'));
+          return;
+        }
         const b = e.target.closest('[data-fafao]');
         if(!b || !resakaMisokatra) return;
         const email = resakaMisokatra.email, id = b.getAttribute('data-fafao');
@@ -1711,6 +1792,11 @@
             atiny = '<div style="white-space:pre-line;">' + escapeHtml(h.soratra || '').replace(/https:\/\/[^\s<]+/g, function(u){
               return '<a href="' + u + '" target="_blank" rel="noopener" style="color:var(--cyan); text-decoration:underline;">' + u + '</a>';
             }) + '</div>';
+            // Ilay pejy resahina : bokotra manokatra azy avy hatrany.
+            if(h.sokafy && botEntree(h.sokafy)){
+              atiny += '<button type="button" class="btn btn-sm btn-primary" data-sokafy-pejy="' + escapeHtml(h.sokafy) + '" ' +
+                'style="width:auto; margin-top:0.45rem;">📂 Sokafy : ' + escapeHtml(BOT_SOKAFY[h.sokafy][1]) + '</button>';
+            }
             return '<div style="display:flex; justify-content:flex-start; margin:0.25rem 0;">' +
               '<span style="max-width:85%; padding:0.4rem 0.6rem; border-radius:10px; overflow-wrap:anywhere; ' +
                 'background:color-mix(in srgb, var(--cyan) 14%, var(--panel-2)); color:var(--text); ' +
