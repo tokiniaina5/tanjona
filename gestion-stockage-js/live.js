@@ -1230,10 +1230,26 @@
     }, 700);
   }
 
+  // Ny resaka amin'ny admin, miaraka amin'ny fiarahaban'ny bot raha mbola
+  // foana. Ampiasain'ny rohy ?bot=1 sy ny bokotra « 🤖 Manontania ny bot »
+  // (Botika, Message). Tsy ho an'ny admin : tsy mamaly azy ny bot.
+  function sokafyBot(){
+    const me = myIdentity();
+    if(me.isAdmin || isOwnerEmail(me.email)) return;
+    sokafyResaka(OWNER_EMAIL, 'Ny asako');
+    const lisitra = resaka[OWNER_EMAIL] = resaka[OWNER_EMAIL] || [];
+    if(!lisitra.length){
+      lisitra.push({ id: idHafatra(), avy: 'bot', soratra: BOT_FAQ[0].valiny, at: Date.now() });
+      asehoyResaka();
+    }
+  }
+  document.querySelectorAll('[data-sokafy-bot]').forEach(function(b){
+    b.addEventListener('click', sokafyBot);
+  });
+
   // « nyasako.com/?bot=1 » (ny rohy ao amin'ny hafatra fanasana, inviter.js) :
-  // misokatra avy hatrany ny resaka amin'ny admin, ary miarahaba ny bot.
-  // Esorina ao amin'ny adiresy ny « bot=1 », mba tsy hisokatra indray izy
-  // rehefa averina ny pejy.
+  // misokatra avy hatrany ny resaka. Esorina ao amin'ny adiresy ny « bot=1 »,
+  // mba tsy hisokatra indray izy rehefa averina ny pejy.
   (function(){
     let q;
     try{ q = new URLSearchParams(location.search); }catch(e){ return; }
@@ -1241,16 +1257,7 @@
     q.delete('bot');
     try{ history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString() : '') + location.hash); }catch(e){}
     // Aorian'ny fanombohan'ny appli (kaonty, présence).
-    setTimeout(function(){
-      const me = myIdentity();
-      if(me.isAdmin || isOwnerEmail(me.email)) return;
-      sokafyResaka(OWNER_EMAIL, 'Ny asako');
-      const lisitra = resaka[OWNER_EMAIL] = resaka[OWNER_EMAIL] || [];
-      if(!lisitra.length){
-        lisitra.push({ id: idHafatra(), avy: 'bot', soratra: BOT_FAQ[0].valiny, at: Date.now() });
-        asehoyResaka();
-      }
-    }, 1500);
+    setTimeout(sokafyBot, 1500);
   })();
 
   // ---------------- FAMAFANA HAFATRA ----------------

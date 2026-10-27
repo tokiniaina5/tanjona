@@ -1250,6 +1250,11 @@
   }
   .admin-compte[hidden]{ display:none; }
   .admin-compte.admin-compte-nouveau{ background:#e5484d; color:#fff; }
+  /* « 🤖 Manontania ny bot » (live.js) : tsy mamaly ny admin ny bot. */
+  html.est-proprietaire .bokotra-bot{ display:none !important; }
+  /* En fenêtre, le bouton de Message passait sous ─ □ ✕ : l'en-tête descend,
+     comme celui de l'espace admin. */
+  #section-serviceclient.fenetre-page > .section-head{ margin-top:1.4rem; align-items:center; }
   #section-admin td{ white-space:nowrap; }
   #adminVisiteursTable th:last-child,
   #adminVisiteursTable td:last-child{ text-align:right; font-variant-numeric:tabular-nums; font-weight:600; }
