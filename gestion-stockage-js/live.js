@@ -1412,7 +1412,9 @@
         if(!k) return;
         if(t.indexOf(' ' + k + ' ') >= 0 || (k.length >= 6 && t.indexOf(k) >= 0)) n += k.split(' ').length;
       });
-      if(n > isa){ isa = n; tsara = f; }
+      // Mitovy isa amin'ny fiarahabana (« olá, quanto custa ? ») : ilay
+      // fanontaniana no valiana.
+      if(n > isa || (n && n === isa && tsara === BOT_FAQ[0])){ isa = n; tsara = f; }
     });
     return tsara;
   }
@@ -1466,33 +1468,102 @@
     if(typeof isOwnerEmail !== 'function' || !isOwnerEmail(email)) return;
     const me = myIdentity();
     if(me.isAdmin || isOwnerEmail(me.email)) return;
-    const f = botMitady(soratra);
-    const valiny = botValyEmoji(soratra) ||
-      (f ? (typeof f.valiny === 'function' ? f.valiny(soratra) : f.valiny) : null);
-    if(valiny){
-      const lakile = f && !botValyEmoji(soratra) && BOT_SOKAFY[f.teny[0]] ? f.teny[0] : null;
+    const emoji = botValyEmoji(soratra);
+    if(emoji){ botApetraho(email, emoji, 700); return; }
+    // Teny iray na roa fantatra (« salama », « misaotra ») : amin'ny teny
+    // malagasy foana, satria diso matetika ny fanavahana fiteny amin'ny
+    // teny fohy (« ok » → anglisy).
+    const f0 = botMitady(soratra);
+    if(f0 && botTeny(soratra).split(' ').length <= 2){ botValio(email, soratra, f0, null); return; }
+    // Ny hafa : fantarina ny fiteny, ary adika amin'ny teny frantsay ilay
+    // fanontaniana mba hahitana ny teny fototra (« ¿dónde están las
+    // facturas? » → « factures »).
+    botFantaroTeny(soratra).then(function(t){
+      const teny = t ? botTenyAmpiasaina(t.src) : null;
+      const f = (teny && t.fr && botMitady(soratra + ' ' + t.fr)) || f0;
+      botValio(email, soratra + (t && t.fr ? ' ' + t.fr : ''), f, teny);
+    });
+  }
+  // Ny valiny (na ny hafatra « tsy azoko » indray mandeha), adika amin'ny
+  // teny nampiasain'ilay olona raha tsy malagasy.
+  function botValio(email, soratra, f, teny){
+    let valiny, lakile = null, sokafyIzao = false;
+    if(f){
+      valiny = typeof f.valiny === 'function' ? f.valiny(soratra) : f.valiny;
+      lakile = BOT_SOKAFY[f.teny[0]] ? f.teny[0] : null;
       if(lakile && botTeOhSokafana(soratra) && botEntree(lakile)){
-        botApetraho(email, '📂 Nosokafako ho anao ny ' + BOT_SOKAFY[lakile][1] + '.\n\n' + valiny, 400);
-        setTimeout(function(){ botSokafyPejy(lakile); }, 500);
-        return;
+        valiny = '📂 Nosokafako ho anao ny ' + BOT_SOKAFY[lakile][1] + '.\n\n' + valiny;
+        sokafyIzao = true;
       }
-      botApetraho(email, valiny, 700, lakile);
-      return;
+    } else {
+      // Tsy fantatra : tsy misy AI na clef (nofidian'ny tompony, 27/10/2026).
+      // Valiana tsara indray mandeha isaky ny resaka, dia mijanona ny bot ;
+      // tonga any amin'ny admin ihany ilay hafatra.
+      if(botEfaNilaza[email]) return;
+      botEfaNilaza[email] = true;
+      valiny = 'Misaotra tompoko ! Tsy azoko tsara izany fanontaniana izany, fa voaray ny hafatrao ' +
+        'ary ho valian\'ny admin raha vao afaka izy.\n\n' + botFanampiana();
     }
-    // Tsy fantatra : tsy misy AI na clef (nofidian'ny tompony, 27/10/2026).
-    // Valiana tsara indray mandeha isaky ny resaka, dia mijanona ny bot ;
-    // tonga any amin'ny admin ihany ilay hafatra.
-    if(botEfaNilaza[email]) return;
-    botEfaNilaza[email] = true;
-    botApetraho(email, 'Misaotra tompoko ! Tsy azoko tsara izany fanontaniana izany, fa voaray ny hafatrao ' +
-      'ary ho valian\'ny admin raha vao afaka izy.\n\n' + botFanampiana(), 700);
+    botAdikao(valiny, teny).then(function(v){
+      botApetraho(email, v.soratra, 300, sokafyIzao ? null : lakile, v.teny);
+      if(sokafyIzao) setTimeout(function(){ botSokafyPejy(lakile); }, 400);
+    });
   }
   // sokafy : ny lakilen'ny BOT_SOKAFY, hanehoana bokotra « 📂 Sokafy ».
-  function botApetraho(email, valiny, elanelana, sokafy){
+  // teny : ny fiteny nandikana ny valiny (tsy adika indray ny teny.js).
+  function botApetraho(email, valiny, elanelana, sokafy, teny){
     setTimeout(function(){
-      (resaka[email] = resaka[email] || []).push({ id: idHafatra(), avy: 'bot', soratra: botEmoji(valiny), sokafy: sokafy || null, at: Date.now() });
+      (resaka[email] = resaka[email] || []).push({ id: idHafatra(), avy: 'bot', soratra: botEmoji(valiny), sokafy: sokafy || null,
+        teny: teny || null, at: Date.now() });
       if(resakaMisokatra && resakaMisokatra.email === email) asehoyResaka();
     }, elanelana);
+  }
+
+  // ---- Ny fiteny ----
+  // Ireo fiteny ao amin'ny « 🌐 Teny » (teny.js) ihany, ary ny mpandika
+  // tsy misy clef an'i Google ihany koa. Raha tsy mamaly izy, amin'ny teny
+  // malagasy no mijanona ny valiny.
+  const BOT_TENY = ['mg', 'fr', 'en', 'zh-CN', 'es', 'pt', 'ar', 'hi', 'ru', 'de', 'it', 'ja', 'ko'];
+  function botTenyAmpiasaina(src){
+    const s = String(src || '').toLowerCase();
+    const code = /^zh/.test(s) ? 'zh-CN' : s.split('-')[0];
+    return (code && code !== 'mg' && BOT_TENY.indexOf(code) >= 0) ? code : null;
+  }
+  function botFetch(url){
+    const fehezina = typeof AbortController === 'function' ? new AbortController() : null;
+    const timer = setTimeout(function(){ if(fehezina) fehezina.abort(); }, 5000);
+    return fetch(url, fehezina ? { signal: fehezina.signal } : undefined).then(function(r){
+      clearTimeout(timer);
+      if(!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    });
+  }
+  // { src: fiteny hita, fr: ilay fanontaniana amin'ny teny frantsay }, na null.
+  function botFantaroTeny(soratra){
+    const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=fr&dt=t&q=' +
+      encodeURIComponent(String(soratra).slice(0, 500));
+    return botFetch(url).then(function(data){
+      const fr = (data && Array.isArray(data[0]) ? data[0] : []).map(function(x){ return x && x[0] || ''; }).join('');
+      return { src: data && data[2], fr: fr };
+    }).catch(function(){ return null; });
+  }
+  // Andalana tsirairay (mitazona ny lisitra sy ny « • ») ; ny « Ny asako »
+  // tsy adika (« My work » no nataon'i Google).
+  function botAdikao(soratra, teny){
+    if(!teny) return Promise.resolve({ soratra: soratra, teny: null });
+    const andalana = soratra.split('\n');
+    const adika = andalana.filter(function(a){ return /\p{L}{2,}/u.test(a); });
+    if(!adika.length) return Promise.resolve({ soratra: soratra, teny: null });
+    const url = 'https://translate.googleapis.com/translate_a/t?client=gtx&sl=mg&tl=' + encodeURIComponent(teny) +
+      adika.map(function(a){ return '&q=' + encodeURIComponent(a.replace(/\bny\s+asako\b/gi, 'Nyasako')); }).join('');
+    return botFetch(url).then(function(data){
+      const vokatra = (Array.isArray(data) ? data : [data]).map(function(x){
+        return String(Array.isArray(x) ? x[0] : x).replace(/\bnyasako\b/gi, 'Ny asako');
+      });
+      let i = 0;
+      const vita = andalana.map(function(a){ return /\p{L}{2,}/u.test(a) ? (vokatra[i++] || a) : a; }).join('\n');
+      return { soratra: vita, teny: teny };
+    }).catch(function(){ return { soratra: soratra, teny: null }; });
   }
 
   // Ny resaka amin'ny admin, miaraka amin'ny fiarahaban'ny bot raha mbola
@@ -1794,8 +1865,11 @@
               atiny += '<button type="button" class="btn btn-sm btn-primary" data-sokafy-pejy="' + escapeHtml(h.sokafy) + '" ' +
                 'style="width:auto; margin-top:0.45rem;">📂 Sokafy : ' + escapeHtml(BOT_SOKAFY[h.sokafy][1]) + '</button>';
             }
+            // Efa adika amin'ny tenin'ilay olona : tsy adika indray amin'ny
+            // fiteny voafidy ho an'ny site (teny.js).
             return '<div style="display:flex; justify-content:flex-start; margin:0.25rem 0;">' +
-              '<span style="max-width:85%; padding:0.4rem 0.6rem; border-radius:10px; overflow-wrap:anywhere; ' +
+              '<span' + (h.teny ? ' class="notranslate" lang="' + escapeHtml(h.teny) + '"' : '') +
+                ' style="max-width:85%; padding:0.4rem 0.6rem; border-radius:10px; overflow-wrap:anywhere; ' +
                 'background:color-mix(in srgb, var(--cyan) 14%, var(--panel-2)); color:var(--text); ' +
                 'border:1px solid color-mix(in srgb, var(--cyan) 40%, transparent);">' +
                 '<div style="font-size:0.68rem; font-weight:700; color:var(--cyan); margin-bottom:0.15rem;">🤖 Assistant Ny asako</div>' +
