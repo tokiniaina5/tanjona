@@ -1092,15 +1092,22 @@
   // no miseho ny valin'ny bot ; tonga any amin'ny admin foana ny hafatra,
   // ka afaka mamaly koa izy. Fanontaniana tsy fantatra : ilazana indray
   // mandeha isaky ny resaka fa ho valian'ny admin izy.
-  // Raha miova ny vidiny na ny fepetra, ovay eto koa.
+  // Raha miova ny vidiny na ny fepetra, ovay eto koa. Rehefa misy pejy
+  // vaovao ao amin'ny menu (ny-asako.html, #navList), ampio eto koa ny
+  // valiny mifanaraka aminy, miaraka amin'ny toerana hahitana azy.
+  // Raha mitovy isa ny teny hita, ny voalohany ao amin'ny lisitra no
+  // mandresy : ny ankapobeny (menu, fanampiana) no apetraka farany.
+  const BOT_MENU = 'ao amin\'ny Menu (ilay logo eo ankavia amin\'ny barre ambany)';
   const BOT_FAQ = [
-    { teny: ['salama', 'manao ahoana', 'bonjour', 'bonsoir', 'salut', 'hello', 'allo'],
-      valiny: 'Salama ! Izaho no Assistant Ny asako. Afaka mamaly anao momba ny vidiny, ny essai maimaimpoana, ' +
-        'ny kaonty, ny portefeuille, ny stock, ny facture, ny botika, ny hôtel, ny live, ny mpiasa, ' +
-        'ny Binance / Payoneer ary ny affiliation aho. Inona no tianao ho fantatra ?' },
+    { teny: ['salama', 'manao ahoana', 'bonjour', 'bonsoir', 'salut', 'hello', 'allo', 'akory'],
+      valiny: 'Salama ! Izaho no Assistant Ny asako. Fantatro daholo ny ao amin\'ny appli : ny stock sy ny articles, ' +
+        'ny facture sy ny PDF, ny botika sy ny panier, ny portefeuille, ny abonnement, ny hafatra, ny live sy ny call, ' +
+        'ny mpiasa sy ny livreur, ny Multi-service, ny Notes, ny calendrier, ny paramètres… ' +
+        'Anontanio fotsiny hoe « aiza ny … » na « ahoana no … ». Inona no tianao ho fantatra ?' },
     { teny: ['vidiny', 'ohatrinona', 'hoatrinona', 'prix', 'tarif', 'abonnement', 'abonement', 'mensuel', 'annuel', 'karama', 'combien'],
       valiny: 'Maimaimpoana mandritra ny 15 andro ny Ny asako. Aorian\'izay : 15 000 Ar isam-bolana, ' +
-        'na 150 000 Ar isan-taona (2 volana maimaimpoana). Aloa avy amin\'ny 💰 Portefeuille (MVola, Orange Money, Airtel Money).' },
+        'na 150 000 Ar isan-taona (2 volana maimaimpoana). Aloa avy amin\'ny 💰 Portefeuille (MVola, Orange Money, Airtel Money). ' +
+        'Ny andro sisa sy ny fanavaozana : 💳 Abonnement ' + BOT_MENU + '.' },
     { teny: ['essai', 'gratuit', 'maimaimpoana', 'maimaim-poana', 'andrana', 'free', '15 andro', '15 jours'],
       valiny: 'Essai maimaimpoana 15 andro : ny 7 andro voalohany dia miditra tsy misy kaonty ianao. ' +
         'Aorian\'izay dia angatahana kaonty, fa mijanona daholo izay efa nampidirinao. ' +
@@ -1113,43 +1120,138 @@
         'Airtel Money na karatra), dia alefaso ny fangatahana. Rehefa hamarinin\'ny admin ny fandoavana, ' +
         'misokatra ho azy indray ny kaontinao.' },
     { teny: ['portefeuille', 'portfeuille', 'wallet', 'vola', 'depot', 'dépôt', 'retrait', 'misintona', 'mvola', 'orange money', 'airtel', 'id key', 'transfert'],
-      valiny: '💰 Portefeuille : vola Ariary ao anaty appli. Mametraka vola amin\'ny MVola, Orange Money na Airtel Money ianao, ' +
+      valiny: '💰 Portefeuille ' + BOT_MENU + ' : vola Ariary ao anaty appli. Mametraka vola amin\'ny MVola, Orange Money na Airtel Money ianao, ' +
         'misintona any amin\'ny Mobile Money-nao, ary mandefa vola amin\'ny kaonty hafa amin\'ny ID KEY-ny.' },
-    { teny: ['stock', 'article', 'entana', 'marchandise', 'rupture'],
-      valiny: '📦 Stock : ao no itehirizanao ny entanao, izay miditra, izay mivoaka ary izay sisa. ' +
-        'Mampandre anao ny appli rehefa hilany entana, ary voatahiry ny tantaran\'ny fivezivezena rehetra.' },
-    { teny: ['facture', 'faktiora', 'pdf', 'imprimer', 'recu', 'reçu'],
-      valiny: '🧾 Facture : safidio ny entana ao amin\'ny stock dia vita ho azy ny facture, misy ny logo sy ny mombamomba anao. ' +
+    { teny: ['stock', 'article', 'articles', 'entana', 'marchandise', 'rupture', 'nouvel article', 'entree en stock', 'historique des mouvements', 'gestion de compte'],
+      valiny: '📦 Stock : 📋 Articles ' + BOT_MENU + '. Ao no ampidiranao entana vaovao (🆕 Nouvel article), ' +
+        'izay miditra (📦 Entrée en stock), ary hitanao ny tantaran\'ny fivezivezena (📜 Historique des mouvements). ' +
+        'Mampandre anao ny appli rehefa hilany entana.' },
+    { teny: ['tableau de bord', 'dashboard', 'statistique', 'statistiques', 'tombony', 'benefice', 'chiffre d affaires', 'bilan'],
+      valiny: '📊 Tableau de bord ' + BOT_MENU + ' : ny sandan\'ny stock, ny entana mihena, ny nivarotra sy ny tombony, ' +
+        'amin\'ny tarehimarika sy sary (graphique).' },
+    { teny: ['facture', 'factures', 'faktiora', 'recu', 'reçu', 'devis', 'proforma'],
+      valiny: '🧾 Factures ' + BOT_MENU + ' : safidio ny entana ao amin\'ny stock dia vita ho azy ny facture, misy ny logo sy ny mombamomba anao. ' +
         'Voatahiry ao amin\'ny PDF izy, vonona hatonta na halefa.' },
-    { teny: ['botika', 'boutique', 'mivarotra', 'vendre', 'publication', 'publier', 'story', 'commande', 'kaomandy'],
+    { teny: ['pdf', 'imprimer', 'impression', 'atonta', 'imprimante', 'printer'],
+      valiny: '📄 PDF ' + BOT_MENU + ' : ao no voatahiry ny facture sy ny taratasy vita, alohan\'ny hanatontana na handefasana azy. ' +
+        'Tsindrio ilay rakitra dia sokafy, ataovy imprimer na zarao.' },
+    { teny: ['botika', 'boutique', 'mivarotra', 'vendre', 'publication', 'publier', 'commande', 'kaomandy'],
       valiny: '🛒 Botika : ny fivarotanao an-tserasera. Mampiditra ny entanao miaraka amin\'ny sary sy ny vidiny ary story ianao, ' +
         'dia afaka manao kaomandy avy amin\'ny finday ny mpanjifanao, na tsy manana kaonty aza.' },
-    { teny: ['hotel', 'hôtel', 'restaurant', 'trano fisakafoanana', 'menu', 'sakafo', 'qr', 'lakozia', 'cuisine', 'table'],
+    { teny: ['hotel', 'hôtel', 'hotellerie', 'restaurant', 'trano fisakafoanana', 'menu sakafo', 'sakafo', 'qr', 'lakozia', 'cuisine', 'table', 'latabatra'],
       valiny: '🏨 Ny asako Hôtel : menu misy sary, QR isaky ny latabatra, kaomandy tonga any an-dakozia, ' +
         'ary fandoavana amin\'ny Mobile Money. Apetraka manokana toy ny application ao amin\'ny finday na tablette izy.' },
-    { teny: ['live', 'direct', 'antso', 'appel', 'video', 'vidéo', 'audio', 'miantso'],
-      valiny: '🔴 Live : asehoy amin\'ny video mivantana ny entanao amin\'izay rehetra mijery. ' +
-        'Afaka miantso mpanjifa amin\'ny audio na video ianao tsy mila mivoaka ny appli.' },
-    { teny: ['mpiasa', 'employe', 'employé', 'livreur', 'livraison', 'equipe', 'équipe', 'mpitondra'],
-      valiny: '👷 Mpiasa sy livreur : samy miditra amin\'ny rohiny manokana ny mpiasa tsirairay (ora, asa). ' +
-        'Manaraka ny diany ny livreur, ary hitanao hoe aiza izy.' },
+    { teny: ['live', 'direct', 'mivantana', 'streaming'],
+      valiny: '🔴 Live direct ' + BOT_MENU + ' : asehoy amin\'ny video mivantana ny entanao amin\'izay rehetra mijery ankehitriny.' },
+    { teny: ['call', 'antso', 'appel', 'miantso', 'hiantso', 'antsoy', 'appeler', 'video call', 'appel video'],
+      valiny: '📞 Call ' + BOT_MENU + ' : tsindrio ny olona iray (nanao inscription na avy amin\'ny réseaux) dia antsoy amin\'ny audio na video, ' +
+        'tsy mila mivoaka ny appli. Ny feon\'ny antso dia ovaina ao amin\'ny 🔔 Feo.' },
+    { teny: ['message', 'messages', 'hafatra', 'ecrire', 'soraty', 'resaka', 'chat', 'discussion', 'messenger'],
+      valiny: '💬 Message ' + BOT_MENU + ' : ireo nanao inscription sy ny réseaux sociaux ; tsindrio ny iray handefasana hafatra, sary na video. ' +
+        'Ny ✏️ Écrire eo amin\'ny barre ambany kosa dia hanoratana publication haingana.' },
+    { teny: ['feo', 'son', 'sonnerie', 'ringtone', 'mp3', 'neny', 'volume'],
+      valiny: '🔔 Feo ' + BOT_MENU + ' : ampidiro ny feo tianao (mp3, m4a, ogg, wav…) ho an\'ny hafatra sy ny antso. ' +
+        'Eo amin\'ilay fitaovana ihany no voatahiry izy.' },
+    { teny: ['mpiasa', 'employe', 'employé', 'equipe', 'équipe', 'ora', 'heure', 'heures', 'momba ahy'],
+      valiny: '👷 Mpiasa ' + BOT_MENU + ' : ampidiro ny olona miasa aminao ; samy manana rohy manokana izy ireo hidirany, ' +
+        'ka hitany ao amin\'ny « 🙋 Ny momba ahy » ny orany sy ny asany.' },
+    { teny: ['livreur', 'livraison', 'mpitondra', 'mpitondra entana', 'delivery', 'course'],
+      valiny: '🛵 Livreur ' + BOT_MENU + ' : ampidiro ny mpitondra entana, omeo azy ny fandefasana, ' +
+        'ary arahinao amin\'ny sarintany hoe aiza izy (📍 Toerana & Maps).' },
     { teny: ['binance', 'payoneer', 'crypto', 'usdt', 'parrainage', 'referral', 'plateforme', 'sehatra',
         'bybit', 'okx', 'kucoin', 'bitget', 'redotpay', 'wise', 'skrill', 'airtm', 'exness', 'deriv',
         'bet261', 'aviator', '1xbet', 'melbet', 'trading', 'paris', 'filokana'],
       valiny: botSehatra },
     { teny: ['affiliation', 'inviter', 'invitation', 'manasa', 'namana', 'ami', 'parrain', 'commission'],
-      valiny: '🤝 Affiliation : zarao ny rohinao avy amin\'ny « Inviter des amis ». Mahazo 500 Ar ianao isaky ny olona ' +
+      valiny: '🤝 Affiliation : zarao ny rohinao avy amin\'ny « ✉️ Inviter des amis » ' + BOT_MENU + '. Mahazo 500 Ar ianao isaky ny olona ' +
         'misoratra anarana amin\'ny rohinao (vola ao anaty appli, azo avadika).' },
     { teny: ['installer', 'installe', 'telecharger', 'télécharger', 'application', 'appli', 'apk', 'play store'],
       valiny: '📲 Mba hametrahana ny Ny asako ho application : sokafy ao amin\'ny navigateur (Chrome) ny nyasako.com, ' +
         'dia tsindrio « Installer » rehefa mipoitra izy (na menu ⋮ → « Ajouter à l\'écran d\'accueil »). ' +
         'Fetra : Android 10 sy iOS 16.4 farafahakeliny ; ambanin\'izay dia tsy tafiditra ilay appli (ataovy mise à jour aloha).' },
-    { teny: ['supprimer', 'fafao', 'famafana', 'manala ny kaonty', 'effacer'],
-      valiny: '🗑️ Famafana kaonty : Paramètres → « Supprimer mon compte », soraty FAFAO dia hamafisina. ' +
+    { teny: ['supprimer mon compte', 'fafao', 'famafana kaonty', 'manala ny kaonty', 'supprimer compte', 'fafana ny kaonty'],
+      valiny: '🗑️ Famafana kaonty : ⚙️ Paramètres → « Supprimer mon compte », soraty FAFAO dia hamafisina. ' +
         'Voafafa avy hatrany ny kaontinao sy ny mombamomba anao.' },
+    { teny: ['corbeille', 'voafafa', 'nofafana', 'restaurer', 'averina', 'poubelle'],
+      valiny: '🗑️ Corbeille ' + BOT_MENU + ' : ao ny publication nofafanao. Tsy hita eo amin\'ny site intsony izy, ' +
+        'fa azonao averina, na fafana tanteraka.' },
+    { teny: ['parametres', 'parametre', 'paramètres', 'profil', 'profile', 'logo', 'anarana', 'email', 'finday', 'telephone',
+        'piece d identite', 'cin', 'passeport', 'verification', 'kyc'],
+      valiny: '⚙️ Paramètres ' + BOT_MENU + ' : 👤 Mon profil (anarana, email, finday, logo), 🪪 Pièce d\'identité (CIN na passeport, ' +
+        'ilaina amin\'ny portefeuille), ary 🗑️ Supprimer mon compte.' },
+    { teny: ['multi service', 'multiservice', 'scan', 'scanner', 'photocopie', 'photocopieuse', 'reliure', 'plastification', 'plastifier', 'maka sary', 'cyber'],
+      valiny: '📠 Multi-service ' + BOT_MENU + ' : 📑 Scan taratasy, 📷 Maka sary, 🖨️ Photocopie (ary ireo natao tamin\'ny milina), ' +
+        '📚 Reliure, 🪪 Plastification, ary 💲 Vidiny ho an\'ny tsirairay. Voasoratra ao amin\'ny 📜 Asa natao ny asa rehetra.' },
+    { teny: ['notes', 'note', 'naoty', 'bloc note', 'soratra kely', 'pense bete'],
+      valiny: '📒 Notes ' + BOT_MENU + ' : soraty eo ny zavatra tsy tokony hadinoina. Eo amin\'ity navigateur ity ihany no voatahiry izy.' },
+    { teny: ['calculatrice', 'kajy', 'calcul', 'calculer', 'manisa'],
+      valiny: '🧮 Calculatrice ' + BOT_MENU + ' : kajy haingana tsy mila mivoaka ny appli.' },
+    { teny: ['calendrier', 'daty', 'date', 'fotoana', 'rendez vous', 'agenda', 'volana'],
+      valiny: '📅 Calendrier ' + BOT_MENU + ' : jereo ny daty ary soraty ny fotoana manan-danja.' },
+    { teny: ['horaire', 'fandaharam potoana', 'emploi du temps', 'ora fiasana', 'fandaharana'],
+      valiny: '🕒 Horaire ' + BOT_MENU + ' : ny ora fiasana sy ny fandaharam-potoana.' },
+    { teny: ['ajouter les liens', 'lien', 'liens', 'rohy', 'facebook', 'whatsapp', 'instagram', 'tiktok', 'reseau', 'reseaux', 'canal', 'telegram', 'youtube'],
+      valiny: '🔗 Ajouter les liens ' + BOT_MENU + ' : ampidiro ny rohinao (Facebook, WhatsApp, Instagram, TikTok…). ' +
+        'Samy manana ny azy ny kaonty tsirairay, ary amin\'ireo no ahafahan\'ny mpanjifa manoratra aminao.' },
+    { teny: ['projecteur', 'tv', 'television', 'televiseur', 'ecran faharoa', 'second ecran', 'rindrina', 'hdmi'],
+      valiny: '📽️ Projecteur ' + BOT_MENU + ' : alefaso eny amin\'ny rindrina, amin\'ny TV na amin\'ny écran faharoa ny Ny asako, ' +
+        'avy amin\'ny ordinateur na ny finday.' },
+    { teny: ['maps', 'map', 'toerana', 'itineraire', 'adresse', 'gps', 'localisation', 'sarintany', 'aiza ilay mpanjifa'],
+      valiny: '📍 Toerana & Maps ' + BOT_MENU + ' : ny rohy Maps-nao, ny lalana (itinéraire), ary ny toerana misy ny mpanjifa tsirairay.' },
+    { teny: ['fond', 'fond d ecran', 'wallpaper', 'sary ambadika', 'image de fond'],
+      valiny: '🖼️ Fond d\'écran ' + BOT_MENU + ' : safidio sary avy amin\'ny fitaovanao ho ambadiky ny appli. ' +
+        'Mameno ny écran izy, ary tsy miala amin\'ny fitaovanao mihitsy.' },
+    { teny: ['andro', 'alina', 'theme', 'sombre', 'nuit', 'dark', 'mode jour', 'mode nuit', 'luminosite', 'contraste', 'mazava', 'maizina'],
+      valiny: '🌙 Andro / Alina ' + BOT_MENU + ' : Manuel (ianao no mifidy, misy curseur) na Automatique (miova arakaraka ny ora). ' +
+        'Eo koa ny 🔆 Luminosité sy ny ◐ Contraste.' },
+    { teny: ['notification', 'notifications', 'notif', 'fampandrenesana', 'alerte'],
+      valiny: '🔔 Notifications ' + BOT_MENU + ' : ny vaovao rehetra (kaomandy, hafatra, fandoavana…). ' +
+        'Ny isa mena eo akaikiny no milaza ny tsy mbola novakianao.' },
+    { teny: ['teny', 'langue', 'fiteny', 'francais', 'anglais', 'english', 'traduction', 'traduire', 'malagasy'],
+      valiny: '🌐 Teny ' + BOT_MENU + ' : avadiho amin\'ny teny tianao (Malagasy, Français, English…) ny appli manontolo.' },
+    { teny: ['panier', 'harona', 'sac', 'caddie'],
+      valiny: '🛒 Panier ' + BOT_MENU + ' : ao ny entana natokanao rehefa nitety ny Botika, vonona hokaomandiana.' },
+    { teny: ['achats internationaux', 'achat international', 'amazon', 'alibaba', 'aliexpress', 'shein', 'temu', 'ebay', 'ivelany', 'etranger'],
+      valiny: '🌍 Achats internationaux ' + BOT_MENU + ' : ireo magazay any ivelany (Amazon, AliExpress, Shein…) amin\'ny toerana iray. ' +
+        'Ny fandoavana dia avy amin\'ny 💰 Portefeuille → « 🌍 Hividy entana any ivelany ».' },
+    { teny: ['livraison international', 'livraison internationale', 'dhl', 'fedex', 'ups', 'transporteur', 'fret', 'colis'],
+      valiny: '🚚 Livraison international ' + BOT_MENU + ' : ireo mpitondra entana avy any ivelany (transporteurs) sy ny rohiny. ' +
+        'Ampiasaina miaraka amin\'ny 🌍 Achats internationaux.' },
+    { teny: ['fokontany', 'commun', 'mponina', 'fianakaviana', 'certificat', 'certificat de residence', 'adidy', 'tokantrano'],
+      valiny: '🗂️ Fokontany ' + BOT_MENU + ' : fitantanana ny fokontany (mponina, fianakaviana, taratasy toy ny certificat, adidy). ' +
+        'Ny 🏛️ Commun kosa ho an\'ny kaominina.' },
+    { teny: ['chrome', 'edge', 'navigateur', 'google', 'internet', 'site hafa'],
+      valiny: 'Chrome sy Edge ' + BOT_MENU + ' : manokatra ny navigateur hikarohana zavatra any ivelan\'ny appli.' },
+    { teny: ['barre', 'barre ambany', 'fenetre', 'fenetres', 'alamino', 'grille', 'cascade', 'hidio daholo', 'icone', 'icones', 'onglet'],
+      valiny: 'Barre ambany : Menu, 🔍 Karohy, ✏️ Écrire, 🏠 Botika, ary ⋯ (Réglages). Ao amin\'ny ⋯ ianao no mifidy hoe Manuel na Automatique ' +
+        'ny fialan\'ny sary, manao 🗂️ Alamino (Milahatra, Grille, Mifanila roa, Cascade, Mifanongoa) na ❌ Hidio daholo ny fenêtre, ' +
+        'ary ao koa ity Assistant ity.' },
+    { teny: ['hidio', 'atory', 'veille', 'deconnecter', 'deconnexion', 'avereno', 'redemarrer', 'verrouiller', 'mivoaka', 'se deconnecter'],
+      valiny: 'Tazomy ela ilay logo Menu eo amin\'ny barre ambany : miseho ny 🔒 Hidio, 🌙 Atory, ⏻ Déconnecter ary 🔄 Avereno. ' +
+        'Ny « Se déconnecter » koa dia eo ambanin\'ny Menu.' },
+    { teny: ['karohy', 'recherche', 'chercher', 'mitady', 'loupe', 'code barre', 'codebarre'],
+      valiny: '🔍 Karohy (eo amin\'ny barre ambany) : karohy ny entana, ny pejy, ny magazay sy ny transporteurs amin\'ny toerana iray. ' +
+        'Ny bokotra scan dia maka sarin\'ny code-barre na étiquette ka mikaroka azy.' },
+    { teny: ['story', 'stories', 'tantara'],
+      valiny: '📸 Story : ao amin\'ny 🏠 Botika, eo ambanin\'ny lohateny. Tsindrio « Hanampy story » hampidirana sary na video, ' +
+        'mijanona 24 ora izy.' },
     { teny: ['misaotra', 'merci', 'thanks', 'mersi'],
-      valiny: 'Tsy misy fisaorana ! Raha mbola misy fanontaniana, soraty fotsiny eto. 😊' }
+      valiny: 'Tsy misy fisaorana ! Raha mbola misy fanontaniana, soraty fotsiny eto. 😊' },
+    // Ny ankapobeny farany : tsy mandresy afa-tsy raha tsy misy hafa hita.
+    { teny: ['menu', 'aiza', 'pejy', 'page', 'fanampiana', 'aide', 'help', 'inona no azo atao', 'fitaovana', 'fonctionnalite', 'ahoana'],
+      valiny: botFanampiana }
   ];
+  // Ny lisitry ny pejy rehetra : ho an'ny fanontaniana ankapobeny na tsy fantatra.
+  function botFanampiana(){
+    return 'Ireto no ao amin\'ny Ny asako, ' + BOT_MENU + ' :\n' +
+      '🏠 Botika · 📋 Articles · 📊 Tableau de bord · 🧾 Factures · 📄 PDF · 📠 Multi-service\n' +
+      '💰 Portefeuille · 💳 Abonnement · 🛒 Panier · 🌍 Achats internationaux · 🚚 Livraison international\n' +
+      '💬 Message · 📞 Call · 🔴 Live direct · 🔔 Feo · 🔗 Ajouter les liens · ✉️ Inviter des amis\n' +
+      '👷 Mpiasa · 🛵 Livreur · 📍 Toerana & Maps · 📽️ Projecteur\n' +
+      '📒 Notes · 🧮 Calculatrice · 📅 Calendrier · 🕒 Horaire\n' +
+      '🖼️ Fond d\'écran · 🌙 Andro / Alina · 🌐 Teny · 🔔 Notifications · 🗑️ Corbeille · ⚙️ Paramètres\n\n' +
+      'Anontanio ahy ny anaran\'ny iray amin\'ireo, dia hazavaiko hoe inona izy sy ahoana no ampiasana azy.';
+  }
   // Binance, Payoneer sy ny hafa : ireo rohy hita ao amin'ny Botika
   // (parrain-botika.js), miaraka amin'ny fanazavana fohy. Raha misy anarana
   // sehatra ao amin'ny fanontaniana, ireo ihany no omena ; raha tsy izany, ny
@@ -1201,12 +1303,21 @@
   function botMadio(t){
     return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   }
+  function botTeny(t){
+    return botMadio(t).replace(/[^a-z0-9]+/g, ' ').trim();
+  }
+  // Ny teny maromaro (« supprimer mon compte ») dia milanja araka ny isan'ny
+  // teny ao aminy : mandresy ny « compte » tokana izy.
   function botMitady(soratra){
-    const t = ' ' + botMadio(soratra).replace(/[^a-z0-9]+/g, ' ') + ' ';
+    const t = ' ' + botTeny(soratra) + ' ';
     let tsara = null, isa = 0;
     BOT_FAQ.forEach(function(f){
-      const n = f.teny.filter(function(m){ return t.indexOf(' ' + botMadio(m) + ' ') >= 0 ||
-        (botMadio(m).length >= 6 && t.indexOf(botMadio(m)) >= 0); }).length;
+      let n = 0;
+      f.teny.forEach(function(m){
+        const k = botTeny(m);
+        if(!k) return;
+        if(t.indexOf(' ' + k + ' ') >= 0 || (k.length >= 6 && t.indexOf(k) >= 0)) n += k.split(' ').length;
+      });
       if(n > isa){ isa = n; tsara = f; }
     });
     return tsara;
@@ -1222,8 +1333,7 @@
     if(!valiny){
       if(botEfaNilaza[email]) return;
       botEfaNilaza[email] = true;
-      valiny = 'Voaray ny hafatrao, ary ho valian\'ny admin raha vao afaka izy. ' +
-        'Afaka manontany ahy koa ianao momba ny vidiny, ny essai, ny portefeuille, ny botika, ny hôtel…';
+      valiny = 'Voaray ny hafatrao, ary ho valian\'ny admin raha vao afaka izy.\n\n' + botFanampiana();
     }
     setTimeout(function(){
       (resaka[email] = resaka[email] || []).push({ id: idHafatra(), avy: 'bot', soratra: valiny, at: Date.now() });
