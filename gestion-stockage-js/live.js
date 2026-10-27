@@ -1233,7 +1233,8 @@
 
   // Ny resaka amin'ny admin, miaraka amin'ny fiarahaban'ny bot raha mbola
   // foana. Ampiasain'ny rohy ?bot=1 sy ny bokotra « 🤖 Manontania ny bot »
-  // (Botika, Message). Tsy ho an'ny admin : tsy mamaly azy ny bot.
+  // (ao amin'ny ⋯ eo amin'ny barre ambany). Tsy ho an'ny admin : tsy mamaly
+  // azy ny bot.
   function sokafyBot(){
     const me = myIdentity();
     if(me.isAdmin || isOwnerEmail(me.email)) return;
@@ -1245,7 +1246,15 @@
     }
   }
   document.querySelectorAll('[data-sokafy-bot]').forEach(function(b){
-    b.addEventListener('click', sokafyBot);
+    b.addEventListener('click', function(e){
+      // Mihidy ny panneau ⋯ mba hahitana ny resaka.
+      e.stopPropagation();
+      const panneau = document.getElementById('barReglages');
+      if(panneau) panneau.style.display = 'none';
+      const bouton = document.getElementById('barReglagesBtn');
+      if(bouton) bouton.setAttribute('aria-expanded', 'false');
+      sokafyBot();
+    });
   });
 
   // « nyasako.com/?bot=1 » (ny rohy ao amin'ny hafatra fanasana, inviter.js) :

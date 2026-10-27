@@ -1252,6 +1252,9 @@
   .admin-compte.admin-compte-nouveau{ background:#e5484d; color:#fff; }
   /* « 🤖 Manontania ny bot » (live.js) : tsy mamaly ny admin ny bot. */
   html.est-proprietaire .bokotra-bot{ display:none !important; }
+  /* Hafatra kely milaza fa ao amin'ny ⋯ (barre ambany) ny bot. */
+  .bot-toerana{ margin:0; font-size:0.75rem; color:var(--muted, #8a8f98); line-height:1.3; }
+  .bot-toerana strong{ color:var(--cyan, inherit); font-size:0.95rem; }
   /* En fenêtre, le bouton de Message passait sous ─ □ ✕ : l'en-tête descend,
      comme celui de l'espace admin. */
   #section-serviceclient.fenetre-page > .section-head{ margin-top:1.4rem; align-items:center; }
