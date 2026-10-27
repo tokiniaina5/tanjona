@@ -52,6 +52,8 @@
     // avec Supabase le mot de passe n’est pas conservé ici : le champ reste vide
     const hasAuth = !!(window.__sb && window.__sb.auth);
     if(codeInput) codeInput.value = (!hasAuth && savedProfile && savedProfile.accessCode) ? savedProfile.accessCode : '';
+    const codeConfirm = document.getElementById('profileAccessCodeConfirm');
+    if(codeConfirm) codeConfirm.value = codeInput ? codeInput.value : '';
     updateProfilePhotoPreview(currentUser.logo || null);
     if(typeof renderIdentityForm === 'function') renderIdentityForm();
     renderMapsClients();

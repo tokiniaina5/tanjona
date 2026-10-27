@@ -3670,6 +3670,14 @@
       alert('Le lien Maps doit commencer par https:// (ex : https://maps.app.goo.gl/…).');
       return;
     }
+    // le nouveau mot de passe n'est accepté que retapé à l'identique
+    const codeConfirmInput = document.getElementById('profileAccessCodeConfirm');
+    const typedCode = (document.getElementById('profileAccessCode') || {}).value || '';
+    if(typedCode && codeConfirmInput && codeConfirmInput.value !== typedCode){
+      alert('Les deux mots de passe ne sont pas identiques.');
+      codeConfirmInput.focus();
+      return;
+    }
 
     function finishSave(logoDataUrl){
       const logo = logoDataUrl || currentUser.logo || null;
@@ -3711,6 +3719,7 @@
           } else if(newPassword){
             status.textContent = 'Profil et mot de passe enregistrés.';
             if(codeInput) codeInput.value = '';
+            if(codeConfirmInput) codeConfirmInput.value = '';
           }
           setTimeout(function(){ status.textContent = ''; }, 4000);
         }, function(){

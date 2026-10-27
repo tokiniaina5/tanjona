@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="10f69751">
+<meta name="ny-asako-version" content="9d967c3a">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -3739,6 +3739,10 @@
               <p style="font-size:0.72rem; color:var(--muted); margin-top:0.4rem;">Pour remplacer un code reçu par email : saisissez le vôtre puis « Enregistrer ». Il est utilisable aussitôt.</p>
             </div>
             <div class="field" style="margin-bottom:0;">
+              <label for="profileAccessCodeConfirm">Confirmer le mot de passe</label>
+              <input id="profileAccessCodeConfirm" type="password" minlength="6" placeholder="Retapez le nouveau mot de passe" autocomplete="new-password">
+            </div>
+            <div class="field" style="margin-bottom:0;">
               <label for="profileLogo">Logo (image)</label>
               <input id="profileLogo" type="file" accept="image/*">
             </div>
@@ -3913,7 +3917,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=4be26aac"></script>
+<script src="gestion-stockage-js/common.js?v=2cc2f45e"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=d0a53ff8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
@@ -3927,7 +3931,7 @@
 <script src="gestion-stockage-js/live.js?v=09e7a36e"></script>
 <script src="gestion-stockage-js/traduction.js?v=8f5605bc"></script>
 <script src="gestion-stockage-js/teny.js?v=cd7b5557"></script>
-<script src="gestion-stockage-js/parametres.js?v=0dd14b76"></script>
+<script src="gestion-stockage-js/parametres.js?v=857090f1"></script>
 <!-- Le partage reçu du dehors remplit la boîte « Écrire », que parametres.js
      tient : il se charge après elle. -->
 <script src="gestion-stockage-js/zara-miditra.js?v=4d5d0264"></script>
