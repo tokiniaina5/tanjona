@@ -6643,6 +6643,18 @@
       return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
              (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     }
+    // Sur iPhone, seul le navigateur peut poser l'icône — et pas n'importe
+    // lequel. Le lien ouvert depuis Facebook, Messenger, Instagram ou TikTok
+    // s'affiche dans leur navigateur à eux : sa feuille de partage n'a pas
+    // « Sur l'écran d'accueil », et la personne le cherchait en vain. Chrome,
+    // Firefox et Edge l'ont (iOS 16.4 et après), mais leur Partager est en
+    // haut, dans la barre d'adresse, et non en bas comme dans Safari.
+    function navigateurIOS(){
+      const ua = navigator.userAgent || '';
+      if(/FBAN|FBAV|FB_IAB|FBIOS|Messenger|Instagram|musical_ly|TikTok|BytedanceWebview|Snapchat|Line\/|WhatsApp|Twitter|GSA\//i.test(ua)) return 'integre';
+      if(/CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua)) return 'autre';
+      return 'safari';
+    }
     function applicationVisible(){
       const el = document.getElementById('appScreen');
       return !!el && getComputedStyle(el).display !== 'none';
@@ -6681,7 +6693,9 @@
         // Safari ne propose rien et n'annonce rien : le seul chemin passe par
         // le menu de partage. Le bouton ouvre ici un petit guide illustré,
         // étape par étape, plutôt qu'une phrase à retenir.
-        if(sous) sous.textContent = "Sur iPhone, ça passe par le bouton Partager de Safari : 4 étapes.";
+        if(sous) sous.textContent = navigateurIOS() === 'integre'
+          ? "Sur iPhone, il faut d'abord ouvrir la page dans Safari : voici comment."
+          : "Sur iPhone, ça passe par le bouton Partager : 4 étapes.";
         if(oui){ oui.hidden = false; oui.textContent = 'Voir comment'; }
       }
       mesurerLaRangee();
@@ -6722,7 +6736,7 @@
       {
         titre: 'Touchez « Partager »',
         texte: 'Dans <strong>Safari</strong>, touchez le bouton <strong>Partager</strong> (le carré avec une flèche vers le haut), en bas de l\'écran. ' +
-          'Si vous ne le voyez pas, touchez d\'abord <strong>•••</strong> en bas à droite.',
+          'Si vous ne le voyez pas, touchez d\'abord <strong>•••</strong> en bas à droite, puis <strong>Partager</strong>.',
         sary: '<svg viewBox="0 0 260 120" class="ios-sary">' +
           '<rect x="10" y="10" width="240" height="100" rx="14" fill="#f2f2f7"/>' +
           '<rect x="22" y="22" width="216" height="26" rx="9" fill="#e3e3ea"/>' +
@@ -6737,8 +6751,9 @@
       },
       {
         titre: 'Touchez « Sur l\'écran d\'accueil »',
-        texte: 'Une liste s\'ouvre. Faites-la glisser vers le haut si besoin, puis touchez <strong>Sur l\'écran d\'accueil</strong> ' +
-          '(l\'icône avec un <strong>+</strong> dans un carré).',
+        texte: 'Une liste s\'ouvre. Faites-la glisser vers le haut jusqu\'en bas, puis touchez <strong>Sur l\'écran d\'accueil</strong> ' +
+          '(ou <strong>Ajouter à l\'écran d\'accueil</strong>, l\'icône avec un <strong>+</strong> dans un carré). ' +
+          'Pas dans la liste ? Touchez d\'abord <strong>Plus</strong> / <strong>Afficher plus</strong> ⌄.',
         sary: '<svg viewBox="0 0 260 120" class="ios-sary">' +
           '<rect x="10" y="6" width="240" height="108" rx="14" fill="#f2f2f7"/>' +
           '<rect x="22" y="16" width="216" height="26" rx="8" fill="#fff"/><text x="34" y="33" font-size="11" fill="#333">Copier</text>' +
@@ -6775,8 +6790,42 @@
         '</svg>'
       }
     ];
+    // Dans Facebook, Messenger… : d'abord sortir vers Safari. Le bouton y
+    // envoie directement (adresse « x-safari- », iOS 17 et après) ; sinon,
+    // le menu de l'application, ou le lien copié à coller dans Safari.
+    const ETAPE_VERS_SAFARI = {
+      titre: 'Ouvrez la page dans Safari',
+      texte: 'Vous êtes dans le navigateur de Facebook, Messenger ou d\'une autre application : il ne sait pas ajouter d\'icône. ' +
+        '<button type="button" data-safari style="display:block; width:100%; margin:0.7rem 0 0.4rem; border-radius:999px; padding:0.65rem 1rem; ' +
+          'background:#0a84ff; color:#fff; border:0; font:inherit; font-weight:700; cursor:pointer;">🧭 Ouvrir dans Safari</button>' +
+        'Rien ne s\'ouvre ? Touchez <strong>•••</strong> (en haut ou en bas à droite), puis <strong>Ouvrir dans Safari</strong> ' +
+        '(ou <strong>Ouvrir dans le navigateur</strong>). Ou bien ' +
+        '<a href="#" data-copier style="color:#0a84ff; font-weight:700;">copiez le lien</a> et collez-le dans Safari.',
+      sary: '<svg viewBox="0 0 260 120" class="ios-sary">' +
+        '<rect x="10" y="10" width="240" height="100" rx="14" fill="#f2f2f7"/>' +
+        '<circle cx="130" cy="60" r="34" fill="#0a84ff" opacity=".14" class="ios-pulse"/>' +
+        '<circle cx="130" cy="60" r="26" fill="#fff" stroke="#0a84ff" stroke-width="2.5"/>' +
+        '<path d="M130 40 L136 60 L130 80 L124 60 Z" fill="#ff3b30"/><path d="M130 60 L136 60 L130 80 L124 60 Z" fill="#c7c7cc"/>' +
+        '<text x="130" y="104" text-anchor="middle" font-size="11" font-weight="700" fill="#111">Safari</text>' +
+      '</svg>'
+    };
+    const ETAPE_PARTAGE_AUTRE = {
+      titre: 'Touchez « Partager »',
+      texte: 'Dans <strong>Chrome</strong> (ou Firefox, Edge), touchez le bouton <strong>Partager</strong> (le carré avec une flèche vers le haut), ' +
+        '<strong>en haut à droite, dans la barre d\'adresse</strong>. Il n\'y est pas ? Touchez <strong>•••</strong>, puis <strong>Partager</strong>. ' +
+        'Si rien ne propose l\'écran d\'accueil, ouvrez la page dans <strong>Safari</strong>.',
+      sary: ETAPES_IOS[0].sary
+    };
+    function etapesDuNavigateur(){
+      const nav = navigateurIOS();
+      if(nav === 'integre') return [ETAPE_VERS_SAFARI].concat(ETAPES_IOS);
+      if(nav === 'autre') return [ETAPE_PARTAGE_AUTRE].concat(ETAPES_IOS.slice(1));
+      return ETAPES_IOS;
+    }
+    let etapes = ETAPES_IOS;
 
     function ouvrirGuideIOS(){
+      etapes = etapesDuNavigateur();
       let guide = document.getElementById('guideInstallIOS');
       if(!guide){
         guide = document.createElement('div');
@@ -6821,7 +6870,7 @@
         guide.querySelector('.ios-ignorer').addEventListener('click', function(){ guide.style.display = 'none'; });
         guide.querySelector('.ios-suivant').addEventListener('click', function(){
           const i = Number(guide.dataset.etape || 0);
-          if(i < ETAPES_IOS.length - 1) etapeIOS(i + 1); else guide.style.display = 'none';
+          if(i < etapes.length - 1) etapeIOS(i + 1); else guide.style.display = 'none';
         });
       }
       guide.style.display = 'flex';
@@ -6829,15 +6878,30 @@
     }
     function etapeIOS(i){
       const guide = document.getElementById('guideInstallIOS');
-      const e = ETAPES_IOS[i];
+      const e = etapes[i];
       guide.dataset.etape = i;
       guide.querySelector('.ios-titre').textContent = e.titre;
-      guide.querySelector('.ios-isa').textContent = (i + 1) + ' / ' + ETAPES_IOS.length;
+      guide.querySelector('.ios-isa').textContent = (i + 1) + ' / ' + etapes.length;
       guide.querySelector('.ios-sary-zone').innerHTML = e.sary;
-      guide.querySelector('.ios-texte').innerHTML = e.texte;
-      guide.querySelector('.ios-suivant').textContent = i === ETAPES_IOS.length - 1 ? 'Vita' : 'Suivant';
+      const texte = guide.querySelector('.ios-texte');
+      texte.innerHTML = e.texte;
+      guide.querySelector('.ios-suivant').textContent = i === etapes.length - 1 ? 'Vita' : 'Suivant';
       const points = guide.querySelector('.ios-points');
-      points.innerHTML = ETAPES_IOS.map(function(_, j){ return '<span' + (j === i ? ' class="ici"' : '') + '></span>'; }).join('');
+      points.innerHTML = etapes.map(function(_, j){ return '<span' + (j === i ? ' class="ici"' : '') + '></span>'; }).join('');
+      const versSafari = texte.querySelector('[data-safari]');
+      if(versSafari) versSafari.addEventListener('click', function(){
+        location.href = 'x-safari-' + location.href;
+      });
+      const copier = texte.querySelector('[data-copier]');
+      if(copier) copier.addEventListener('click', function(ev){
+        ev.preventDefault();
+        const fait = function(){ copier.textContent = 'lien copié ✓'; };
+        if(navigator.clipboard && navigator.clipboard.writeText){
+          navigator.clipboard.writeText(location.href).then(fait, function(){ window.prompt('Copiez ce lien :', location.href); });
+        }else{
+          window.prompt('Copiez ce lien :', location.href);
+        }
+      });
     }
     window.__ouvrirGuideInstallIOS = ouvrirGuideIOS;
 
