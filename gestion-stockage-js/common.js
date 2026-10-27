@@ -6655,6 +6655,27 @@
       if(/CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua)) return 'autre';
       return 'safari';
     }
+    // En dessous d'iOS 16.4, l'application ne se pose pas comme il faut :
+    // pas d'installation hors de Safari, pas de notifications, et elle
+    // s'ouvre comme un simple favori. On le dit plutôt que de laisser chercher.
+    // L'iPad qui se dit « Macintosh » ne donne pas sa version : null, on ne dit rien.
+    const IOS_MINIMUM = [16, 4];
+    function versionIOS(){
+      const m = /OS (\d+)_(\d+)/.exec(navigator.userAgent || '');
+      return m ? [Number(m[1]), Number(m[2])] : null;
+    }
+    function iosTropAncien(){
+      const v = versionIOS();
+      return !!v && (v[0] < IOS_MINIMUM[0] || (v[0] === IOS_MINIMUM[0] && v[1] < IOS_MINIMUM[1]));
+    }
+    // Android, même chose : le Chrome d'aujourd'hui ne tourne plus en dessous
+    // d'Android 10, et l'ancien ne propose pas toujours l'installation — le
+    // bandeau ne venait alors jamais, et personne ne savait pourquoi.
+    const ANDROID_MINIMUM = 10;
+    function androidTropAncien(){
+      const m = /Android (\d+)/.exec(navigator.userAgent || '');
+      return !!m && Number(m[1]) < ANDROID_MINIMUM;
+    }
     function applicationVisible(){
       const el = document.getElementById('appScreen');
       return !!el && getComputedStyle(el).display !== 'none';
@@ -6689,11 +6710,18 @@
       if(invitation){
         if(sous) sous.textContent = "Une icône sur l'écran d'accueil, et elle s'ouvre en plein écran.";
         if(oui) oui.hidden = false;
+      }else if(androidTropAncien()){
+        // Rien à installer d'un geste : on dit pourquoi, sans bouton.
+        if(sous) sous.textContent = "Ity finday Android ity dia latsaky ny Android 10 : tsy tafiditra ilay appli. " +
+          "Ataovy mise à jour aloha (Paramètres › Système › Mise à jour), ary havaozy ny Chrome ao amin'ny Play Store.";
+        if(oui) oui.hidden = true;
       }else{
         // Safari ne propose rien et n'annonce rien : le seul chemin passe par
         // le menu de partage. Le bouton ouvre ici un petit guide illustré,
         // étape par étape, plutôt qu'une phrase à retenir.
-        if(sous) sous.textContent = navigateurIOS() === 'integre'
+        if(sous) sous.textContent = iosTropAncien()
+          ? "Ity iPhone ity dia latsaky ny iOS 16.4 : tsy tafiditra ilay appli raha tsy atao mise à jour aloha."
+          : navigateurIOS() === 'integre'
           ? "Sur iPhone, il faut d'abord ouvrir la page dans Safari : voici comment."
           : "Sur iPhone, ça passe par le bouton Partager : 4 étapes.";
         if(oui){ oui.hidden = false; oui.textContent = 'Voir comment'; }
@@ -6711,7 +6739,7 @@
     let prevu = false;
     function envisager(){
       if(prevu || dejaRepondu() || dejaInstallee()) return;
-      if(!invitation && !surIOS()) return;   // ailleurs, rien à proposer
+      if(!invitation && !surIOS() && !androidTropAncien()) return;   // ailleurs, rien à proposer
       if(!applicationVisible()) return;
       prevu = true;
       setTimeout(function essai(){
@@ -6816,11 +6844,30 @@
         'Si rien ne propose l\'écran d\'accueil, ouvrez la page dans <strong>Safari</strong>.',
       sary: ETAPES_IOS[0].sary
     };
+    function etapeMiseAJour(){
+      const v = versionIOS();
+      return {
+        titre: 'Mila mise à jour ity iPhone ity',
+        texte: 'Ny iPhone-nao dia manana <strong>iOS ' + (v ? v[0] + '.' + v[1] : '') + '</strong>. ' +
+          'Ny telefaonina latsaky ny <strong>iOS 16.4</strong> dia <strong>tsy tafiditra</strong> ilay appli ' +
+          '(tsy mipetraka tsara, tsy misy notification). ' +
+          'Ataovy aloha : <strong>Réglages › Général › Mise à jour logicielle</strong>, dia avereno ity torolalana ity. ' +
+          'Raha tsy mahazo iOS 16.4 intsony ilay iPhone, dia ao amin\'ny Safari ihany no ampiasaina ny site.',
+        sary: '<svg viewBox="0 0 260 120" class="ios-sary">' +
+          '<rect x="10" y="10" width="240" height="100" rx="14" fill="#f2f2f7"/>' +
+          '<circle cx="130" cy="52" r="30" fill="#ff9500" opacity=".14" class="ios-pulse"/>' +
+          '<g transform="translate(130 52)" fill="none" stroke="#8e8e93" stroke-width="3"><circle r="16"/><circle r="6"/>' +
+          '<path d="M0 -22 v6 M0 16 v6 M-22 0 h6 M16 0 h6 M-15.5 -15.5 l4 4 M11.5 11.5 l4 4 M-15.5 15.5 l4 -4 M11.5 -11.5 l4 -4"/></g>' +
+          '<text x="130" y="102" text-anchor="middle" font-size="11" font-weight="700" fill="#111">iOS 16.4 farafahakeliny</text>' +
+        '</svg>'
+      };
+    }
     function etapesDuNavigateur(){
       const nav = navigateurIOS();
-      if(nav === 'integre') return [ETAPE_VERS_SAFARI].concat(ETAPES_IOS);
-      if(nav === 'autre') return [ETAPE_PARTAGE_AUTRE].concat(ETAPES_IOS.slice(1));
-      return ETAPES_IOS;
+      let liste = ETAPES_IOS;
+      if(nav === 'integre') liste = [ETAPE_VERS_SAFARI].concat(ETAPES_IOS);
+      else if(nav === 'autre') liste = [ETAPE_PARTAGE_AUTRE].concat(ETAPES_IOS.slice(1));
+      return iosTropAncien() ? [etapeMiseAJour()].concat(liste) : liste;
     }
     let etapes = ETAPES_IOS;
 
@@ -6865,6 +6912,7 @@
               '<button type="button" class="ios-suivant">Suivant</button>' +
             '</div>' +
             '<div class="ios-points" aria-hidden="true"></div>' +
+            '<p style="margin:0.7rem 0 0; font-size:0.76rem; color:#777; text-align:center;">⚠️ iPhone latsaky ny iOS 16.4 : tsy tafiditra ilay appli.</p>' +
           '</div>';
         document.body.appendChild(guide);
         guide.querySelector('.ios-ignorer').addEventListener('click', function(){ guide.style.display = 'none'; });

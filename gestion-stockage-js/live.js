@@ -1142,7 +1142,8 @@
         'misoratra anarana amin\'ny rohinao (vola ao anaty appli, azo avadika).' },
     { teny: ['installer', 'installe', 'telecharger', 'télécharger', 'application', 'appli', 'apk', 'play store'],
       valiny: '📲 Mba hametrahana ny Ny asako ho application : sokafy ao amin\'ny navigateur (Chrome) ny nyasako.com, ' +
-        'dia tsindrio « Installer » rehefa mipoitra izy (na menu ⋮ → « Ajouter à l\'écran d\'accueil »).' },
+        'dia tsindrio « Installer » rehefa mipoitra izy (na menu ⋮ → « Ajouter à l\'écran d\'accueil »). ' +
+        'Fetra : Android 10 sy iOS 16.4 farafahakeliny ; ambanin\'izay dia tsy tafiditra ilay appli (ataovy mise à jour aloha).' },
     { teny: ['supprimer', 'fafao', 'famafana', 'manala ny kaonty', 'effacer'],
       valiny: '🗑️ Famafana kaonty : Paramètres → « Supprimer mon compte », soraty FAFAO dia hamafisina. ' +
         'Voafafa avy hatrany ny kaontinao sy ny mombamomba anao.' },
