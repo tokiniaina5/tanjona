@@ -4726,6 +4726,8 @@
           }
           list.appendChild(div);
         });
+        // Binance, Payoneer & hafa : entre les publications (parrain-botika.js).
+        if(typeof window.__parrainDansLeFil === 'function') window.__parrainDansLeFil();
         // Une lecture pour tout le fil, un minuteur, un canal — une fois
         // toutes les boîtes en place.
         veillerSurLesCommentaires();

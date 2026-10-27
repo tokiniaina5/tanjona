@@ -114,7 +114,33 @@
       }, function(){ rendre(presents, {}); });
     }
 
+    // Les tuiles d'une rangée : Binance, Payoneer, puis les autres.
+    function remplir(rangee, d){
+      PLATEFORMES.forEach(function(p){
+        const valeur = String(d[p.cle] || '').trim() || p.defaut;
+        if(valeur) rangee.appendChild(bouton(p, valeur));
+      });
+      // Les autres : la liste d'office, puis celles que l'admin a
+      // ajoutées sous un autre nom (colonne « hafa »).
+      const liensAdmin = {};
+      (Array.isArray(d.hafa) ? d.hafa : []).forEach(function(h){
+        const valeur = String((h && h.rohy) || '').trim();
+        if(h && h.nom && valeur) liensAdmin[String(h.nom).toLowerCase()] = { nom: String(h.nom), rohy: valeur };
+      });
+      HAFA_DEFAUT.forEach(function(h){
+        const cle = h.nom.toLowerCase();
+        const lienAdmin = liensAdmin[cle];
+        delete liensAdmin[cle];
+        rangee.appendChild(bouton({ nom: h.nom, ikona: '🔗', couleur: 'var(--cyan)', court: true }, lienAdmin ? lienAdmin.rohy : h.defaut));
+      });
+      Object.keys(liensAdmin).forEach(function(cle){
+        rangee.appendChild(bouton({ nom: liensAdmin[cle].nom, ikona: '🔗', couleur: 'var(--cyan)', court: true }, liensAdmin[cle].rohy));
+      });
+    }
+
+    let dernierD = {};
     function rendre(presents, d){
+      dernierD = d;
       const admin = typeof estAdminRohy === 'function' && estAdminRohy();
       presents.forEach(function(c){
         const cadre = document.getElementById(c.cadre);
@@ -124,31 +150,45 @@
         // colonnes, quelle que soit la largeur.
         rangee.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fill, minmax(5rem, 1fr)); ' +
           'gap:1.1rem 0.6rem; justify-items:center; padding:0.4rem 0 0.2rem;';
-        if(!(c.pasAdmin && admin)){
-          PLATEFORMES.forEach(function(p){
-            const valeur = String(d[p.cle] || '').trim() || p.defaut;
-            if(valeur) rangee.appendChild(bouton(p, valeur));
-          });
-          // Les autres : la liste d'office, puis celles que l'admin a
-          // ajoutées sous un autre nom (colonne « hafa »).
-          const liensAdmin = {};
-          (Array.isArray(d.hafa) ? d.hafa : []).forEach(function(h){
-            const valeur = String((h && h.rohy) || '').trim();
-            if(h && h.nom && valeur) liensAdmin[String(h.nom).toLowerCase()] = { nom: String(h.nom), rohy: valeur };
-          });
-          HAFA_DEFAUT.forEach(function(h){
-            const cle = h.nom.toLowerCase();
-            const lienAdmin = liensAdmin[cle];
-            delete liensAdmin[cle];
-            rangee.appendChild(bouton({ nom: h.nom, ikona: '🔗', couleur: 'var(--cyan)', court: true }, lienAdmin ? lienAdmin.rohy : h.defaut));
-          });
-          Object.keys(liensAdmin).forEach(function(cle){
-            rangee.appendChild(bouton({ nom: liensAdmin[cle].nom, ikona: '🔗', couleur: 'var(--cyan)', court: true }, liensAdmin[cle].rohy));
-          });
-        }
+        if(!(c.pasAdmin && admin)) remplir(rangee, d);
         cadre.style.display = rangee.children.length ? '' : 'none';
       });
+      parrainDansLeFil();
     }
+
+    // Dans l'Accueil, le cadre ne reste plus en tête : une copie se glisse
+    // après toutes les FIL_PAS publications du fil, comme une publication de
+    // plus. Le cadre d'origine (les id que lit rendre()) reste caché et sert
+    // de modèle ; fil vide, c'est lui qui se montre, en tête comme avant.
+    const FIL_PAS = 4;
+    function parrainDansLeFil(){
+      const modele = document.getElementById('botikaParrain');
+      const fil = document.getElementById('communityNewsList');
+      if(!modele || !fil) return;
+      [].slice.call(fil.querySelectorAll('.fil-parrain')).forEach(function(el){ el.remove(); });
+      const posts = [].slice.call(fil.querySelectorAll(':scope > .fb-post'));
+      const plein = document.getElementById('botikaParrainBoutons').children.length > 0;
+      if(!plein) return;
+      if(!posts.length){ modele.style.display = ''; return; }
+      modele.style.display = 'none';
+      posts.forEach(function(post, i){
+        // après la 4e, la 8e… ; un fil plus court l'a quand même, à la fin
+        const dernier = i === posts.length - 1;
+        if((i + 1) % FIL_PAS !== 0 && !(dernier && posts.length < FIL_PAS)) return;
+        // les tuiles refaites, pas clonées : un code à copier garde son clic
+        const copie = modele.cloneNode(true);
+        copie.removeAttribute('id');
+        copie.querySelectorAll('[id]').forEach(function(el){ el.removeAttribute('id'); });
+        const rangee = copie.lastElementChild;
+        rangee.innerHTML = '';
+        remplir(rangee, dernierD);
+        copie.classList.add('fil-parrain');
+        copie.style.display = '';
+        copie.style.margin = '0.8rem 0';
+        post.after(copie);
+      });
+    }
+    window.__parrainDansLeFil = parrainDansLeFil;
 
     window.__afficherParrainBotika = afficher;
     afficher();
