@@ -543,9 +543,9 @@
       const bouton = !a ? '' : (a.fait
         ? '<span class="notif-date" style="color:var(--cyan);">✅ Vita</span>'
         : '<button type="button" class="btn btn-primary btn-sm" style="width:auto; margin-top:0.35rem;" data-notif-action="' +
-            wextEsc(a.cle) + '">' + wextEsc(a.libelle || 'Ekena') + '</button>');
+            escapeHtml(a.cle) + '">' + escapeHtml(a.libelle || 'Ekena') + '</button>');
       return '<div class="notif-item"><span class="notif-icon">' + notifIcon(n.type) + '</span>' +
-        wextEsc(n.message) + '<span class="notif-date">' + n.date + '</span>' + bouton + '</div>';
+        escapeHtml(n.message) + '<span class="notif-date">' + n.date + '</span>' + bouton + '</div>';
     }).join('');
   }
 
@@ -1237,7 +1237,7 @@
     if(listeEl){
       const gains = (a.gains || []).map(function(g){
         return '<div style="display:flex; justify-content:space-between; gap:0.8rem; padding:0.3rem 0; border-top:1px solid var(--line);">' +
-          '<span>' + wextEsc(g.note || '') + '<br><span style="font-size:0.7rem; color:var(--muted);">' +
+          '<span>' + escapeHtml(g.note || '') + '<br><span style="font-size:0.7rem; color:var(--muted);">' +
           new Date(g.created_at).toLocaleString('fr-FR') + '</span></span>' +
           '<strong style="white-space:nowrap; color:var(--cyan);">+' + formatWalletAr(g.amount_ar) + '</strong></div>';
       }).join('');
@@ -1337,7 +1337,7 @@
         return '<div style="display:flex; justify-content:space-between; gap:0.8rem; padding:0.35rem 0; border-top:1px solid var(--line);">' +
           '<span>' + formatWalletAr(c.montant_ar) + ' → ' + formatWalletAr(c.net_ar) +
           '<br><span style="font-size:0.7rem; color:var(--muted);">' + new Date(c.created_at).toLocaleString('fr-FR') +
-          (c.note ? ' · ' + wextEsc(c.note) : '') + '</span></span>' +
+          (c.note ? ' · ' + escapeHtml(c.note) : '') + '</span></span>' +
           '<strong style="white-space:nowrap; color:' + e.couleur + ';">' + e.mot + '</strong></div>';
       }).join('') || '<p style="color:var(--muted); margin:0;">Mbola tsy nisy fangatahana.</p>';
     }
@@ -1355,12 +1355,12 @@
     if(!Array.isArray(lignes)) return;
     liste.innerHTML = lignes.map(function(c){
       return '<div style="padding:0.45rem 0; border-top:1px solid var(--line);">' +
-        '<div><strong>' + wextEsc(c.email) + '</strong> — ' + formatWalletAr(c.montant_ar) +
+        '<div><strong>' + escapeHtml(c.email) + '</strong> — ' + formatWalletAr(c.montant_ar) +
         ' <span style="color:var(--muted);">(frais ' + formatWalletAr(c.frais_ar) + ', net ' + formatWalletAr(c.net_ar) + ')</span></div>' +
         '<div style="font-size:0.7rem; color:var(--muted);">' + new Date(c.created_at).toLocaleString('fr-FR') + '</div>' +
         '<div style="display:flex; gap:0.4rem; margin-top:0.3rem;">' +
-        '<button type="button" class="btn btn-primary btn-sm" style="width:auto;" data-avadika-id="' + wextEsc(c.id) + '" data-avadika-ekena="1">✅ Ekena</button>' +
-        '<button type="button" class="btn btn-sm" style="width:auto;" data-avadika-id="' + wextEsc(c.id) + '" data-avadika-ekena="0">↩️ Lavina</button>' +
+        '<button type="button" class="btn btn-primary btn-sm" style="width:auto;" data-avadika-id="' + escapeHtml(c.id) + '" data-avadika-ekena="1">✅ Ekena</button>' +
+        '<button type="button" class="btn btn-sm" style="width:auto;" data-avadika-id="' + escapeHtml(c.id) + '" data-avadika-ekena="0">↩️ Lavina</button>' +
         '</div></div>';
     }).join('') || '<p style="color:var(--muted); margin:0;">Tsy misy miandry.</p>';
   }
@@ -1373,7 +1373,7 @@
       const e = AVADIKA_ETATS[c.status] || { mot: c.status, couleur: 'var(--muted)' };
       return '<tr>' +
         '<td style="' + cellule + ' white-space:nowrap;">' + new Date(c.created_at).toLocaleDateString('fr-FR') + '</td>' +
-        '<td style="' + cellule + '">' + wextEsc(c.email) + (c.note ? '<br><span style="color:var(--muted);">' + wextEsc(c.note) + '</span>' : '') + '</td>' +
+        '<td style="' + cellule + '">' + escapeHtml(c.email) + (c.note ? '<br><span style="color:var(--muted);">' + escapeHtml(c.note) + '</span>' : '') + '</td>' +
         '<td style="' + cellule + ' text-align:right; white-space:nowrap;">' + formatWalletAr(c.montant_ar) + '</td>' +
         '<td style="' + cellule + ' text-align:right; white-space:nowrap;">' + formatWalletAr(c.frais_ar) + '</td>' +
         '<td style="' + cellule + ' text-align:right; white-space:nowrap;">' + formatWalletAr(c.net_ar) + '</td>' +
@@ -1462,12 +1462,12 @@
       div.className = 'payout-row';
       div.style.cssText = 'padding:0.6rem 0; border-top:1px solid var(--line); font-size:0.8rem; line-height:1.5;';
       div.innerHTML =
-        '<div><strong>📦 ' + wextEsc(a.titre || 'Entana') + '</strong> × ' + (a.isa || 1) +
+        '<div><strong>📦 ' + escapeHtml(a.titre || 'Entana') + '</strong> × ' + (a.isa || 1) +
           ' — <strong>' + formatWalletAr(a.amount_ar) + '</strong></div>' +
-        '<div style="color:var(--muted);">' + wextEsc(qui) + ' · ' +
+        '<div style="color:var(--muted);">' + escapeHtml(qui) + ' · ' +
           (a.created_at ? new Date(a.created_at).toLocaleString('fr-FR') : '') + '</div>' +
-        '<div style="color:' + etat.couleur + '; font-weight:600;">' + wextEsc(etat.mot) + '</div>' +
-        (a.note ? '<div style="color:var(--muted);">' + wextEsc(a.note) + '</div>' : '') +
+        '<div style="color:' + etat.couleur + '; font-weight:600;">' + escapeHtml(etat.mot) + '</div>' +
+        (a.note ? '<div style="color:var(--muted);">' + escapeHtml(a.note) + '</div>' : '') +
         '<div class="achat-actions" style="display:flex; gap:0.5rem; margin-top:0.35rem;"></div>';
       const actions = div.querySelector('.achat-actions');
       function bouton(texte, primaire, action, question){
@@ -1547,13 +1547,13 @@
         ? ' → ' + Number(r.amount_out).toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' ' + r.currency
         : '';
       div.innerHTML =
-        '<strong style="color:var(--text);">' + formatWalletAr(r.amount_ar) + '</strong>' + wextEsc(arrivee) +
-        ' · ' + wextEsc(payoutMethodLabel(r.method)) + '<br>' +
-        (r.kind === 'purchase' ? 'Achat : ' : 'Vers : ') + wextEsc(r.destination || '—') + '<br>' +
-        (r.link ? 'Lien : ' + wextEsc(r.link) + '<br>' : '') +
-        (r.instructions ? 'Consigne : ' + wextEsc(r.instructions) + '<br>' : '') +
+        '<strong style="color:var(--text);">' + formatWalletAr(r.amount_ar) + '</strong>' + escapeHtml(arrivee) +
+        ' · ' + escapeHtml(payoutMethodLabel(r.method)) + '<br>' +
+        (r.kind === 'purchase' ? 'Achat : ' : 'Vers : ') + escapeHtml(r.destination || '—') + '<br>' +
+        (r.link ? 'Lien : ' + escapeHtml(r.link) + '<br>' : '') +
+        (r.instructions ? 'Consigne : ' + escapeHtml(r.instructions) + '<br>' : '') +
         new Date(r.created_at).toLocaleString('fr-FR') + ' · ' + payoutStatusLabel(r.status) +
-        (r.note ? '<br>Note : ' + wextEsc(r.note) : '');
+        (r.note ? '<br>Note : ' + escapeHtml(r.note) : '');
 
       // Une demande en attente est déjà retirée du solde : c'est ce qui
       // empêche de demander deux fois la même somme. Si elle ne part jamais,
@@ -1627,11 +1627,11 @@
       div.style.cssText = 'border:1px solid var(--line); border-radius:8px; padding:0.7rem 0.9rem; margin-bottom:0.6rem; font-size:0.8rem; color:var(--muted); line-height:1.7;';
       div.innerHTML =
         '<strong style="color:var(--text);">+ ' + formatWalletAr(r.amount_ar) + '</strong>' +
-        ' · ' + wextEsc(canal) + '<br>' +
+        ' · ' + escapeHtml(canal) + '<br>' +
         new Date(r.created_at).toLocaleString('fr-FR') +
-        ' · <span style="color:' + etat.couleur + ';">' + wextEsc(etat.texte) + '</span>' +
-        (r.provider_ref ? '<br>Référence : ' + wextEsc(r.provider_ref) : '') +
-        (r.note ? '<br>Note : ' + wextEsc(r.note) : '');
+        ' · <span style="color:' + etat.couleur + ';">' + escapeHtml(etat.texte) + '</span>' +
+        (r.provider_ref ? '<br>Référence : ' + escapeHtml(r.provider_ref) : '') +
+        (r.note ? '<br>Note : ' + escapeHtml(r.note) : '');
       if(r.status !== 'en_attente') glisserPourMasquer(div, r.id);
       list.appendChild(div);
     });
@@ -1731,12 +1731,6 @@
     if(t.id === 'trust') return !!(window.trustwallet || p.isTrust || p.isTrustWallet);
     if(t.id === 'okx') return !!window.okxwallet;
     return false;
-  }
-
-  function wextEsc(s){
-    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
   }
 
   let wextLisitra = [];
@@ -1850,7 +1844,7 @@
         const hita = wextHita(t);
         const k = document.createElement('div');
         k.className = 'wext-karatra';
-        k.innerHTML = '<b>' + t.icone + ' ' + wextEsc(t.nom) + '</b><small>' + wextEsc(t.fanazavana) +
+        k.innerHTML = '<b>' + t.icone + ' ' + escapeHtml(t.nom) + '</b><small>' + escapeHtml(t.fanazavana) +
           (hita ? '<br><span class="wext-hita">● Hita amin\'ity navigateur ity</span>' : '') + '</small>';
         const btn = document.createElement('button');
         btn.type = 'button';
@@ -1873,8 +1867,8 @@
       const row = document.createElement('div');
       row.className = 'wext-andalana';
       row.innerHTML = '<div style="flex:0 0 auto;">' + t.icone + '</div>' +
-        '<div style="flex:1 1 200px; min-width:0;"><b>' + wextEsc(w.nom) + '</b> · <span style="color:var(--cyan);">' +
-        wextEsc(w.reseau) + '</span><div class="wext-adr">' + wextEsc(w.adr) + '</div></div>';
+        '<div style="flex:1 1 200px; min-width:0;"><b>' + escapeHtml(w.nom) + '</b> · <span style="color:var(--cyan);">' +
+        escapeHtml(w.reseau) + '</span><div class="wext-adr">' + escapeHtml(w.adr) + '</div></div>';
       const asa = document.createElement('div');
       asa.style.cssText = 'display:flex; gap:0.4rem; flex-wrap:wrap;';
       [['💸 Alefa eto', function(){ wextAmpiasaina(w); }],
@@ -2044,9 +2038,9 @@
         (sortant ? '− ' : '+ ') + formatWalletAr(t.amount_ar) + '</strong>' +
         (sortant && t.fee_ar ? ' <span>(+ frais ' + formatWalletAr(t.fee_ar) + ')</span>' : '') +
         ' · ' + (sortant ? 'Nalefa any amin\'ny ' : 'Avy amin\'ny ') +
-        '<span style="font-family:var(--font-mono);">' + wextEsc(t.cle || '—') + '</span><br>' +
+        '<span style="font-family:var(--font-mono);">' + escapeHtml(t.cle || '—') + '</span><br>' +
         new Date(t.created_at).toLocaleString('fr-FR') +
-        (t.note ? '<br>' + wextEsc(t.note) : '');
+        (t.note ? '<br>' + escapeHtml(t.note) : '');
       list.appendChild(div);
     });
   }
@@ -2269,15 +2263,15 @@
         ? Number(r.amount_out).toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' ' + r.currency
         : formatWalletAr(r.amount_ar);
       card.innerHTML =
-        '<div style="font-size:0.86rem; color:var(--text);"><strong>' + wextEsc(r.name || r.email) + '</strong></div>' +
+        '<div style="font-size:0.86rem; color:var(--text);"><strong>' + escapeHtml(r.name || r.email) + '</strong></div>' +
         '<div style="font-size:0.78rem; color:var(--muted); line-height:1.7; margin-top:0.3rem;">' +
-          'Email : ' + wextEsc(r.email) + '<br>' +
+          'Email : ' + escapeHtml(r.email) + '<br>' +
           'Retrait : <strong style="color:var(--text);">' + formatWalletAr(r.amount_ar) + '</strong>' +
-          ' → à envoyer : <strong style="color:var(--cyan);">' + wextEsc(arrivee) + '</strong><br>' +
-          'Par : ' + wextEsc(payoutMethodLabel(r.method)) + '<br>' +
-          (r.kind === 'purchase' ? 'Achat : ' : 'Vers : ') + '<strong style="color:var(--text);">' + wextEsc(r.destination) + '</strong><br>' +
-          (r.link ? 'Lien : <a href="' + wextEsc(r.link) + '" target="_blank" rel="noopener" style="color:var(--cyan);">ouvrir</a><br>' : '') +
-          (r.instructions ? 'Marche à suivre : <strong style="color:var(--text);">' + wextEsc(r.instructions) + '</strong><br>' : '') +
+          ' → à envoyer : <strong style="color:var(--cyan);">' + escapeHtml(arrivee) + '</strong><br>' +
+          'Par : ' + escapeHtml(payoutMethodLabel(r.method)) + '<br>' +
+          (r.kind === 'purchase' ? 'Achat : ' : 'Vers : ') + '<strong style="color:var(--text);">' + escapeHtml(r.destination) + '</strong><br>' +
+          (r.link ? 'Lien : <a href="' + escapeHtml(r.link) + '" target="_blank" rel="noopener" style="color:var(--cyan);">ouvrir</a><br>' : '') +
+          (r.instructions ? 'Marche à suivre : <strong style="color:var(--text);">' + escapeHtml(r.instructions) + '</strong><br>' : '') +
           'Demandé le : ' + new Date(r.created_at).toLocaleString('fr-FR') +
         '</div>';
 
@@ -4048,7 +4042,7 @@
         '<div style="display:flex; gap:0.4rem; flex-wrap:wrap;">' +
         liensItineraire(pos).map(function(l){
           return '<a class="btn btn-sm" target="_blank" rel="noopener" style="width:auto;" href="' +
-            wextEsc(l.url) + '">' + l.icone + ' ' + l.nom + '</a>';
+            escapeHtml(l.url) + '">' + l.icone + ' ' + l.nom + '</a>';
         }).join('') + '</div>';
     }
     peindre();
@@ -8980,14 +8974,14 @@
 
     let html = '';
     if(!itemMatches.length && !moveMatches.length){
-      html = '<div class="notif-empty">Aucun résultat pour « ' + wextEsc(query) + ' ».</div>';
+      html = '<div class="notif-empty">Aucun résultat pour « ' + escapeHtml(query) + ' ».</div>';
     } else {
       if(itemMatches.length){
         html += '<div class="search-result-group">📦 Articles</div>';
         itemMatches.slice(0, 8).forEach(function(it){
-          html += '<div class="search-result-item" data-goto-item="' + wextEsc(it.id) + '">' +
-            '<strong>' + wextEsc(it.name) + '</strong> <span class="muted">Réf. ' + wextEsc(it.ref || '—') +
-            (it.category ? ' · ' + wextEsc(it.category) : '') + '</span></div>';
+          html += '<div class="search-result-item" data-goto-item="' + escapeHtml(it.id) + '">' +
+            '<strong>' + escapeHtml(it.name) + '</strong> <span class="muted">Réf. ' + escapeHtml(it.ref || '—') +
+            (it.category ? ' · ' + escapeHtml(it.category) : '') + '</span></div>';
         });
       }
       if(moveMatches.length){
@@ -8995,8 +8989,8 @@
         moveMatches.slice(0, 8).forEach(function(m){
           const icon = m.type === 'entree' ? '▲' : (m.type === 'sortie' ? '▼' : '✎');
           const key = (m.itemId || '') + '_' + m.date + '_' + m.type;
-          html += '<div class="search-result-item" data-goto-move="' + wextEsc(key) + '">' +
-            icon + ' <strong>' + wextEsc(m.name) + '</strong> <span class="muted">' + wextEsc(m.note || m.category || '') + '</span></div>';
+          html += '<div class="search-result-item" data-goto-move="' + escapeHtml(key) + '">' +
+            icon + ' <strong>' + escapeHtml(m.name) + '</strong> <span class="muted">' + escapeHtml(m.note || m.category || '') + '</span></div>';
         });
       }
     }
