@@ -513,3 +513,83 @@
     // les panneaux venus de Paramètres (parametres.js)
     if(typeof renderLogins === 'function') renderLogins();
   });
+
+  // ---------------- « VIDER » SUR CHAQUE TABLEAU ----------------
+  // Un bouton rouge en haut à droite de chaque tableau de l'espace admin,
+  // comme « Vider les visites ». Chaque panneau est retrouvé par la liste
+  // qu'il contient. Les règles d'effacement : supabase-admin-vider.sql.
+  // « Comptes bloqués » n'en a pas : ce serait débloquer tout le monde.
+  function toutEffacer(table, filtre){
+    let q = window.__sb.from(table).delete();
+    q = filtre ? filtre(q) : q.not('id', 'is', null);
+    return q.then(function(res){ if(res && res.error) throw res.error; });
+  }
+  function viderLesVisiteurs(){
+    return window.__sb.auth.getSession().then(function(session){
+      const jeton = session && session.data && session.data.session && session.data.session.access_token;
+      if(!jeton) throw new Error('reconnectez-vous');
+      return window.__sb.functions.invoke('visiteur', {
+        body: { action: 'vider' }, headers: { Authorization: 'Bearer ' + jeton }
+      });
+    }).then(function(res){ if(res && res.error) throw res.error; });
+  }
+  const sansLesAVerifier = function(q){ return q.neq('status', 'pending'); };
+  const VIDER = [
+    { dans: 'adminVisiteursBody', question: 'Vider la liste de tout le monde qui a ouvert le site ?', faire: viderLesVisiteurs },
+    { dans: 'adminClientsBody', question: 'Vider la liste des inscriptions ? (« Nouvelles inscriptions » se vide aussi : c\'est la même liste.)',
+      faire: function(){ return toutEffacer('client_signups'); } },
+    { dans: 'signupsTableBody', question: 'Vider la liste des inscriptions ? (« Clients vaovao » se vide aussi : c\'est la même liste.)',
+      faire: function(){ return toutEffacer('client_signups'); } },
+    { dans: 'adminMoneyBody', question: 'Vider les paiements déclarés ? Les demandes encore à vérifier restent.',
+      faire: function(){ return toutEffacer('unlock_requests', sansLesAVerifier); } },
+    { dans: 'adminUnlocksList', question: 'Vider les déblocages ? Les demandes encore à vérifier restent.',
+      faire: function(){ return toutEffacer('unlock_requests', sansLesAVerifier); } },
+    { dans: 'unlockRequestsList', question: 'Vider les demandes de déblocage déjà traitées ? Celles à vérifier restent.',
+      faire: function(){ return toutEffacer('unlock_requests', sansLesAVerifier); } },
+    { dans: 'adminClientAlertsBody', question: 'Vider les tentatives sur les comptes clients ?',
+      faire: function(){ return toutEffacer('security_events', function(q){ return q.or('target.is.null,target.neq.admin'); }); } },
+    { dans: 'adminOwnerAlertsBody', question: 'Vider les tentatives sur votre compte ?',
+      faire: function(){ return toutEffacer('security_events', function(q){ return q.eq('target', 'admin'); }); } },
+    { dans: 'kaontyVoafafaBody', question: 'Vider la liste des comptes supprimés ?',
+      faire: function(){ return toutEffacer('kaonty_voafafa'); } },
+    { dans: 'clientCodesTableBody', question: 'Effacer tous les codes de déverrouillage générés ?',
+      faire: function(){ saveClientCodes({}); return Promise.resolve(); } }
+  ];
+  VIDER.forEach(function(v){
+    const dedans = document.getElementById(v.dans);
+    const panneau = dedans && dedans.closest('.panel');
+    const titre = panneau && panneau.querySelector(':scope > h3');
+    if(!titre) return;
+    // le titre et le bouton sur une ligne, comme « Visiteurs du site »
+    const tete = document.createElement('div');
+    tete.className = 'section-head';
+    tete.style.marginBottom = '0.6rem';
+    const gauche = document.createElement('div');
+    titre.replaceWith(tete);
+    gauche.appendChild(titre);
+    const actions = document.createElement('div');
+    actions.className = 'actions-row';
+    const bouton = document.createElement('button');
+    bouton.type = 'button';
+    bouton.className = 'btn btn-red btn-sm';
+    bouton.textContent = 'Vider';
+    bouton.addEventListener('click', function(){
+      if(!confirm(v.question)) return;
+      if(!window.__sb && v.dans !== 'clientCodesTableBody'){ alert('Serveur injoignable.'); return; }
+      bouton.disabled = true;
+      bouton.textContent = 'Effacement…';
+      v.faire().then(function(){
+        pushNotification('info', 'Liste vidée.');
+      }, function(err){
+        alert('Effacement impossible : ' + ((err && err.message) || 'erreur serveur'));
+      }).then(function(){
+        bouton.disabled = false;
+        bouton.textContent = 'Vider';
+        renderAdminSpace();
+        if(typeof renderLogins === 'function') renderLogins();
+      });
+    });
+    actions.appendChild(bouton);
+    tete.appendChild(gauche);
+    tete.appendChild(actions);
+  });

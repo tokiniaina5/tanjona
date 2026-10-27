@@ -175,5 +175,22 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  // ---- « Vider » dans l'espace admin : le propriétaire seul ----
+  // Une personne revenue après coup est reprise comme nouvelle, mais le
+  // portefeuille ne la recrédite pas : l'index unique de wallet_deposits
+  // (provider, provider_ref) garde son premier versement.
+  if (action === "vider") {
+    const token = (req.headers.get("Authorization") ?? "").replace("Bearer ", "");
+    if (!token) return json({ error: "non authentifié" }, 401);
+    const { data: caller, error: erreurJeton } = await admin.auth.getUser(token);
+    const appelant = norm(caller?.user?.email);
+    if (erreurJeton || !appelant) return json({ error: "session invalide" }, 401);
+    if (appelant !== ownerEmail) return json({ error: "réservé au propriétaire" }, 403);
+
+    const { error } = await admin.from("site_visiteurs").delete().not("install_id", "is", null);
+    if (error) return json({ error: error.message }, 500);
+    return json({ ok: true });
+  }
+
   return json({ error: "action inconnue" }, 400);
 });
