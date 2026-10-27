@@ -129,23 +129,11 @@
       nyAsakoTexte() + parrainTexte();
   }
 
-  // Ce que la personne invitée trouvera : les pages du guide de bienvenue
-  // (welcomeOverlay, ny-asako.html), en une ligne chacune, puis l'essai et
-  // l'abonnement. Si le guide change, ce texte change avec lui.
+  // La liste des pages de Ny asako n'y est plus : le bot de Message
+  // (BOT_FAQ, live.js) répond à tout cela. Une ligne pour y renvoyer.
   function nyAsakoTexte(){
-    return '\n\nDans Ny asako, tu trouves :\n' + [
-      'Stock et articles : ce qui entre, ce qui sort, ce qui reste, avec une alerte de rupture',
-      'Factures et PDF : la facture se fait toute seule avec ton logo, prête à imprimer ou envoyer',
-      'Botika : ta boutique en ligne, produits avec photos, prix et stories ; tes clients commandent depuis leur téléphone',
-      'Ny asako Hôtel : menu avec photos, QR par table, commandes en cuisine, paiement Mobile Money',
-      'Portefeuille en Ariary : dépôt et retrait par MVola, Orange Money, Airtel Money, transferts entre comptes',
-      'Live et appels : vendre en direct en vidéo, appeler un client en audio ou en vidéo',
-      'Mpiasa et livreur : chaque employé entre par son lien, le livreur suit ses courses',
-      'Toerana et Maps : ton adresse sur la carte, l\'itinéraire, la position du livreur',
-      'Bureau : notes, calculatrice, calendrier, horaire'
-    ].map(function(l){ return '- ' + l; }).join('\n') +
-      '\n\nEssai gratuit de 15 jours : les 7 premiers jours sans compte, puis un compte est demandé ' +
-      'et ce que tu as saisi reste en place. Ensuite, abonnement mensuel ou annuel.';
+    return '\n\nUne question sur Ny asako (prix, essai gratuit, portefeuille, boutique…) ? ' +
+      'Écris-nous dans Message : le bot Ny asako te répond tout de suite.';
   }
   // Le court, pour X : 280 caractères, la liste n'y tient pas.
   function inviteMessageCourt(link){
