@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="5be7e62a">
+<meta name="ny-asako-version" content="66c0d847">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -179,7 +179,7 @@
 <!-- fin des écrans de démarrage iOS -->
 <link rel="icon" href="/icone-192.png" type="image/png">
 <link rel="stylesheet" href="gestion-stockage-css/base.css?v=c536eff2">
-<link rel="stylesheet" href="gestion-stockage-css/components.css?v=512b155a">
+<link rel="stylesheet" href="gestion-stockage-css/components.css?v=4a110e9a">
 <!-- Les émojis dessinés en 3D (emoji-3d.js). -->
 <script src="gestion-stockage-js/emoji-3d.js?v=66dad412" defer></script>
 </head>
@@ -1086,7 +1086,7 @@
       <div class="dash-tabs dash-tabs-main" id="stockMainTabs">
         <!-- L'Assistant Ny asako (live.js, sokafyBot) : tout au bord gauche,
              avant le N, en image (27/10/2026) — il était caché dans le ⋯.
-             L'admin l'a aussi : sa conversation reste sur l'appareil. -->
+             Pas pour l'admin : le bot ne lui répond pas. -->
         <button type="button" class="dash-tab bar-icone bokotra-bot" id="barBot" data-sokafy-bot title="Assistant Ny asako" aria-label="Assistant Ny asako"><img class="bar-bot-sary" src="/emoji3d/1f916.png" alt="" aria-hidden="true" draggable="false"></button>
         <!-- Le menu, au bord gauche de la rangée : sur un téléphone, il tient
              sous le pouce au lieu de flotter sur la page. Son panneau s'ouvre
@@ -1262,8 +1262,8 @@
             <div>
               <h2>Botika</h2>
             </div>
-            <!-- Ny bot dia ny 🤖 eo amin'ny barre ambany : ity hafatra
-                 ity no milaza izany. -->
+            <!-- Ny bot dia ao amin'ny ⋯ eo amin'ny barre ambany : ity hafatra
+                 ity no milaza izany. Tsy ho an'ny admin. -->
             <p class="bot-toerana bokotra-bot">🤖 Assistant Ny asako : tsindrio ny <strong>🤖</strong> eo amin'ny barre ambany, alohan'ny N</p>
           </div>
           <!-- Les stories : vingt-quatre heures, en rangée sous le titre
@@ -3994,7 +3994,7 @@
 <script src="gestion-stockage-js/parrain-botika.js?v=08a1246a"></script>
 <script src="gestion-stockage-js/contact.js?v=96f9e192"></script>
 <script src="gestion-stockage-js/zara-rehetra.js?v=9b9c2469"></script>
-<script src="gestion-stockage-js/live.js?v=d65b18d8"></script>
+<script src="gestion-stockage-js/live.js?v=fcca2822"></script>
 <script src="gestion-stockage-js/traduction.js?v=8f5605bc"></script>
 <script src="gestion-stockage-js/teny.js?v=cd7b5557"></script>
 <script src="gestion-stockage-js/parametres.js?v=0c82cf0f"></script>

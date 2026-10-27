@@ -1250,6 +1250,8 @@
   }
   .admin-compte[hidden]{ display:none; }
   .admin-compte.admin-compte-nouveau{ background:#e5484d; color:#fff; }
+  /* « 🤖 Assistant Ny asako » (live.js) : tsy mamaly ny admin ny bot. */
+  html.est-proprietaire .bokotra-bot{ display:none !important; }
   /* Hafatra kely milaza fa ao amin'ny ⋯ (barre ambany) ny bot. */
   .bot-toerana{ margin:0; font-size:0.75rem; color:var(--muted, #8a8f98); line-height:1.3; }
   .bot-toerana strong{ color:var(--cyan, inherit); font-size:0.95rem; }
@@ -1573,7 +1575,7 @@
   object-fit: cover;
 }
 /* L'Assistant, avant le N : collé au bord comme lui, et le N se décale
-   d'une tuile. L'admin l'a aussi (27/10/2026). */
+   d'une tuile. L'admin ne le voit pas (.bokotra-bot) : le N reste au bord. */
 #stockMainTabs #barBot{
   position: sticky; left: 0; z-index: 2;
   width: 40px; height: 40px;
@@ -1589,7 +1591,7 @@
   width: 100%; height: 100%;
   object-fit: contain;
 }
-#stockMainTabs #menuToggle{ left: 43px; }
+html:not(.est-proprietaire) #stockMainTabs #menuToggle{ left: 43px; }
 
 /* ---- Les stories, sous le titre du Botika ----
    Des cartes hautes qui défilent de côté ; la première ajoute. */
