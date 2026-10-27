@@ -1243,14 +1243,23 @@
   ];
   // Ny lisitry ny pejy rehetra : ho an'ny fanontaniana ankapobeny na tsy fantatra.
   function botFanampiana(){
-    return 'Ireto no ao amin\'ny Ny asako, ' + BOT_MENU + ' :\n' +
-      '🏠 Botika · 📋 Articles · 📊 Tableau de bord · 🧾 Factures · 📄 PDF · 📠 Multi-service\n' +
-      '💰 Portefeuille · 💳 Abonnement · 🛒 Panier · 🌍 Achats internationaux · 🚚 Livraison international\n' +
-      '💬 Message · 📞 Call · 🔴 Live direct · 🔔 Feo · 🔗 Ajouter les liens · ✉️ Inviter des amis\n' +
-      '👷 Mpiasa · 🛵 Livreur · 📍 Toerana & Maps · 📽️ Projecteur\n' +
-      '📒 Notes · 🧮 Calculatrice · 📅 Calendrier · 🕒 Horaire\n' +
-      '🖼️ Fond d\'écran · 🌙 Andro / Alina · 🌐 Teny · 🔔 Notifications · 🗑️ Corbeille · ⚙️ Paramètres\n\n' +
-      'Anontanio ahy ny anaran\'ny iray amin\'ireo, dia hazavaiko hoe inona izy sy ahoana no ampiasana azy.';
+    // Vondrona fohy, iray isaky ny andalana : ny lisitra tohizana tamin'ny
+    // « · » dia nifangaro tao anaty bulle tery.
+    const vondrona = [
+      ['📦 Stock sy varotra', ['🏠 Botika', '📋 Articles', '📊 Tableau de bord', '🧾 Factures', '📄 PDF', '📠 Multi-service']],
+      ['💰 Vola sy fividianana', ['💰 Portefeuille', '💳 Abonnement', '🛒 Panier', '🌍 Achats internationaux', '🚚 Livraison international']],
+      ['💬 Fifandraisana', ['💬 Message', '📞 Call', '🔴 Live direct', '🔔 Feo', '🔗 Ajouter les liens', '✉️ Inviter des amis']],
+      ['👷 Ekipa sy toerana', ['👷 Mpiasa', '🛵 Livreur', '📍 Toerana & Maps', '📽️ Projecteur']],
+      ['🧰 Fitaovana', ['📒 Notes', '🧮 Calculatrice', '📅 Calendrier', '🕒 Horaire']],
+      ['⚙️ Fikirakirana', ['🖼️ Fond d\'écran', '🌙 Andro / Alina', '🌐 Teny', '🔔 Notifications', '🗑️ Corbeille', '⚙️ Paramètres']]
+    ];
+    return 'Ireto no ao amin\'ny Ny asako, ' + BOT_MENU + ' :\n\n' +
+      vondrona.map(function(v){
+        // pre-line no asehoana ny bulle : tsy mijanona ny elanelana eo
+        // am-piandohan'ny andalana, ka ny litera renibe no manavaka ny lohateny.
+        return v[0].toUpperCase() + '\n' + v[1].join('\n');
+      }).join('\n\n') +
+      '\n\nAnontanio ahy ny anaran\'ny iray amin\'ireo, dia hazavaiko hoe inona izy sy ahoana no ampiasana azy.';
   }
   // Binance, Payoneer sy ny hafa : ireo rohy hita ao amin'ny Botika
   // (parrain-botika.js), miaraka amin'ny fanazavana fohy. Raha misy anarana
