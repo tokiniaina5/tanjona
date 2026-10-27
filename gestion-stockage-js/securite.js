@@ -593,3 +593,41 @@
     tete.appendChild(gauche);
     tete.appendChild(actions);
   });
+
+  // ---------------- LES TITRES EN BOUTONS ----------------
+  // Chaque panneau de l'espace admin ne montre que son titre : le toucher
+  // déplie le tableau dessous, le retoucher le replie. Fermés d'office ;
+  // ceux qu'on laisse ouverts le restent sur cet appareil.
+  const CLE_OUVERTS = 'nyasako_admin_ouverts';
+  function lireOuverts(){
+    try { return JSON.parse(localStorage.getItem(CLE_OUVERTS)) || []; } catch(e){ return []; }
+  }
+  function garderOuverts(liste){
+    try { localStorage.setItem(CLE_OUVERTS, JSON.stringify(liste)); } catch(e){}
+  }
+  const sectionAdmin = document.getElementById('section-admin');
+  if(sectionAdmin){
+    const ouverts = lireOuverts();
+    [].slice.call(sectionAdmin.querySelectorAll(':scope > .panel')).forEach(function(panneau){
+      const titre = panneau.querySelector('h3');
+      if(!titre) return;
+      const cle = titre.textContent.trim();
+      panneau.classList.add('admin-pliable');
+      panneau.classList.toggle('admin-plie', ouverts.indexOf(cle) < 0);
+      titre.classList.add('admin-titre-bouton');
+      titre.setAttribute('role', 'button');
+      titre.setAttribute('tabindex', '0');
+      const basculer = function(){
+        const plie = panneau.classList.toggle('admin-plie');
+        titre.setAttribute('aria-expanded', plie ? 'false' : 'true');
+        const liste = lireOuverts().filter(function(c){ return c !== cle; });
+        if(!plie) liste.push(cle);
+        garderOuverts(liste);
+      };
+      titre.setAttribute('aria-expanded', panneau.classList.contains('admin-plie') ? 'false' : 'true');
+      titre.addEventListener('click', basculer);
+      titre.addEventListener('keydown', function(e){
+        if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); basculer(); }
+      });
+    });
+  }

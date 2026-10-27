@@ -1199,6 +1199,42 @@
   #section-admin td:first-child{ white-space:nowrap; }
   #section-admin td{ vertical-align:middle; }
   #section-admin tbody tr:hover{ background:color-mix(in srgb, var(--text) 5%, transparent); }
+  /* Les panneaux côte à côte, et non l'un sous l'autre : autant de colonnes
+     que la largeur en tient, une seule sur un téléphone. L'en-tête et les
+     cartes gardent toute la largeur. Un tableau trop large défile dans son
+     panneau au lieu de l'élargir. */
+  #section-admin.active{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+    gap:1rem;
+    align-items:start;
+  }
+  #section-admin > .section-head,
+  #section-admin > .kpi-row{ grid-column:1 / -1; margin-bottom:0.2rem; }
+  #section-admin > .panel{ margin-top:0; min-width:0; overflow-x:auto; }
+  #section-admin .panel > .section-head{ flex-wrap:nowrap; align-items:flex-start; }
+  #section-admin .panel > .section-head > div:first-child{ min-width:0; }
+  #section-admin .panel > .section-head .actions-row{ flex-shrink:0; }
+  #section-admin .table-scroll table{ min-width:100%; }
+  /* Les titres en boutons (securite.js) : un panneau plié ne garde que sa
+     ligne de titre, et « Vider » à côté. */
+  #section-admin .admin-titre-bouton{
+    cursor:pointer; user-select:none; margin-bottom:0;
+    display:flex; align-items:center; gap:0.45rem;
+  }
+  #section-admin .admin-titre-bouton::after{
+    content:'▾'; margin-left:auto; padding-left:0.4rem;
+    color:var(--muted); font-size:0.9rem; transition:transform .15s ease;
+  }
+  #section-admin .panel > .section-head .admin-titre-bouton::after{ margin-left:0.3rem; }
+  #section-admin .admin-plie .admin-titre-bouton::after{ transform:rotate(-90deg); }
+  #section-admin .admin-titre-bouton:hover{ color:var(--text); }
+  #section-admin .admin-titre-bouton:focus-visible{ outline:2px solid var(--cyan); outline-offset:3px; border-radius:6px; }
+  #section-admin .admin-pliable:not(.admin-plie) .admin-titre-bouton{ margin-bottom:1rem; }
+  #section-admin .admin-pliable > .section-head{ margin-bottom:0 !important; align-items:center; }
+  #section-admin .admin-plie > :not(.section-head):not(h3){ display:none !important; }
+  #section-admin .admin-pliable{ padding-top:1rem; padding-bottom:1rem; }
+  #section-admin td{ white-space:nowrap; }
   #adminVisiteursTable th:last-child,
   #adminVisiteursTable td:last-child{ text-align:right; font-variant-numeric:tabular-nums; font-weight:600; }
 
