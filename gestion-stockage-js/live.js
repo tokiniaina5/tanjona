@@ -1140,7 +1140,8 @@
         'dia afaka manao kaomandy avy amin\'ny finday ny mpanjifanao, na tsy manana kaonty aza.' },
     { teny: ['hotel', 'hôtel', 'hotellerie', 'restaurant', 'trano fisakafoanana', 'menu sakafo', 'sakafo', 'qr', 'lakozia', 'cuisine', 'table', 'latabatra'],
       valiny: '🏨 Ny asako Hôtel : menu misy sary, QR isaky ny latabatra, kaomandy tonga any an-dakozia, ' +
-        'ary fandoavana amin\'ny Mobile Money. Apetraka manokana toy ny application ao amin\'ny finday na tablette izy.' },
+        'ary fandoavana amin\'ny Mobile Money. Apetraka manokana toy ny application ao amin\'ny finday na tablette izy.\n\n' +
+        'Raha liana amin\'izany ianao, dia afaka manao installation maimaimpoana (gratuit) ho anao izahay tompoko. 🎁' },
     { teny: ['live', 'direct', 'mivantana', 'streaming'],
       valiny: '🔴 Live direct ' + BOT_MENU + ' : asehoy amin\'ny video mivantana ny entanao amin\'izay rehetra mijery ankehitriny.' },
     { teny: ['call', 'antso', 'appel', 'miantso', 'hiantso', 'antsoy', 'appeler', 'video call', 'appel video'],
@@ -1331,6 +1332,13 @@
     });
     return tsara;
   }
+  // Emoji eo amin'ny faran'ny valiny rehetra : raha efa misy (😊, 🎁…),
+  // tsy ampiana intsony.
+  function botEmoji(valiny){
+    const s = String(valiny || '').replace(/\s+$/, '');
+    if(/\p{Extended_Pictographic}️?$/u.test(s)) return s;
+    return s + ' 😊';
+  }
   const botEfaNilaza = {};
   function botMamaly(email, soratra){
     // Amin'ny admin ihany, ary tsy rehefa ny admin no manoratra.
@@ -1345,7 +1353,7 @@
       valiny = 'Voaray ny hafatrao, ary ho valian\'ny admin raha vao afaka izy.\n\n' + botFanampiana();
     }
     setTimeout(function(){
-      (resaka[email] = resaka[email] || []).push({ id: idHafatra(), avy: 'bot', soratra: valiny, at: Date.now() });
+      (resaka[email] = resaka[email] || []).push({ id: idHafatra(), avy: 'bot', soratra: botEmoji(valiny), at: Date.now() });
       if(resakaMisokatra && resakaMisokatra.email === email) asehoyResaka();
     }, 700);
   }
@@ -1360,7 +1368,7 @@
     sokafyResaka(OWNER_EMAIL, 'Ny asako');
     const lisitra = resaka[OWNER_EMAIL] = resaka[OWNER_EMAIL] || [];
     if(!lisitra.length){
-      lisitra.push({ id: idHafatra(), avy: 'bot', soratra: BOT_FAQ[0].valiny, at: Date.now() });
+      lisitra.push({ id: idHafatra(), avy: 'bot', soratra: botEmoji(BOT_FAQ[0].valiny), at: Date.now() });
       asehoyResaka();
     }
   }
