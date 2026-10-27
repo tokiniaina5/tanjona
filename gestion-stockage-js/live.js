@@ -1078,8 +1078,11 @@
     if(!resakaMisokatra) return;
     const me = myIdentity();
     const id = idHafatra();
-    sendCallSignal({ kind: 'hafatra', from: me.email, fromName: me.name, to: resakaMisokatra.email, text: soratra || '', media: media || null, id: id });
-    alefaPush(resakaMisokatra.email, 'hafatra', { text: soratra || (media ? (media.type === 'video' ? '🎬 Video' : '📷 Sary') : '') });
+    // Ny resaka 🤖 an'ny admin : eto ihany, tsy alefa na aiza na aiza.
+    if(resakaMisokatra.email !== BOT_ADMIN){
+      sendCallSignal({ kind: 'hafatra', from: me.email, fromName: me.name, to: resakaMisokatra.email, text: soratra || '', media: media || null, id: id });
+      alefaPush(resakaMisokatra.email, 'hafatra', { text: soratra || (media ? (media.type === 'video' ? '🎬 Video' : '📷 Sary') : '') });
+    }
     (resaka[resakaMisokatra.email] = resaka[resakaMisokatra.email] || []).push({ id: id, avy: 'izaho', soratra: soratra || '', media: media || null, at: Date.now() });
     asehoyResaka();
     if(soratra) botMamaly(resakaMisokatra.email, soratra);
@@ -1463,11 +1466,16 @@
     return averina + '\n' + v.fan + ' ' + voalohany;
   }
   const botEfaNilaza = {};
+  // Ny resaka 🤖 an'ny admin : tsy adiresy misy, eto amin'ny appareil ihany.
+  const BOT_ADMIN = 'bot@nyasako.local';
   function botMamaly(email, soratra){
-    // Amin'ny admin ihany, ary tsy rehefa ny admin no manoratra.
-    if(typeof isOwnerEmail !== 'function' || !isOwnerEmail(email)) return;
-    const me = myIdentity();
-    if(me.isAdmin || isOwnerEmail(me.email)) return;
+    // Amin'ny admin ihany, ary tsy rehefa ny admin no manoratra — afa-tsy
+    // ao amin'ny resaka 🤖 an'ny admin (BOT_ADMIN).
+    if(email !== BOT_ADMIN){
+      if(typeof isOwnerEmail !== 'function' || !isOwnerEmail(email)) return;
+      const me = myIdentity();
+      if(me.isAdmin || isOwnerEmail(me.email)) return;
+    }
     const emoji = botValyEmoji(soratra);
     if(emoji){ botApetraho(email, emoji, 700); return; }
     // Teny iray na roa fantatra (« salama », « misaotra ») : amin'ny teny
@@ -1568,13 +1576,14 @@
 
   // Ny resaka amin'ny admin, miaraka amin'ny fiarahaban'ny bot raha mbola
   // foana. Ampiasain'ny rohy ?bot=1 sy ny bokotra « 🤖 Assistant Ny asako »
-  // (🤖 eo amin'ny barre ambany, alohan'ny N). Tsy ho an'ny admin : tsy mamaly
-  // azy ny bot.
+  // (🤖 eo amin'ny barre ambany, alohan'ny N). Ny admin koa dia manana azy
+  // (27/10/2026) : resaka hafa (BOT_ADMIN), tsy mivoaka ny appareil.
   function sokafyBot(){
     const me = myIdentity();
-    if(me.isAdmin || isOwnerEmail(me.email)) return;
-    sokafyResaka(OWNER_EMAIL, 'Ny asako');
-    const lisitra = resaka[OWNER_EMAIL] = resaka[OWNER_EMAIL] || [];
+    const admin = me.isAdmin || isOwnerEmail(me.email);
+    const email = admin ? BOT_ADMIN : OWNER_EMAIL;
+    sokafyResaka(email, admin ? 'Assistant Ny asako' : 'Ny asako');
+    const lisitra = resaka[email] = resaka[email] || [];
     if(!lisitra.length){
       lisitra.push({ id: idHafatra(), avy: 'bot', soratra: botEmoji(BOT_FAQ[0].valiny), at: Date.now() });
       asehoyResaka();
