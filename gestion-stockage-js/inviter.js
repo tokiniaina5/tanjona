@@ -80,7 +80,7 @@
     return 'Ny asako\n\n' +
       'Tsindrio ny rohy confirmation : ao ianao no misafidy, hiditra ao amin\'ny Ny asako, ' +
       'hijery ny Live direct, na hanao antso video na audio.\n\n' +
-      'Confirmation : ' + lien;
+      'Confirmation : ' + lien + parrainTexte();
   }
 
   function copyTextWithFallback(text){
@@ -115,7 +115,8 @@
     const email = document.getElementById('inviteEmail').value.trim();
     const link = lienInvitationEntier();
     const subject = encodeURIComponent('Confirmer ton invitation — Ny asako');
-    const body = encodeURIComponent('Salut,\n\nJe t\'invite à rejoindre Ny asako. Clique sur le lien de confirmation pour confirmer ton inscription.\n\nConfirmation : ' + link + '\n\nÀ bientôt !');
+    const body = encodeURIComponent('Salut,\n\nJe t\'invite à rejoindre Ny asako. Clique sur le lien de confirmation pour confirmer ton inscription.\n\nConfirmation : ' + link +
+      parrainTexte() + '\n\nÀ bientôt !');
     window.location.href = 'mailto:' + email + '?subject=' + subject + '&body=' + body;
   });
 
@@ -124,7 +125,56 @@
   // lien vient juste après « Confirmer ».
   function inviteMessage(link){
     // Sans émoji : le ✅ arrivait en « � » dans WhatsApp.
+    return 'Salut ! Je t\'invite à rejoindre Ny asako. Clique sur le lien de confirmation pour confirmer ton inscription.\n\nConfirmation : ' + link +
+      parrainTexte();
+  }
+  // Le court, pour X : 280 caractères, la liste n'y tient pas.
+  function inviteMessageCourt(link){
     return 'Salut ! Je t\'invite à rejoindre Ny asako. Clique sur le lien de confirmation pour confirmer ton inscription.\n\nConfirmation : ' + link;
+  }
+
+  // Binance, Payoneer et les autres, joints à l'invitation : les mêmes liens
+  // que la Botika (parrain-botika.js), avec un mot sur chacun. Les jeux
+  // d'argent à part, avec l'avertissement des 18 ans. Sans émoji, comme le
+  // reste du message.
+  const PARRAIN_MOT = {
+    'binance': 'crypto, achat et vente en Ariary par MVola / Orange Money',
+    'payoneer': 'recevoir l\'argent de clients et de plateformes à l\'étranger',
+    'bybit': 'crypto et trading, P2P en Ariary',
+    'okx': 'crypto et trading, P2P en Ariary',
+    'kucoin': 'crypto et trading',
+    'bitget': 'crypto et trading',
+    'redotpay': 'carte bancaire crypto pour payer en ligne',
+    'wise': 'transferts d\'argent internationaux',
+    'skrill': 'portefeuille en ligne, paiements internationaux',
+    'airtm': 'dollars en ligne, retrait par Mobile Money',
+    'exness': 'trading, à risque',
+    'deriv': 'trading, à risque'
+  };
+  const PARRAIN_LALAO = ['bet261', 'aviator', '1xbet', 'melbet', 'lalao malagasy (loterie)'];
+  function parrainTexte(){
+    const liste = (typeof window.__lisitraParrain === 'function') ? window.__lisitraParrain() : [];
+    if(!liste.length) return '';
+    const ligne = function(x){
+      const mot = PARRAIN_MOT[x.nom.toLowerCase()];
+      const valeur = /^https?:\/\//i.test(x.rohy) ? x.rohy : 'code ' + x.rohy;
+      // Le nom et son usage sur une ligne, le lien seul dessous : WhatsApp le
+      // rend cliquable sans rien coller autour.
+      return '- ' + x.nom + (mot ? ' : ' + mot : '') + '\n  ' + valeur;
+    };
+    const argent = liste.filter(function(x){ return PARRAIN_LALAO.indexOf(x.nom.toLowerCase()) < 0; });
+    const lalao = liste.filter(function(x){ return PARRAIN_LALAO.indexOf(x.nom.toLowerCase()) >= 0; });
+    let texte = '';
+    if(argent.length){
+      texte += '\n\nPour recevoir, envoyer et gérer ton argent en ligne, inscris-toi aussi sur ces plateformes ' +
+        'par ces liens. Après l\'inscription, fais la vérification d\'identité (KYC) avec ta CIN ou ton passeport :\n' +
+        argent.map(ligne).join('\n');
+    }
+    if(lalao.length){
+      texte += '\n\nJeux et paris (18 ans et plus seulement, ne joue jamais l\'argent que tu ne peux pas perdre) :\n' +
+        lalao.map(ligne).join('\n');
+    }
+    return texte;
   }
   function copyToClipboardSilently(text){
     if(navigator.clipboard && navigator.clipboard.writeText){
@@ -166,7 +216,7 @@
       { label: 'Threads', logo: 'threads', ok: !!profil('threads'), run: function(){
         window.open('https://www.threads.net/intent/post?text=' + encodeURIComponent(inviteMessage(lien())), '_blank'); } },
       { label: 'X', logo: 'x', ok: !!profil('twitter'), run: function(){
-        window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(inviteMessage(lien())) + '&url=' + encodeURIComponent(lien()), '_blank'); } },
+        window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(inviteMessageCourt(lien())) + '&url=' + encodeURIComponent(lien()), '_blank'); } },
       { label: 'WeChat', logo: 'wechat', ok: !!(channels.wechat || '').trim(), run: copier('WeChat') }
     ];
     // Tous les canaux ajoutés à la main (Email, Telegram, YouTube…), comme

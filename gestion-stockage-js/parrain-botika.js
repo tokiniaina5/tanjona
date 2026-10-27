@@ -114,14 +114,15 @@
       }, function(){ rendre(presents, {}); });
     }
 
-    // Les tuiles d'une rangée : Binance, Payoneer, puis les autres.
-    function remplir(rangee, d){
+    // La liste : Binance, Payoneer, puis les autres — la liste d'office, puis
+    // celles que l'admin a ajoutées sous un autre nom (colonne « hafa »).
+    // Les tuiles en sortent, et le message d'invitation aussi (inviter.js).
+    function lisitra(d){
+      const tout = [];
       PLATEFORMES.forEach(function(p){
         const valeur = String(d[p.cle] || '').trim() || p.defaut;
-        if(valeur) rangee.appendChild(bouton(p, valeur));
+        if(valeur) tout.push({ p: p, valeur: valeur });
       });
-      // Les autres : la liste d'office, puis celles que l'admin a
-      // ajoutées sous un autre nom (colonne « hafa »).
       const liensAdmin = {};
       (Array.isArray(d.hafa) ? d.hafa : []).forEach(function(h){
         const valeur = String((h && h.rohy) || '').trim();
@@ -131,12 +132,22 @@
         const cle = h.nom.toLowerCase();
         const lienAdmin = liensAdmin[cle];
         delete liensAdmin[cle];
-        rangee.appendChild(bouton({ nom: h.nom, ikona: '🔗', couleur: 'var(--cyan)', court: true }, lienAdmin ? lienAdmin.rohy : h.defaut));
+        tout.push({ p: { nom: h.nom, ikona: '🔗', couleur: 'var(--cyan)', court: true }, valeur: lienAdmin ? lienAdmin.rohy : h.defaut });
       });
       Object.keys(liensAdmin).forEach(function(cle){
-        rangee.appendChild(bouton({ nom: liensAdmin[cle].nom, ikona: '🔗', couleur: 'var(--cyan)', court: true }, liensAdmin[cle].rohy));
+        tout.push({ p: { nom: liensAdmin[cle].nom, ikona: '🔗', couleur: 'var(--cyan)', court: true }, valeur: liensAdmin[cle].rohy });
       });
+      return tout;
     }
+    // Les tuiles d'une rangée.
+    function remplir(rangee, d){
+      lisitra(d).forEach(function(x){ rangee.appendChild(bouton(x.p, x.valeur)); });
+    }
+    // Pour le message d'invitation : le nom et le lien (ou le code) de chaque
+    // plateforme, tels que la Botika les montre.
+    window.__lisitraParrain = function(){
+      return lisitra(dernierD).map(function(x){ return { nom: x.p.nom, rohy: x.valeur }; });
+    };
 
     let dernierD = {};
     function rendre(presents, d){
