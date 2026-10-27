@@ -1239,7 +1239,9 @@
     { teny: ['misaotra', 'merci', 'thanks', 'mersi'],
       valiny: 'Tsy misy fisaorana ! Raha mbola misy fanontaniana, soraty fotsiny eto. 😊' },
     // Ny ankapobeny farany : tsy mandresy afa-tsy raha tsy misy hafa hita.
-    { teny: ['menu', 'aiza', 'pejy', 'page', 'fanampiana', 'aide', 'help', 'inona no azo atao', 'fitaovana', 'fonctionnalite', 'ahoana'],
+    // Tsy ao intsony ny « aiza », « ahoana », « pejy » : ny fanontaniana tsy
+    // momba ny appli (« ahoana no fanaovana mofo ? ») dia mankany amin'ny AI.
+    { teny: ['menu', 'fanampiana', 'aide', 'help', 'inona no azo atao', 'inona no ataon ny appli', 'fitaovana', 'fonctionnalite', 'fonctionnalites'],
       valiny: botFanampiana }
   ];
   // Ny lisitry ny pejy rehetra : ho an'ny fanontaniana ankapobeny na tsy fantatra.
@@ -1383,17 +1385,37 @@
     const me = myIdentity();
     if(me.isAdmin || isOwnerEmail(me.email)) return;
     const f = botMitady(soratra);
-    let valiny = botValyEmoji(soratra) ||
+    const valiny = botValyEmoji(soratra) ||
       (f ? (typeof f.valiny === 'function' ? f.valiny(soratra) : f.valiny) : null);
-    if(!valiny){
+    if(valiny){ botApetraho(email, valiny, 700); return; }
+    // Tsy fantatra eto : ny AI (fonction « assistant ») no manapa-kevitra
+    // raha valiana ilay fanontaniana. Raha momba ny appli izy, na tsy tokony
+    // valiana, na tsy tafiditra ny AI, dia ny admin no hamaly toy ny taloha.
+    botAnontanioAI(soratra).then(function(v){
+      if(v && v.valiana && v.valiny){ botApetraho(email, v.valiny, 0); return; }
+      if(v && v.antony === 'tsy'){
+        botApetraho(email, 'Miala tsiny tompoko, tsy afaka mamaly an\'io fanontaniana io aho. ' +
+          'Fa raha misy zavatra hafa tianao ho fantatra, na momba ny Ny asako, anontanio fotsiny aho.', 0);
+        return;
+      }
       if(botEfaNilaza[email]) return;
       botEfaNilaza[email] = true;
-      valiny = 'Voaray ny hafatrao, ary ho valian\'ny admin raha vao afaka izy.\n\n' + botFanampiana();
-    }
+      botApetraho(email, 'Voaray ny hafatrao, ary ho valian\'ny admin raha vao afaka izy.\n\n' + botFanampiana(), 0);
+    });
+  }
+  function botApetraho(email, valiny, elanelana){
     setTimeout(function(){
       (resaka[email] = resaka[email] || []).push({ id: idHafatra(), avy: 'bot', soratra: botEmoji(valiny), at: Date.now() });
       if(resakaMisokatra && resakaMisokatra.email === email) asehoyResaka();
-    }, 700);
+    }, elanelana);
+  }
+  // { valiana, valiny, antony } avy amin'ny fonction, na null raha tsy
+  // tafiditra (tsy misy réseau, tsy misy Supabase).
+  function botAnontanioAI(soratra){
+    if(!window.__sb || !window.__sb.functions || !window.__sb.functions.invoke) return Promise.resolve(null);
+    return window.__sb.functions.invoke('assistant', { body: { fanontaniana: soratra } })
+      .then(function(res){ return (res && !res.error && res.data) ? res.data : null; })
+      .catch(function(){ return null; });
   }
 
   // Ny resaka amin'ny admin, miaraka amin'ny fiarahaban'ny bot raha mbola

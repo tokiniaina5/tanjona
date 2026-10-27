@@ -1239,3 +1239,14 @@ currency « USDT » (taux = celui du dollar), destination « TRC20 · T… » ou
 « BEP20 · 0x… » — l'adresse est vérifiée par la fonction « wallet ». Comme
 le Mobile Money, la demande attend le propriétaire, qui envoie de son propre
 portefeuille crypto puis la marque envoyée.
+
+=== Assistant Ny asako : fanontaniana ivelan'ny appli (AI) ===
+Ny bot (live.js) no mamaly ny momba ny Ny asako. Izay tsy fantany dia
+alefa any amin'ny fonction "assistant" : Claude no mamaly, nefa misafidy
+aloha (tsy valiany ny fanontaniana mampidi-doza na tsy mety ; ny momba ny
+appli dia avelany ho an'ny admin).
+  1. Alaivo ny clef ao amin'ny https://console.anthropic.com (API Keys).
+  2. supabase secrets set ANTHROPIC_API_KEY=sk-ant-...   --project-ref ezpsapvthujkhttbfhlr
+  3. supabase functions deploy assistant --no-verify-jwt --project-ref ezpsapvthujkhttbfhlr
+Tsy misy clef : mijanona toy ny taloha ny bot (ho an'ny admin ny hafatra).
+Fetra : 20 fanontaniana isan'ora isaky ny adiresy IP, 600 litera isaky ny fanontaniana.
