@@ -1544,7 +1544,8 @@
         if(i < 0) return;   // voafafa ny resaka teo anelanelany
         if(!v){ lisitra.splice(i, 1); }
         else {
-          toerana.soratra = botEmoji(v.soratra);
+          // Media fotsiny (sary, video, feo) : tsy ampiana 😊 ny soratra foana.
+          toerana.soratra = v.soratra ? botEmoji(v.soratra) : '';
           toerana.sokafy = v.sokafy || null;
           toerana.teny = v.teny || null;
           toerana.media = v.media || null;
@@ -1565,7 +1566,7 @@
   // tsy misy rakitra feo ; ny bokotra ▶ no manomboka azy.
   const BOT_SARY_URL = '/bot/ny-asako.svg';
   const BOT_FEO_SORATRA = 'Salama tompoko ! Izaho no Assistant Ny asako. Ny asako dia manampy anao hitantana ny stock, ' +
-    'ny facture, ny botika, ny portefeuille ary ny mpiasa, amin\'ny toerana iray. Inona no tianao hamaliako anao azafady ?';
+    'ny facture, ny botika, ny portefeuille ary ny mpiasa, amin\'ny toerana iray.';
   function botMediaNyAsako(karazany, teny){
     if(karazany === 'feo'){
       return botAdikao(BOT_FEO_SORATRA, teny).then(function(v){ return { type: 'bot-feo', soratra: v.soratra, teny: v.teny || 'mg' }; });
@@ -1625,7 +1626,7 @@
           ctx.fillStyle = '#fff'; ctx.font = '700 30px Segoe UI, Roboto, Arial, sans-serif';
           ctx.fillText('🤖 Assistant Ny asako', 320, 165);
           ctx.fillStyle = '#9fe7ec'; ctx.font = '22px Segoe UI, Roboto, Arial, sans-serif';
-          ctx.fillText('Inona no tianao hamaliako anao ?', 320, 210);
+          ctx.fillText('nyasako.com', 320, 210);
         }
         ctx.globalAlpha = 1;
       }
@@ -1680,11 +1681,10 @@
     if(media && !String(soratra || '').trim()){
       // Ary mamerina media mitovy karazana aminy, momba ny Ny asako : sary,
       // video kely, na feo (27/10/2026).
+      // Ny media ihany, tsy misy soratra intsony (« Inona no tianao
+      // hamaliako… » nesorina, 27/10/2026).
       const teny = botTenyFarany[email] || null;
-      return Promise.all([
-        botAdikao('Inona no tianao hamaliako anao azafady ?', teny),
-        botMediaNyAsako(media.type, teny)
-      ]).then(function(r){ return { soratra: r[0].soratra, teny: r[0].teny, media: r[1] }; });
+      return botMediaNyAsako(media.type, teny).then(function(m){ return { soratra: '', media: m }; });
     }
     const emoji = botValyEmoji(soratra);
     if(emoji) return Promise.resolve({ soratra: emoji });
