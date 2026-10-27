@@ -1100,10 +1100,7 @@
   const BOT_MENU = 'ao amin\'ny Menu (ilay logo eo ankavia amin\'ny barre ambany)';
   const BOT_FAQ = [
     { teny: ['salama', 'manao ahoana', 'bonjour', 'bonsoir', 'salut', 'hello', 'allo', 'akory'],
-      valiny: 'Salama ! Izaho no Assistant Ny asako. Fantatro daholo ny ao amin\'ny appli : ny stock sy ny articles, ' +
-        'ny facture sy ny PDF, ny botika sy ny panier, ny portefeuille, ny abonnement, ny hafatra, ny live sy ny call, ' +
-        'ny mpiasa sy ny livreur, ny Multi-service, ny Notes, ny calendrier, ny paramètres… ' +
-        'Anontanio fotsiny hoe « aiza ny … » na « ahoana no … ». Inona no tianao ho fantatra ?' },
+      valiny: 'Salama tompoko, izaho no Assistant Ny asako. Inona no hatao anao azafady ?' },
     { teny: ['vidiny', 'ohatrinona', 'hoatrinona', 'prix', 'tarif', 'abonnement', 'abonement', 'mensuel', 'annuel', 'karama', 'combien'],
       valiny: 'Maimaimpoana mandritra ny 15 andro ny Ny asako. Aorian\'izay : 15 000 Ar isam-bolana, ' +
         'na 150 000 Ar isan-taona (2 volana maimaimpoana). Aloa avy amin\'ny 💰 Portefeuille (MVola, Orange Money, Airtel Money). ' +
