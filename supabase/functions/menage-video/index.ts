@@ -61,12 +61,13 @@ function memeSecret(a: string, b: string): boolean {
 const BUCKET = "annonce-video";
 const RETENTION_JOURS = Number(Deno.env.get("RETENTION_JOURS") ?? "30");
 
-// Les messages, eux, ne vivent que sept jours (27/10/2026) : les photos,
-// vidéos et notes vocales des discussions (bucket « resaka-media », un
-// dossier par adresse) et les messages du formulaire de contact
-// (contact_messages). Le même passage quotidien s'en charge.
+// Les messages, eux, ne vivent que sept jours (27/10/2026) : les messages
+// du formulaire de contact (contact_messages). Les photos, vidéos et notes
+// vocales des discussions (bucket « resaka-media », un dossier par adresse)
+// trois jours seulement. Le même passage quotidien s'en charge.
 const RESAKA_BUCKET = "resaka-media";
 const RESAKA_JOURS = Number(Deno.env.get("RESAKA_JOURS") ?? "7");
+const RESAKA_MEDIA_JOURS = Number(Deno.env.get("RESAKA_MEDIA_JOURS") ?? "3");
 
 type Admin = ReturnType<typeof createClient>;
 
@@ -98,11 +99,12 @@ async function vieuxResaka(admin: Admin, limite: number): Promise<{ noms: string
 
 async function menageResaka(admin: Admin, essai: boolean) {
   const limite = Date.now() - RESAKA_JOURS * 24 * 60 * 60 * 1000;
-  const fichiers = await vieuxResaka(admin, limite);
+  const fichiers = await vieuxResaka(admin, Date.now() - RESAKA_MEDIA_JOURS * 24 * 60 * 60 * 1000);
   const depuis = new Date(limite).toISOString();
   if (essai) {
     const { count } = await admin.from("contact_messages").select("id", { count: "exact", head: true }).lt("created_at", depuis);
-    return { jours: RESAKA_JOURS, fichiersVus: fichiers.vus, fichiersRetenus: fichiers.noms.length, contactRetenus: count ?? 0, erreur: fichiers.erreur };
+    return { jours: RESAKA_JOURS, joursMedia: RESAKA_MEDIA_JOURS, fichiersVus: fichiers.vus, fichiersRetenus: fichiers.noms.length,
+      contactRetenus: count ?? 0, erreur: fichiers.erreur };
   }
   let fichiersEffaces = 0;
   const soucis: string[] = fichiers.erreur ? [fichiers.erreur] : [];
@@ -113,7 +115,7 @@ async function menageResaka(admin: Admin, essai: boolean) {
   }
   const { count, error } = await admin.from("contact_messages").delete({ count: "exact" }).lt("created_at", depuis);
   if (error) soucis.push(error.message);
-  return { jours: RESAKA_JOURS, fichiersVus: fichiers.vus, fichiersEffaces, contactEffaces: count ?? 0, soucis };
+  return { jours: RESAKA_JOURS, joursMedia: RESAKA_MEDIA_JOURS, fichiersVus: fichiers.vus, fichiersEffaces, contactEffaces: count ?? 0, soucis };
 }
 
 Deno.serve(async (req: Request) => {

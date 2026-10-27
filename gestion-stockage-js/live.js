@@ -1025,12 +1025,19 @@
   // (27/10/2026). Eto : ny resaka ao amin'ilay appli misokatra ela (PWA
   // tsy mihidy). Any amin'ny serveur : ny rakitra ao amin'ny resaka-media
   // sy ny contact_messages, isan'andro (fonction menage-video).
+  // Ny sary, video ary feo kosa : 3 andro ihany ; efa voafafa any amin'ny
+  // serveur ny rakitra aorian'izay, ka tsy hisokatra intsony.
   const RESAKA_ANDRO = 7;
+  const RESAKA_MEDIA_ANDRO = 3;
   function fafaoResakaTaloha(){
     const fetra = Date.now() - RESAKA_ANDRO * 24 * 60 * 60 * 1000;
+    const fetraMedia = Date.now() - RESAKA_MEDIA_ANDRO * 24 * 60 * 60 * 1000;
     let niova = false;
     Object.keys(resaka).forEach(function(email){
-      const sisa = resaka[email].filter(function(h){ return !h.at || h.at >= fetra || h.miandry; });
+      const sisa = resaka[email].filter(function(h){
+        if(h.miandry || !h.at) return true;
+        return h.at >= (h.media ? fetraMedia : fetra);
+      });
       if(sisa.length !== resaka[email].length){ resaka[email] = sisa; niova = true; }
     });
     if(niova && resakaMisokatra) asehoyResaka();
