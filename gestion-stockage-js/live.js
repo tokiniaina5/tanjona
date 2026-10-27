@@ -1475,6 +1475,55 @@
       // fanontaniana no valiana.
       if(n > isa || (n && n === isa && tsara === BOT_FAQ[0])){ isa = n; tsara = f; }
     });
+    return tsara || botMitadyAkaiky(t, isaTeny);
+  }
+  // Raha tsy misy mifanaraka tsara : teny akaiky, diso litera iray na roa
+  // (« factur », « portfeuil », « ni facture » avy amin'ny feo). Ny « y » sy
+  // ny « i » dia mitovy, ary ny litera miverina (« ll ») dia iray ihany.
+  function botFototra(t){ return t.replace(/y/g, 'i').replace(/(.)\1+/g, '$1'); }
+  function botElanelana(a, b){
+    if(Math.abs(a.length - b.length) > 2) return 3;
+    let teo = [];
+    for(let j = 0; j <= b.length; j++) teo[j] = j;
+    for(let i = 1; i <= a.length; i++){
+      const izao = [i];
+      for(let j = 1; j <= b.length; j++){
+        izao[j] = Math.min(teo[j] + 1, izao[j - 1] + 1, teo[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      }
+      teo = izao;
+    }
+    return teo[b.length];
+  }
+  // Teny roa akaiky : 9 litera na mihoatra, diso roa ; 6 na mihoatra, diso
+  // iray ; latsaka ny 6, tsy fahampiana na fanampiana litera iray ihany
+  // (« note » / « notes »), fa tsy litera solo (« olona » tsy « olana »).
+  function botAkaikyTeny(x, k){
+    if(x === k) return true;
+    if(k.length < 4 || x.length < 4) return false;
+    const d = botElanelana(x, k);
+    if(k.length >= 9) return d <= 2;
+    if(k.length >= 6) return d <= 1;
+    return d === 1 && x.length !== k.length;
+  }
+  function botMitadyAkaiky(t, isaTeny){
+    const teny = t.trim().split(' ').filter(Boolean).map(botFototra);
+    if(!teny.some(function(x){ return x.length >= 4; })) return null;
+    let tsara = null, isa = 0;
+    BOT_FAQ.forEach(function(f){
+      if(f.fohy && isaTeny > 3) return;
+      let n = 0;
+      f.teny.forEach(function(m){
+        // Ny teny tsirairay ao amin'ny teny maromaro : samy tsy maintsy hita,
+        // ary ny fohy (« 15 », « tsy ») dia marina tsara.
+        const ampahany = botTeny(m).split(' ').filter(Boolean).map(botFototra);
+        if(!ampahany.some(function(k){ return k.length >= 4; })) return;
+        const hita = ampahany.every(function(k){
+          return teny.some(function(x){ return k.length < 4 ? x === k : botAkaikyTeny(x, k); });
+        });
+        if(hita) n += ampahany.length;
+      });
+      if(n > isa){ isa = n; tsara = f; }
+    });
     return tsara;
   }
   // Emoji eo amin'ny faran'ny valiny rehetra : raha efa misy (😊, 🎁…),
@@ -1742,7 +1791,9 @@
     // Feo azo ny soratra ao aminy (feoHoSoratra) : valiana toy ny hafatra
     // soratra, ary io valiny io ihany no vakiana amin'ny ▶ 🔊.
     if(media && media.type === 'feo' && media.dikany && !String(soratra || '').trim()){
-      return botValiny(email, media.dikany).then(function(v){
+      // Ny safidy rehetra no itadiavana : raha diso kely ny voalohany
+      // (« ni facture »), mety ho marina ny iray amin'ireo hafa.
+      return botValiny(email, media.safidy || media.dikany).then(function(v){
         if(!v || !v.soratra) return v;
         v.media = { type: 'bot-feo', soratra: botHoVakiana(v.soratra), teny: v.teny || 'mg' };
         return v;
@@ -1991,7 +2042,11 @@
         if(toerana) toerana.style.display = 'none';
         const media = { url: url, type: video ? 'video' : feo ? 'feo' : 'sary' };
         // Ny soratry ny feo (feoHoSoratra) : hitan'ny bot sy ny admin.
-        if(feo && dikany) media.dikany = String(dikany).slice(0, 1000);
+        // dikany : { soratra, safidy } avy amin'ny feoHoSoratra.
+        if(feo && dikany && dikany.soratra){
+          media.dikany = String(dikany.soratra).slice(0, 1000);
+          if(dikany.safidy && dikany.safidy !== dikany.soratra) media.safidy = String(dikany.safidy).slice(0, 1500);
+        }
         alefaHafatra('', media);
       })
       .catch(function(err){
@@ -2015,18 +2070,32 @@
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if(!SR) return null;
     const lisitra = teny ? [teny, 'mg-MG', 'fr-FR'] : ['mg-MG', 'fr-FR'];
-    let soratra = '', rec = null, mihaino = true, faranyVita = null;
+    // soratra : ny tsara indrindra ; safidy : ireo safidy hafa rehetra
+    // (« ni facture », « ny facture »…), ampiasain'ny bot hitadiavana.
+    // vonjimaika : ny soratra mbola tsy vita, raha tsy tonga ny farany
+    // rehefa mijanona ny fandraketana.
+    let soratra = '', safidy = '', vonjimaika = '', rec = null, mihaino = true, faranyVita = null;
+    const vokatra = function(){
+      const s = (soratra || vonjimaika).trim();
+      return { soratra: s, safidy: (s + ' ' + safidy).trim() };
+    };
     const vita = new Promise(function(r){ faranyVita = r; });
     function manomboka(i){
-      if(i >= lisitra.length || !mihaino){ faranyVita(soratra.trim()); return; }
-      try{ rec = new SR(); }catch(e){ faranyVita(''); return; }
+      if(i >= lisitra.length || !mihaino){ faranyVita(vokatra()); return; }
+      try{ rec = new SR(); }catch(e){ faranyVita(vokatra()); return; }
       rec.lang = lisitra[i];
       rec.continuous = true;
-      rec.interimResults = false;
+      rec.interimResults = true;
+      rec.maxAlternatives = 5;
       let nivadika = false;
       rec.onresult = function(e){
+        vonjimaika = '';
         for(let j = e.resultIndex; j < e.results.length; j++){
-          if(e.results[j].isFinal) soratra += ' ' + e.results[j][0].transcript;
+          const r = e.results[j];
+          if(r.isFinal){
+            soratra += ' ' + r[0].transcript;
+            for(let k = 1; k < r.length; k++) safidy += ' ' + r[k].transcript;
+          } else vonjimaika += ' ' + r[0].transcript;
         }
       };
       rec.onerror = function(e){
@@ -2037,9 +2106,9 @@
         if(nivadika) return;
         // Mijanona ho azy rehefa mangina kely : averina raha mbola mandrakitra.
         if(mihaino){ try{ rec.start(); return; }catch(e){} }
-        faranyVita(soratra.trim());
+        faranyVita(vokatra());
       };
-      try{ rec.start(); }catch(e){ faranyVita(''); }
+      try{ rec.start(); }catch(e){ faranyVita(vokatra()); }
     }
     manomboka(0);
     return {
@@ -2047,7 +2116,7 @@
         mihaino = false;
         try{ if(rec) rec.stop(); }catch(e){}
         // Tsy miandry mandrakizay : 2 segondra farafahabetsany.
-        return Promise.race([vita, new Promise(function(r){ setTimeout(function(){ r(soratra.trim()); }, 2000); })]);
+        return Promise.race([vita, new Promise(function(r){ setTimeout(function(){ r(vokatra()); }, 2000); })]);
       }
     };
   }
