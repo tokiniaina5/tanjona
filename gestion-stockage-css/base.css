@@ -572,3 +572,14 @@
   .aff-isa-boaty{ border:1px solid var(--line); border-radius:10px; padding:0.7rem 0.85rem; background:var(--bg); }
   .aff-isa-sanda{ font-family:var(--font-mono); font-size:1.3rem; font-weight:700; color:var(--text); }
 
+  /* Portefeuilles ivelany (TronLink, Binance Web3…) */
+  .wext-grille{ display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:0.6rem; }
+  .wext-karatra{ border:1px solid var(--line); border-radius:10px; padding:0.7rem; background:var(--bg); display:flex; flex-direction:column; gap:0.35rem; }
+  .wext-karatra b{ font-size:0.88rem; color:var(--text); }
+  .wext-karatra small{ font-size:0.7rem; color:var(--muted); line-height:1.4; }
+  .wext-karatra .btn{ width:100%; margin-top:auto; }
+  .wext-hita{ color:var(--cyan); font-weight:700; }
+  .wext-andalana{ display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap; padding:0.55rem 0; border-bottom:1px solid var(--line); }
+  .wext-andalana:last-child{ border-bottom:none; }
+  .wext-adr{ font-family:var(--font-mono); font-size:0.78rem; color:var(--text); word-break:break-all; flex:1 1 180px; min-width:0; }
+

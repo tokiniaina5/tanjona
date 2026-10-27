@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- La version du site entier, écrite par outils/versionner.mjs : la veille de
      version (common.js) la compare à celle du serveur. -->
-<meta name="ny-asako-version" content="1734b7d4">
+<meta name="ny-asako-version" content="922362b7">
 <title>Ny asako — Tanjona</title>
 <!-- Ouvert par le lien d'un employé ou d'un livreur : la fenêtre porte son
      nom dès le premier instant (gardé la dernière fois par vue-mpiasa.js,
@@ -178,7 +178,7 @@
 <link rel="apple-touch-startup-image" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)" href="/demarrage/2732x2048.png">
 <!-- fin des écrans de démarrage iOS -->
 <link rel="icon" href="/icone-192.png" type="image/png">
-<link rel="stylesheet" href="gestion-stockage-css/base.css?v=2a59e3e1">
+<link rel="stylesheet" href="gestion-stockage-css/base.css?v=c536eff2">
 <link rel="stylesheet" href="gestion-stockage-css/components.css?v=3bfcfa93">
 <!-- Les émojis dessinés en 3D (emoji-3d.js). -->
 <script src="gestion-stockage-js/emoji-3d.js?v=66dad412" defer></script>
@@ -2963,6 +2963,37 @@
             <button type="button" class="btn btn-sm" id="walletSignOutBtn" style="margin-top:1rem;">Se déconnecter du portefeuille</button>
           </div>
 
+          <!-- ---- PORTEFEUILLES IVELANY : TronLink, Binance Web3… ----
+               Le client y range ses adresses (connexion par l'extension, ou à
+               la main) ; un clic les met dans « Retirer » en USDT. Gardées dans
+               le compte (user_metadata.wallets_ivelany) — common.js. -->
+          <div class="panel" id="walletIvelanyPanel">
+            <h3>🔗 Portefeuilles ivelany</h3>
+            <p style="font-size:0.82rem; color:var(--muted); line-height:1.6; margin:0 0 0.8rem;">
+              Ampifandraiso eto ny wallet-nao any ivelany. Rehefa voatahiry izy, dia indray tsindry ihany
+              no andefasana ny retrait USDT any aminy — tsy mila mandika adiresy intsony.
+            </p>
+            <div class="wext-grille" id="wextGrille"></div>
+
+            <!-- Fampidirana amin'ny tanana : ny adiresy no mamaritra ny réseau. -->
+            <div id="wextForm" style="display:none; margin-top:0.9rem; padding-top:0.8rem; border-top:1px solid var(--line);">
+              <div class="rohy-etiketa" id="wextFormTitre">Adiresy</div>
+              <div class="rohy-andalana">
+                <input id="wextAdresse" class="rohy-saha" type="text" autocomplete="off" spellcheck="false" placeholder="T… (TRC20) na 0x… (BEP20)">
+                <button type="button" class="btn btn-sm" id="wextColler" style="width:auto;">📋 Coller</button>
+              </div>
+              <input id="wextNom" class="rohy-saha" type="text" maxlength="40" placeholder="Anarana (tsy voatery) — ex : Wallet-ko lehibe" style="margin-top:0.5rem; width:100%; font-family:inherit;">
+              <div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
+                <button type="button" class="btn btn-primary btn-sm" id="wextSave" style="width:auto;">💾 Tehirizina</button>
+                <button type="button" class="btn btn-sm" id="wextCancel" style="width:auto;">Ajanony</button>
+              </div>
+            </div>
+            <p id="wextStatus" style="font-size:0.78rem; color:var(--cyan); margin:0.6rem 0 0; line-height:1.5;"></p>
+
+            <div class="rohy-etiketa" style="margin-top:0.9rem;">📒 Ny wallet-ko voatahiry</div>
+            <div id="wextLisitra" style="font-size:0.82rem;"></div>
+          </div>
+
           <!-- ---- AVADIKA HO VOLA TENA IZY ----
                La commission de parrainage de l'appli devient de l'argent qui
                se retire, après accord de l'admin. Tout se décide dans la
@@ -3942,7 +3973,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
-<script src="gestion-stockage-js/common.js?v=d6d972c0"></script>
+<script src="gestion-stockage-js/common.js?v=2b9ea1bf"></script>
 <script src="gestion-stockage-js/herinaratra.js?v=d0a53ff8"></script>
 <script src="gestion-stockage-js/stock.js?v=d33d19a7"></script>
 <script src="gestion-stockage-js/ventes-achats.js?v=4705c180"></script>
