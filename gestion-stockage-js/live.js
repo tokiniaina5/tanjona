@@ -1215,9 +1215,6 @@
     { teny: ['livraison international', 'livraison internationale', 'dhl', 'fedex', 'ups', 'transporteur', 'fret', 'colis'],
       valiny: '🚚 Livraison international ' + BOT_MENU + ' : ireo mpitondra entana avy any ivelany (transporteurs) sy ny rohiny. ' +
         'Ampiasaina miaraka amin\'ny 🌍 Achats internationaux.' },
-    { teny: ['fokontany', 'commun', 'mponina', 'fianakaviana', 'certificat', 'certificat de residence', 'adidy', 'tokantrano'],
-      valiny: '🗂️ Fokontany ' + BOT_MENU + ' : fitantanana ny fokontany (mponina, fianakaviana, taratasy toy ny certificat, adidy). ' +
-        'Ny 🏛️ Commun kosa ho an\'ny kaominina.' },
     { teny: ['chrome', 'edge', 'navigateur', 'google', 'internet', 'site hafa'],
       valiny: 'Chrome sy Edge ' + BOT_MENU + ' : manokatra ny navigateur hikarohana zavatra any ivelan\'ny appli.' },
     { teny: ['barre', 'barre ambany', 'fenetre', 'fenetres', 'alamino', 'grille', 'cascade', 'hidio daholo', 'icone', 'icones', 'onglet'],
@@ -1308,7 +1305,6 @@
     'panier': ['#menuPanier', '🛒 Panier'],
     'achats internationaux': ['#marketToggle', '🌍 Achats internationaux'],
     'livraison international': ['#livraisonToggle', '🚚 Livraison international'],
-    'fokontany': ['#menuCommun', '🗂️ Fokontany'],
     'barre': ['#barReglagesBtn', '⋯ Réglages'],
     'karohy': ['#barRecherche', '🔍 Karohy']
   };
