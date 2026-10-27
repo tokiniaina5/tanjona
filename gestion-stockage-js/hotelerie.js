@@ -1834,8 +1834,11 @@
     // on la remet au logo du moment de temps en temps.
     setInterval(majLogoMenu, 3000);
     chargerCommandes();
-    // Le menu aussi : ce qu'un autre appareil vient d'y mettre arrive ici.
-    setInterval(function () { if (!document.hidden && compte) { chargerCommandes(); synchroniser(); } }, 15000);
+    // Les commandes toutes les 20 s ; le menu, qui change rarement d'un autre
+    // appareil, toutes les 2 min (et au retour sur l'onglet, plus bas).
+    // Ensemble à 15 s, c'était ~11 000 lectures par jour pour un seul écran.
+    setInterval(function () { if (!document.hidden && compte) chargerCommandes(); }, 20000);
+    setInterval(function () { if (!document.hidden && compte) synchroniser(); }, 120000);
     document.addEventListener('visibilitychange', function () { if (!document.hidden && compte) synchroniser(); });
     // La session arrive parfois après le chargement : on retente à l'entrée.
     const c = sb();

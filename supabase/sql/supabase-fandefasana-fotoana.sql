@@ -7,9 +7,11 @@
 -- Remplace l'horaire fixe de supabase-fandefasana-hariva.sql (18 h) :
 --   — la table « fandefasana_fikirana » garde l'heure (HH:MM, heure de
 --     Madagascar) et deux dates facultatives, réglées depuis la page ;
---   — la tâche « fandefasana-hariva » passe désormais CHAQUE MINUTE ; la
---     fonction ne part que si c'est l'heure, entre les dates, et pas déjà
---     partie ce jour-là (« farany_nalefa »).
+--   — la tâche « fandefasana-hariva » passe toutes les CINQ MINUTES et
+--     n'appelle la fonction que dans l'heure choisie, si rien n'est parti ce
+--     jour-là (« farany_nalefa ») : hors de là, rien ne démarre (avant le
+--     27/10/2026 : chaque minute, 1 440 appels par jour pour rien). La
+--     fonction revérifie l'heure et les dates.
 --
 -- Personne n'y touche depuis le navigateur : aucune policy. La fonction
 -- (clé de service) la lit et l'écrit pour le propriétaire connecté.
@@ -53,7 +55,7 @@ begin
 
   perform cron.schedule(
     'fandefasana-hariva',
-    '* * * * *',
+    '*/5 * * * *',
     format($ordre$
       select net.http_post(
         url := 'https://ezpsapvthujkhttbfhlr.supabase.co/functions/v1/fandefasana-hariva',
@@ -62,6 +64,15 @@ begin
           'x-secret-hariva', %L
         ),
         body := '{}'::jsonb
+      )
+      where exists (
+        select 1 from public.fandefasana_fikirana f,
+          lateral (select (now() at time zone 'Indian/Antananarivo') as t) m
+        where f.id = 1 and f.ora is not null
+          and (f.farany_nalefa is null or f.farany_nalefa < m.t::date)
+          and extract(hour from m.t) * 60 + extract(minute from m.t)
+              between split_part(f.ora, ':', 1)::int * 60 + split_part(f.ora, ':', 2)::int
+                  and split_part(f.ora, ':', 1)::int * 60 + split_part(f.ora, ':', 2)::int + 59
       );
     $ordre$, s)
   );
@@ -69,6 +80,6 @@ end
 $bloc$;
 
 -- ---------- Vérification ----------
--- Doit renvoyer : fandefasana-hariva, * * * * *, true.
+-- Doit renvoyer : fandefasana-hariva, */5 * * * *, true.
 select jobname, schedule, active from cron.job where jobname = 'fandefasana-hariva';
 select * from public.fandefasana_fikirana;

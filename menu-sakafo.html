@@ -16,7 +16,7 @@
 <script src="/mazava.js?v=2bcdcfad" defer></script>
 <!-- 🔄 La page se met à jour seule quand une version neuve est en ligne (pejy-version.js) ;
      l'empreinte est écrite par outils/versionner.mjs. -->
-<meta name="pejy-version" content="d322b12f">
+<meta name="pejy-version" content="a042e360">
 <script src="/pejy-version.js?v=97acc3b0" defer></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -1242,7 +1242,7 @@
     dessinerRecus();
     charger();
     // Le client garde la page ouverte : elle suit les changements d'elle-même.
-    setInterval(function () { if (!document.hidden) charger(); }, 30000);
+    setInterval(function () { if (!document.hidden) charger(); }, 60000);
     // Un reçu qui attend la cuisine : on regarde plus souvent, pour que
     // « 🔔 Naneno tany an-dakozia » arrive vite.
     setInterval(function () {

@@ -3688,11 +3688,12 @@
   // on les sert ensemble. Une requête pour tout le fil, un minuteur, un
   // canal, et chaque boîte reçoit sa part.
   //
-  // Sans temps réel, c'est la relecture qui porte tout : quatre secondes.
+  // Sans temps réel, c'est la relecture qui porte tout : quinze secondes
+  // (quatre, c'était 14 000 lectures par jour pour un seul écran ouvert).
   // Avec lui, elle n'est plus qu'un filet — le canal fait le travail, et elle
   // rattrape ce qu'il aurait laissé passer.
-  const COMMENTAIRES_RAFRAICHI_MS = 4000;
-  const COMMENTAIRES_FILET_MS = 25000;
+  const COMMENTAIRES_RAFRAICHI_MS = 15000;
+  const COMMENTAIRES_FILET_MS = 120000;
   // Au-delà, ce n'est plus un fil qu'on lit mais une page qu'on fait ramer.
   const COMMENTAIRES_MAX = 1000;
 
@@ -3750,6 +3751,8 @@
         return boitesCommentaires[id].box.isConnected;
       });
       if(!vivante){ oublierLesCommentaires(); return; }
+      // Onglet caché : personne ne lit, on ne relit pas.
+      if(document.hidden) return;
       chargerLesCommentaires(true);
     }, periode);
   }
@@ -3786,7 +3789,14 @@
         }, function(){
           chargerReactionsCommentaires(commentairesAffiches());
         })
-        .subscribe(function(){});
+        // Les deux tables sont dans la publication supabase_realtime depuis le
+        // 27/10/2026 : « SUBSCRIBED » suffit désormais pour ralentir.
+        .subscribe(function(statut){
+          if(statut === 'SUBSCRIBED' && !realtimeCommentairesProuve){
+            realtimeCommentairesProuve = true;
+            poserLeMinuteurDesCommentaires(COMMENTAIRES_FILET_MS);
+          }
+        });
     } catch(e){ canalCommentaires = null; }
   }
 
@@ -3794,7 +3804,7 @@
   function veillerSurLesCommentaires(){
     if(!Object.keys(boitesCommentaires).length) return;
     chargerLesCommentaires(false);
-    poserLeMinuteurDesCommentaires(COMMENTAIRES_RAFRAICHI_MS);
+    poserLeMinuteurDesCommentaires(realtimeCommentairesProuve ? COMMENTAIRES_FILET_MS : COMMENTAIRES_RAFRAICHI_MS);
     ecouterLesCommentaires();
   }
 
