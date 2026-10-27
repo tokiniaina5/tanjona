@@ -151,9 +151,26 @@
         rangee.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fill, minmax(5rem, 1fr)); ' +
           'gap:1.1rem 0.6rem; justify-items:center; padding:0.4rem 0 0.2rem;';
         if(!(c.pasAdmin && admin)) remplir(rangee, d);
-        cadre.style.display = rangee.children.length ? '' : 'none';
+        // La Botika ne le montre qu'un jour à chacun ; « Inviter des amis » toujours.
+        const fini = c.cadre === 'botikaParrain' && vuDepuisUnJour();
+        cadre.style.display = (rangee.children.length && !fini) ? '' : 'none';
+        if(c.cadre === 'botikaParrain' && !fini && rangee.children.length) marquerVu();
       });
       parrainDansLeFil();
+    }
+
+    // Vingt-quatre heures à partir de la première fois qu'il paraît, sur cet
+    // appareil ; puis il s'en va de la Botika. Sans stockage, il reste.
+    const CLE_VU = 'nyasako_parrain_botika_vu';
+    const UN_JOUR = 24 * 60 * 60 * 1000;
+    function marquerVu(){
+      try{ if(!localStorage.getItem(CLE_VU)) localStorage.setItem(CLE_VU, String(Date.now())); }catch(e){}
+    }
+    function vuDepuisUnJour(){
+      try{
+        const t = +localStorage.getItem(CLE_VU);
+        return !!t && Date.now() - t > UN_JOUR;
+      }catch(e){ return false; }
     }
 
     // Dans l'Accueil, le cadre ne reste plus en tête : une copie se glisse
@@ -169,6 +186,8 @@
       const posts = [].slice.call(fil.querySelectorAll(':scope > .fb-post'));
       const plein = document.getElementById('botikaParrainBoutons').children.length > 0;
       if(!plein) return;
+      if(vuDepuisUnJour()){ modele.style.display = 'none'; return; }
+      marquerVu();
       if(!posts.length){ modele.style.display = ''; return; }
       modele.style.display = 'none';
       posts.forEach(function(post, i){
