@@ -1206,6 +1206,11 @@
   #section-admin.active{
     display:grid;
     grid-template-columns:repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+    /* max-content : dans une fenêtre de hauteur fixe, des rangées « auto »
+       se tassaient sous des panneaux qui défilent (overflow), et chaque
+       panneau débordait sur le suivant. */
+    grid-auto-rows:max-content;
+    align-content:start;
     gap:1rem;
     align-items:start;
   }
@@ -1224,10 +1229,10 @@
   }
   #section-admin .admin-titre-bouton::after{
     content:'▾'; margin-left:auto; padding-left:0.4rem;
-    color:var(--muted); font-size:0.9rem; transition:transform .15s ease;
+    color:var(--muted); font-size:1rem; font-family:system-ui, sans-serif;
   }
   #section-admin .panel > .section-head .admin-titre-bouton::after{ margin-left:0.3rem; }
-  #section-admin .admin-plie .admin-titre-bouton::after{ transform:rotate(-90deg); }
+  #section-admin .admin-plie .admin-titre-bouton::after{ content:'▸'; }
   #section-admin .admin-titre-bouton:hover{ color:var(--text); }
   #section-admin .admin-titre-bouton:focus-visible{ outline:2px solid var(--cyan); outline-offset:3px; border-radius:6px; }
   #section-admin .admin-pliable:not(.admin-plie) .admin-titre-bouton{ margin-bottom:1rem; }

@@ -47,7 +47,11 @@
   // gras, des liens ou des émojis dedans.
   var EN_LIGNE = /^(STRONG|B|EM|I|A|BR|SPAN|CODE|SMALL)$/;
   // Ce qui a déjà sa propre présentation reste tel quel.
-  var EXCLUS = '#welcomeOverlay, #autoNoticeModal, #fzVisite';
+  // L'espace admin aussi : ses panneaux se plient et se déplient d'un
+  // toucher (securite.js), et chaque dépli relançait la visite par-dessus
+  // la fenêtre — le titre semblait ne plus répondre. Ses notes restent
+  // dans leur panneau.
+  var EXCLUS = '#welcomeOverlay, #autoNoticeModal, #fzVisite, #section-admin';
 
   var connues = [];        // { p, cache, cle } — les explications repérées
   var visite = null;       // la visite en cours, s'il y en a une
