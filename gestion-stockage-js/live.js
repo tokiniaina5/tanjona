@@ -1021,6 +1021,22 @@
   let resakaMisokatra = null;
   const RESAKA_BUCKET = 'resaka-media';
   const RESAKA_MEDIA_MAX = 25 * 1024 * 1024;
+  // Ny hafatra rehetra tsy voafafa dia miala ho azy aorian'ny 7 andro
+  // (27/10/2026). Eto : ny resaka ao amin'ilay appli misokatra ela (PWA
+  // tsy mihidy). Any amin'ny serveur : ny rakitra ao amin'ny resaka-media
+  // sy ny contact_messages, isan'andro (fonction menage-video).
+  const RESAKA_ANDRO = 7;
+  function fafaoResakaTaloha(){
+    const fetra = Date.now() - RESAKA_ANDRO * 24 * 60 * 60 * 1000;
+    let niova = false;
+    Object.keys(resaka).forEach(function(email){
+      const sisa = resaka[email].filter(function(h){ return !h.at || h.at >= fetra || h.miandry; });
+      if(sisa.length !== resaka[email].length){ resaka[email] = sisa; niova = true; }
+    });
+    if(niova && resakaMisokatra) asehoyResaka();
+  }
+  setInterval(fafaoResakaTaloha, 60 * 60 * 1000);
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden) fafaoResakaTaloha(); });
   // Ny emoji rehetra : singa web « emoji-picker-element », alaina rehefa
   // vao ilaina fotsiny.
   const EMOJI_PICKER_URL = 'https://cdn.jsdelivr.net/npm/emoji-picker-element@1.21.3/index.js';

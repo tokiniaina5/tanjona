@@ -61,6 +61,61 @@ function memeSecret(a: string, b: string): boolean {
 const BUCKET = "annonce-video";
 const RETENTION_JOURS = Number(Deno.env.get("RETENTION_JOURS") ?? "30");
 
+// Les messages, eux, ne vivent que sept jours (27/10/2026) : les photos,
+// vidéos et notes vocales des discussions (bucket « resaka-media », un
+// dossier par adresse) et les messages du formulaire de contact
+// (contact_messages). Le même passage quotidien s'en charge.
+const RESAKA_BUCKET = "resaka-media";
+const RESAKA_JOURS = Number(Deno.env.get("RESAKA_JOURS") ?? "7");
+
+type Admin = ReturnType<typeof createClient>;
+
+// Un niveau de dossiers : « nom_gmail_com/1730000000-abc.webm ». Une entrée
+// sans id est un dossier.
+async function vieuxResaka(admin: Admin, limite: number): Promise<{ noms: string[]; vus: number; erreur?: string }> {
+  const noms: string[] = [];
+  let vus = 0;
+  const lire = async (dossier: string) => {
+    for (let page = 0; page < 50; page++) {
+      const { data, error } = await admin.storage.from(RESAKA_BUCKET).list(dossier, {
+        limit: 1000, offset: page * 1000, sortBy: { column: "name", order: "asc" },
+      });
+      if (error) throw error;
+      const lot = data ?? [];
+      for (const f of lot) {
+        const chemin = dossier ? dossier + "/" + f.name : f.name;
+        if (!f.id) { if (!dossier) await lire(chemin); continue; }
+        vus++;
+        const d = f.created_at ? Date.parse(f.created_at) : NaN;
+        if (Number.isFinite(d) && d < limite) noms.push(chemin);
+      }
+      if (lot.length < 1000) break;
+    }
+  };
+  try { await lire(""); } catch (e) { return { noms, vus, erreur: (e as Error).message }; }
+  return { noms, vus };
+}
+
+async function menageResaka(admin: Admin, essai: boolean) {
+  const limite = Date.now() - RESAKA_JOURS * 24 * 60 * 60 * 1000;
+  const fichiers = await vieuxResaka(admin, limite);
+  const depuis = new Date(limite).toISOString();
+  if (essai) {
+    const { count } = await admin.from("contact_messages").select("id", { count: "exact", head: true }).lt("created_at", depuis);
+    return { jours: RESAKA_JOURS, fichiersVus: fichiers.vus, fichiersRetenus: fichiers.noms.length, contactRetenus: count ?? 0, erreur: fichiers.erreur };
+  }
+  let fichiersEffaces = 0;
+  const soucis: string[] = fichiers.erreur ? [fichiers.erreur] : [];
+  for (let i = 0; i < fichiers.noms.length; i += 100) {
+    const { data, error } = await admin.storage.from(RESAKA_BUCKET).remove(fichiers.noms.slice(i, i + 100));
+    if (error) { soucis.push(error.message); continue; }
+    fichiersEffaces += (data ?? []).length;
+  }
+  const { count, error } = await admin.from("contact_messages").delete({ count: "exact" }).lt("created_at", depuis);
+  if (error) soucis.push(error.message);
+  return { jours: RESAKA_JOURS, fichiersVus: fichiers.vus, fichiersEffaces, contactEffaces: count ?? 0, soucis };
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ error: "méthode refusée" }, 405);
@@ -111,11 +166,13 @@ Deno.serve(async (req: Request) => {
     page++;
   }
 
+  const resaka = await menageResaka(admin, essai);
+
   if (essai) {
-    return json({ essai: true, vus, retenus: aEffacer.length, retentionJours: RETENTION_JOURS, noms: aEffacer.slice(0, 50) });
+    return json({ essai: true, vus, retenus: aEffacer.length, retentionJours: RETENTION_JOURS, noms: aEffacer.slice(0, 50), resaka });
   }
   if (!aEffacer.length) {
-    return json({ vus, effaces: 0, retentionJours: RETENTION_JOURS });
+    return json({ vus, effaces: 0, retentionJours: RETENTION_JOURS, resaka });
   }
 
   // Par paquets de cent : une liste trop longue se fait refuser en entier, et
@@ -129,5 +186,5 @@ Deno.serve(async (req: Request) => {
     effaces += (data ?? []).length;
   }
 
-  return json({ vus, effaces, retentionJours: RETENTION_JOURS, soucis });
+  return json({ vus, effaces, retentionJours: RETENTION_JOURS, soucis, resaka });
 });
