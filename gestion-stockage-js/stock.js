@@ -256,11 +256,8 @@
   // "Articles" — ny fifandimbiasany dia votoatin'ilay listener ".dash-tab"
   // ao amin'ny common.js ankehitriny.
 
-  function escapeHtml(str){
-    const div = document.createElement('div');
-    div.textContent = str == null ? '' : str;
-    return div.innerHTML;
-  }
+  // escapeHtml vit dans common.js, chargé avant : le portefeuille s'en sert
+  // dès l'ouverture, avant que ce fichier-ci soit lu.
 
   // Sans préfixe : 1, 2, 3... (« Entrée en stock », les achats). Avec un
   // préfixe (« N », « VARY-»...) : la série d'un onglet « Nouvel article »,

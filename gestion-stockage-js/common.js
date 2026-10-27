@@ -36,6 +36,16 @@
     });
   }
   renderOwnerIdentity();
+  // Le texte à poser dans du HTML. Il vivait dans stock.js, chargé après
+  // common.js : le portefeuille, dessiné dès l'ouverture d'une session,
+  // l'appelait avant qu'il existe, et l'erreur arrêtait common.js en route —
+  // la Botika restait collée dans la page, sans fenêtre, sous la rangée du
+  // stock. Les guillemets aussi : il sert dans des attributs.
+  function escapeHtml(str){
+    return String(str == null ? '' : str).replace(/[&<>"']/g, function(c){
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
   const TRIAL_DAYS = 15;
   // ---- LES PREMIERS JOURS, SANS COMPTE ----
   // On n'ouvre pas un compte pour essayer un outil qu'on ne connaît pas encore.
