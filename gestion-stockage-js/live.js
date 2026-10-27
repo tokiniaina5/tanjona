@@ -1547,6 +1547,7 @@
           toerana.soratra = botEmoji(v.soratra);
           toerana.sokafy = v.sokafy || null;
           toerana.teny = v.teny || null;
+          toerana.media = v.media || null;
           toerana.at = Date.now();
           delete toerana.miandry;
         }
@@ -1556,6 +1557,119 @@
     });
   }
   // { soratra, sokafy, teny, sokafyIzao } na null (tsy misy valiana).
+  // ---- Ny media alefan'ny bot, momba ny Ny asako ----
+  // Sary : bot/ny-asako.svg. Video : 7 segondra namboarina eto amin'ny
+  // canvas (tsy misy rakitra video ao amin'ny site, tsy misy ffmpeg) ary
+  // voarakitra amin'ny MediaRecorder ; raha tsy vitan'ny navigateur, ny
+  // sary no alefa. Feo : vakian'ny navigateur mafy (speechSynthesis), satria
+  // tsy misy rakitra feo ; ny bokotra ▶ no manomboka azy.
+  const BOT_SARY_URL = '/bot/ny-asako.svg';
+  const BOT_FEO_SORATRA = 'Salama tompoko ! Izaho no Assistant Ny asako. Ny asako dia manampy anao hitantana ny stock, ' +
+    'ny facture, ny botika, ny portefeuille ary ny mpiasa, amin\'ny toerana iray. Inona no tianao hamaliako anao azafady ?';
+  function botMediaNyAsako(karazany, teny){
+    if(karazany === 'feo'){
+      return botAdikao(BOT_FEO_SORATRA, teny).then(function(v){ return { type: 'bot-feo', soratra: v.soratra, teny: v.teny || 'mg' }; });
+    }
+    if(karazany === 'video'){
+      return botVideoNyAsako().then(function(url){ return { type: 'video', url: url }; },
+        function(){ return { type: 'sary', url: BOT_SARY_URL }; });
+    }
+    return Promise.resolve({ type: 'sary', url: BOT_SARY_URL });
+  }
+  let botVideoVita = null;   // indray mandeha ihany no amboarina
+  function botVideoNyAsako(){
+    if(botVideoVita) return botVideoVita;
+    botVideoVita = new Promise(function(vita, tsy){
+      const cv = document.createElement('canvas');
+      if(!cv.captureStream || typeof MediaRecorder === 'undefined') return tsy(new Error('tsy azo'));
+      cv.width = 640; cv.height = 360;
+      const ctx = cv.getContext('2d');
+      const type = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4']
+        .filter(function(t){ return MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t); })[0];
+      if(!type) return tsy(new Error('tsy misy format'));
+      const logo = new Image();
+      logo.src = '/icone-192.png';
+      const SEHATRA = [['📦', 'Stock'], ['🧾', 'Factures'], ['🛒', 'Botika'], ['💰', 'Portefeuille'], ['👷', 'Mpiasa'], ['🔴', 'Live']];
+      const FARANY = 7000;
+      function sary(t){
+        const g = ctx.createLinearGradient(0, 0, 640, 360);
+        g.addColorStop(0, '#0f1b22'); g.addColorStop(1, '#123540');
+        ctx.fillStyle = g; ctx.fillRect(0, 0, 640, 360);
+        ctx.textAlign = 'center';
+        const fade = function(a, b){ return Math.max(0, Math.min(1, (t - a) / 300, (b - t) / 300)); };
+        // 0–1,6 s : ny logo sy ny anarana.
+        let a = fade(0, 1600);
+        if(a){
+          ctx.globalAlpha = a;
+          if(logo.complete && logo.naturalWidth) ctx.drawImage(logo, 272, 70, 96, 96);
+          ctx.fillStyle = '#fff'; ctx.font = '800 46px Segoe UI, Roboto, Arial, sans-serif';
+          ctx.fillText('Ny asako', 320, 225);
+          ctx.fillStyle = '#9fe7ec'; ctx.font = '20px Segoe UI, Roboto, Arial, sans-serif';
+          ctx.fillText('Ny asanao rehetra amin\'ny toerana iray', 320, 262);
+        }
+        // 1,6–5,8 s : ny sehatra tsirairay, 0,7 s avy.
+        SEHATRA.forEach(function(s, i){
+          const d = 1600 + i * 700;
+          const b = fade(d, d + 700);
+          if(!b) return;
+          ctx.globalAlpha = b;
+          ctx.font = '96px Segoe UI Emoji, Apple Color Emoji, Noto Color Emoji, sans-serif';
+          ctx.fillText(s[0], 320, 190);
+          ctx.fillStyle = '#fff'; ctx.font = '700 40px Segoe UI, Roboto, Arial, sans-serif';
+          ctx.fillText(s[1], 320, 260);
+        });
+        // 5,8–7 s : ny fanontaniana.
+        const c = fade(5800, FARANY + 300);
+        if(c){
+          ctx.globalAlpha = c;
+          ctx.fillStyle = '#fff'; ctx.font = '700 30px Segoe UI, Roboto, Arial, sans-serif';
+          ctx.fillText('🤖 Assistant Ny asako', 320, 165);
+          ctx.fillStyle = '#9fe7ec'; ctx.font = '22px Segoe UI, Roboto, Arial, sans-serif';
+          ctx.fillText('Inona no tianao hamaliako anao ?', 320, 210);
+        }
+        ctx.globalAlpha = 1;
+      }
+      let mr;
+      try{ mr = new MediaRecorder(cv.captureStream(30), { mimeType: type }); }catch(e){ return tsy(e); }
+      const ampahany = [];
+      mr.ondataavailable = function(e){ if(e.data && e.data.size) ampahany.push(e.data); };
+      mr.onstop = function(){
+        clearInterval(fotoana);
+        if(!ampahany.length) return tsy(new Error('foana'));
+        vita(URL.createObjectURL(new Blob(ampahany, { type: type.split(';')[0] })));
+      };
+      // setInterval fa tsy requestAnimationFrame : mitohy na miafina aza ny pejy.
+      const nanomboka = Date.now();
+      sary(0);
+      mr.start();
+      const fotoana = setInterval(function(){
+        const t = Date.now() - nanomboka;
+        sary(t);
+        if(t >= FARANY && mr.state !== 'inactive') mr.stop();
+      }, 33);
+    });
+    // Tsy nety : avela hanandrana indray amin'ny manaraka.
+    botVideoVita.then(null, function(){ botVideoVita = null; });
+    return botVideoVita;
+  }
+  // Ny feo : iray ihany no miteny amin'ny fotoana iray.
+  function botVakio(soratra, teny){
+    if(!window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined'){
+      alert('Tsy mahay mamaky mafy ity navigateur ity.');
+      return;
+    }
+    if(speechSynthesis.speaking){ speechSynthesis.cancel(); return; }
+    const u = new SpeechSynthesisUtterance(soratra);
+    // Tsy misy feo malagasy amin'ny ankamaroan'ny finday : ny frantsay no
+    // akaiky indrindra amin'ny fanononana.
+    const lang = !teny || teny === 'mg' ? 'fr-FR' : teny;
+    u.lang = lang;
+    const feo = speechSynthesis.getVoices().filter(function(v){ return v.lang && v.lang.toLowerCase().indexOf(lang.split('-')[0].toLowerCase()) === 0; })[0];
+    if(feo) u.voice = feo;
+    u.rate = 0.95;
+    speechSynthesis.speak(u);
+  }
+
   // Ny fiteny farany nanoratan'ilay olona (null = malagasy) : ho an'ny
   // valiny tsy misy soratra hamantarana azy (sary, video, feo).
   const botTenyFarany = {};
@@ -1564,8 +1678,13 @@
     // anontaniany izay tiany ho valiana ; ny fanontaniana manaraka dia
     // valiany toy ny mahazatra.
     if(media && !String(soratra || '').trim()){
-      return botAdikao('Inona no tianao hamaliako anao azafady ?', botTenyFarany[email] || null)
-        .then(function(v){ return { soratra: v.soratra, teny: v.teny }; });
+      // Ary mamerina media mitovy karazana aminy, momba ny Ny asako : sary,
+      // video kely, na feo (27/10/2026).
+      const teny = botTenyFarany[email] || null;
+      return Promise.all([
+        botAdikao('Inona no tianao hamaliako anao azafady ?', teny),
+        botMediaNyAsako(media.type, teny)
+      ]).then(function(r){ return { soratra: r[0].soratra, teny: r[0].teny, media: r[1] }; });
     }
     const emoji = botValyEmoji(soratra);
     if(emoji) return Promise.resolve({ soratra: emoji });
@@ -1965,6 +2084,13 @@
           botSokafyPejy(pejy.getAttribute('data-sokafy-pejy'));
           return;
         }
+        // « ▶ 🔊 Henoy ny feo » : vakian'ny navigateur mafy ; tsindrio indray, mijanona.
+        const feoBot = e.target.closest('[data-bot-feo]');
+        if(feoBot && resakaMisokatra){
+          const h = (resaka[resakaMisokatra.email] || []).filter(function(x){ return x.id === feoBot.getAttribute('data-bot-feo'); })[0];
+          if(h && h.media) botVakio(h.media.soratra, h.media.teny);
+          return;
+        }
         const b = e.target.closest('[data-fafao]');
         if(!b || !resakaMisokatra) return;
         const email = resakaMisokatra.email, id = b.getAttribute('data-fafao');
@@ -2083,6 +2209,21 @@
             atiny = '<div style="white-space:pre-line;">' + escapeHtml(h.soratra || '').replace(/https:\/\/[^\s<]+/g, function(u){
               return '<a href="' + u + '" target="_blank" rel="noopener" style="color:var(--cyan); text-decoration:underline;">' + u + '</a>';
             }) + '</div>';
+            // Ny media alefan'ny bot (botMediaNyAsako) : eo ambonin'ny soratra.
+            if(h.media){
+              const m = h.media;
+              let html = '';
+              if(m.type === 'sary' && /^\//.test(m.url)){
+                html = '<img src="' + escapeHtml(m.url) + '" alt="Ny asako" style="display:block; width:100%; max-width:280px; border-radius:10px;">';
+              } else if(m.type === 'video' && /^(blob:|\/)/.test(m.url)){
+                html = '<video src="' + escapeHtml(m.url) + '" controls playsinline muted autoplay loop ' +
+                  'style="display:block; width:100%; max-width:280px; border-radius:10px;"></video>';
+              } else if(m.type === 'bot-feo'){
+                html = '<button type="button" class="btn btn-sm" data-bot-feo="' + escapeHtml(h.id) + '" ' +
+                  'style="width:auto; display:flex; align-items:center; gap:0.4rem;">▶ 🔊 Henoy ny feo</button>';
+              }
+              if(html) atiny = '<div style="margin-bottom:0.35rem;">' + html + '</div>' + atiny;
+            }
             // Ilay pejy resahina : bokotra manokatra azy avy hatrany.
             if(h.sokafy && botEntree(h.sokafy)){
               atiny += '<button type="button" class="btn btn-sm btn-primary" data-sokafy-pejy="' + escapeHtml(h.sokafy) + '" ' +
