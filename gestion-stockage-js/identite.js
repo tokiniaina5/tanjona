@@ -32,14 +32,6 @@
               identity.birthDate && identity.birthPlace);
   }
 
-  function identityFromGate(){
-    return {
-      idNumber: (document.getElementById('idNumber').value || '').trim(),
-      idDate: (document.getElementById('idDate').value || '').trim(),
-      birthDate: (document.getElementById('birthDate').value || '').trim(),
-      birthPlace: (document.getElementById('birthPlace').value || '').trim()
-    };
-  }
   function identityFromProfile(){
     return {
       idNumber: (document.getElementById('profileIdNumber').value || '').trim(),
@@ -49,39 +41,7 @@
     };
   }
 
-  // Étape 2 : réclamée après la connexion, tant qu'elle n'est pas remplie.
-  function requireIdentity(){
-    if(!currentUser || !currentUser.email) return;
-    // le propriétaire n'a pas à se présenter à lui-même
-    if(typeof isOwnerEmail === 'function' && isOwnerEmail(currentUser.email)) return;
-    const known = loadIdentity(currentUser.email);
-    if(identityComplete(known)) return;
-    const gate = document.getElementById('identityGate');
-    if(!gate) return;
-    if(known){
-      document.getElementById('idNumber').value = known.idNumber || '';
-      document.getElementById('idDate').value = known.idDate || '';
-      document.getElementById('birthDate').value = known.birthDate || '';
-      document.getElementById('birthPlace').value = known.birthPlace || '';
-    }
-    gate.style.display = 'flex';
-  }
-
-  const identitySaveBtn = document.getElementById('identitySaveBtn');
-  if(identitySaveBtn){
-    identitySaveBtn.addEventListener('click', function(){
-      const status = document.getElementById('identityStatus');
-      const identity = identityFromGate();
-      if(!identityComplete(identity)){
-        status.textContent = 'Les quatre informations sont nécessaires pour continuer.';
-        return;
-      }
-      storeIdentity(currentUser.email, identity);
-      status.textContent = '';
-      document.getElementById('identityGate').style.display = 'none';
-    });
-  }
-
+  // Plus demandée à l'entrée : elle se remplit dans Paramètres.
   function renderIdentityForm(){
     if(!currentUser || !currentUser.email) return;
     const identity = loadIdentity(currentUser.email) || {};

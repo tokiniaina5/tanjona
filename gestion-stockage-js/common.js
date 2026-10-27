@@ -751,9 +751,8 @@
       const nav = pejy && /^[a-z]+$/.test(pejy) && document.querySelector('.nav-item[data-section="' + pejy + '"]');
       if(nav && !openApp.pejyVita){ openApp.pejyVita = true; setTimeout(function(){ nav.click(); }, 0); }
     }catch(e){}
-    // étape 2 : pièce d'identité, réclamée tant qu'elle n'est pas renseignée
-    // L'employé, le patron le connaît déjà : c'est lui qui l'a inscrit.
-    if(!MODE_MPIASA && typeof requireIdentity === 'function') requireIdentity();
+    // La pièce d'identité ne se demande plus à l'entrée : chacun la renseigne
+    // quand il veut, dans Paramètres.
     // le propriétaire est prévenu des alertes enregistrées depuis sa dernière visite
     if(typeof notifyOwnerOfNewAlerts === 'function') notifyOwnerOfNewAlerts();
     // Le propriétaire voit passer tout le monde : celui qui essaie sans compte
