@@ -1104,7 +1104,7 @@
     alefaPush(resakaMisokatra.email, 'hafatra', { text: soratra || anaranaMedia(media) });
     (resaka[resakaMisokatra.email] = resaka[resakaMisokatra.email] || []).push({ id: id, avy: 'izaho', soratra: soratra || '', media: media || null, at: Date.now() });
     asehoyResaka();
-    if(soratra) botMamaly(resakaMisokatra.email, soratra);
+    if(soratra || media) botMamaly(resakaMisokatra.email, soratra || '', media);
   }
 
   // ---------------- 🤖 BOT NY ASAKO ----------------
@@ -1522,7 +1522,7 @@
     return averina + '\n' + v.fan + ' ' + voalohany;
   }
   const botEfaNilaza = {};
-  function botMamaly(email, soratra){
+  function botMamaly(email, soratra, media){
     // Amin'ny admin ihany, ary tsy rehefa ny admin no manoratra.
     if(typeof isOwnerEmail !== 'function' || !isOwnerEmail(email)) return;
     const me = myIdentity();
@@ -1536,7 +1536,7 @@
     (resaka[email] = resaka[email] || []).push(toerana);
     if(resakaMisokatra && resakaMisokatra.email === email) asehoyResaka();
     const nanomboka = Date.now();
-    botValiny(email, soratra).then(null, function(){ return null; }).then(function(v){
+    botValiny(email, soratra, media).then(null, function(){ return null; }).then(function(v){
       // Fotoana kely farafahakeliny, mba tsy hipoitra mitampoka ny valiny.
       setTimeout(function(){
         const lisitra = resaka[email] || [];
@@ -1556,7 +1556,17 @@
     });
   }
   // { soratra, sokafy, teny, sokafyIzao } na null (tsy misy valiana).
-  function botValiny(email, soratra){
+  // Ny fiteny farany nanoratan'ilay olona (null = malagasy) : ho an'ny
+  // valiny tsy misy soratra hamantarana azy (sary, video, feo).
+  const botTenyFarany = {};
+  function botValiny(email, soratra, media){
+    // Sary, video na feo fotsiny : tsy henony na hitany ny ao anatiny, ka
+    // anontaniany izay tiany ho valiana ; ny fanontaniana manaraka dia
+    // valiany toy ny mahazatra.
+    if(media && !String(soratra || '').trim()){
+      return botAdikao('Inona no tianao hamaliako anao azafady ?', botTenyFarany[email] || null)
+        .then(function(v){ return { soratra: v.soratra, teny: v.teny }; });
+    }
     const emoji = botValyEmoji(soratra);
     if(emoji) return Promise.resolve({ soratra: emoji });
     // Teny iray na roa fantatra (« salama », « misaotra ») : amin'ny teny
@@ -1570,6 +1580,7 @@
     // facturas? » → « factures »).
     return botFantaroTeny(soratra).then(function(t){
       const teny = t ? botTenyAmpiasaina(t.src) : null;
+      if(t) botTenyFarany[email] = teny;
       let f = (teny && t.fr && botMitady(soratra + ' ' + t.fr)) || f0;
       // Amin'ny fiteny hafa, ny dikany frantsay no jerena.
       if(f === BOT_FAQ[0] && teny && t.fr && !botFiarahabanaFotsiny(t.fr)) f = null;
