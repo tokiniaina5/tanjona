@@ -80,7 +80,7 @@
     return 'Ny asako\n\n' +
       'Tsindrio ny rohy confirmation : ao ianao no misafidy, hiditra ao amin\'ny Ny asako, ' +
       'hijery ny Live direct, na hanao antso video na audio.\n\n' +
-      'Confirmation : ' + lien + parrainTexte();
+      'Confirmation : ' + lien + nyAsakoTexte() + parrainTexte();
   }
 
   function copyTextWithFallback(text){
@@ -116,7 +116,7 @@
     const link = lienInvitationEntier();
     const subject = encodeURIComponent('Confirmer ton invitation — Ny asako');
     const body = encodeURIComponent('Salut,\n\nJe t\'invite à rejoindre Ny asako. Clique sur le lien de confirmation pour confirmer ton inscription.\n\nConfirmation : ' + link +
-      parrainTexte() + '\n\nÀ bientôt !');
+      nyAsakoTexte() + parrainTexte() + '\n\nÀ bientôt !');
     window.location.href = 'mailto:' + email + '?subject=' + subject + '&body=' + body;
   });
 
@@ -126,7 +126,26 @@
   function inviteMessage(link){
     // Sans émoji : le ✅ arrivait en « � » dans WhatsApp.
     return 'Salut ! Je t\'invite à rejoindre Ny asako. Clique sur le lien de confirmation pour confirmer ton inscription.\n\nConfirmation : ' + link +
-      parrainTexte();
+      nyAsakoTexte() + parrainTexte();
+  }
+
+  // Ce que la personne invitée trouvera : les pages du guide de bienvenue
+  // (welcomeOverlay, ny-asako.html), en une ligne chacune, puis l'essai et
+  // l'abonnement. Si le guide change, ce texte change avec lui.
+  function nyAsakoTexte(){
+    return '\n\nDans Ny asako, tu trouves :\n' + [
+      'Stock et articles : ce qui entre, ce qui sort, ce qui reste, avec une alerte de rupture',
+      'Factures et PDF : la facture se fait toute seule avec ton logo, prête à imprimer ou envoyer',
+      'Botika : ta boutique en ligne, produits avec photos, prix et stories ; tes clients commandent depuis leur téléphone',
+      'Ny asako Hôtel : menu avec photos, QR par table, commandes en cuisine, paiement Mobile Money',
+      'Portefeuille en Ariary : dépôt et retrait par MVola, Orange Money, Airtel Money, transferts entre comptes',
+      'Live et appels : vendre en direct en vidéo, appeler un client en audio ou en vidéo',
+      'Mpiasa et livreur : chaque employé entre par son lien, le livreur suit ses courses',
+      'Toerana et Maps : ton adresse sur la carte, l\'itinéraire, la position du livreur',
+      'Bureau : notes, calculatrice, calendrier, horaire'
+    ].map(function(l){ return '- ' + l; }).join('\n') +
+      '\n\nEssai gratuit de 15 jours : les 7 premiers jours sans compte, puis un compte est demandé ' +
+      'et ce que tu as saisi reste en place. Ensuite, abonnement mensuel ou annuel.';
   }
   // Le court, pour X : 280 caractères, la liste n'y tient pas.
   function inviteMessageCourt(link){
