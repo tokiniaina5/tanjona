@@ -1082,6 +1082,104 @@
     alefaPush(resakaMisokatra.email, 'hafatra', { text: soratra || (media ? (media.type === 'video' ? '🎬 Video' : '📷 Sary') : '') });
     (resaka[resakaMisokatra.email] = resaka[resakaMisokatra.email] || []).push({ id: id, avy: 'izaho', soratra: soratra || '', media: media || null, at: Date.now() });
     asehoyResaka();
+    if(soratra) botMamaly(resakaMisokatra.email, soratra);
+  }
+
+  // ---------------- 🤖 BOT NY ASAKO ----------------
+  // Rehefa manoratra amin'ny admin ny mpanjifa, mamaly avy hatrany ny bot
+  // raha fanontaniana fantany (vidiny, essai, portefeuille…) : lisitra
+  // fanontaniana-valiny eto, tsy misy IA na clef. Eto amin'ny mpanjifa ihany
+  // no miseho ny valin'ny bot ; tonga any amin'ny admin foana ny hafatra,
+  // ka afaka mamaly koa izy. Fanontaniana tsy fantatra : ilazana indray
+  // mandeha isaky ny resaka fa ho valian'ny admin izy.
+  // Raha miova ny vidiny na ny fepetra, ovay eto koa.
+  const BOT_FAQ = [
+    { teny: ['salama', 'manao ahoana', 'bonjour', 'bonsoir', 'salut', 'hello', 'allo'],
+      valiny: 'Salama ! Izaho no bot an\'ny Ny asako. Afaka mamaly anao momba ny vidiny, ny essai maimaimpoana, ' +
+        'ny kaonty, ny portefeuille, ny stock, ny facture, ny botika, ny hôtel, ny live, ny mpiasa, ' +
+        'ny Binance / Payoneer ary ny affiliation aho. Inona no tianao ho fantatra ?' },
+    { teny: ['vidiny', 'ohatrinona', 'hoatrinona', 'prix', 'tarif', 'abonnement', 'abonement', 'mensuel', 'annuel', 'karama', 'combien'],
+      valiny: 'Maimaimpoana mandritra ny 15 andro ny Ny asako. Aorian\'izay : 15 000 Ar isam-bolana, ' +
+        'na 150 000 Ar isan-taona (2 volana maimaimpoana). Aloa avy amin\'ny 💰 Portefeuille (MVola, Orange Money, Airtel Money).' },
+    { teny: ['essai', 'gratuit', 'maimaimpoana', 'maimaim-poana', 'andrana', 'free', '15 andro', '15 jours'],
+      valiny: 'Essai maimaimpoana 15 andro : ny 7 andro voalohany dia miditra tsy misy kaonty ianao. ' +
+        'Aorian\'izay dia angatahana kaonty, fa mijanona daholo izay efa nampidirinao. ' +
+        'Rehefa tapitra ny 15 andro, abonnement isam-bolana na isan-taona no mila.' },
+    { teny: ['inscription', 'misoratra', 'soratra anarana', 'kaonty', 'compte', 'creer', 'créer', 'mamorona'],
+      valiny: 'Fisoratana anarana : ny anaranao, ny email sy ny finday, ny logo (indray mandeha ihany), ' +
+        'ary mot de passe soratana indroa. Azonao ampiasaina amin\'ny finday na ordinateur rehetra izy avy eo.' },
+    { teny: ['mot de passe', 'motdepasse', 'password', 'tenimiafina', 'hadino', 'oublie', 'oublié', 'bloque', 'bloqué', 'voahidy', 'debloquer', 'débloquer', 'code'],
+      valiny: 'Hadino ny mot de passe na voahidy ny kaonty ? Aloavy 20 000 Ar amin\'ny Papi (MVola, Orange Money, ' +
+        'Airtel Money na karatra), dia alefaso ny fangatahana. Rehefa hamarinin\'ny admin ny fandoavana, ' +
+        'misokatra ho azy indray ny kaontinao.' },
+    { teny: ['portefeuille', 'portfeuille', 'wallet', 'vola', 'depot', 'dépôt', 'retrait', 'misintona', 'mvola', 'orange money', 'airtel', 'id key', 'transfert'],
+      valiny: '💰 Portefeuille : vola Ariary ao anaty appli. Mametraka vola amin\'ny MVola, Orange Money na Airtel Money ianao, ' +
+        'misintona any amin\'ny Mobile Money-nao, ary mandefa vola amin\'ny kaonty hafa amin\'ny ID KEY-ny.' },
+    { teny: ['stock', 'article', 'entana', 'marchandise', 'rupture'],
+      valiny: '📦 Stock : ao no itehirizanao ny entanao, izay miditra, izay mivoaka ary izay sisa. ' +
+        'Mampandre anao ny appli rehefa hilany entana, ary voatahiry ny tantaran\'ny fivezivezena rehetra.' },
+    { teny: ['facture', 'faktiora', 'pdf', 'imprimer', 'recu', 'reçu'],
+      valiny: '🧾 Facture : safidio ny entana ao amin\'ny stock dia vita ho azy ny facture, misy ny logo sy ny mombamomba anao. ' +
+        'Voatahiry ao amin\'ny PDF izy, vonona hatonta na halefa.' },
+    { teny: ['botika', 'boutique', 'mivarotra', 'vendre', 'publication', 'publier', 'story', 'commande', 'kaomandy'],
+      valiny: '🛒 Botika : ny fivarotanao an-tserasera. Mampiditra ny entanao miaraka amin\'ny sary sy ny vidiny ary story ianao, ' +
+        'dia afaka manao kaomandy avy amin\'ny finday ny mpanjifanao, na tsy manana kaonty aza.' },
+    { teny: ['hotel', 'hôtel', 'restaurant', 'trano fisakafoanana', 'menu', 'sakafo', 'qr', 'lakozia', 'cuisine', 'table'],
+      valiny: '🏨 Ny asako Hôtel : menu misy sary, QR isaky ny latabatra, kaomandy tonga any an-dakozia, ' +
+        'ary fandoavana amin\'ny Mobile Money. Apetraka manokana toy ny application ao amin\'ny finday na tablette izy.' },
+    { teny: ['live', 'direct', 'antso', 'appel', 'video', 'vidéo', 'audio', 'miantso'],
+      valiny: '🔴 Live : asehoy amin\'ny video mivantana ny entanao amin\'izay rehetra mijery. ' +
+        'Afaka miantso mpanjifa amin\'ny audio na video ianao tsy mila mivoaka ny appli.' },
+    { teny: ['mpiasa', 'employe', 'employé', 'livreur', 'livraison', 'equipe', 'équipe', 'mpitondra'],
+      valiny: '👷 Mpiasa sy livreur : samy miditra amin\'ny rohiny manokana ny mpiasa tsirairay (ora, asa). ' +
+        'Manaraka ny diany ny livreur, ary hitanao hoe aiza izy.' },
+    { teny: ['binance', 'payoneer', 'crypto', 'usdt', 'bybit', 'okx', 'parrainage', 'referral'],
+      valiny: '💸 Binance, Payoneer & hafa : hitanao ao amin\'ny Botika sy ao amin\'ny « Inviter des amis » ireo rohy fisoratana anarana. ' +
+        'Hametrahana ny rohinao manokana : 5 000 Ar indray mandeha avy amin\'ny Portefeuille.' },
+    { teny: ['affiliation', 'inviter', 'invitation', 'manasa', 'namana', 'ami', 'parrain', 'commission'],
+      valiny: '🤝 Affiliation : zarao ny rohinao avy amin\'ny « Inviter des amis ». Mahazo 500 Ar ianao isaky ny olona ' +
+        'misoratra anarana amin\'ny rohinao (vola ao anaty appli, azo avadika).' },
+    { teny: ['installer', 'installe', 'telecharger', 'télécharger', 'application', 'appli', 'apk', 'play store'],
+      valiny: '📲 Mba hametrahana ny Ny asako ho application : sokafy ao amin\'ny navigateur (Chrome) ny nyasako.com, ' +
+        'dia tsindrio « Installer » rehefa mipoitra izy (na menu ⋮ → « Ajouter à l\'écran d\'accueil »).' },
+    { teny: ['supprimer', 'fafao', 'famafana', 'manala ny kaonty', 'effacer'],
+      valiny: '🗑️ Famafana kaonty : Paramètres → « Supprimer mon compte », soraty FAFAO dia hamafisina. ' +
+        'Voafafa avy hatrany ny kaontinao sy ny mombamomba anao.' },
+    { teny: ['misaotra', 'merci', 'thanks', 'mersi'],
+      valiny: 'Tsy misy fisaorana ! Raha mbola misy fanontaniana, soraty fotsiny eto. 😊' }
+  ];
+  // Tsy misy marika (é → e) ary litera madinika : « Abonnement » = « abonnement ».
+  function botMadio(t){
+    return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  }
+  function botMitady(soratra){
+    const t = ' ' + botMadio(soratra).replace(/[^a-z0-9]+/g, ' ') + ' ';
+    let tsara = null, isa = 0;
+    BOT_FAQ.forEach(function(f){
+      const n = f.teny.filter(function(m){ return t.indexOf(' ' + botMadio(m) + ' ') >= 0 ||
+        (botMadio(m).length >= 6 && t.indexOf(botMadio(m)) >= 0); }).length;
+      if(n > isa){ isa = n; tsara = f; }
+    });
+    return tsara;
+  }
+  const botEfaNilaza = {};
+  function botMamaly(email, soratra){
+    // Amin'ny admin ihany, ary tsy rehefa ny admin no manoratra.
+    if(typeof isOwnerEmail !== 'function' || !isOwnerEmail(email)) return;
+    const me = myIdentity();
+    if(me.isAdmin || isOwnerEmail(me.email)) return;
+    const f = botMitady(soratra);
+    let valiny = f ? f.valiny : null;
+    if(!valiny){
+      if(botEfaNilaza[email]) return;
+      botEfaNilaza[email] = true;
+      valiny = 'Voaray ny hafatrao, ary ho valian\'ny admin raha vao afaka izy. ' +
+        'Afaka manontany ahy koa ianao momba ny vidiny, ny essai, ny portefeuille, ny botika, ny hôtel…';
+    }
+    setTimeout(function(){
+      (resaka[email] = resaka[email] || []).push({ id: idHafatra(), avy: 'bot', soratra: valiny, at: Date.now() });
+      if(resakaMisokatra && resakaMisokatra.email === email) asehoyResaka();
+    }, 700);
   }
 
   // ---------------- FAMAFANA HAFATRA ----------------
@@ -1322,7 +1420,17 @@
                   'style="display:block; max-width:100%; max-height:260px; border-radius:8px;"></a>';
           }
           if(h.soratra) atiny += (atiny ? '<div style="margin-top:0.3rem;">' : '<div>') + escapeHtml(h.soratra) + '</div>';
-          const fafao = '<button type="button" data-fafao="' + escapeHtml(h.id) + '" title="Fafana" style="flex:none; ' +
+          // Ny valin'ny bot : ankavia toy ny an'ilay olona, fa misy ny anarany
+          // sy loko hafa, mba tsy hampifangaroana azy amin'ny tenin'ny admin.
+          if(h.avy === 'bot'){
+            return '<div style="display:flex; justify-content:flex-start; margin:0.25rem 0;">' +
+              '<span style="max-width:85%; padding:0.4rem 0.6rem; border-radius:10px; overflow-wrap:anywhere; ' +
+                'background:color-mix(in srgb, var(--cyan) 14%, var(--panel-2)); color:var(--text); ' +
+                'border:1px solid color-mix(in srgb, var(--cyan) 40%, transparent);">' +
+                '<div style="font-size:0.68rem; font-weight:700; color:var(--cyan); margin-bottom:0.15rem;">🤖 Bot Ny asako</div>' +
+                atiny + '</span></div>';
+          }
+          const fafao ='<button type="button" data-fafao="' + escapeHtml(h.id) + '" title="Fafana" style="flex:none; ' +
             'border:none; background:none; color:var(--muted); cursor:pointer; font-size:0.8rem; padding:0 0.3rem;">✕</button>';
           return '<div style="display:flex; align-items:center; justify-content:' + (izaho ? 'flex-end' : 'flex-start') + '; margin:0.25rem 0;">' +
             (izaho ? fafao : '') +
