@@ -5796,6 +5796,7 @@
 
     // Déplacer : la fenêtre suit le doigt, sans changer de taille, et sans
     // sortir de la bande où on la verrait encore.
+    const RESTE_VU = 120;
     function armerDeplacement(s, ruban){
       let g = null;
       ['pointerdown', 'mousedown', 'touchstart', 'click'].forEach(function(t){
@@ -5840,8 +5841,16 @@
         let l = g.l + (e.x - g.x);
         let t = g.t + (e.y - g.y);
         const brut = l;
-        l = Math.max(z.x + MARGE, Math.min(l, z.x + z.w - g.w - MARGE));
-        t = Math.max(bande.haut + MARGE, Math.min(t, bande.bas - g.h - MARGE));
+        // Elle peut sortir à moitié de l'écran : ouverte, elle en prend
+        // presque toute la place, et tenue tout entière dedans elle ne
+        // bougeait pas d'un pixel — elle semblait collée (28/10/2026). Il en
+        // reste toujours un morceau à l'écran, et son haut, où on la reprend.
+        const resteL = Math.min(RESTE_VU, g.w), resteH = Math.min(RESTE_VU, g.h);
+        const lMin = Math.min(g.l, z.x + MARGE + resteL - g.w);
+        const lMax = Math.max(g.l, z.x + z.w - MARGE - resteL);
+        const tMax = Math.max(g.t, bande.bas - MARGE - resteH);
+        l = Math.max(lMin, Math.min(l, lMax));
+        t = Math.max(bande.haut + MARGE, Math.min(t, tMax));
         g.dx = l - g.l;
         g.dy = t - g.t;
         // Poussée plus loin que le bord, elle commence à sortir : lâchée
