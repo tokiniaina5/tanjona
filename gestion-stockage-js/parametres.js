@@ -2092,6 +2092,10 @@
     });
   }
 
+  // La photo du compte (Google, Facebook, GitHub) arrive après le premier
+  // dessin : common.js redessine la rangée quand elle est là.
+  window.__dessinerStories = dessinerStories;
+
   function chargerStories(){
     if(!storyRangee || !window.__sb) return;
     sessionStory().then(function(session){

@@ -2806,6 +2806,7 @@
     });
   }
 
+  function httpsOuRien(url){ return /^https:\/\//.test(String(url || '')) ? url : ''; }
   function profileFromAuthUser(user){
     const meta = (user && user.user_metadata) || {};
     const email = (user && user.email) || '';
@@ -2819,7 +2820,10 @@
       // Le logo suit le compte : sans la copie du serveur, une facture éditée
       // depuis un autre téléphone ou après un vidage du navigateur sortait
       // sans logo, alors qu'il s'affichait toujours dans le profil d'origine.
-      logo: local.logo || meta.logo || null,
+      // Inscrit par Google, Facebook ou GitHub : la photo du compte, tout de
+      // suite (la bulle « Hanampy story » comprise) ; prendreLaPhotoDuCompte
+      // la recopie ensuite sur l'appareil.
+      logo: local.logo || meta.logo || httpsOuRien(meta.avatar_url || meta.picture) || null,
       company: meta.company || local.company || '',
       nif: meta.nif || local.nif || '',
       stat: meta.stat || local.stat || '',
@@ -2944,6 +2948,8 @@
       saveSession();
       if(typeof updateProfilePhotoPreview === 'function') updateProfilePhotoPreview(logo);
       if(typeof window.__envoyerMaPhoto === 'function') window.__envoyerMaPhoto();
+      // La bulle « Hanampy story » était déjà dessinée, avec les initiales.
+      if(typeof window.__dessinerStories === 'function') window.__dessinerStories();
     }
     const img = new Image();
     img.crossOrigin = 'anonymous';
