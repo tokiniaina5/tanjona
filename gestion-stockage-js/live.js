@@ -1629,13 +1629,30 @@
     // Tsy « son » (« son compte ») na « hira » : tsy feo ilay izy.
     feo: ['feo', 'audio', 'voice', 'vocal', 'voix', 'sound']
   };
+  // Ireo teny manodidina ilay fangatahana (« alefaso ny sary momba ny … »).
+  const BOT_TENY_FENO = ['alefaso', 'alefa', 'mandefasa', 'omeo', 'asehoy', 'ny', 'ilay', 'an', 'amin', 'momba', 'iray', 'ahy', 'azafady',
+    'send', 'show', 'me', 'the', 'a', 'of', 'about', 'for', 'please', 'une', 'un', 'la', 'le', 'les', 'de', 'du', 'des', 'sur', 'envoie',
+    'envoyez', 'montre', 'moi', 'svp'];
+  // { type, ambiny } : ny karazana media angatahina, ary ny lohahevitra
+  // sisa (« sary note » → sary + « note »). ambiny foana = media fotsiny.
+  function botMediaSyLohahevitra(soratra){
+    const teny = String(soratra || '').split(/\s+/).filter(Boolean);
+    let type = null;
+    const ambiny = teny.filter(function(t){
+      const k = botTeny(t);
+      for(const m in BOT_TENY_MEDIA){
+        if(BOT_TENY_MEDIA[m].indexOf(k) >= 0){ if(!type) type = m; return false; }
+      }
+      return true;
+    });
+    if(!type) return null;
+    const ilaina = ambiny.filter(function(t){ const k = botTeny(t); return k && BOT_TENY_FENO.indexOf(k) < 0; });
+    return { type: type, ambiny: ilaina.length ? ambiny.join(' ') : '' };
+  }
   function botMediaAngatahina(soratra){
-    const teny = botTeny(soratra).split(' ').filter(Boolean);
-    if(!teny.length || teny.length > 3) return null;
-    for(const k in BOT_TENY_MEDIA){
-      if(teny.some(function(x){ return BOT_TENY_MEDIA[k].indexOf(x) >= 0; })) return k;
-    }
-    return null;
+    if(botTeny(soratra).split(' ').length > 3) return null;
+    const m = botMediaSyLohahevitra(soratra);
+    return m && !m.ambiny ? m.type : null;
   }
   function botMediaNyAsako(karazany, teny){
     if(karazany === 'feo'){
@@ -1761,6 +1778,21 @@
   const botFomba = {};
   function botValinyFeno(email, soratra, media){
     if(media) botFomba[email] = media.type === 'feo' ? 'feo' : 'sary';
+    // « sary note », « sary portefeuille », « feo facture » : ny valin'ilay
+    // lohahevitra, miaraka amin'ny sary fanazavana (na feo) mitovy aminy.
+    // Hafatra fohy ihany (teny 5) : « ahoana no hanovana ny photo de profil »
+    // dia fanontaniana tsotra.
+    const ml = !media && botTeny(soratra).split(' ').length <= 5 && botMediaSyLohahevitra(soratra);
+    if(ml && ml.ambiny){
+      botFomba[email] = ml.type === 'feo' ? 'feo' : 'sary';
+      return botValiny(email, ml.ambiny).then(function(v){
+        if(!v || !v.soratra) return v;
+        v.media = ml.type === 'feo'
+          ? { type: 'bot-feo', soratra: botHoVakiana(v.soratra), teny: v.teny || 'mg' }
+          : { type: 'sary', url: botSaryFanazavana(v.soratra) };
+        return v;
+      });
+    }
     return botValiny(email, soratra, media).then(function(v){
       if(!v || !v.soratra || v.media || media) return v;
       if(botFomba[email] === 'sary') v.media = { type: 'sary', url: botSaryFanazavana(v.soratra) };

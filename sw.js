@@ -9,7 +9,7 @@
 // Le nom porte l'empreinte du dernier envoi : outils/versionner.mjs le réécrit.
 // Chaque mise en ligne repart donc d'un cache neuf, et l'ancien est effacé —
 // sans quoi les fichiers de toutes les versions passées s'y empileraient.
-const CACHE = 'nyasako-8b0708a2';
+const CACHE = 'nyasako-1fa87b7c';
 
 // Le partage reçu des autres applications (manifest.webmanifest, « share_target »).
 // Le téléphone ouvre cette adresse en POST, avec le texte et les fichiers
