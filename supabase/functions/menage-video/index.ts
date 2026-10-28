@@ -129,6 +129,58 @@ async function menageResaka(admin: Admin, essai: boolean) {
   return { jours: RESAKA_JOURS, joursMedia: RESAKA_MEDIA_JOURS, joursFeoVideo: RESAKA_FEO_VIDEO_JOURS, fichiersVus: fichiers.vus, fichiersEffaces, contactEffaces: count ?? 0, soucis };
 }
 
+// Les vidéos et chansons des stories (bucket « story-media », un dossier par
+// uid). botika_stories_bilan efface la ligne deux jours après la fin de la
+// story, mais pas le fichier : il restait là, sans personne pour le montrer
+// (28/10/2026, 41 Mo sur 43). Un fichier qu'aucune ligne ne cite part, s'il a
+// plus d'un jour — moins, il peut être en cours d'envoi, la ligne pas encore
+// écrite.
+const STORY_BUCKET = "story-media";
+const STORY_GRACE_JOURS = 1;
+
+async function menageStory(admin: Admin, essai: boolean) {
+  const { data: lignes, error: errLignes } = await admin.from("botika_stories").select("media, hira");
+  if (errLignes) return { erreur: errLignes.message };
+  const marque = "/object/public/" + STORY_BUCKET + "/";
+  const cites = new Set<string>();
+  for (const l of (lignes ?? []) as { media?: string | null; hira?: string | null }[]) {
+    for (const u of [l.media, l.hira]) {
+      const m = String(u || "").split(marque)[1];
+      if (m) cites.add(decodeURIComponent(m));
+    }
+  }
+  const limite = Date.now() - STORY_GRACE_JOURS * 24 * 60 * 60 * 1000;
+  const noms: string[] = [];
+  let vus = 0;
+  const lire = async (dossier: string) => {
+    for (let page = 0; page < 50; page++) {
+      const { data, error } = await admin.storage.from(STORY_BUCKET).list(dossier, {
+        limit: 1000, offset: page * 1000, sortBy: { column: "name", order: "asc" },
+      });
+      if (error) throw error;
+      const lot = data ?? [];
+      for (const f of lot) {
+        const chemin = dossier ? dossier + "/" + f.name : f.name;
+        if (!f.id) { if (!dossier) await lire(chemin); continue; }
+        vus++;
+        const d = f.created_at ? Date.parse(f.created_at) : NaN;
+        if (Number.isFinite(d) && d < limite && !cites.has(chemin)) noms.push(chemin);
+      }
+      if (lot.length < 1000) break;
+    }
+  };
+  try { await lire(""); } catch (e) { return { fichiersVus: vus, erreur: (e as Error).message }; }
+  if (essai) return { fichiersVus: vus, fichiersCites: cites.size, fichiersRetenus: noms.length, noms: noms.slice(0, 50) };
+  let fichiersEffaces = 0;
+  const soucis: string[] = [];
+  for (let i = 0; i < noms.length; i += 100) {
+    const { data, error } = await admin.storage.from(STORY_BUCKET).remove(noms.slice(i, i + 100));
+    if (error) { soucis.push(error.message); continue; }
+    fichiersEffaces += (data ?? []).length;
+  }
+  return { fichiersVus: vus, fichiersEffaces, soucis };
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ error: "méthode refusée" }, 405);
@@ -180,12 +232,13 @@ Deno.serve(async (req: Request) => {
   }
 
   const resaka = await menageResaka(admin, essai);
+  const story = await menageStory(admin, essai);
 
   if (essai) {
-    return json({ essai: true, vus, retenus: aEffacer.length, retentionJours: RETENTION_JOURS, noms: aEffacer.slice(0, 50), resaka });
+    return json({ essai: true, vus, retenus: aEffacer.length, retentionJours: RETENTION_JOURS, noms: aEffacer.slice(0, 50), resaka, story });
   }
   if (!aEffacer.length) {
-    return json({ vus, effaces: 0, retentionJours: RETENTION_JOURS, resaka });
+    return json({ vus, effaces: 0, retentionJours: RETENTION_JOURS, resaka, story });
   }
 
   // Par paquets de cent : une liste trop longue se fait refuser en entier, et
@@ -199,5 +252,5 @@ Deno.serve(async (req: Request) => {
     effaces += (data ?? []).length;
   }
 
-  return json({ vus, effaces, retentionJours: RETENTION_JOURS, soucis, resaka });
+  return json({ vus, effaces, retentionJours: RETENTION_JOURS, soucis, resaka, story });
 });
