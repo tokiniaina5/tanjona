@@ -5934,24 +5934,43 @@
         if(!visible(s.el) || seClique(e.target)) return false;
         return e.clientY - s.el.getBoundingClientRect().top <= HAUT;
       }
+      // Et par tout son corps, à la demande (28/10/2026) : n'importe où dans
+      // la fenêtre, sauf sur ce qui se clique, sur sa barre de défilement et
+      // dans une rangée qui défile en largeur (les stories), où tirer a déjà
+      // un sens.
+      function prise(e){
+        if(!visible(s.el) || seClique(e.target)) return false;
+        const r = s.el.getBoundingClientRect();
+        if(e.clientX >= r.left + s.el.clientLeft + s.el.clientWidth) return false;
+        for(let n = e.target; n && n !== s.el; n = n.parentElement){
+          if(n.scrollWidth > n.clientWidth + 2){
+            const ox = getComputedStyle(n).overflowX;
+            if(ox === 'auto' || ox === 'scroll') return false;
+          }
+        }
+        return true;
+      }
       s.el.addEventListener('pointerdown', function(e){
         if(e.pointerType !== 'mouse' || e.button !== 0 || laharana) return;
-        if(!dansLeHaut(e)) return;
+        if(!prise(e)) return;
         attente = { x: e.clientX, y: e.clientY, id: e.pointerId };
         ecouter(true);
       });
-      // La souris dit d'elle-même où l'on peut prendre la fenêtre : une main
-      // au-dessus du titre, comme sur une barre de titre. Posée sur l'élément
-      // survolé et non sur la fenêtre, que l'on surveille de près.
-      let main = null;
+      // La souris dit d'elle-même où l'on peut prendre la fenêtre : une main.
+      // Posée sur l'élément survolé et non sur la fenêtre, que l'on surveille
+      // de près.
+      // On ne regarde qu'en changeant d'élément : la souris bouge sans cesse.
+      let main = null, survole = null;
       function rendreMain(){
+        survole = null;
         if(main){ main.style.cursor = ''; main = null; }
       }
       s.el.addEventListener('pointermove', function(e){
         if(e.pointerType !== 'mouse' || e.buttons || laharana) return;
-        const oui = dansLeHaut(e) && e.target !== s.el;
-        if(oui && main === e.target) return;
+        if(e.target === survole) return;
         rendreMain();
+        survole = e.target;
+        const oui = e.target !== s.el && prise(e);
         if(oui){ main = e.target; main.style.cursor = 'grab'; }
       });
       s.el.addEventListener('pointerleave', rendreMain);
