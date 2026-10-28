@@ -1621,6 +1621,22 @@
   const BOT_SARY_URL = '/bot/ny-asako.svg';
   const BOT_FEO_SORATRA = 'Salama tompoko ! Izaho no Assistant Ny asako. Ny asako dia manampy anao hitantana ny stock, ' +
     'ny facture, ny botika, ny portefeuille ary ny mpiasa, amin\'ny toerana iray.';
+  // Hafatra fohy (teny telo farafahabetsany) mangataka media : « sary »,
+  // « alefaso sary », « send image », « une vidéo », « feo ».
+  const BOT_TENY_MEDIA = {
+    sary: ['sary', 'image', 'images', 'photo', 'photos', 'picture', 'pictures', 'pic', 'img', 'imagen', 'foto', 'fotos', 'bild', 'immagine'],
+    video: ['video', 'videos', 'clip', 'film'],
+    // Tsy « son » (« son compte ») na « hira » : tsy feo ilay izy.
+    feo: ['feo', 'audio', 'voice', 'vocal', 'voix', 'sound']
+  };
+  function botMediaAngatahina(soratra){
+    const teny = botTeny(soratra).split(' ').filter(Boolean);
+    if(!teny.length || teny.length > 3) return null;
+    for(const k in BOT_TENY_MEDIA){
+      if(teny.some(function(x){ return BOT_TENY_MEDIA[k].indexOf(x) >= 0; })) return k;
+    }
+    return null;
+  }
   function botMediaNyAsako(karazany, teny){
     if(karazany === 'feo'){
       return botAdikao(BOT_FEO_SORATRA, teny).then(function(v){ return { type: 'bot-feo', soratra: v.soratra, teny: v.teny || 'mg' }; });
@@ -1811,6 +1827,12 @@
       // hamaliako… » nesorina, 27/10/2026).
       const teny = botTenyFarany[email] || null;
       return botMediaNyAsako(media.type, teny).then(function(m){ return { soratra: '', media: m }; });
+    }
+    // « sary », « image », « video », « feo » nosoratana fotsiny : valiana
+    // media toy ny hoe nandefa sary/video/feo (28/10/2026).
+    const mediaAngatahina = botMediaAngatahina(soratra);
+    if(mediaAngatahina){
+      return botMediaNyAsako(mediaAngatahina, botTenyFarany[email] || null).then(function(m){ return { soratra: '', media: m }; });
     }
     const emoji = botValyEmoji(soratra);
     if(emoji) return Promise.resolve({ soratra: emoji });
