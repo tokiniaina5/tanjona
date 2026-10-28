@@ -1800,40 +1800,36 @@
       return v;
     });
   }
-  // Sary fanazavana mitovy amin'ny valiny : karatra SVG (toy ny
-  // bot/ny-asako.svg) misy ny lohateny sy ny fanazavana, amin'ny fiteny
-  // nanoratana ny valiny. data: URL, tsy alefa any amin'ny serveur.
+  // Sary fanazavana mitovy amin'ny valiny : SARY fotsiny (28/10/2026) — ny
+  // emoji lehiben'ilay lohahevitra ao anaty efijery finday, sy ny anarany
+  // fohy. Ny fanazavana kosa dia soratra eo ambanin'ny sary ao amin'ny
+  // resaka, fa tsy soratana eo amin'ny sary. data: URL, tsy alefa any
+  // amin'ny serveur.
   function botSaryFanazavana(soratra){
     const xml = function(s){ return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); };
-    const andalana = String(soratra).split('\n').filter(function(a){ return a.trim(); });
-    let lohateny = andalana.shift() || '';
-    let vatana = andalana.join(' ');
-    const i = lohateny.indexOf(' : ') >= 0 ? lohateny.indexOf(' : ') : lohateny.indexOf(': ');
-    if(i > 0 && i < 70){ vatana = lohateny.slice(i).replace(/^\s*:\s*/, '') + (vatana ? ' ' + vatana : ''); lohateny = lohateny.slice(0, i); }
-    else if(lohateny.length > 40){ vatana = lohateny + (vatana ? ' ' + vatana : ''); lohateny = '🤖 Assistant Ny asako'; }
-    // Ny « (ilay logo… ) » : soloina « Menu » fohy eo amin'ny sary.
-    lohateny = lohateny.replace(/\s*\([^)]*\)/g, '');
-    vatana = vatana.replace(/\s*\([^)]*\)/g, '');
-    const teny = vatana.split(/\s+/);
-    const tsipika = [];
-    let ankehitriny = '';
-    teny.forEach(function(t){
-      if((ankehitriny + ' ' + t).trim().length > 44){ tsipika.push(ankehitriny.trim()); ankehitriny = t; }
-      else ankehitriny += ' ' + t;
-    });
-    if(ankehitriny.trim()) tsipika.push(ankehitriny.trim());
-    const asehoy = tsipika.slice(0, 9);
-    if(tsipika.length > 9) asehoy[8] = asehoy[8].replace(/\s*\S*$/, '') + ' …';
-    const h = 150 + asehoy.length * 30;
-    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 ' + h + '" width="640" height="' + h + '" ' +
+    const voalohany = String(soratra).split('\n').filter(function(a){ return a.trim(); })[0] || '';
+    const e = voalohany.match(/\p{Extended_Pictographic}/u);
+    const emoji = e ? e[0] : '🤖';
+    // « 🧾 Factures ao amin'ny Menu : … » → « Factures ».
+    let anarana = voalohany.split(/\s:\s|:\s/)[0].replace(/\p{Extended_Pictographic}|️/gu, '')
+      .replace(/\s*\([^)]*\)/g, '').split(/\s+(?:ao|amin|dans|in|en)\b/)[0].trim();
+    if(anarana.length > 22 || voalohany.indexOf(':') < 0) anarana = '';
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" width="640" height="400" ' +
       'font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">' +
-      '<defs><linearGradient id="f" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0f1b22"/><stop offset="1" stop-color="#123540"/></linearGradient></defs>' +
-      '<rect width="640" height="' + h + '" rx="26" fill="url(#f)"/>' +
-      '<circle cx="580" cy="40" r="110" fill="#4fd8e0" opacity="0.08"/>' +
-      '<text x="36" y="66" font-size="34" font-weight="800" fill="#ffffff">' + xml(lohateny.slice(0, 34)) + '</text>' +
-      '<rect x="36" y="88" width="568" height="2" fill="#4fd8e0" opacity="0.5"/>' +
-      asehoy.map(function(t, n){ return '<text x="36" y="' + (128 + n * 30) + '" font-size="21" fill="#e6f7f8">' + xml(t) + '</text>'; }).join('') +
-      '<text x="604" y="' + (h - 18) + '" text-anchor="end" font-size="15" fill="#9fe7ec">🤖 Assistant Ny asako</text>' +
+      '<defs><linearGradient id="f" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0f1b22"/><stop offset="1" stop-color="#123540"/></linearGradient>' +
+      '<linearGradient id="e" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1d4d57"/><stop offset="1" stop-color="#16343c"/></linearGradient></defs>' +
+      '<rect width="640" height="400" rx="26" fill="url(#f)"/>' +
+      '<circle cx="110" cy="80" r="120" fill="#4fd8e0" opacity="0.07"/><circle cx="560" cy="340" r="140" fill="#4fd8e0" opacity="0.06"/>' +
+      // Ny finday : efijery misy ilay emoji lehibe sy tsipika toy ny lisitra.
+      '<rect x="230" y="30" width="180" height="340" rx="28" fill="#0a1418" stroke="#4fd8e0" stroke-opacity="0.6" stroke-width="3"/>' +
+      '<rect x="244" y="52" width="152" height="296" rx="16" fill="url(#e)"/>' +
+      '<rect x="296" y="40" width="48" height="5" rx="2.5" fill="#4fd8e0" opacity="0.5"/>' +
+      '<text x="320" y="190" text-anchor="middle" font-size="96">' + xml(emoji) + '</text>' +
+      (anarana ? '<text x="320" y="238" text-anchor="middle" font-size="22" font-weight="800" fill="#ffffff">' + xml(anarana) + '</text>' : '') +
+      '<rect x="262" y="262" width="116" height="10" rx="5" fill="#4fd8e0" opacity="0.35"/>' +
+      '<rect x="262" y="282" width="90" height="10" rx="5" fill="#ffffff" opacity="0.18"/>' +
+      '<rect x="262" y="302" width="104" height="10" rx="5" fill="#ffffff" opacity="0.18"/>' +
+      '<text x="604" y="382" text-anchor="end" font-size="15" fill="#9fe7ec">🤖 Assistant Ny asako</text>' +
       '</svg>';
     return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
   }
