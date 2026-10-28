@@ -5803,20 +5803,33 @@
         ruban.addEventListener(t, function(e){ e.stopPropagation(); });
       });
       ruban.addEventListener('pointerdown', function(e){
-        if(!visible(s.el)) return;
+        if(!commencer(e)) return;
+        e.preventDefault();
+        try{ ruban.setPointerCapture(e.pointerId); }catch(err){}
+      });
+      // Prendre la fenêtre là où est la souris : par le ruban, ou par le haut
+      // de la fenêtre (plus bas). Appelé directement, sans fabriquer de faux
+      // événement : un faux pointermove repassait par l'écoute du document,
+      // qui en refabriquait un, et ainsi de suite jusqu'à saturer la pile.
+      function commencer(e){
+        if(!visible(s.el)) return false;
         // Rangées par « Alamino », elles se reprennent à la main comme
         // avant : la rangée se défait, chacune garde la place reçue.
         sortirDeLaRangee(s);
         const r = s.el.getBoundingClientRect();
-        if(r.width < 1 || r.height < 1) return;
-        e.preventDefault();
+        if(r.width < 1 || r.height < 1) return false;
         figer(s.el, r);
         // Le cadre où elle peut aller se mesure une fois, au départ : le
         // remesurer à chaque pas de la souris forçait des recalculs en série.
         const z = ecran();
         const bande = (s.page || s.commePage) ? bandeUtile() : { haut: z.y, bas: z.y + z.h };
         g = { x: e.clientX, y: e.clientY, l: r.left, t: r.top, w: r.width, h: r.height,
-              z: z, bande: bande, dx: 0, dy: 0, depasse: 0, vise: null, image: 0 };
+              z: z, bande: bande, dx: 0, dy: 0, depasse: 0, vise: null, image: 0,
+              // Sur un ordinateur, une fenêtre poussée contre le bord y reste,
+              // comme sur un bureau : elle ne s'efface ni ne se ferme. Jeter
+              // d'un geste reste l'affaire du doigt.
+              souris: e.pointerType === 'mouse' };
+        document.documentElement.style.cursor = 'grabbing';
         // Pendant le geste, elle glisse sur la carte graphique (translate) au
         // lieu d'être reposée à chaque pas (left/top) : elle suit la souris
         // sans à-coups (28/10/2026). Sa vraie place s'écrit au lâcher.
@@ -5824,8 +5837,8 @@
         s.calque.style.willChange = 'translate';
         deplacement = s;
         ruban.classList.add('tire');
-        try{ ruban.setPointerCapture(e.pointerId); }catch(err){}
-      });
+        return true;
+      }
       // Une image par rafraîchissement de l'écran, avec la dernière position
       // de la souris : les pas intermédiaires ne servent à rien.
       function poser(){
@@ -5854,18 +5867,19 @@
         g.dx = l - g.l;
         g.dy = t - g.t;
         // Poussée plus loin que le bord, elle commence à sortir : lâchée
-        // assez loin, elle se ferme (voir armerBalayage).
-        g.depasse = brut - l;
+        // assez loin, elle se ferme (voir armerBalayage). Au doigt seulement.
+        g.depasse = g.souris ? 0 : brut - l;
         const dx = g.dx + g.depasse;
         s.el.style.translate = dx + 'px ' + g.dy + 'px';
         s.el.style.opacity = g.depasse ? String(Math.max(0.35, 1 - Math.abs(g.depasse) / 500)) : '';
         s.calque.style.translate = dx + 'px ' + g.dy + 'px';
       }
-      ruban.addEventListener('pointermove', function(e){
+      function bouger(e){
         if(!g) return;
         g.vise = { x: e.clientX, y: e.clientY };
         if(!g.image) g.image = requestAnimationFrame(poser);
-      });
+      }
+      ruban.addEventListener('pointermove', bouger);
       function fin(e){
         if(!g) return;
         if(g.image){ cancelAnimationFrame(g.image); poser(); }
@@ -5879,6 +5893,7 @@
         s.calque.style.willChange = '';
         g = null;
         deplacement = null;
+        document.documentElement.style.cursor = '';
         ruban.classList.remove('tire');
         try{ ruban.releasePointerCapture(e.pointerId); }catch(err){}
         if(Math.abs(depasse) > SEUIL_JETER){ jeter(s, depasse); return; }
@@ -5915,13 +5930,39 @@
         document[f]('pointerup', lacher, true);
         document[f]('pointercancel', lacher, true);
       }
+      function dansLeHaut(e){
+        if(!visible(s.el) || seClique(e.target)) return false;
+        return e.clientY - s.el.getBoundingClientRect().top <= HAUT;
+      }
       s.el.addEventListener('pointerdown', function(e){
         if(e.pointerType !== 'mouse' || e.button !== 0 || laharana) return;
-        if(!visible(s.el) || seClique(e.target)) return;
-        const r = s.el.getBoundingClientRect();
-        if(e.clientY - r.top > HAUT) return;
+        if(!dansLeHaut(e)) return;
         attente = { x: e.clientX, y: e.clientY, id: e.pointerId };
         ecouter(true);
+      });
+      // La souris dit d'elle-même où l'on peut prendre la fenêtre : une main
+      // au-dessus du titre, comme sur une barre de titre. Posée sur l'élément
+      // survolé et non sur la fenêtre, que l'on surveille de près.
+      let main = null;
+      function rendreMain(){
+        if(main){ main.style.cursor = ''; main = null; }
+      }
+      s.el.addEventListener('pointermove', function(e){
+        if(e.pointerType !== 'mouse' || e.buttons || laharana) return;
+        const oui = dansLeHaut(e) && e.target !== s.el;
+        if(oui && main === e.target) return;
+        rendreMain();
+        if(oui){ main = e.target; main.style.cursor = 'grab'; }
+      });
+      s.el.addEventListener('pointerleave', rendreMain);
+      s.el.addEventListener('scroll', rendreMain, { passive: true });
+      // Double-clic sur le titre : elle prend tout l'écran, ou revient,
+      // comme une fenêtre d'ordinateur.
+      s.el.addEventListener('dblclick', function(e){
+        if(laharana || !dansLeHaut(e)) return;
+        e.preventDefault();
+        try{ window.getSelection().removeAllRanges(); }catch(err){}
+        basculerAgrandie(s);
       });
       // Ni sélection de texte, ni glisser-déposer du navigateur : ce dernier
       // annulait le geste (pointercancel) au premier mouvement.
@@ -5929,21 +5970,17 @@
         s.el.addEventListener(t, function(e){ if(attente || bouge) e.preventDefault(); });
       });
       function suivreSouris(e){
-        if(bouge){
-          if(g) ruban.dispatchEvent(new PointerEvent('pointermove', e));
-          return;
-        }
+        if(bouge){ bouger(e); return; }
         if(!attente || e.pointerId !== attente.id) return;
         if(Math.abs(e.clientX - attente.x) + Math.abs(e.clientY - attente.y) < 5) return;
         const a = attente;
         attente = null;
-        // Le ruban fait le reste, comme si on l'avait pris là où l'on a appuyé.
-        ruban.dispatchEvent(new PointerEvent('pointerdown', { clientX: a.x, clientY: a.y, pointerId: a.id, pointerType: 'mouse', bubbles: false, cancelable: true }));
-        if(!g){ ecouter(false); return; }
+        // Comme si on l'avait prise par le ruban, là où l'on a appuyé.
+        if(!commencer({ clientX: a.x, clientY: a.y, pointerType: 'mouse' })){ ecouter(false); return; }
         bouge = true;
         document.body.style.userSelect = 'none';
         try{ window.getSelection().removeAllRanges(); }catch(err){}
-        ruban.dispatchEvent(new PointerEvent('pointermove', e));
+        bouger(e);
       }
       function lacher(e){
         attente = null;
@@ -5951,7 +5988,7 @@
         if(!bouge) return;
         bouge = false;
         document.body.style.userSelect = '';
-        ruban.dispatchEvent(new PointerEvent(e.type, e));
+        fin(e);
         // Le clic qui termine le déplacement n'ouvre rien sous la souris.
         function avaler(c){ c.stopPropagation(); c.preventDefault(); }
         document.addEventListener('click', avaler, { capture: true, once: true });
@@ -5961,7 +5998,8 @@
 
     // Glisser vers la gauche ou la droite, et la fenêtre s'en va : on les
     // range une à une d'un geste (23/10/2026). Au doigt, n'importe où dans la
-    // fenêtre ; à la souris, en la tirant par son ruban au-delà du bord.
+    // fenêtre. À la souris, plus depuis le 28/10/2026 : sur un ordinateur, la
+    // fenêtre poussée contre le bord y reste, comme sur un bureau.
     const SEUIL_JETER = 110;
     // Ses poignées la suivent d'elles-mêmes : synchroniser les pose sur le
     // cadre qu'on voit, décalage compris.
