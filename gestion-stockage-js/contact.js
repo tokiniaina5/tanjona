@@ -759,6 +759,25 @@
   };
   // Les mêmes logos servent sous le champ « rohy video » du fil (parametres.js).
   window.__logosReseaux = LOGOS;
+  // Les canaux de l'admin, par réseau ({ facebook: 'https://…', linkedin:
+  // … }) : l'Assistant y envoie selon la question (asa → LinkedIn, entana →
+  // Facebook…, live.js). Seules les adresses web servent.
+  window.__rohyAdmin = function(){
+    return new Promise(function(vita){
+      fetchContactChannels(function(ch, ex){
+        const r = {};
+        Object.keys(NOMS_CANAUX).forEach(function(k){
+          const u = ch && ch[k] ? adresseDeProfil(k, ch[k]) : '';
+          if(/^https?:\/\//i.test(u)) r[k] = u;
+        });
+        (ex || []).forEach(function(e){
+          const l = logoDe(e.name, e.url);
+          if(!r[l] && /^https?:\/\//i.test(e.url || '')) r[l] = e.url;
+        });
+        vita(r);
+      });
+    });
+  };
   const ENVELOPPE = 'M2 5.5A1.5 1.5 0 0 1 3.5 4h17A1.5 1.5 0 0 1 22 5.5v13a1.5 1.5 0 0 1-1.5 1.5h-17A1.5 1.5 0 0 1 2 18.5zm2 .9v.4l8 5.2 8-5.2v-.4z';
   const GLOBE = 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm6.9 6h-3a15 15 0 0 0-1.3-3.8A8 8 0 0 1 18.9 8zM12 4.1A13 13 0 0 1 13.8 8h-3.6A13 13 0 0 1 12 4.1zM4.3 14a8 8 0 0 1 0-4h3.3a16 16 0 0 0 0 4zm.8 2h3a15 15 0 0 0 1.3 3.8A8 8 0 0 1 5.1 16zm3-8h-3a8 8 0 0 1 4.3-3.8A15 15 0 0 0 8.1 8zM12 19.9A13 13 0 0 1 10.2 16h3.6a13 13 0 0 1-1.8 3.9zm2.3-5.9H9.7a14 14 0 0 1 0-4h4.6a14 14 0 0 1 0 4zm.3 5.8a15 15 0 0 0 1.3-3.8h3a8 8 0 0 1-4.3 3.8zm1.8-5.8a16 16 0 0 0 0-4h3.3a8 8 0 0 1 0 4z';
   const CLE_LOGO = { whatsapp: 'whatsapp', facebook: 'facebook', instagram: 'instagram', tiktok: 'tiktok',

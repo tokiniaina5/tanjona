@@ -1439,6 +1439,51 @@
       pejy.join('\n\n') +
       '\n\n🤖 Raha misy tsy mazava, anontanio ahy ny anaran\'ny pejy (ohatra « facture »), na lazao hoe « hazavao tsara » dia hazavaiko tsikelikely.';
   }
+  // Ny fanontaniana mitady zavatra any ivelan'ny appli : alefa any amin'ny
+  // 🏠 Botika sy ny rohin'ny admin mifanaraka aminy (« 🔗 Ajouter les liens »,
+  // contact.js window.__rohyAdmin) — asa → LinkedIn, entana → Facebook…
+  // (28/10/2026). Ny voalohany mifanaraka no raisina.
+  const BOT_ROHY = [
+    { anarana: '💼 Asa', teny: ['asa', 'mitady asa', 'tolotra asa', 'emploi', 'offre d emploi', 'travail', 'job', 'jobs', 'recrutement',
+        'recrute', 'embauche', 'stage', 'cv', 'hiring', 'career', 'trabajo'],
+      fanazavana: 'Ireo tolotra asa vaovao dia hitanao ao amin\'ny 🏠 Botika, ary ao amin\'ny LinkedIn-nay. Alefaso any ny CV-nao.',
+      tambajotra: ['linkedin'] },
+    { anarana: '🛍️ Entana', teny: ['hividy', 'vidiana', 'amidy', 'mivarotra entana', 'entana misy', 'inona ny entana', 'acheter',
+        'disponible', 'buy', 'comprar'],
+      fanazavana: 'Ny entana misy sy ny vidiny dia hitanao ao amin\'ny 🏠 Botika, ary ao amin\'ny pejy Facebook-nay. Afaka manao kaomandy avy hatrany ianao.',
+      tambajotra: ['facebook', 'messenger', 'instagram'] },
+    { anarana: '🛠️ Serivisy', teny: ['serivisy', 'fanamboarana', 'reparation', 'réparation', 'depannage', 'mecanique',
+        'site web', 'site internet', 'developpement', 'robot', 'robotique', 'photographe', 'montage video', 'formation'],
+      fanazavana: 'Ny serivisy atolotray dia hitanao ao amin\'ny 🏠 Botika. Raha te hanao fangatahana na hanontany ny vidiny ianao, soraty ao amin\'ny WhatsApp na Facebook.',
+      tambajotra: ['whatsapp', 'facebook', 'messenger'] },
+    { anarana: '🎬 Video sy fianarana', teny: ['tutoriel', 'tuto', 'fianarana', 'mianatra', 'apprendre', 'cours', 'learn', 'tutorial'],
+      fanazavana: 'Ny video fanazavana sy fianarana dia hitanao ao amin\'ny 🏠 Botika, ary ao amin\'ny YouTube sy TikTok-nay.',
+      tambajotra: ['youtube', 'tiktok'] },
+    { anarana: '📞 Fifandraisana', teny: ['fifandraisana', 'mifandray', 'contact', 'contacter', 'numero', 'laharana'],
+      fanazavana: 'Afaka mifandray aminay mivantana ianao eto amin\'ity resaka ity, na amin\'ireto :',
+      tambajotra: ['whatsapp', 'messenger', 'facebook', 'email', 'telegram'] }
+  ];
+  const BOT_ANARAN_TAMBAJOTRA = { linkedin: 'LinkedIn', facebook: 'Facebook', messenger: 'Messenger', instagram: 'Instagram',
+    whatsapp: 'WhatsApp', youtube: 'YouTube', tiktok: 'TikTok', email: 'Email', telegram: 'Telegram' };
+  function botLohahevitraRohy(soratra){
+    const t = ' ' + botTeny(soratra) + ' ';
+    return BOT_ROHY.filter(function(r){
+      return r.teny.some(function(m){ return t.indexOf(' ' + botTeny(m) + ' ') >= 0; });
+    })[0] || null;
+  }
+  function botValioRohy(r, teny){
+    const rohy = typeof window.__rohyAdmin === 'function' ? window.__rohyAdmin() : Promise.resolve({});
+    return rohy.then(null, function(){ return {}; }).then(function(ireo){
+      const misy = r.tambajotra.filter(function(k){ return ireo[k]; });
+      // Ny soratra ihany no adika ; ny rohy apetraka aorian'izay.
+      const andalana = [r.anarana + ' : ' + r.fanazavana].concat(misy.map(function(k){ return '🔗 ' + BOT_ANARAN_TAMBAJOTRA[k] + ' :'; }));
+      return botAdikao(andalana.join('\n'), teny).then(function(v){
+        const adika = v.soratra.split('\n');
+        const soratra = adika[0] + (misy.length ? '\n\n' + misy.map(function(k, i){ return (adika[i + 1] || andalana[i + 1]) + '\n' + ireo[k]; }).join('\n\n') : '');
+        return { soratra: soratra, teny: v.teny, sokafy: 'botika' };
+      });
+    });
+  }
   // Binance, Payoneer sy ny hafa : ireo rohy hita ao amin'ny Botika
   // (parrain-botika.js), miaraka amin'ny fanazavana fohy. Raha misy anarana
   // sehatra ao amin'ny fanontaniana, ireo ihany no omena ; raha tsy izany, ny
@@ -1915,6 +1960,15 @@
     const mediaAngatahina = botMediaAngatahina(soratra);
     if(mediaAngatahina){
       return botMediaNyAsako(mediaAngatahina, botTenyFarany[email] || null).then(function(m){ return { soratra: '', media: m }; });
+    }
+    // Asa, entana, serivisy… : any amin'ny Botika sy ny rohy mifanaraka.
+    const rohy = botLohahevitraRohy(soratra);
+    if(rohy){
+      return botFantaroTeny(soratra).then(null, function(){ return null; }).then(function(t){
+        const teny = t ? botTenyAmpiasaina(t.src) : null;
+        if(t) botTenyFarany[email] = teny;
+        return botValioRohy(rohy, teny);
+      });
     }
     const emoji = botValyEmoji(soratra);
     if(emoji) return Promise.resolve({ soratra: emoji });
