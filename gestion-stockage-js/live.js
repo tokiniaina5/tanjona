@@ -559,7 +559,9 @@
       'background:var(--panel-2); color:var(--text); font-size:0.8rem; font-weight:700;' +
       (o.online ? ' box-shadow:0 0 0 2px rgba(37,211,102,0.25);' : '') + '">' +
       (/^data:image\/|^https:\/\//.test(sary)
-        ? '<img src="' + escapeHtml(sary) + '" alt="" style="width:100%; height:100%; object-fit:cover;">'
+        // Ny sary avy amin'i Google/GitHub (sary_olona) : tsy alefa ny
+        // pejy niaviana, fandrao tsy omen'izy ireo ny sary.
+        ? '<img src="' + escapeHtml(sary) + '" alt="" referrerpolicy="no-referrer" style="width:100%; height:100%; object-fit:cover;">'
         : escapeHtml(litera)) + '</span>';
   }
   function asehoyIndrayLisitra(){

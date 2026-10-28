@@ -9,6 +9,10 @@
 -- À exécuter dans Supabase > SQL Editor. Rejouable sans risque.
 -- ============================================================
 
+-- Tsy misy vignette (profil_sary) : ny sary voatahiry ao amin'ny kaonty no
+-- raisina (28/10/2026) — ny sary profil taloha (logo), avy eo ny an'i
+-- Google na GitHub (avatar_url, picture). 5 monja tamin'ny kaonty 41 no
+-- nanana vignette, ka litera no hita tamin'ny ankamaroany.
 create or replace function public.sary_olona(emails text[])
 returns table (email text, sary text)
 language sql
@@ -16,10 +20,25 @@ stable
 security definer
 set search_path = public
 as $$
-  select p.email, p.sary
-  from public.profil_sary p
-  where auth.uid() is not null
-    and p.email = any (select lower(trim(e)) from unnest(emails) e)
+  with ny as (
+    select distinct lower(trim(e)) as email from unnest(emails) e
+  ), voafidy as (
+    select ny.email,
+      coalesce(
+        p.sary,
+        case when u.raw_user_meta_data->>'logo' like 'data:image/%' then u.raw_user_meta_data->>'logo' end,
+        case when u.raw_user_meta_data->>'avatar_url' like 'https://%' then u.raw_user_meta_data->>'avatar_url' end,
+        case when u.raw_user_meta_data->>'picture' like 'https://%' then u.raw_user_meta_data->>'picture' end
+      ) as sary
+    from ny
+    left join public.profil_sary p on p.email = ny.email
+    left join lateral (
+      select x.raw_user_meta_data from auth.users x
+      where lower(x.email) = ny.email limit 1
+    ) u on true
+  )
+  select v.email, v.sary from voafidy v
+  where auth.uid() is not null and v.sary is not null
   limit 300
 $$;
 revoke all on function public.sary_olona(text[]) from public, anon;
