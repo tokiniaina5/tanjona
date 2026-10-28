@@ -2709,6 +2709,8 @@
   // il la retrouve dans Paramètres > « Nouvelles inscriptions » et dans son
   // admin du site. Le client, lui, entre directement, sans rien attendre.
   function recordNewSignup(name, email, phone){
+    // Juste inscrit (email ou Google) : la langue se choisit avant d'entrer.
+    if(typeof window.tenyVoalohany === 'function') window.tenyVoalohany();
     // Plus de panneau « Tongasoa ! » avec les canaux de l'admin (22/10/2026) :
     // chaque compte a désormais les siens (« 🔗 Ajouter les liens »).
     if(!window.__sb) return;
@@ -4462,6 +4464,8 @@
       'Sans compte — encore ' + reste + ' jour' + (reste > 1 ? 's' : '');
     const ouvrir = function(){
       openApp();
+      // Entré sans compte : la langue se choisit d'abord, par-dessus tout.
+      if(typeof window.tenyVoalohany === 'function') window.tenyVoalohany();
       // Arrivé par un lien de direct ou d'appel (live.js), on n'a rien à faire
       // sur l'Accueil : openApp vient d'ouvrir la page qu'il fallait, et
       // l'Accueil la refermerait aussitôt. L'avis d'essai libre attend aussi
