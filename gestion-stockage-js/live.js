@@ -1277,7 +1277,10 @@
       valiny: 'Veloma tompoko, mandra-pihaona ! Misaotra nifandray tamin\'ny Ny asako.' },
     { teny: ['miala tsiny', 'pardon', 'desole', 'désolé', 'sorry', 'azafady'],
       valiny: 'Tsy maninona tompoko ! Inona no azoko anampiana anao ?' },
-    { teny: ['tsy azoko', 'tsy mazava', 'je ne comprends pas', 'pas compris', 'i don t understand', 'hazavao'],
+    // Ny valiny eto dia raha tsy mbola nisy lohahevitra teo aloha ihany ;
+    // raha nisy, botHazavainaTsara no mamaly (dingana tsikelikely).
+    { hazavao: true, teny: ['tsy azoko', 'tsy mazava', 'je ne comprends pas', 'pas compris', 'i don t understand', 'hazavao', 'azavao',
+      'hazavao tsara', 'tsara kokoa', 'pas clair', 'explique', 'expliquer', 'explique mieux', 'explain', 'not clear', 'more detail', 'plus de detail'],
       valiny: 'Andao hohazavaiko tsara kokoa : soraty ny anaran\'ilay pejy na fitaovana tianao ho fantatra (ohatra « facture », « portefeuille », « stock ») dia hazavaiko tsikelikely.' },
     { teny: ['olana', 'probleme', 'problème', 'bug', 'tsy mandeha', 'tsy mety', 'erreur', 'blocage'],
       valiny: 'Miala tsiny amin\'izany olana izany tompoko ! Lazao ahy hoe aiza no tsy mandeha (ohatra : facture, portefeuille, fidirana) ' +
@@ -1899,8 +1902,40 @@
     });
     return t.trim().split(' ').filter(function(x){ return x && BOT_TENY_FIARAHABANA.indexOf(x) < 0; }).length === 0;
   }
+  // Ny lohahevitra (pejy) farany nohazavaina tamin'ny olona tsirairay :
+  // « hazavao tsara, tsy mazava » dia manazava azy tsikelikely, fa tsy
+  // mamerina ilay valiny fohy (28/10/2026).
+  const botLohahevitraFarany = {};
+  function botHazavainaTsara(f){
+    const lakile = f.teny[0];
+    const anarana = BOT_SOKAFY[lakile][1];
+    let fototra = typeof f.valiny === 'function' ? f.valiny('') : f.valiny;
+    fototra = fototra.split(BOT_MENU).join('').replace(/^[^:]*:\s*/, '');
+    const fehezanteny = fototra.split(/(?<=[.!?])\s+/).map(function(s){ s = s.trim(); return s.charAt(0).toUpperCase() + s.slice(1); }).filter(Boolean);
+    const isa =['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣'];
+    const dingana = ['Tsindrio ilay logo eo ankavia amin\'ny barre ambany : io no Menu.',
+      'Ao amin\'ny lisitra misokatra, tsindrio ny « ' + anarana + ' ».'].concat(fehezanteny);
+    return anarana + ' : andao ho hazavaiko tsikelikely.\n' +
+      dingana.slice(0, isa.length).map(function(d, i){ return isa[i] + ' ' + d; }).join('\n') +
+      '\n\nTsindrio ny bokotra eto ambany dia sokafako ho anao izy. Raha mbola misy dingana tsy mazava, lazao ahy hoe ny faha-firy.';
+  }
   function botValio(email, soratra, f, teny){
     let valiny, lakile = null, sokafyIzao = false;
+    // « hazavao tsara ny notes » : ilay lohahevitra voalaza no hazavaina.
+    const fHazavao = BOT_FAQ.filter(function(x){ return x.hazavao; })[0];
+    const t = ' ' + botTeny(soratra) + ' ';
+    if(f && !f.hazavao && BOT_SOKAFY[f.teny[0]] && fHazavao.teny.some(function(m){ return t.indexOf(' ' + botTeny(m) + ' ') >= 0; })){
+      botLohahevitraFarany[email] = f;
+      f = fHazavao;
+    }
+    const teo = botLohahevitraFarany[email];
+    if(f && f.hazavao && teo){
+      return botAdikao(botHazavainaTsara(teo), teny).then(function(v){
+        return { soratra: v.soratra, teny: v.teny, sokafy: teo.teny[0],
+          media: { type: 'sary', url: botSaryFanazavana(v.soratra) } };
+      });
+    }
+    if(f && BOT_SOKAFY[f.teny[0]]) botLohahevitraFarany[email] = f;
     if(f){
       valiny = typeof f.valiny === 'function' ? f.valiny(soratra) : f.valiny;
       lakile = BOT_SOKAFY[f.teny[0]] ? f.teny[0] : null;
