@@ -1409,6 +1409,36 @@
       }).join('\n\n') +
       '\n\nAnontanio ahy ny anaran\'ny iray amin\'ireo, dia hazavaiko hoe inona izy sy ahoana no ampiasana azy.';
   }
+  // « Inona daholo no ao amin'ny Ny asako ? » (soratra na feo) : ny
+  // fanazavana feno, hatramin'ny fandraisana sy ny fisoratana anarana ka
+  // hatramin'ny pejy tsirairay, ary valiana amin'ny FEO (28/10/2026).
+  function botAngatahinaDaholo(soratra){
+    const t = ' ' + botTeny(soratra) + ' ';
+    return / (daholo|rehetra|tout|tous|toutes|everything|all) /.test(t) &&
+      / (inona|inon|hazavao|azavao|lazao|quoi|qu est|que|explique|what|tell|explain) /.test(t) &&
+      / (asako|appli|application|app|ao|site|dedans|inside|it) /.test(t);
+  }
+  function botFanazavanaFeno(){
+    const ampy = function(lakile){
+      const f = BOT_FAQ.filter(function(x){ return x.teny[0] === lakile; })[0];
+      return f ? (typeof f.valiny === 'function' ? f.valiny('') : f.valiny).split(' ' + BOT_MENU).join('') : '';
+    };
+    const pejy = BOT_FAQ.filter(function(f){ return BOT_SOKAFY[f.teny[0]] && typeof f.valiny === 'string'; })
+      .map(function(f){
+        const v = f.valiny.split(' ' + BOT_MENU).join('');
+        // « Maimaimpoana mandritra… » (vidiny) : tsy misy anarana eo aloha.
+        return /^\p{Extended_Pictographic}/u.test(v) ? v : BOT_SOKAFY[f.teny[0]][1] + ' : ' + v;
+      });
+    return '👋 Tongasoa eto amin\'ny Ny asako ! Izaho no Assistant, ary hazavaiko anao daholo ny ao aminy.\n\n' +
+      '🌱 Fandraisana : rehefa misokatra ny site dia misy fanazavana fohy (bienvenue) mampahafantatra ny Ny asako pejy tsirairay. ' +
+      'Tsindrio « Suivant » hanaraka azy, na « Se connecter » raha efa manana kaonty.\n\n' +
+      '🎁 ' + ampy('essai') + '\n\n' +
+      '✍️ ' + ampy('inscription') + ' Azonao atao koa ny miditra amin\'ny Google, Facebook na GitHub : ny sarin\'ny kaontinao no lasa sarinao. ' +
+      'Rehefa vita ny inscription dia misafidy fiteny aloha ianao (🌐 Language), dia adika amin\'izany ny site manontolo.\n\n' +
+      '📋 Ny Menu dia ilay logo eo ankavia amin\'ny barre ambany. Ireto no ao aminy :\n\n' +
+      pejy.join('\n\n') +
+      '\n\n🤖 Raha misy tsy mazava, anontanio ahy ny anaran\'ny pejy (ohatra « facture »), na lazao hoe « hazavao tsara » dia hazavaiko tsikelikely.';
+  }
   // Binance, Payoneer sy ny hafa : ireo rohy hita ao amin'ny Botika
   // (parrain-botika.js), miaraka amin'ny fanazavana fohy. Raha misy anarana
   // sehatra ao amin'ny fanontaniana, ireo ihany no omena ; raha tsy izany, ny
@@ -1761,15 +1791,25 @@
       return;
     }
     if(speechSynthesis.speaking){ speechSynthesis.cancel(); return; }
-    const u = new SpeechSynthesisUtterance(soratra);
     // Tsy misy feo malagasy amin'ny ankamaroan'ny finday : ny frantsay no
     // akaiky indrindra amin'ny fanononana.
     const lang = !teny || teny === 'mg' ? 'fr-FR' : teny;
-    u.lang = lang;
     const feo = speechSynthesis.getVoices().filter(function(v){ return v.lang && v.lang.toLowerCase().indexOf(lang.split('-')[0].toLowerCase()) === 0; })[0];
-    if(feo) u.voice = feo;
-    u.rate = 0.95;
-    speechSynthesis.speak(u);
+    // Tapatapany : Chrome dia mijanona irery rehefa lava loatra ny feo iray
+    // (fanazavana feno ny Ny asako, 28/10/2026). Mifanesy ireo tapany.
+    const tapany = [];
+    String(soratra).split(/(?<=[.!?])\s+/).forEach(function(f){
+      const farany = tapany.length - 1;
+      if(farany >= 0 && (tapany[farany] + ' ' + f).length <= 200) tapany[farany] += ' ' + f;
+      else tapany.push(f);
+    });
+    tapany.forEach(function(t){
+      const u = new SpeechSynthesisUtterance(t);
+      u.lang = lang;
+      if(feo) u.voice = feo;
+      u.rate = 0.95;
+      speechSynthesis.speak(u);
+    });
   }
 
   // Ny fiteny farany nanoratan'ilay olona (null = malagasy) : ho an'ny
@@ -1781,6 +1821,17 @@
   const botFomba = {};
   function botValinyFeno(email, soratra, media){
     if(media) botFomba[email] = media.type === 'feo' ? 'feo' : 'sary';
+    // « Inona daholo no ao amin'ny Ny asako ? » : soratra na feo (ny soratry
+    // ny feo ao amin'ny media.dikany), ny valiny dia fanazavana feno miaraka
+    // amin'ny feo mamaky azy.
+    const fanontaniana = media && media.type === 'feo' ? (media.dikany || '') : soratra;
+    if(botAngatahinaDaholo(fanontaniana) || (media && media.safidy && [].concat(media.safidy).some(botAngatahinaDaholo))){
+      const teny = botTenyFarany[email] || null;
+      return botAdikao(botFanazavanaFeno(), teny).then(function(v){
+        return { soratra: v.soratra, teny: v.teny,
+          media: { type: 'bot-feo', soratra: botHoVakiana(v.soratra), teny: v.teny || 'mg' } };
+      });
+    }
     // « sary note », « sary portefeuille », « feo facture » : ny valin'ilay
     // lohahevitra, miaraka amin'ny sary fanazavana (na feo) mitovy aminy.
     // Hafatra fohy ihany (teny 5) : « ahoana no hanovana ny photo de profil »
