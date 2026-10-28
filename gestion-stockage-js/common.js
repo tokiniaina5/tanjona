@@ -5381,6 +5381,9 @@
     }
 
     const suivis = [];
+    // La fenêtre qu'on est en train de tirer : le temps du geste, ses
+    // changements de style ne relancent pas la mise en place de toutes.
+    let deplacement = null;
 
     // Plusieurs fenêtres à la fois : celle qu'on touche, ou qu'on vient
     // d'ouvrir, passe devant les autres (23/10/2026). Les étages restent entre
@@ -5807,40 +5810,71 @@
         if(r.width < 1 || r.height < 1) return;
         e.preventDefault();
         figer(s.el, r);
-        g = { x: e.clientX, y: e.clientY, l: r.left, t: r.top, w: r.width, h: r.height };
+        // Le cadre où elle peut aller se mesure une fois, au départ : le
+        // remesurer à chaque pas de la souris forçait des recalculs en série.
+        const z = ecran();
+        const bande = (s.page || s.commePage) ? bandeUtile() : { haut: z.y, bas: z.y + z.h };
+        g = { x: e.clientX, y: e.clientY, l: r.left, t: r.top, w: r.width, h: r.height,
+              z: z, bande: bande, dx: 0, dy: 0, depasse: 0, vise: null, image: 0 };
+        // Pendant le geste, elle glisse sur la carte graphique (translate) au
+        // lieu d'être reposée à chaque pas (left/top) : elle suit la souris
+        // sans à-coups (28/10/2026). Sa vraie place s'écrit au lâcher.
+        s.el.style.willChange = 'translate';
+        s.calque.style.willChange = 'translate';
+        deplacement = s;
         ruban.classList.add('tire');
         try{ ruban.setPointerCapture(e.pointerId); }catch(err){}
       });
-      ruban.addEventListener('pointermove', function(e){
-        if(!g) return;
+      // Une image par rafraîchissement de l'écran, avec la dernière position
+      // de la souris : les pas intermédiaires ne servent à rien.
+      function poser(){
+        if(!g || !g.vise) return;
+        g.image = 0;
+        const e = g.vise;
         // Déplacée pour de bon, elle n'est plus agrandie. Un simple appui ne
         // compte pas : c'est aussi le début d'un double-clic.
-        if(s.agrandie && Math.abs(e.clientX - g.x) + Math.abs(e.clientY - g.y) > 4){
+        if(s.agrandie && Math.abs(e.x - g.x) + Math.abs(e.y - g.y) > 4){
           marquerAgrandie(s, false);
         }
-        const z = ecran();
-        const bande = (s.page || s.commePage) ? bandeUtile() : { haut: z.y, bas: z.y + z.h };
-        let l = g.l + (e.clientX - g.x);
-        let t = g.t + (e.clientY - g.y);
+        const z = g.z, bande = g.bande;
+        let l = g.l + (e.x - g.x);
+        let t = g.t + (e.y - g.y);
         const brut = l;
         l = Math.max(z.x + MARGE, Math.min(l, z.x + z.w - g.w - MARGE));
         t = Math.max(bande.haut + MARGE, Math.min(t, bande.bas - g.h - MARGE));
-        s.el.style.left = Math.round(l) + 'px';
-        s.el.style.top = Math.round(t) + 'px';
+        g.dx = l - g.l;
+        g.dy = t - g.t;
         // Poussée plus loin que le bord, elle commence à sortir : lâchée
         // assez loin, elle se ferme (voir armerBalayage).
         g.depasse = brut - l;
-        glisser(s, g.depasse);
-        synchroniser();
+        const dx = g.dx + g.depasse;
+        s.el.style.translate = dx + 'px ' + g.dy + 'px';
+        s.el.style.opacity = g.depasse ? String(Math.max(0.35, 1 - Math.abs(g.depasse) / 500)) : '';
+        s.calque.style.translate = dx + 'px ' + g.dy + 'px';
+      }
+      ruban.addEventListener('pointermove', function(e){
+        if(!g) return;
+        g.vise = { x: e.clientX, y: e.clientY };
+        if(!g.image) g.image = requestAnimationFrame(poser);
       });
       function fin(e){
         if(!g) return;
+        if(g.image){ cancelAnimationFrame(g.image); poser(); }
         const depasse = g.depasse || 0;
+        // La place atteinte devient la sienne, et le glissement s'efface.
+        s.el.style.left = Math.round(g.l + g.dx) + 'px';
+        s.el.style.top = Math.round(g.t + g.dy) + 'px';
+        s.el.style.translate = depasse ? Math.round(depasse) + 'px 0' : '';
+        s.el.style.willChange = '';
+        s.calque.style.translate = '';
+        s.calque.style.willChange = '';
         g = null;
+        deplacement = null;
         ruban.classList.remove('tire');
         try{ ruban.releasePointerCapture(e.pointerId); }catch(err){}
         if(Math.abs(depasse) > SEUIL_JETER){ jeter(s, depasse); return; }
         glisser(s, 0);
+        synchroniser();
         // Agrandie, sa place n'est pas la sienne : on ne la retient pas.
         if(s.agrandie) return;
         const r = s.el.getBoundingClientRect();
@@ -5862,18 +5896,32 @@
         }
         return false;
       }
+      // Sitôt l'appui, c'est le document qui écoute : la souris quitte vite
+      // la fenêtre (vers ses ─ □ ✕, hors de son cadre), et ses mouvements
+      // n'arrivaient plus jusqu'à elle — elle restait sur place.
       let attente = null, bouge = false;
+      function ecouter(oui){
+        const f = oui ? 'addEventListener' : 'removeEventListener';
+        document[f]('pointermove', suivreSouris, true);
+        document[f]('pointerup', lacher, true);
+        document[f]('pointercancel', lacher, true);
+      }
       s.el.addEventListener('pointerdown', function(e){
         if(e.pointerType !== 'mouse' || e.button !== 0 || laharana) return;
         if(!visible(s.el) || seClique(e.target)) return;
         const r = s.el.getBoundingClientRect();
         if(e.clientY - r.top > HAUT) return;
         attente = { x: e.clientX, y: e.clientY, id: e.pointerId };
+        ecouter(true);
       });
-      s.el.addEventListener('pointermove', function(e){
-        if(g && bouge){
-          try{ window.getSelection().removeAllRanges(); }catch(err){}
-          ruban.dispatchEvent(new PointerEvent('pointermove', e));
+      // Ni sélection de texte, ni glisser-déposer du navigateur : ce dernier
+      // annulait le geste (pointercancel) au premier mouvement.
+      ['selectstart', 'dragstart'].forEach(function(t){
+        s.el.addEventListener(t, function(e){ if(attente || bouge) e.preventDefault(); });
+      });
+      function suivreSouris(e){
+        if(bouge){
+          if(g) ruban.dispatchEvent(new PointerEvent('pointermove', e));
           return;
         }
         if(!attente || e.pointerId !== attente.id) return;
@@ -5882,25 +5930,24 @@
         attente = null;
         // Le ruban fait le reste, comme si on l'avait pris là où l'on a appuyé.
         ruban.dispatchEvent(new PointerEvent('pointerdown', { clientX: a.x, clientY: a.y, pointerId: a.id, pointerType: 'mouse', bubbles: false, cancelable: true }));
-        if(!g) return;
+        if(!g){ ecouter(false); return; }
         bouge = true;
+        document.body.style.userSelect = 'none';
         try{ window.getSelection().removeAllRanges(); }catch(err){}
-        try{ s.el.setPointerCapture(e.pointerId); }catch(err){}
         ruban.dispatchEvent(new PointerEvent('pointermove', e));
-      });
+      }
       function lacher(e){
         attente = null;
+        ecouter(false);
         if(!bouge) return;
         bouge = false;
-        try{ s.el.releasePointerCapture(e.pointerId); }catch(err){}
+        document.body.style.userSelect = '';
         ruban.dispatchEvent(new PointerEvent(e.type, e));
         // Le clic qui termine le déplacement n'ouvre rien sous la souris.
         function avaler(c){ c.stopPropagation(); c.preventDefault(); }
-        s.el.addEventListener('click', avaler, { capture: true, once: true });
-        setTimeout(function(){ s.el.removeEventListener('click', avaler, { capture: true }); }, 0);
+        document.addEventListener('click', avaler, { capture: true, once: true });
+        setTimeout(function(){ document.removeEventListener('click', avaler, { capture: true }); }, 0);
       }
-      s.el.addEventListener('pointerup', lacher);
-      s.el.addEventListener('pointercancel', lacher);
     }
 
     // Glisser vers la gauche ou la droite, et la fenêtre s'en va : on les
@@ -6126,7 +6173,7 @@
       suivis.push(s);
       // La fenêtre s'ouvre, se ferme et se déplace sans prévenir personne :
       // on regarde ce qui change sur elle plutôt que de deviner qui l'a bougée.
-      new MutationObserver(synchroniser)
+      new MutationObserver(function(){ if(deplacement !== s) synchroniser(); })
         .observe(el, { attributes: true, attributeFilter: ['style', 'class'] });
     });
 
