@@ -5850,6 +5850,57 @@
       }
       ruban.addEventListener('pointerup', fin);
       ruban.addEventListener('pointercancel', fin);
+
+      // À la souris, le trait du ruban est une cible mince : on prend aussi la
+      // fenêtre par son haut, là où est son titre (28/10/2026), comme une
+      // barre de titre. Seulement sur ce qui ne fait rien d'autre au clic, et
+      // seulement une fois la souris partie : un simple clic reste un clic.
+      const HAUT = 64;
+      function seClique(cible){
+        for(let n = cible; n && n !== s.el; n = n.parentElement){
+          if(n.matches && n.matches('button, a, input, textarea, select, label, summary, video, canvas, [contenteditable="true"], [role="button"], [onclick], [data-guide-vers]')) return true;
+        }
+        return false;
+      }
+      let attente = null, bouge = false;
+      s.el.addEventListener('pointerdown', function(e){
+        if(e.pointerType !== 'mouse' || e.button !== 0 || laharana) return;
+        if(!visible(s.el) || seClique(e.target)) return;
+        const r = s.el.getBoundingClientRect();
+        if(e.clientY - r.top > HAUT) return;
+        attente = { x: e.clientX, y: e.clientY, id: e.pointerId };
+      });
+      s.el.addEventListener('pointermove', function(e){
+        if(g && bouge){
+          try{ window.getSelection().removeAllRanges(); }catch(err){}
+          ruban.dispatchEvent(new PointerEvent('pointermove', e));
+          return;
+        }
+        if(!attente || e.pointerId !== attente.id) return;
+        if(Math.abs(e.clientX - attente.x) + Math.abs(e.clientY - attente.y) < 5) return;
+        const a = attente;
+        attente = null;
+        // Le ruban fait le reste, comme si on l'avait pris là où l'on a appuyé.
+        ruban.dispatchEvent(new PointerEvent('pointerdown', { clientX: a.x, clientY: a.y, pointerId: a.id, pointerType: 'mouse', bubbles: false, cancelable: true }));
+        if(!g) return;
+        bouge = true;
+        try{ window.getSelection().removeAllRanges(); }catch(err){}
+        try{ s.el.setPointerCapture(e.pointerId); }catch(err){}
+        ruban.dispatchEvent(new PointerEvent('pointermove', e));
+      });
+      function lacher(e){
+        attente = null;
+        if(!bouge) return;
+        bouge = false;
+        try{ s.el.releasePointerCapture(e.pointerId); }catch(err){}
+        ruban.dispatchEvent(new PointerEvent(e.type, e));
+        // Le clic qui termine le déplacement n'ouvre rien sous la souris.
+        function avaler(c){ c.stopPropagation(); c.preventDefault(); }
+        s.el.addEventListener('click', avaler, { capture: true, once: true });
+        setTimeout(function(){ s.el.removeEventListener('click', avaler, { capture: true }); }, 0);
+      }
+      s.el.addEventListener('pointerup', lacher);
+      s.el.addEventListener('pointercancel', lacher);
     }
 
     // Glisser vers la gauche ou la droite, et la fenêtre s'en va : on les
